@@ -11,8 +11,8 @@ library("Seurat")
 library("Matrix")
 library("reticulate")
 library("cowplot")
-library("monocle")
-library("monocle3")
+# library("monocle")
+# library("monocle3")
 # library(dyno)
 # library(tidyverse)
 
@@ -68,35 +68,17 @@ png(filename = paste(rna_path, "results/umap.png", sep=""), width = 900, height 
 print(p2)
 dev.off()
 
-## Monocle
-# data <- as(as.matrix(combined@assays$RNA@data), 'sparseMatrix')
-# pd <- new('AnnotatedDataFrame', data = combined@meta.data)
-# fData <- data.frame(gene_short_name = row.names(data), row.names = row.names(data))
-# fd <- new('AnnotatedDataFrame', data = fData)
-# cds <- newCellDataSet(data, phenoData = pd, featureData = fd, lowerDetectionLimit = 0.5, expressionFamily = negbinomial.size())
-# cth <- newCellTypeHierarchy()
-# cds <- classifyCells(cds, cth, 0.1)
-# 
-# cds <- estimateSizeFactors(cds)
-# cds <- estimateDispersions(cds)
-# disp_table <- dispersionTable(cds)
-# ordering_genes <- subset(disp_table, mean_expression >= 0.1)
-# cds <- setOrderingFilter(cds, ordering_genes)
-# cds <- reduceDimension(cds)
-# cds <- orderCells(cds)
-# diff_test_res <- differentialGeneTest(cds, fullModelFormulaStr = "~cond")
-
 ## Monocle 3
-clpp <- load_cellranger_data(paste(rna_path, "/CLIPP/", sep=""))
-ctrl <- load_cellranger_data(paste(rna_path, "/CTRL/", sep=""))
-cds <- combine_cds(list(clpp, ctrl))
-cds <- preprocess_cds(cds, num_dim = 100)
-# cds <- align_cds(cds, alignment_group = "batch")
-cds <- reduce_dimension(cds)
-cds <- cluster_cells(cds)
-cds <- learn_graph(cds)
-cds <- order_cells(cds)
-plot_cells(cds)
+# clpp <- load_cellranger_data(paste(rna_path, "/CLIPP/", sep=""))
+# ctrl <- load_cellranger_data(paste(rna_path, "/CTRL/", sep=""))
+# cds <- combine_cds(list(clpp, ctrl))
+# cds <- preprocess_cds(cds, num_dim = 100)
+# # cds <- align_cds(cds, alignment_group = "batch")
+# cds <- reduce_dimension(cds)
+# cds <- cluster_cells(cds)
+# cds <- learn_graph(cds)
+# cds <- order_cells(cds)
+# plot_cells(cds)
 
 # Cluster analysis
 # dist.matrix <- dist(x = Embeddings(object = combined[["pca"]])[, 0:8])
@@ -118,11 +100,7 @@ plot_cells(cds)
   ## Garnett was a bust because its pre-trained classifiers were only for lung or brain.
 
 # Find clusters
-## mCLIPP_cluster <- list()
-## mCTRL_cluster <- list()
-## Idents(object=combined) <- "seurat_clusters"
-## colnames(mCLIPP) <- paste("CLIPP", colnames(mCLIPP), sep="_")
-## colnames(mCTRL)  <- paste("CTRL",  colnames(mCTRL),  sep="_")
+print("Finding DEG between clusters")
 Idents(object = combined) <- "seurat_clusters"
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 for (i in 0:num_clusters) {
