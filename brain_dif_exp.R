@@ -63,7 +63,7 @@ combined <- RunUMAP(combined, reduction = "pca", dims = 1:20)
 combined <- FindNeighbors(combined, reduction = "umap", dims = 1:2)
 combined <- FindClusters(combined, resolution = 0.28)
 # Visualization
-DimPlot(combined, reduction = "umap", split.by = "cond", label = TRUE)
+p2 <- DimPlot(combined, reduction = "umap", split.by = "cond", label = TRUE)
 png(filename = paste(rna_path, "results/umap.png", sep=""), width = 900, height = 500, unit="px")
 print(p2)
 dev.off()
