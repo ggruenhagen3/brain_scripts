@@ -19,9 +19,9 @@ library("monocle3")
 rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "/nv/hp10/ggruenhagen3/scratch/brain/"
 
-b1.data <- Read10X(data.dir = paste(rna_path, "/BHVE-JTS03-B1/outs/filtered_feature_bc_matrix/", sep=""))
-b2.data <- Read10X(data.dir = paste(rna_path, "/BHVE-JTS02-B2/outs/filtered_feature_bc_matrix/", sep=""))
-c1.data <- Read10X(data.dir = paste(rna_path, "/CTRL-JTS03-C1/outs/filtered_feature_bc_matrix/", sep=""))
+b1.data <- Read10X(data.dir = paste(rna_path, "data/BHVE-JTS03-B1/outs/filtered_feature_bc_matrix/", sep=""))
+b2.data <- Read10X(data.dir = paste(rna_path, "data/BHVE-JTS02-B2/outs/filtered_feature_bc_matrix/", sep=""))
+c1.data <- Read10X(data.dir = paste(rna_path, "data/CTRL-JTS03-C1/outs/filtered_feature_bc_matrix/", sep=""))
 
 b1 <- CreateSeuratObject(counts = b1.data, project = "BHVE")
 b2 <- CreateSeuratObject(counts = b2.data, project = "BHVE")
@@ -52,10 +52,7 @@ b2 <- NormalizeData(b2, normalization.method = "LogNormalize", scale.factor = 10
 c1 <- NormalizeData(c1, normalization.method = "LogNormalize", scale.factor = 100000)
 
 combined <- merge(x=c1, y=c(b1,b2), merge.data = TRUE, add.cell.ids = c("CTRL", "BHVE", "BHVE"))
-# combined <- merge(c1, b1, merge.data = TRUE)
 combined <- subset(combined, subset = nFeature_RNA > 500)
-# combined <- NormalizeData(object = combined, normalization.method = "LogNormalize", scale.factor = 1000000)
-# combined <- NormalizeData(object = combined, normalization.method = "LogNormalize", scale.factor = 10000)
 combined <- FindVariableFeatures(object = combined, mean.function = ExpMean, dispersion.function = LogVMR, nfeatures = 2000)
 
 # Run the standard workflow for visualization and clustering
@@ -129,6 +126,7 @@ plot_cells(cds)
 Idents(object = combined) <- "seurat_clusters"
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 for (i in 0:num_clusters) {
+  print(i)
   nk.markers <- FindMarkers(combined, ident.1 = i, verbose = FALSE)
   nk.markers$gene_name <- row.names(nk.markers)
   sig_nk.markers <- nk.markers[which(nk.markers$p_val_adj < 0.05 & abs(nk.markers$avg_logFC) > 2),]
