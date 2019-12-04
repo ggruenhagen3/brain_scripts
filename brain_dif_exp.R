@@ -19,9 +19,9 @@ library("cowplot")
 rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "/nv/hp10/ggruenhagen3/scratch/brain/"
 
-b1.data <- Read10X(data.dir = paste(rna_path, "data/BHVE-JTS03-B1/outs/filtered_feature_bc_matrix/", sep=""))
-b2.data <- Read10X(data.dir = paste(rna_path, "data/BHVE-JTS02-B2/outs/filtered_feature_bc_matrix/", sep=""))
-c1.data <- Read10X(data.dir = paste(rna_path, "data/CTRL-JTS03-C1/outs/filtered_feature_bc_matrix/", sep=""))
+b1.data <- Read10X(data.dir = paste(rna_path, "data/BHVE-JTS03-B1-from-bcl/outs/filtered_feature_bc_matrix/", sep=""))
+b2.data <- Read10X(data.dir = paste(rna_path, "data/BHVE-JTS02-B2-from-bcl/outs/filtered_feature_bc_matrix/", sep=""))
+c1.data <- Read10X(data.dir = paste(rna_path, "data/CTRL-JTS03-C1-from-bcl/outs/filtered_feature_bc_matrix/", sep=""))
 
 b1 <- CreateSeuratObject(counts = b1.data, project = "BHVE")
 b2 <- CreateSeuratObject(counts = b2.data, project = "BHVE")
