@@ -108,12 +108,12 @@ for (i in 0:num_clusters) {
   nk.markers <- FindMarkers(combined, ident.1 = i, verbose = FALSE)
   nk.markers$gene_name <- row.names(nk.markers)
   sig_nk.markers <- nk.markers[which(nk.markers$p_val_adj < 0.05 & abs(nk.markers$avg_logFC) > 2),]
-  write.table(nk.markers, file = paste(rna_path, "/results/clusters/all_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE)
-  write.table(sig_nk.markers, file = paste(rna_path, "/results/clusters/sig_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE)
-  write.table(sig_nk.markers$gene_name, file = paste(rna_path, "/results/clusters/genes_sig_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(nk.markers, file = paste(rna_path, "/results/clusters/", num_clusters, "/all_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE)
+  write.table(sig_nk.markers, file = paste(rna_path, "/results/clusters/", num_clusters, "/sig_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE)
+  write.table(sig_nk.markers$gene_name, file = paste(rna_path, "/results/clusters/", num_clusters, "/genes_sig_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE, col.names = FALSE)
   sig_nk_pos.markers <- nk.markers[which(nk.markers$p_val_adj < 0.05 & nk.markers$avg_logFC > 2),]
-  write.table(sig_nk_pos.markers, file = paste(rna_path, "/results/clusters/sig_pos_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE)
-  write.table(sig_nk_pos.markers$gene_name, file = paste(rna_path, "/results/clusters/genes_sig_pos_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(sig_nk_pos.markers, file = paste(rna_path, "/results/clusters/", num_clusters, "/sig_pos_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE)
+  write.table(sig_nk_pos.markers$gene_name, file = paste(rna_path, "/results/clusters/", num_clusters, "/genes_sig_pos_cluster_", i, ".tsv", sep=""), quote = FALSE, row.names = FALSE, col.names = FALSE)
 }
 print("Done finding clusters")
 
