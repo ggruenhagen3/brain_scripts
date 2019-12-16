@@ -43,11 +43,11 @@ ui <- fluidPage(
       # plotOutput(outputId = "plot", width = "100%", height="500px"),
       # downloadButton(outputId = "down", label = "Download the plot")
       
-      tabsetPanel(type = "tabs",
-                  tabPanel("Overlap Plot", plotOutput("ovlp_plot")),
-                  tabPanel("Plot", plotOutput("plot")),
-                  downloadButton(outputId = "down", label = "Download the plot")
-      )
+      tabsetPanel(id = "tabs", type = "tabs",
+                  tabPanel("Overlap Plot", value="A", plotOutput("ovlp_plot", width = "100%", height="500px")),
+                  tabPanel("Plot", value="B", plotOutput("plot", width = "100%", height="500px"))
+      ),
+      downloadButton(outputId = "down", label = "Download the plot")
       
     )
   )
@@ -111,8 +111,7 @@ server <- function(input, output, session) {
   # Normal Plot
   output$plot <- renderPlot({
     
-   FeaturePlot(combined, features = c(input$gene), split.by = "cond", reduction = "umap", pt.size = 2, label=TRUE, order = TRUE)
-
+    FeaturePlot(combined, features = c(input$gene), split.by = "cond", reduction = "umap", pt.size = 2, label=TRUE, order = TRUE)
     
   })
   
@@ -134,7 +133,10 @@ server <- function(input, output, session) {
       print(filename)
       print(input$gene)
       png(filename = filename, width = 900, height = 500)
-      p <- createPlot()
+      p <- FeaturePlot(combined, features = c(input$gene), split.by = "cond", reduction = "umap", pt.size = 2, label=TRUE, order = TRUE)
+      if (input$tabs == "A") {
+        p <- createPlot()
+      }
       print(p)
       dev.off()
     }
