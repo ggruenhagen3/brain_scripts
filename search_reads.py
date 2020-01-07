@@ -151,7 +151,7 @@ def main():
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
                 output += len_output_lines
-        if len(output) > 0:
+        if output > 0:
             snps_found[i] = output
     print(str(snps_found))
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
