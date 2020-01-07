@@ -143,6 +143,8 @@ def main():
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
         for file in files:
+            print(file)
+            print(dir)
             output = subprocess.check_output(["samtools", "view", file, coord])
             if len(output) > 0:
                 snps_found.append(i)
