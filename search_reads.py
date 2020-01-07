@@ -8,12 +8,13 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Search reads for SNPs')
     parser.add_argument('snp', metavar='s', help='Query SNPs')
     parser.add_argument('dir', metavar='d', help='Directory of SAM files')
+    parser.add_argument('output', metavar='o', help='Name of Output File')
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     # parser.add_argument("-q", "--quarter", help="merge the intermediate matrices, to save on space", action="store_true")
     # parser.add_argument("-b", "--big", help="minimize big network", action="store_true")
     # parser.add_argument("-c", "--clean", help="remove edges below a threshold", action="store_true")
     args = parser.parse_args()
-    return args.snp, args.dir, args.verbose
+    return args.snp, args.dir, args.verbose, args.output
 
 
 def readSNP(snp):
@@ -122,8 +123,15 @@ def searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_p
     return snp_found
 
 
+def writeFile(file, lines):
+    f = open(file, "w")
+    for line in lines:
+        f.write(line)
+    f.close()
+
+
 def main():
-    snp, dir, verbose = parseArgs()
+    snp, dir, verbose, output = parseArgs()
 
     if verbose: print("Reading SNPs")
     snp_scaffold, snp_pos, snp_alt = readSNP(snp)
@@ -136,6 +144,8 @@ def main():
     if verbose: print("Searching for SNPs")
     snps_found = {}
     for i in range(0, len(snp_scaffold)):
+        if i % 5000 == 0:
+            print(i)
         old_scaffold = snp_scaffold[i]
         new_scaffold = convertScaffolds(old_scaffold)
         scaffold = new_scaffold
@@ -150,11 +160,20 @@ def main():
                 output += len_output_lines
         if output > 0:
             snps_found[i] = output
-    print(str(snps_found))
+    # print(str(snps_found))
+
+    lines = []
     print("Number of SNPs: " + str(len(snp_scaffold)))
     print("Number of SNPs Found: " + str(len(snps_found)))
     print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
-    print("Average Number of Transcripts per SNP:" + str( sum(snps_found.values())/len(snps_found.values()) ))
+    print("Average Number of Transcripts per SNP: " + str( sum(snps_found.values())/len(snps_found.values()) ))
+
+    lines[0] = "Number of SNPs: " + str(len(snp_scaffold))
+    lines[1] = "Number of SNPs Found: " + str(len(snps_found))
+    lines[2] = "Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold))
+    lines[3] = "Average Number of Transcripts per SNP: " + str(sum(snps_found.values()) / len(snps_found.values()))
+    writeFile(output, lines)
+
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
 

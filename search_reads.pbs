@@ -12,4 +12,4 @@ module purge
 module load anaconda3
 module load samtools
 
-python search_read.py -s ~/scratch/brain/data/snp/test.vcf -d ~/scratch/brain/data/bams/ -v
+python ~/scratch/brain/brain_scripts/search_read.py ~/scratch/brain/data/snp/final.bed ~/scratch/brain/data/bams/ ~/scratch/brain/results/ase.txt -v
