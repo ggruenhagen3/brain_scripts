@@ -139,10 +139,11 @@ def main():
         old_scaffold = snp_scaffold[i]
         print(old_scaffold)
         new_scaffold = convertScaffolds(old_scaffold)
+        print(new_scaffold)
         scaffold = new_scaffold
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
-        for file in file in os.listdir(dir):
+        for file  in os.listdir(dir):
             print(file)
             output = subprocess.check_output(["samtools", "view", file, coord])
             if len(output) > 0:
