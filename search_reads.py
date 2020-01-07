@@ -46,9 +46,10 @@ def convertScaffolds(old):
     dict = {}
     for i in range(1, 20):
         dict["LG" + str(i)] = "NC_0" + str(i + 36779.1)
-    new = []
-    for scaffold in old:
-        new.append(dict[scaffold])
+    # new = []
+    # for scaffold in old:
+    #     new.append(dict[scaffold])
+    new = dict[old]
     return new
 
 
