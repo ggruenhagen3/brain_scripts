@@ -33,7 +33,7 @@ def readSNP(snp):
             lineSplit = line.split()
             scaffold.append(lineSplit[0])
             pos.append(lineSplit[1])
-            alt.append(lineSplit[4])
+            # alt.append(lineSplit[4])
 
     return scaffold, pos, alt
 
@@ -154,6 +154,10 @@ def main():
         if output > 0:
             snps_found[i] = output
     print(str(snps_found))
+    print("Number of SNPs: " + str(len(snp_scaffold)))
+    print("Number of SNPs Found: " + str(len(snps_found)))
+    print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
+    print("Average Number of Transcripts per SNP:" + str( sum(snps_found.values())/len(snps_found.values()) ))
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
 
