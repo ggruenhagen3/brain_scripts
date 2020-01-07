@@ -145,7 +145,7 @@ def main():
         coord = str(scaffold) + ":" + pos + "-" + pos
         for file  in os.listdir(dir):
             print(file)
-            output = subprocess.check_output(["samtools", "view", file, coord])
+            output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
             if len(output) > 0:
                 snps_found.append(i)
     print(str(snps_found))
