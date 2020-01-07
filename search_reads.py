@@ -143,15 +143,16 @@ def main():
         scaffold = new_scaffold
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
-        output = []
+        output = 0
         for file in os.listdir(dir):
             if file.endswith(".bam"):
                 print(file)
                 this_output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
-                output.append(output_lines)
-        if len(output) > 1:
-            snps_found[i] = len(output) - 1 # -1 because the last one is empty string
+                len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
+                output += len_output_lines
+        if len(output) > 0:
+            snps_found[i] = output
     print(str(snps_found))
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
