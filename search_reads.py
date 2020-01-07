@@ -134,7 +134,7 @@ def main():
     # if verbose: print("Done")
 
     if verbose: print("Searching for SNPs")
-    snps_found = []
+    snps_found = {}
     for i in range(0, len(snp_scaffold)):
         old_scaffold = snp_scaffold[i]
         print(old_scaffold)
@@ -143,12 +143,15 @@ def main():
         scaffold = new_scaffold
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
-        for file  in os.listdir(dir):
+        output = []
+        for file in os.listdir(dir):
             if file.endswith(".bam"):
                 print(file)
                 output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
-                if len(output) > 0:
-                    snps_found.append(i)
+                output_lines = output.decode().split("\n")
+                output.append(output_lines)
+        if len(output) > 1:
+            snps_found[i] = len(output) - 1 # -1 because the last one is empty string
     print(str(snps_found))
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
