@@ -10,8 +10,8 @@ def parseArgs():
 
 def readFile(file):
     lines = []
-    with open(file, 'r') as file:
-        for line in file:
+    with open(file, 'r') as input:
+        for line in input:
             lines.append(line)
     return lines
 
@@ -39,6 +39,7 @@ def writeFile(file, lines):
 def main():
     input, output = parseArgs()
     lines = readFile(input)
+    print(len(lines))
     lines = convertScaffolds(lines)
     writeFile(output, lines)
 
