@@ -147,8 +147,8 @@ def main():
         for file in os.listdir(dir):
             if file.endswith(".bam"):
                 print(file)
-                output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
-                output_lines = output.decode().split("\n")
+                this_output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
+                output_lines = this_output.decode().split("\n")
                 output.append(output_lines)
         if len(output) > 1:
             snps_found[i] = len(output) - 1 # -1 because the last one is empty string
