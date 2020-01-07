@@ -10,8 +10,9 @@ def parseArgs():
 
 def readFile(file):
     lines = []
-    for line in file:
-        lines.append(line)
+    with open(file, 'r') as file:
+        for line in file:
+            lines.append(line)
     return lines
 
 
