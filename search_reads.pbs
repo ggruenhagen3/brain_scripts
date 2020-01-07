@@ -10,5 +10,6 @@
 cd $PBS_O_WORKDIR
 module purge
 module load anaconda3
+module load samtools
 
-python -s ____ -d _____ -v
+python -s ~/scratch/brain/data/snp/test.vcf -d ~/scratch/brain/data/bams/ -v

@@ -1,5 +1,6 @@
 import argparse
 import glob
+import subprocess
 
 # Arg Parser
 def parseArgs():
@@ -125,12 +126,23 @@ def main():
     snp_scaffold, snp_pos, snp_alt = readSNP(snp)
     if verbose: print("Done")
 
-    if verbose: print("Reading SAMs in Dir")
-    all_scaffold, all_start, all_stop, all_seq = readDir(dir)
-    if verbose: print("Done")
+    # if verbose: print("Reading SAMs in Dir")
+    # all_scaffold, all_start, all_stop, all_seq = readDir(dir)
+    # if verbose: print("Done")
 
     if verbose: print("Searching for SNPs")
-    snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
+    files = glob.glob(dir)  # add *.sam
+    snps_found = []
+    for i in range(0, len(snp_scaffold)):
+        scaffold = convertScaffolds(snp_scaffold[i])
+        pos = snp_pos[i]
+        coord = str(scaffold) + ":" + pos + "-" + pos
+        for file in files:
+            output = subprocess.check_output(["samtools", "view", file, coord])
+            if len(output) > 0:
+                snps_found.append(i)
+    print(str(snps_found))
+    # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
 
 
