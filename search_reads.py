@@ -1,6 +1,7 @@
 import argparse
 import glob
 import subprocess
+import os
 
 # Arg Parser
 def parseArgs():
@@ -133,7 +134,6 @@ def main():
     # if verbose: print("Done")
 
     if verbose: print("Searching for SNPs")
-    files = glob.glob(dir)  # add *.sam
     snps_found = []
     for i in range(0, len(snp_scaffold)):
         old_scaffold = snp_scaffold[i]
@@ -142,9 +142,8 @@ def main():
         scaffold = new_scaffold
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
-        for file in files:
+        for file in file in os.listdir(dir):
             print(file)
-            print(dir)
             output = subprocess.check_output(["samtools", "view", file, coord])
             if len(output) > 0:
                 snps_found.append(i)
