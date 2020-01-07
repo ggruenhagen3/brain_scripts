@@ -26,7 +26,7 @@ def convertScaffolds(lines):
     for line in lines:
         for key in dict.keys():
             line = line.replace(dict[key], key)  # Converts from LG to NC_
-            new_lines.append(line)
+        new_lines.append(line)
     return new_lines
 
 
@@ -39,11 +39,13 @@ def writeFile(file, lines):
 
 def main():
     input, output = parseArgs()
+    print("Converting from LG format to NC format")
     lines = readFile(input)
-    print(len(lines))
+    print("Number of input lines " + str(len(lines)))
     lines = convertScaffolds(lines)
-    print(len(lines))
+    print("Number of output lines " + str(len(lines)))
     writeFile(output, lines)
+    print("Done.")
 
 
 if __name__ == '__main__':
