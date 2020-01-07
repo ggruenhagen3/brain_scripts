@@ -137,16 +137,13 @@ def main():
     snps_found = {}
     for i in range(0, len(snp_scaffold)):
         old_scaffold = snp_scaffold[i]
-        print(old_scaffold)
         new_scaffold = convertScaffolds(old_scaffold)
-        print(new_scaffold)
         scaffold = new_scaffold
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
         output = 0
         for file in os.listdir(dir):
             if file.endswith(".bam"):
-                print(file)
                 this_output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
