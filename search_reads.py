@@ -144,10 +144,11 @@ def main():
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
         for file  in os.listdir(dir):
-            print(file)
-            output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
-            if len(output) > 0:
-                snps_found.append(i)
+            if file.endswith(".bam"):
+                print(file)
+                output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
+                if len(output) > 0:
+                    snps_found.append(i)
     print(str(snps_found))
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
