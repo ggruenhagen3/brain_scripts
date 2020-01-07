@@ -135,6 +135,7 @@ def main():
     snps_found = []
     for i in range(0, len(snp_scaffold)):
         old_scaffold = snp_scaffold[i]
+        print(old_scaffold)
         new_scaffold = convertScaffolds(old_scaffold)
         scaffold = new_scaffold
         pos = snp_pos[i]
