@@ -134,7 +134,9 @@ def main():
     files = glob.glob(dir)  # add *.sam
     snps_found = []
     for i in range(0, len(snp_scaffold)):
-        scaffold = convertScaffolds(snp_scaffold[i])
+        old_scaffold = snp_scaffold[i]
+        new_scaffold = convertScaffolds(old_scaffold)
+        scaffold = new_scaffold
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
         for file in files:
