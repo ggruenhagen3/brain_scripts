@@ -124,7 +124,7 @@ def searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_p
 
 
 def writeFile(file, lines):
-    f = open(file, "w")
+    f = open(file, "w+")
     for line in lines:
         f.write(line)
     f.close()
