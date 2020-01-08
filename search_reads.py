@@ -168,10 +168,10 @@ def main():
     print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
     print("Average Number of Transcripts per SNP: " + str( sum(snps_found.values())/len(snps_found.values()) ))
 
-    lines[0] = "Number of SNPs: " + str(len(snp_scaffold))
-    lines[1] = "Number of SNPs Found: " + str(len(snps_found))
-    lines[2] = "Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold))
-    lines[3] = "Average Number of Transcripts per SNP: " + str(sum(snps_found.values()) / len(snps_found.values()))
+    lines.append("Number of SNPs: " + str(len(snp_scaffold)))
+    lines.append("Number of SNPs Found: " + str(len(snps_found)))
+    lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
+    lines.append("Average Number of Transcripts per SNP: " + str(sum(snps_found.values()) / len(snps_found.values())))
     writeFile(output, lines)
 
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
