@@ -52,7 +52,10 @@ def convertScaffolds(old):
     # new = []
     # for scaffold in old:
     #     new.append(dict[scaffold])
-    new = dict[old]
+    try:
+        new = dict[old]
+    except:
+        new = "not_found"
     return new
 
 
@@ -152,6 +155,7 @@ def main():
     # if verbose: print("Done")
 
     if verbose: print("Searching for SNPs")
+    snps_bad_scaffold = []
     snps_found = {}
     snps_len   = {}
     for i in range(0, len(snp_scaffold)):
@@ -163,29 +167,36 @@ def main():
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
         output = []
-        for file in os.listdir(dir):
-            if file.endswith(".bam"):
-                this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
-                output_lines = this_output.decode().split("\n")
-                len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
-                output.extend(output_lines[:-1])
-        output = filterCIGAR(output)
-        if len(output) > 0:
-            # print(output[0])
-            snps_found[i] = output
-            snps_len[i]   = len(output)
+        if scaffold == "not_found":
+            # Some of the scaffolds can't be converted
+            snps_bad_scaffold.append(i)
+        else:
+            for file in os.listdir(dir):
+                if file.endswith(".bam"):
+                    this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
+                    output_lines = this_output.decode().split("\n")
+                    len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
+                    output.extend(output_lines[:-1])
+            output = filterCIGAR(output)
+            if len(output) > 0:
+                # print(output[0])
+                snps_found[i] = output
+                snps_len[i]   = len(output)
     # print(str(snps_found))
 
     lines = []
-    print("Number of SNPs: " + str(len(snp_scaffold)))
+    print("Number of SNPs: " + str(len(snp_scaffold)-len(snps_bad_scaffold)))
     print("Number of SNPs Found: " + str(len(snps_found)))
     print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
     print("Average Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
+    print("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
 
-    lines.append("Number of SNPs: " + str(len(snp_scaffold)))
+
+    lines.append("Number of SNPs: " + str(len(snp_scaffold)-len(snps_bad_scaffold)))
     lines.append("Number of SNPs Found: " + str(len(snps_found)))
     lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
     lines.append("Average Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
+    lines.append("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
     writeFile(outputFile, lines)
 
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
