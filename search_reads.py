@@ -190,7 +190,8 @@ def main():
     print("Number of SNPs: " + str(len(snp_scaffold)-len(snps_bad_scaffold)))
     print("Number of SNPs Found: " + str(len(snps_found)))
     print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
-    print("Average Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
+    print("Mean Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
+    print("Median Number of Transcripts per SNP: " + str(np.median(snps_len.values())))
     print("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
 
 
@@ -208,6 +209,13 @@ def main():
     plt.ylabel('Number of SNPs')
     plt.savefig('hist.png')
 
+    data = snps_len.values()
+    data2 = [i for i in data if i <= 1000]
+    plt.hist(data2, bins=30, alpha=0.5)
+    plt.title('Histogram of Transcripts per SNP (Zoomed)')
+    plt.xlabel('Number of Transcripts')
+    plt.ylabel('Number of SNPs')
+    plt.savefig('hist_zoom.png')
 
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
