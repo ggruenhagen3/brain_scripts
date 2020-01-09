@@ -157,6 +157,7 @@ def main():
         if i % 5000 == 0:
             print(i)
             print(snp_scaffold[i])
+            print(snp_scaffold[1])
         old_scaffold = snp_scaffold[i]
         new_scaffold = convertScaffolds(old_scaffold)
         scaffold = new_scaffold
