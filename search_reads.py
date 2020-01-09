@@ -173,7 +173,7 @@ def main():
                 this_output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
-                output.extend(output[:-1])
+                output.extend(output_lines[:-1])
         print(output[0])
         output = filterCIGAR(output)
         if len(output) > 0:
