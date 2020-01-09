@@ -191,7 +191,7 @@ def main():
     print("Number of SNPs Found: " + str(len(snps_found)))
     print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
     print("Mean Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
-    print("Median Number of Transcripts per SNP: " + str(list(np.median(snps_len.values()))))
+    print("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))))
     print("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
 
 
