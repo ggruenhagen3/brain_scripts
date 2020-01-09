@@ -31,7 +31,7 @@ def readSNP(snp):
     alt = []
     with open(snp, 'r') as input:
         for line in input:
-            lineSplit = line.split("\n")
+            lineSplit = line.split("\t")
             scaffold.append(lineSplit[0])
             pos.append(lineSplit[1])
             # alt.append(lineSplit[4])
