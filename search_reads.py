@@ -139,6 +139,7 @@ def filterCIGAR(lines):
         if i == 0:
             print(line)
             print(cigar)
+        i += 1
         if cigar == "98M":
             good_lines.append(line)
     return good_lines
@@ -173,6 +174,7 @@ def main():
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
                 output.extend(output[:-1])
+        print(output[0])
         output = filterCIGAR(output)
         if len(output) > 0:
             print(output[0])
