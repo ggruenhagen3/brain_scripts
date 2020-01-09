@@ -132,9 +132,13 @@ def writeFile(file, lines):
 
 def filterCIGAR(lines):
     good_lines = []
+    i = 0
     for line in lines:
         lineSplit = line.split()
         cigar = lineSplit[5]
+        if i == 0:
+            print(line)
+            print(cigar)
         if cigar == "98M":
             good_lines.append(line)
     return good_lines
