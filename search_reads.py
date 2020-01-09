@@ -202,10 +202,10 @@ def main():
     writeFile(outputFile, lines)
 
     data = snps_len.values()
-    plt.hist(data, bins=10, alpha=0.5)
+    plt.hist(data, bins=30, alpha=0.5)
     plt.title('Histogram of Transcripts per SNP')
     plt.xlabel('Number of Transcripts')
-    plt.xlabel('Number of SNPs')
+    plt.ylabel('Number of SNPs')
     plt.savefig('hist.png')
 
 
