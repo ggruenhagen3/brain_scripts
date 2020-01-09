@@ -141,7 +141,7 @@ def filterCIGAR(lines):
 
 
 def main():
-    snp, dir, verbose, output = parseArgs()
+    snp, dir, verbose, outputFile = parseArgs()
 
     if verbose: print("Reading SNPs")
     snp_scaffold, snp_pos, snp_alt = readSNP(snp)
@@ -186,7 +186,7 @@ def main():
     lines.append("Number of SNPs Found: " + str(len(snps_found)))
     lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
     lines.append("Average Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
-    writeFile(output, lines)
+    writeFile(outputFile, lines)
 
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
