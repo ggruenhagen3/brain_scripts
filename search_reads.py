@@ -31,7 +31,7 @@ def readSNP(snp):
     alt = []
     with open(snp, 'r') as input:
         for line in input:
-            lineSplit = line.split()
+            lineSplit = line.split("\n")
             scaffold.append(lineSplit[0])
             pos.append(lineSplit[1])
             # alt.append(lineSplit[4])
@@ -157,7 +157,6 @@ def main():
         if i % 5000 == 0:
             print(i)
             print(snp_scaffold[i])
-            print(snp_scaffold[1])
         old_scaffold = snp_scaffold[i]
         new_scaffold = convertScaffolds(old_scaffold)
         scaffold = new_scaffold
