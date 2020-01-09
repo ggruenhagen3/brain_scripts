@@ -2,6 +2,8 @@ import argparse
 import glob
 import subprocess
 import os
+import numpy as np
+from matplotlib import pyplot as plt
 
 # Arg Parser
 def parseArgs():
@@ -198,6 +200,14 @@ def main():
     lines.append("Average Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
     lines.append("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
     writeFile(outputFile, lines)
+
+    data = snps_len.values()
+    plt.hist(data, bins=10, alpha=0.5)
+    plt.title('Histogram of Transcripts per SNP')
+    plt.xlabel('Number of Transcripts')
+    plt.xlabel('Number of SNPs')
+    plt.savefig('hist.png')
+
 
     # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
     if verbose: print("Done")
