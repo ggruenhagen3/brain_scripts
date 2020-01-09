@@ -130,6 +130,16 @@ def writeFile(file, lines):
     f.close()
 
 
+def filterCIGAR(lines):
+    good_lines = []
+    for line in lines:
+        lineSplit = line.split()
+        cigar = lineSplit[5]
+        if cigar == "98M":
+            good_lines.append(line)
+    return good_lines
+
+
 def main():
     snp, dir, verbose, output = parseArgs()
 
@@ -151,14 +161,16 @@ def main():
         scaffold = new_scaffold
         pos = snp_pos[i]
         coord = str(scaffold) + ":" + pos + "-" + pos
-        output = 0
+        output = []
         for file in os.listdir(dir):
             if file.endswith(".bam"):
                 this_output = subprocess.check_output(["samtools", "view", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
-                output += len_output_lines
+                output.extend(output[:-1])
+        output = filterCIGAR(output)
         if output > 0:
+            print(output[0])
             snps_found[i] = output
     # print(str(snps_found))
 
