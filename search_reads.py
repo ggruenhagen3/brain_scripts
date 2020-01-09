@@ -132,14 +132,9 @@ def writeFile(file, lines):
 
 def filterCIGAR(lines):
     good_lines = []
-    i = 0
     for line in lines:
         lineSplit = line.split()
         cigar = lineSplit[5]
-        if i == 0:
-            print(line)
-            print(cigar)
-        i += 1
         if cigar == "98M":
             good_lines.append(line)
     return good_lines
@@ -158,10 +153,10 @@ def main():
 
     if verbose: print("Searching for SNPs")
     snps_found = {}
+    snps_len   = {}
     for i in range(0, len(snp_scaffold)):
         if i % 5000 == 0:
             print(i)
-            print(snp_scaffold[i])
         old_scaffold = snp_scaffold[i]
         new_scaffold = convertScaffolds(old_scaffold)
         scaffold = new_scaffold
@@ -174,18 +169,18 @@ def main():
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
                 output.extend(output_lines[:-1])
-        print(output[0])
         output = filterCIGAR(output)
         if len(output) > 0:
             print(output[0])
             snps_found[i] = output
+            snps_len[i]   = len(output)
     # print(str(snps_found))
 
     lines = []
     print("Number of SNPs: " + str(len(snp_scaffold)))
     print("Number of SNPs Found: " + str(len(snps_found)))
     print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
-    print("Average Number of Transcripts per SNP: " + str( sum(snps_found.values())/len(snps_found.values()) ))
+    print("Average Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
 
     lines.append("Number of SNPs: " + str(len(snp_scaffold)))
     lines.append("Number of SNPs Found: " + str(len(snps_found)))
