@@ -171,7 +171,7 @@ def main():
                 output.extend(output_lines[:-1])
         output = filterCIGAR(output)
         if len(output) > 0:
-            print(output[0])
+            # print(output[0])
             snps_found[i] = output
             snps_len[i]   = len(output)
     # print(str(snps_found))
