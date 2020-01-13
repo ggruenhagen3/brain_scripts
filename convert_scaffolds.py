@@ -25,8 +25,10 @@ def convertScaffolds(lines):
 
     for line in lines:
         for key in dict.keys():
-            line = line.replace(dict[key], key)  # Converts from LG to NC_
-        new_lines.append(line)
+            new_line = line.replace(dict[key], key)  # Converts from LG to NC_
+            if new_line != line:
+                new_lines.append(new_line)
+                break
     return new_lines
 
 
