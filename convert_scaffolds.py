@@ -26,7 +26,7 @@ def convertScaffolds(lines):
 
     for line in lines:
         for key in dict.keys():
-            my_regex = r'\b' + dict[key] + '\b'
+            my_regex = r'\b' + dict[key] + r'\b'
             new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
             if new_line != line:
                 new_lines.append(new_line)
