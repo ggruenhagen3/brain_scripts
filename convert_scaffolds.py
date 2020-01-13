@@ -1,4 +1,5 @@
 import argparse
+import re
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Search reads for SNPs')
@@ -25,7 +26,7 @@ def convertScaffolds(lines):
 
     for line in lines:
         for key in dict.keys():
-            new_line = line.replace(dict[key], key)  # Converts from LG to NC_
+            new_line = re.sub(r'\bin\b', dict[key], key)  # Converts from LG to NC_
             if new_line != line:
                 new_lines.append(new_line)
                 break
