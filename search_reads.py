@@ -12,11 +12,12 @@ def parseArgs():
     parser.add_argument('dir', metavar='d', help='Directory of SAM files')
     parser.add_argument('output', metavar='o', help='Name of Output File')
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
+    parser.add_argument("-c", "--count", help="Only count the lines, don't store them", action="store_true")
     # parser.add_argument("-q", "--quarter", help="merge the intermediate matrices, to save on space", action="store_true")
     # parser.add_argument("-b", "--big", help="minimize big network", action="store_true")
     # parser.add_argument("-c", "--clean", help="remove edges below a threshold", action="store_true")
     args = parser.parse_args()
-    return args.snp, args.dir, args.verbose, args.output
+    return args.snp, args.dir, args.verbose, args.count, args.output
 
 
 def readSNP(snp):
@@ -225,10 +226,9 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
         else:
             for file in os.listdir(dir):
                 if file.endswith(".bam"):
-                    this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord, "|", "wc", "-l"])
+                    this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", "-c", str(dir) + "/" + file, coord])
                     output += int(this_output)
             if output > 0:
-                # print(output[0])
                 snps_found[i] = output
                 snps_len[i] = output
     # print(str(snps_found))
@@ -255,7 +255,7 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     writeFile("~/scratch/brain/results/ase_SNPs.bed", lines)
 
 def main():
-    snp, dir, verbose, outputFile = parseArgs()
+    snp, dir, verbose, count, outputFile = parseArgs()
 
     if verbose: print("Reading SNPs")
     snp_scaffold, snp_pos, snp_alt = readSNP(snp)
@@ -266,7 +266,10 @@ def main():
     # if verbose: print("Done")
 
     if verbose: print("Searching for SNPs")
-    keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
+    if count:
+        justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
+    else:
+        keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
     if verbose: print("Done")
 
 
