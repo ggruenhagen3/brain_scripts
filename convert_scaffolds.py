@@ -5,8 +5,10 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Search reads for SNPs')
     parser.add_argument('input', metavar='i', help='Input File')
     parser.add_argument('output', metavar='o', help='Name of Output File')
+    parser.add_argument("-l", "--lg_to_nc", help="Converts LG to NC", action="store_true")
+    parser.add_argument("-n", "--nc_to_lg", help="Converts NC to NC", action="store_true")
     args = parser.parse_args()
-    return args.input, args.output
+    return args.input, args.output, args.lg_to_nc, args.nc_to_lg
 
 
 def readFile(file):
@@ -17,7 +19,7 @@ def readFile(file):
     return lines
 
 
-def convertScaffolds(lines):
+def convertScaffolds(lines, toLG, toNC):
     new_lines =[]
     dict = {}
     for i in range(1, 20):
@@ -26,8 +28,12 @@ def convertScaffolds(lines):
 
     for line in lines:
         for key in dict.keys():
-            my_regex = r'\b' + dict[key] + r'\b'
-            new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
+            if toLG:
+                my_regex = r'\b' + dict[key] + r'\b'
+                new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
+            else:
+                my_regex = r'\b' + dict[key] + r'\b'
+                new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
             if new_line != line:
                 new_lines.append(new_line)
                 break
@@ -42,11 +48,11 @@ def writeFile(file, lines):
 
 
 def main():
-    input, output = parseArgs()
+    input, output, toNC, toLG = parseArgs()
     print("Converting from LG format to NC format")
     lines = readFile(input)
     print("Number of input lines " + str(len(lines)))
-    lines = convertScaffolds(lines)
+    lines = convertScaffolds(lines, toNC, toLG)
     print("Number of output lines " + str(len(lines)))
     writeFile(output, lines)
     print("Done.")
