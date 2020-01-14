@@ -144,22 +144,10 @@ def filterCIGAR(lines):
             good_lines.append(line)
     return good_lines
 
-
-def main():
-    snp, dir, verbose, outputFile = parseArgs()
-
-    if verbose: print("Reading SNPs")
-    snp_scaffold, snp_pos, snp_alt = readSNP(snp)
-    if verbose: print("Done")
-
-    # if verbose: print("Reading SAMs in Dir")
-    # all_scaffold, all_start, all_stop, all_seq = readDir(dir)
-    # if verbose: print("Done")
-
-    if verbose: print("Searching for SNPs")
+def keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     snps_bad_scaffold = []
     snps_found = {}
-    snps_len   = {}
+    snps_len = {}
     for i in range(0, len(snp_scaffold)):
         if i % 5000 == 0:
             print(i)
@@ -175,7 +163,8 @@ def main():
         else:
             for file in os.listdir(dir):
                 if file.endswith(".bam"):
-                    this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
+                    this_output = subprocess.check_output(
+                        ["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
                     output_lines = this_output.decode().split("\n")
                     len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
                     output.extend(output_lines[:-1])
@@ -183,22 +172,21 @@ def main():
             if len(output) > 0:
                 # print(output[0])
                 snps_found[i] = output
-                snps_len[i]   = len(output)
+                snps_len[i] = len(output)
     # print(str(snps_found))
 
     lines = []
-    print("Number of SNPs: " + str(len(snp_scaffold)-len(snps_bad_scaffold)))
+    print("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)))
     print("Number of SNPs Found: " + str(len(snps_found)))
-    print("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
-    print("Mean Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
+    print("Percent of SNPs Found: " + str(len(snps_found) / (len(snp_scaffold) - len(snps_bad_scaffold))))
+    print("Mean Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())))
     print("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))))
     print("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
 
-
-    lines.append("Number of SNPs: " + str(len(snp_scaffold)-len(snps_bad_scaffold)))
+    lines.append("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)))
     lines.append("Number of SNPs Found: " + str(len(snps_found)))
     lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
-    lines.append("Average Number of Transcripts per SNP: " + str( sum(snps_len.values())/len(snps_len.values()) ))
+    lines.append("Average Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())))
     lines.append("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))))
     lines.append("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
     writeFile(outputFile, lines)
@@ -218,7 +206,67 @@ def main():
     plt.ylabel('Number of SNPs')
     plt.savefig('hist_zoom.png')
 
-    # snp_found = searchForSNP(all_scaffold, all_start, all_stop, all_seq, snp_scaffold, snp_pos, snp_alt)
+def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
+    snps_bad_scaffold = []
+    snps_found = {}
+    snps_len = {}
+    for i in range(0, len(snp_scaffold)):
+        if i % 5000 == 0:
+            print(i)
+        old_scaffold = snp_scaffold[i]
+        new_scaffold = convertScaffolds(old_scaffold)
+        scaffold = new_scaffold
+        pos = snp_pos[i]
+        coord = str(scaffold) + ":" + pos + "-" + pos
+        output = 0
+        if scaffold == "not_found":
+            # Some of the scaffolds can't be converted
+            snps_bad_scaffold.append(i)
+        else:
+            for file in os.listdir(dir):
+                if file.endswith(".bam"):
+                    this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord, "|", "wc", "-l"])
+                    output += int(this_output)
+            if output > 0:
+                # print(output[0])
+                snps_found[i] = output
+                snps_len[i] = output
+    # print(str(snps_found))
+
+    lines = []
+    print("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)))
+    print("Number of SNPs Found: " + str(len(snps_found)))
+    print("Percent of SNPs Found: " + str(len(snps_found) / (len(snp_scaffold) - len(snps_bad_scaffold))))
+    print("Mean Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())))
+    print("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))))
+    print("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
+
+    lines.append("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)) + "\n")
+    lines.append("Number of SNPs Found: " + str(len(snps_found)) + "\n")
+    lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)) + "\n")
+    lines.append("Average Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())) + "\n")
+    lines.append("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))) + "\n")
+    lines.append("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)) + "\n")
+    writeFile(outputFile, lines)
+
+    lines = []
+    for i in range(0, len(snp_scaffold)):
+        lines.append(snp_scaffold[i] + "\t" + snp_pos[i] + "\t" + int(snp_pos[i])+1 + "\n")
+    writeFile("~/scratch/brain/results/ase_SNPs.bed", lines)
+
+def main():
+    snp, dir, verbose, outputFile = parseArgs()
+
+    if verbose: print("Reading SNPs")
+    snp_scaffold, snp_pos, snp_alt = readSNP(snp)
+    if verbose: print("Done")
+
+    # if verbose: print("Reading SAMs in Dir")
+    # all_scaffold, all_start, all_stop, all_seq = readDir(dir)
+    # if verbose: print("Done")
+
+    if verbose: print("Searching for SNPs")
+    keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
     if verbose: print("Done")
 
 
