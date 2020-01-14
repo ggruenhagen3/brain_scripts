@@ -208,7 +208,7 @@ def keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     plt.savefig('hist_zoom.png')
 
     lines = []
-    for i in range(0, len(snp_scaffold)):
+    for i in snps_found.keys():
         lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
     writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/ase_SNPs.bed", lines)
 
