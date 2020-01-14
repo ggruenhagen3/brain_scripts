@@ -207,6 +207,11 @@ def keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     plt.ylabel('Number of SNPs')
     plt.savefig('hist_zoom.png')
 
+    lines = []
+    for i in range(0, len(snp_scaffold)):
+        lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
+    writeFile("~/scratch/brain/results/ase_SNPs.bed", lines)
+
 def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     snps_bad_scaffold = []
     snps_found = {}
@@ -251,7 +256,7 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
 
     lines = []
     for i in range(0, len(snp_scaffold)):
-        lines.append(snp_scaffold[i] + "\t" + snp_pos[i] + "\t" + int(snp_pos[i])+1 + "\n")
+        lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
     writeFile("~/scratch/brain/results/ase_SNPs.bed", lines)
 
 def main():
