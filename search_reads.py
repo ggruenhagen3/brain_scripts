@@ -184,12 +184,12 @@ def keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     print("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))))
     print("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
 
-    lines.append("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)))
-    lines.append("Number of SNPs Found: " + str(len(snps_found)))
-    lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)))
-    lines.append("Average Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())))
-    lines.append("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))))
-    lines.append("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
+    lines.append("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)) + "\n")
+    lines.append("Number of SNPs Found: " + str(len(snps_found)) + "\n")
+    lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)) + "\n")
+    lines.append("Average Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())) + "\n")
+    lines.append("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))) + "\n")
+    lines.append("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)) + "\n")
     writeFile(outputFile, lines)
 
     data = snps_len.values()
