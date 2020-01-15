@@ -66,6 +66,9 @@ def filterBlastOut(blast):
                 subjectStop = int(subject.split(":")[1].split("-")[0])
                 subjectLen = subjectStop - subjectStart
 
+                print("Query LG" + "\t" + queryLG)
+                print("Subject LG" + "\t" + subjectLG)
+                print("Query Start" + "\t" + str(queryStart))
                 if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
                     print("Element added to coordDict")
                     coordDict[query] = subject
