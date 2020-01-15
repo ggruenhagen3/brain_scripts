@@ -38,9 +38,9 @@ def readPat(pat):
         for line in input:
             lines.append(line.rstrip())
             lineSplit = line.split()
-            patDict[str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5])] = lineSplit[1]
-            if lineSplit[1] == "LOC101465995":
-                print(str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5]))
+            patDict[str(lineSplit[2]) + ":" + str(lineSplit[3]) + "-" + str(lineSplit[4])] = lineSplit[1]
+            # if lineSplit[1] == "LOC101465995":
+            #     print(str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5]))
 
     return lines, patDict
 
