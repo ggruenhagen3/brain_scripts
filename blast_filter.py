@@ -28,7 +28,7 @@ def readGTF(gtf):
             lineSplit = line.split()
             id = lineSplit[7][9:27]
             gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3])+1) + "-" + str(lineSplit[4])] = id
-            # print(id)
+            print(id)
             if id == "ENSMZEG00005000039":
                 print(str(lineSplit[0]) + ":" + str(int(lineSplit[3])+1) + "-" + str(lineSplit[4]))
 
