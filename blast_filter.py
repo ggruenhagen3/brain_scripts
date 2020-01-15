@@ -1,0 +1,123 @@
+import argparse
+import glob
+import subprocess
+import os
+import numpy as np
+from matplotlib import pyplot as plt
+
+# Arg Parser
+def parseArgs():
+    parser = argparse.ArgumentParser(description='Filter Blast Results')
+    parser.add_argument('pat', metavar='p', help="Patrick's MZ_treefam_annot_umd2a.bash file")
+    parser.add_argument('gtf', metavar='g', help="GTF File")
+    parser.add_argument('blast', metavar='d', help='Blast output')
+    parser.add_argument('output', metavar='o', help='Name of Output File')
+    parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
+    args = parser.parse_args()
+    return args.pat, args.gtf, args.output, args.blast, args.verbose
+
+def readGTF(gtf):
+    """
+    Read the GTF file
+    :param gtf: gtf
+    :return id: gtf ids
+    """
+    gtfDict = {} # key is coord, value is gene
+    with open(gtf, 'r') as input:
+        for line in input:
+            lineSplit = line.split()
+            id = lineSplit[8][9:27]
+            gtfDict[str(lineSplit[0]) + ":" + str(lineSplit[3]) + str(lineSplit[4])] = id
+
+    return gtfDict
+
+def readPat(pat):
+    patDict = {} # key is coord, value is gene
+    with open(pat, 'r') as input:
+        for line in input:
+            lineSplit = line.split()
+            patDict[str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5])] = lineSplit[1]
+
+    return input, patDict
+
+def filterBlastOut(blast):
+    """
+    :return dict: key is the query coords and value is the subject coords
+    """
+    coordDict = {}
+    readLine = False
+    with open(blast, 'r') as input:
+        for line in input:
+            if readLine:
+                lineSplit = line.split()
+                query = lineSplit[0]
+                subject = lineSplit[1]
+                algnLen = int(lineSplit[3])
+
+                queryLG = query.split(":")[0]
+                queryStart = int(query.split(":")[1].split("-")[0])
+                queryStop = int(query.split(":")[1].split("-")[0])
+                queryLen = queryStop - queryStart
+
+                subjectLG = subject.split(":")[0]
+                subjectStart = int(subject.split(":")[1].split("-")[0])
+                subjectStop = int(subject.split(":")[1].split("-")[0])
+                subjectLen = subjectStop - subjectStart
+
+                if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
+                    coordDict[query] = subject
+
+            if line.startswith("# BLASTN"):
+                readLine = False
+            if line.endswith("hits found"):
+                readLine = True
+
+
+    return coordDict
+
+def findGenes(coordDict, patDict, gtfDict):
+    """
+    :return geneDict: key is the LOC and value is the ENS
+    """
+    geneDict = {} # key is LOC, value is ENS
+    for queryCoord in coordDict.keys():
+        query_gene = patDict[queryCoord]
+        gtf_gene = gtfDict[coordDict[queryCoord]]
+        geneDict[query_gene] = gtf_gene
+
+    return geneDict
+
+def writeNewPat(output, pat_lines, geneDict):
+    f = open(output, "w+")
+    for line in pat_lines:
+        lineSplit = line.split()
+        line = line + str(geneDict[lineSplit[1]])
+        f.write(line)
+    f.close()
+
+def main():
+    pat, gtf, output, blast, verbose = parseArgs()
+    
+    if verbose: print("Reading GTF")
+    gtfDict = readGTF(gtf)
+    if verbose: print("Done")
+
+    if verbose: print("Reading Patrick's File")
+    pat_lines, patDict = readPat(pat)
+    if verbose: print("Done")
+
+    if verbose: print("Filtering Blast Output")
+    coordDict = filterBlastOut(blast) # TODO FIX ME
+    if verbose: print("Done")
+
+    if verbose: print("Finding Genes Based on Coords")
+    geneDict = findGenes(coordDict, patDict, gtfDict)
+    if verbose: print("Done")
+
+    if verbose: print("Writing to file")
+    writeNewPat(output, pat_lines, geneDict)
+    if verbose: print("Done")
+
+
+if __name__ == '__main__':
+    main()
