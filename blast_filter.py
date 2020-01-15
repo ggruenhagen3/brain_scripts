@@ -33,12 +33,14 @@ def readGTF(gtf):
 
 def readPat(pat):
     patDict = {} # key is coord, value is gene
+    lines = []
     with open(pat, 'r') as input:
         for line in input:
+            lines.append(line)
             lineSplit = line.split()
             patDict[str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5])] = lineSplit[1]
 
-    return input, patDict
+    return lines, patDict
 
 def filterBlastOut(blast):
     """
@@ -91,13 +93,13 @@ def writeNewPat(output, pat_lines, geneDict):
     f = open(output, "w+")
     for line in pat_lines:
         lineSplit = line.split()
-        line = line + str(geneDict[lineSplit[1]])
+        line = line + "\t" + str(geneDict[lineSplit[1]])
         f.write(line)
     f.close()
 
 def main():
     pat, gtf, output, blast, verbose = parseArgs()
-    
+
     if verbose: print("Reading GTF")
     gtfDict = readGTF(gtf)
     if verbose: print("Done")
