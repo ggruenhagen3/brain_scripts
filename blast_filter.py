@@ -36,7 +36,7 @@ def readPat(pat):
     lines = []
     with open(pat, 'r') as input:
         for line in input:
-            lines.append(line)
+            lines.append(line.rstrip())
             lineSplit = line.split()
             patDict[str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5])] = lineSplit[1]
 
@@ -95,7 +95,7 @@ def writeNewPat(output, pat_lines, geneDict):
     for line in pat_lines[1:]:
         lineSplit = line.split()
         ens_name = str(geneDict.get(lineSplit[1], "NA"))
-        line = line + "\t" + ens_name
+        line = line + "\t" + ens_name + "\n"
         f.write(line)
     f.close()
 
@@ -117,6 +117,13 @@ def main():
     if verbose: print("Finding Genes Based on Coords")
     geneDict = findGenes(coordDict, patDict, gtfDict)
     if verbose: print("Done")
+
+    if verbose: print("Length of coordDict " + str(len(coordDict)))
+    if verbose: print("coordDict.keys()[0] " + str(coordDict.keys()[0]))
+    if verbose: print("coordDict.values()[0] " + str(coordDict.values()[0]))
+    if verbose: print("Length of geneDict " + str(len(geneDict)))
+    if verbose: print("geneDict.keys()[0] " + str(geneDict.keys()[0]))
+    if verbose: print("geneDict.values()[0] " + str(geneDict.values()[0]))
 
     if verbose: print("Writing to file")
     writeNewPat(output, pat_lines, geneDict)
