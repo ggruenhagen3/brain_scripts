@@ -27,9 +27,9 @@ def readGTF(gtf):
         for line in input:
             lineSplit = line.split()
             id = lineSplit[9][1:-2]
-            gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3])+1) + "-" + str(lineSplit[4])] = id
-            if id == "ENSMZEG00005000039":
-                print(str(lineSplit[0]) + ":" + str(int(lineSplit[3])+1) + "-" + str(lineSplit[4]))
+            gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3])-1) + "-" + str(lineSplit[4])] = id
+            # if verbose and id == "ENSMZEG00005000039":
+            #     print(str(lineSplit[0]) + ":" + str(int(lineSplit[3])-1) + "-" + str(lineSplit[4]))
 
     return gtfDict
 
