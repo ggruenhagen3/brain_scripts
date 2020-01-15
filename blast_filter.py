@@ -51,7 +51,7 @@ def filterBlastOut(blast):
     with open(blast, 'r') as input:
         for line in input:
 
-            if line.startswith("# BLASTN"):
+            if line.startswith("#"):
                 readLine = False
 
             if readLine:
