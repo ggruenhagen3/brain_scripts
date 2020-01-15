@@ -119,11 +119,11 @@ def main():
     if verbose: print("Done")
 
     if verbose: print("Length of coordDict " + str(len(coordDict)))
-    if verbose: print("coordDict.keys()[0] " + str(coordDict.keys()[0]))
-    if verbose: print("coordDict.values()[0] " + str(coordDict.values()[0]))
+    if verbose: print("coordDict.keys()[0] " + str(list(coordDict.keys())[0]))
+    if verbose: print("coordDict.values()[0] " + str(list(coordDict.values())[0]))
     if verbose: print("Length of geneDict " + str(len(geneDict)))
-    if verbose: print("geneDict.keys()[0] " + str(geneDict.keys()[0]))
-    if verbose: print("geneDict.values()[0] " + str(geneDict.values()[0]))
+    if verbose: print("geneDict.keys()[0] " + str(list(geneDict.keys())[0]))
+    if verbose: print("geneDict.values()[0] " + str(list(geneDict.values())[0]))
 
     if verbose: print("Writing to file")
     writeNewPat(output, pat_lines, geneDict)
