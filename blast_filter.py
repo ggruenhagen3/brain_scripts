@@ -91,7 +91,8 @@ def findGenes(coordDict, patDict, gtfDict):
 
 def writeNewPat(output, pat_lines, geneDict):
     f = open(output, "w+")
-    for line in pat_lines:
+    f.write(pat_lines[0] + "\t" + "ENS")
+    for line in pat_lines[1:]:
         lineSplit = line.split()
         line = line + "\t" + str(geneDict[lineSplit[1]])
         f.write(line)
