@@ -39,6 +39,8 @@ def readPat(pat):
             lines.append(line.rstrip())
             lineSplit = line.split()
             patDict[str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5])] = lineSplit[1]
+            if lineSplit[1] == "LOC101465995":
+                print(str(lineSplit[3]) + ":" + str(lineSplit[4]) + "-" + str(lineSplit[5]))
 
     return lines, patDict
 
@@ -55,7 +57,6 @@ def filterBlastOut(blast):
                 readLine = False
 
             if readLine:
-                print(line)
                 lineSplit = line.split()
                 query = lineSplit[0]
                 subject = lineSplit[1]
@@ -71,9 +72,6 @@ def filterBlastOut(blast):
                 subjectStop = int(subject.split(":")[1].split("-")[0])
                 subjectLen = subjectStop - subjectStart
 
-                # print("Query LG" + "\t" + queryLG)
-                # print("Subject LG" + "\t" + subjectLG)
-                # print("Query Start" + "\t" + str(queryStart))
                 if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
                     print("Element added to coordDict")
                     coordDict[query] = subject
