@@ -50,6 +50,10 @@ def filterBlastOut(blast):
     readLine = False
     with open(blast, 'r') as input:
         for line in input:
+
+            if line.startswith("# BLASTN"):
+                readLine = False
+
             if readLine:
                 lineSplit = line.split()
                 query = lineSplit[0]
@@ -73,8 +77,6 @@ def filterBlastOut(blast):
                     print("Element added to coordDict")
                     coordDict[query] = subject
 
-            if line.startswith("# BLASTN"):
-                readLine = False
             if line.endswith("hits found\n"):
                 readLine = True
 
