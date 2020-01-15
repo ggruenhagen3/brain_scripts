@@ -55,6 +55,7 @@ def filterBlastOut(blast):
                 readLine = False
 
             if readLine:
+                print(line)
                 lineSplit = line.split()
                 query = lineSplit[0]
                 subject = lineSplit[1]
@@ -73,7 +74,6 @@ def filterBlastOut(blast):
                 # print("Query LG" + "\t" + queryLG)
                 # print("Subject LG" + "\t" + subjectLG)
                 # print("Query Start" + "\t" + str(queryStart))
-                print(line)
                 if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
                     print("Element added to coordDict")
                     coordDict[query] = subject
