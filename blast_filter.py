@@ -73,7 +73,6 @@ def filterBlastOut(blast):
                 subjectLen = subjectStop - subjectStart
 
                 if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
-                    print("Element added to coordDict")
                     coordDict[query] = subject
 
             if line.endswith("hits found\n"):
