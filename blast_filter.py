@@ -97,11 +97,15 @@ def findGenes(coordDict, patDict, gtfDict):
 
 def writeNewPat(output, pat_lines, geneDict):
     f = open(output, "w+")
-    f.write(pat_lines[0] + "\t" + "ENS" + "\n")
+    f.write(pat_lines[0] + "\t" + "ENS" + "\t" + "ENS2" + "\n")
     for line in pat_lines[1:]:
         lineSplit = line.split()
         ens_name = str(geneDict.get(lineSplit[1], "NA"))
-        line = line + "\t" + ens_name + "\n"
+        if lineSplit[1].startswith("LOC"):
+            ens2_name = ens_name
+        else:
+            ens2_name = lineSplit[1]
+        line = line + "\t" + ens_name + "\t" + ens2_name + "\n"
         f.write(line)
     f.close()
 
