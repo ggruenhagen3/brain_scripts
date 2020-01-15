@@ -68,7 +68,7 @@ def filterBlastOut(blast):
                 queryLen = queryStop - queryStart
 
                 subjectLG = subject.split(":")[0]
-                subjectStart = int(subject.split(":")[1].split("-")[0])
+                subjectStart = int(subject.split(":")[1].split("-")[0]) + 1
                 subjectStop = int(subject.split(":")[1].split("-")[0])
                 subjectLen = subjectStop - subjectStart
 
