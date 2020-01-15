@@ -27,7 +27,7 @@ def readGTF(gtf):
         for line in input:
             lineSplit = line.split()
             id = lineSplit[8][9:27]
-            gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3]))+1 + "-" + str(lineSplit[4])] = id
+            gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3])+1) + "-" + str(lineSplit[4])] = id
 
     return gtfDict
 
