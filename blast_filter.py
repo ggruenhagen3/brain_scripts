@@ -75,7 +75,7 @@ def filterBlastOut(blast):
 
             if line.startswith("# BLASTN"):
                 readLine = False
-            if line.endswith("hits found"):
+            if line.endswith("hits found\n"):
                 readLine = True
 
 
