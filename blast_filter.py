@@ -27,7 +27,7 @@ def readGTF(gtf):
         for line in input:
             lineSplit = line.split()
             id = lineSplit[8][9:27]
-            gtfDict[str(lineSplit[0]) + ":" + str(lineSplit[3]) + str(lineSplit[4])] = id
+            gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3]))+1 + "-" + str(lineSplit[4])] = id
 
     return gtfDict
 
@@ -68,7 +68,7 @@ def filterBlastOut(blast):
                 queryLen = queryStop - queryStart
 
                 subjectLG = subject.split(":")[0]
-                subjectStart = int(subject.split(":")[1].split("-")[0]) + 1
+                subjectStart = int(subject.split(":")[1].split("-")[0])
                 subjectStop = int(subject.split(":")[1].split("-")[0])
                 subjectLen = subjectStop - subjectStart
 
