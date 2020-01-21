@@ -173,10 +173,13 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
         bam_base = bam_seq[bam_pos - snp_pos]
         if snp_coord == "NC_036790.1:5935396-5935396":
             print(line)
+            print(bam_cell)
             print(bam_base)
             print(pit_allele)
             print(castle_allele)
         if bam_base == pit_allele:
+            if snp_coord == "NC_036790.1:5935396-5935396":
+                print("Found pit allele")
             cell_pit_allele.get(bam_cell, 0) + 1
             cell_castle_allele.get(bam_cell, 0) + 0
         if bam_base == castle_allele:
@@ -252,6 +255,7 @@ def keepLines(snp, dir, outputFile):
     plt.savefig('hist_zoom.png')
 
     lines = []
+    print(len(cell_castle_allele.keys()))
     for cell in cell_castle_allele.keys():
         lines.append( cell + "\t" + str(cell_pit_allele/(cell_castle_allele[cell] + cell_pit_allele[cell])) )
     writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/cell_pit_castle.tsv", lines)
