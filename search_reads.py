@@ -162,13 +162,13 @@ def filterCIGAR(lines):
 def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
     pit_allele = snp[snp_coord][0:1]
     castle_allele = snp[snp_coord][2:3]
-    snp_pos = snp_coord.split("-")[1]
+    snp_pos = int(snp_coord.split("-")[1])
     bam_pit_count = 0
     bam_castle_count = 0
     for line in output:
         lineSplit = line.split()
         bam_seq = lineSplit[9]
-        bam_pos = lineSplit[3]
+        bam_pos = int(lineSplit[3])
         bam_cell = lineSplit[18][5::]
         bam_base = bam_seq[bam_pos - snp_pos]
         if bam_base == pit_allele:
