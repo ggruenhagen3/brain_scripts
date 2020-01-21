@@ -20,7 +20,7 @@ def parseArgs():
     return args.snp, args.dir, args.verbose, args.count, args.output
 
 
-def readSNP(snp):
+def readSNP(snp_file):
     """
     Read the SNP file
     :param snp: query snps
@@ -248,7 +248,7 @@ def keepLines(snp_scaffold, snp, dir, outputFile):
     for cell in cell_castle_allele.keys():
         lines.append( cell + "\t" + str(cell_pit_allele/(cell_castle_allele[cell] + cell_pit_allele[cell])) )
     writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/cell_pit_castle.tsv", lines)
-    
+
     # lines = []
     # for i in snps_found.keys():
     #     lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
