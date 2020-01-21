@@ -30,7 +30,7 @@ def readSNP(snp_file):
     :return stop: list of snp stops
     """
     snp = {} # key is coordinate, value is pit allele / castle allele
-    with open(snp, 'r') as input:
+    with open(snp_file, 'r') as input:
         for line in input:
             lineSplit = line.split()
             scaffold = lineSplit[0]
