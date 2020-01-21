@@ -53,7 +53,6 @@ def readSNP(snp_file):
             else:
                 snp[coord] = str(ref) + "/" + str(alt)
 
-
     return snp
 
 
@@ -307,10 +306,10 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     writeFile("~/scratch/brain/results/ase_SNPs.bed", lines)
 
 def main():
-    snp, dir, verbose, count, outputFile = parseArgs()
+    snp_file, dir, verbose, count, outputFile = parseArgs()
 
     if verbose: print("Reading SNPs")
-    snp_scaffold, snp_pos, snp_alt = readSNP(snp)
+    snp = readSNP(snp_file)
     if verbose: print("Done")
 
     # if verbose: print("Reading SAMs in Dir")
