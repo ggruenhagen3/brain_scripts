@@ -40,6 +40,8 @@ def readSNP(snp_file):
             coord = scaffold + ":" + str(pos) + "-" + str(pos)
             pit_i = [9, 10, 13, 14, 15, 16, 19, 20, 22, 26, 27]
             castle_i = [11, 12, 17, 18, 21, 23, 24, 25]
+            pit_alt_freq = 0
+            castle_alt_freq = 0
             for i in pit_i:
                 pit_alt_freq += int(lineSplit[i][0:1]) + int(lineSplit[i][2:3])
             for i in castle_i:
