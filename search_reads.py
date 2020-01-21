@@ -181,7 +181,7 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
     return cell_pit_allele, cell_castle_allele
 
 
-def keepLines(snp_scaffold, snp, dir, outputFile):
+def keepLines(snp, dir, outputFile):
     snps_bad_scaffold = []
     snps_found = {}
     snps_len = {}
@@ -216,16 +216,16 @@ def keepLines(snp_scaffold, snp, dir, outputFile):
                 cell_pit_allele, cell_castle_allele = findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coords[i], snp)
 
     lines = []
-    print("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)))
+    print("Number of SNPs: " + str(len(snp) - len(snps_bad_scaffold)))
     print("Number of SNPs Found: " + str(len(snps_found)))
-    print("Percent of SNPs Found: " + str(len(snps_found) / (len(snp_scaffold) - len(snps_bad_scaffold))))
+    print("Percent of SNPs Found: " + str(len(snps_found) / (len(snp) - len(snps_bad_scaffold))))
     print("Mean Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())))
     print("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))))
     print("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)))
 
-    lines.append("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)) + "\n")
+    lines.append("Number of SNPs: " + str(len(snp) - len(snps_bad_scaffold)) + "\n")
     lines.append("Number of SNPs Found: " + str(len(snps_found)) + "\n")
-    lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp_scaffold)) + "\n")
+    lines.append("Percent of SNPs Found: " + str(len(snps_found) / len(snp)) + "\n")
     lines.append("Average Number of Transcripts per SNP: " + str(sum(snps_len.values()) / len(snps_len.values())) + "\n")
     lines.append("Median Number of Transcripts per SNP: " + str(np.median(list(snps_len.values()))) + "\n")
     lines.append("Number of SNPs Unconvertable Scaffolds: " + str(len(snps_bad_scaffold)) + "\n")
@@ -318,9 +318,10 @@ def main():
 
     if verbose: print("Searching for SNPs")
     if count:
-        justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
+        # justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
+        pass
     else:
-        keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
+        keepLines(snp, dir, outputFile)
     if verbose: print("Done")
 
 
