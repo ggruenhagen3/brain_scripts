@@ -177,6 +177,7 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
             print(bam_base)
             print(pit_allele)
             print(castle_allele)
+            print(cell_pit_allele)
         if bam_base == pit_allele:
             cell_pit_allele = cell_pit_allele.get(bam_cell, 0) + 1
             cell_castle_allele = cell_castle_allele.get(bam_cell, 0) + 0
