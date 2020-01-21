@@ -171,6 +171,8 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
         bam_pos = int(lineSplit[3])
         bam_cell = lineSplit[18][5::]
         bam_base = bam_seq[bam_pos - snp_pos]
+        print(line)
+        print(bam_base)
         if bam_base == pit_allele:
             cell_pit_allele.get(bam_cell, 0) + 1
             cell_castle_allele.get(bam_cell, 0) + 0
