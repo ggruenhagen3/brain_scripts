@@ -29,17 +29,29 @@ def readSNP(snp):
     :return start: list of snp starts
     :return stop: list of snp stops
     """
-    scaffold = []
-    pos = []
-    alt = []
+    snp = {} # key is coordinate, value is pit allele / castle allele
     with open(snp, 'r') as input:
         for line in input:
             lineSplit = line.split()
-            scaffold.append(lineSplit[0])
-            pos.append(lineSplit[1])
-            # alt.append(lineSplit[4])
+            scaffold = lineSplit[0]
+            pos = lineSplit[1]
+            ref = lineSplit[3]
+            alt = lineSplit[4]
+            coord = scaffold + ":" + str(pos) + "-" + str(pos)
+            pit_alt_freq = int(lineSplit[9][0:3]) + int(lineSplit[10][0:3]) + int(lineSplit[13][0:3]) + int(lineSplit[14][0:3])
+            + int(lineSplit[15][0:3]) + int(lineSplit[16][0:3]) + int(lineSplit[19][0:3]) + int(lineSplit[20][0:3]) + int(lineSplit[22][0:3])
+            + int(lineSplit[26][0:3]) + int(lineSplit[27][0:3])
+            castle_alt_freq = int(lineSplit[11][0:3]) + int(lineSplit[12][0:3]) + int(lineSplit[17][0:3]) + int(lineSplit[18][0:3])
+            + int(lineSplit[21][0:3]) + int(lineSplit[23][0:3]) + int(lineSplit[24][0:3]) + int(lineSplit[25][0:3])
+            pit_alt_freq = pit_alt_freq / 11
+            castle_alt_freq = castle_alt_freq / 9
+            if pit_alt_freq > castle_alt_freq:
+                snp[coord] = str(alt) + "/" + str(ref)
+            else:
+                snp[coord] = str(ref) + "/" + str(alt)
 
-    return scaffold, pos, alt
+
+    return snp
 
 
 def convertScaffolds(old):
@@ -145,17 +157,42 @@ def filterCIGAR(lines):
             good_lines.append(line)
     return good_lines
 
-def keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
+def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
+    pit_allele = snp[snp_coord][0:1]
+    castle_allele = snp[snp_coord][2:3]
+    snp_pos = snp_coord.split("-")[1]
+    bam_pit_count = 0
+    bam_castle_count = 0
+    for line in output:
+        lineSplit = line.split()
+        bam_seq = lineSplit[9]
+        bam_pos = lineSplit[3]
+        bam_cell = lineSplit[18][5::]
+        bam_base = bam_seq[bam_pos - snp_pos]
+        if bam_base == pit_allele:
+            cell_pit_allele.get(bam_cell, 0) + 1
+            cell_castle_allele.get(bam_cell, 0) + 0
+        if bam_base == castle_allele:
+            cell_pit_allele.get(bam_cell, 0) + 0
+            cell_castle_allele.get(bam_cell, 0) + 1
+
+    return cell_pit_allele, cell_castle_allele
+
+
+def keepLines(snp_scaffold, snp, dir, outputFile):
     snps_bad_scaffold = []
     snps_found = {}
     snps_len = {}
-    for i in range(0, len(snp_scaffold)):
+    cell_pit_allele = {}
+    cell_castle_allele = {}
+    snp_coords = snp.keys()
+    for i in range(0, len(snp)):
         if i % 5000 == 0:
             print(i)
-        old_scaffold = snp_scaffold[i]
+        old_scaffold = snp_coords[i].split(":")[0]
         new_scaffold = convertScaffolds(old_scaffold)
         scaffold = new_scaffold
-        pos = snp_pos[i]
+        pos = snp_coords[i].split("-")[1]
         coord = str(scaffold) + ":" + pos + "-" + pos
         output = []
         if scaffold == "not_found":
@@ -174,7 +211,7 @@ def keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
                 # print(output[0])
                 snps_found[i] = output
                 snps_len[i] = len(output)
-    # print(str(snps_found))
+                cell_pit_allele, cell_castle_allele = findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coords[i], snp)
 
     lines = []
     print("Number of SNPs: " + str(len(snp_scaffold) - len(snps_bad_scaffold)))
@@ -208,9 +245,16 @@ def keepLines(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     plt.savefig('hist_zoom.png')
 
     lines = []
-    for i in snps_found.keys():
-        lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
-    writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/ase_SNPs.bed", lines)
+    for cell in cell_castle_allele.keys():
+        lines.append( cell + "\t" + str(cell_pit_allele/(cell_castle_allele[cell] + cell_pit_allele[cell])) )
+    writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/cell_pit_castle.tsv", lines)
+    
+    # lines = []
+    # for i in snps_found.keys():
+    #     lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
+    # writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/ase_SNPs.bed", lines)
+
+# CR field in SAM format is the cell's id
 
 def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
     snps_bad_scaffold = []
