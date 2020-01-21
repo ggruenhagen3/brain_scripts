@@ -38,13 +38,14 @@ def readSNP(snp_file):
             ref = lineSplit[3]
             alt = lineSplit[4]
             coord = scaffold + ":" + str(pos) + "-" + str(pos)
-            pit_alt_freq = int(lineSplit[9][0:3]) + int(lineSplit[10][0:3]) + int(lineSplit[13][0:3]) + int(lineSplit[14][0:3])
-            + int(lineSplit[15][0:3]) + int(lineSplit[16][0:3]) + int(lineSplit[19][0:3]) + int(lineSplit[20][0:3]) + int(lineSplit[22][0:3])
-            + int(lineSplit[26][0:3]) + int(lineSplit[27][0:3])
-            castle_alt_freq = int(lineSplit[11][0:3]) + int(lineSplit[12][0:3]) + int(lineSplit[17][0:3]) + int(lineSplit[18][0:3])
-            + int(lineSplit[21][0:3]) + int(lineSplit[23][0:3]) + int(lineSplit[24][0:3]) + int(lineSplit[25][0:3])
+            pit_i = [9, 10, 13, 14, 15, 16, 19, 20, 22, 26, 27]
+            castle_i = [11, 12, 17, 18, 21, 23, 24, 25]
+            for i in pit_i:
+                pit_alt_freq += int(lineSplit[i][0:1]) + int(lineSplit[i][2:3])
+            for i in castle_i:
+                castle_alt_freq += int(lineSplit[i][0:1]) + int(lineSplit[i][2:3])
             pit_alt_freq = pit_alt_freq / 11
-            castle_alt_freq = castle_alt_freq / 9
+            castle_alt_freq = castle_alt_freq / 8
             if pit_alt_freq > castle_alt_freq:
                 snp[coord] = str(alt) + "/" + str(ref)
             else:
