@@ -187,7 +187,7 @@ def keepLines(snp, dir, outputFile):
     snps_len = {}
     cell_pit_allele = {}
     cell_castle_allele = {}
-    snp_coords = snp.keys()
+    snp_coords = list(snp.keys())
     for i in range(0, len(snp)):
         if i % 5000 == 0:
             print(i)
