@@ -260,7 +260,7 @@ def keepLines(snp, dir, outputFile):
     print(len(cell_castle_allele.keys()))
     print(len(list(cell_castle_allele.keys())))
     for cell in cell_castle_allele.keys():
-        lines.append( cell + "\t" + str(cell_pit_allele/(cell_castle_allele[cell] + cell_pit_allele[cell])) )
+        lines.append( cell + "\t" + str(cell_pit_allele[cell]/(cell_castle_allele[cell] + cell_pit_allele[cell])) )
     writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/cell_pit_castle.tsv", lines)
 
     # lines = []
