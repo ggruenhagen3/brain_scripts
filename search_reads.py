@@ -169,7 +169,7 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
         lineSplit = line.split()
         bam_seq = lineSplit[9]
         bam_pos = int(lineSplit[3])
-        bam_cell = lineSplit[18][5::]
+        bam_cell = line.split("CR:Z:")[1][0:16]
         bam_base = bam_seq[bam_pos - snp_pos]
         if snp_coord == "NC_036790.1:5935396-5935396":
             print(line)
@@ -258,9 +258,8 @@ def keepLines(snp, dir, outputFile):
 
     lines = []
     print(len(cell_castle_allele.keys()))
-    print(len(list(cell_castle_allele.keys())))
     for cell in cell_castle_allele.keys():
-        lines.append( cell + "\t" + str(cell_pit_allele[cell]/(cell_castle_allele[cell] + cell_pit_allele[cell])) )
+        lines.append( cell + "\t" + str(cell_pit_allele[cell]/(cell_castle_allele[cell] + cell_pit_allele[cell])) + "\n" )
     writeFile("/nv/hp10/ggruenhagen3/scratch/brain/results/cell_pit_castle.tsv", lines)
 
     # lines = []
