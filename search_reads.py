@@ -188,6 +188,8 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
         if bam_base == castle_allele:
             cell_pit_allele[bam_cell] = cell_pit_allele.get(bam_cell, 0) + 0
             cell_castle_allele[bam_cell] = cell_castle_allele.get(bam_cell, 0) + 1
+            if snp_coord == "NC_036790.1:5935396-5935396":
+                print("Found castle allele")
 
     return cell_pit_allele, cell_castle_allele
 
