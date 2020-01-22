@@ -121,7 +121,7 @@ def writeNewPat(output, pat_lines, geneDict):
         new_line = ""
         for i in range(0, len(lineSplit)):
             new_line += lineSplit[i] + "\t"
-            if i == 4:
+            if i == 4 and lineSplit[0] != "GeneName":
                 new_line += ens_name + "\t" + ens2_name + "\t"
             if i == 4 and lineSplit[0] == "GeneName":
                 new_line += "ENS" + "\t" + "ENS2" + "\t"
