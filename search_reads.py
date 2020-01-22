@@ -168,7 +168,7 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
     for line in output:
         lineSplit = line.split()
         bam_seq = lineSplit[9]
-        bam_pos = int(lineSplit[3]) + 1
+        bam_pos = int(lineSplit[3]) - 1
         bam_cell = line.split("CR:Z:")[1][0:16]
         bam_base = bam_seq[bam_pos - snp_pos]
         if snp_coord == "NC_036790.1:5935396-5935396" and bam_base != pit_allele and bam_base != castle_allele:
