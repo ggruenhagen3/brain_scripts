@@ -52,6 +52,7 @@ def filterBlastOut(blast):
     """
     coordDict = {}
     readLine = False
+    data = []
     with open(blast, 'r') as input:
         for line in input:
 
@@ -74,12 +75,19 @@ def filterBlastOut(blast):
                 subjectStop = int(subject.split(":")[1].split("-")[0])
                 subjectLen = subjectStop - subjectStart
 
-                if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
+                union = max(queryStop, subjectStop) - min(queryStart, subjectStart)
+                intersection = min(queryStop, subjectStop) - max(queryStart, subjectStart)
+                # if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
+                #     coordDict[query] = subject
+                data.append(intersection/union)
+                if queryLG == subjectLG and intersection/union > 0.7:
                     coordDict[query] = subject
 
             if line.endswith("hits found\n"):
                 readLine = True
 
+    plt.hist(data, bins=30, alpha=0.5)
+    plt.savefig('int_union.png')
 
     return coordDict
 
