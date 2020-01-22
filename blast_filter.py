@@ -77,14 +77,14 @@ def filterBlastOut(blast):
 
                 print(query)
                 print(subject)
-                union = max(queryStop, subjectStop) - min(queryStart, subjectStart)
-                intersection = min(queryStop, subjectStop) - max(queryStart, subjectStart)
-                print(union)
-                print(intersection)
                 # if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
                 #     coordDict[query] = subject
-                data.append(intersection/union)
-                if queryLG == subjectLG and intersection/union > 0.7:
+                if queryLG == subjectLG:
+                    union = max(queryStop, subjectStop) - min(queryStart, subjectStart)
+                    intersection = min(queryStop, subjectStop) - max(queryStart, subjectStart)
+                    print(union)
+                    print(intersection)
+                    data.append(intersection/union)
                     coordDict[query] = subject
 
             if line.endswith("hits found\n"):
