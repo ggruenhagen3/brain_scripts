@@ -83,7 +83,8 @@ def filterBlastOut(blast):
                     if union < 0 or intersection < 0:
                         intersection = 0
                     data.append(intersection/union)
-                    coordDict[query] = subject
+                    if intersection/union > 0.8:
+                        coordDict[query] = subject
 
             if line.endswith("hits found\n"):
                 readLine = True
