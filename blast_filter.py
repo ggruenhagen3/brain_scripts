@@ -75,6 +75,8 @@ def filterBlastOut(blast):
                 subjectStop = int(subject.split(":")[1].split("-")[0])
                 subjectLen = subjectStop - subjectStart
 
+                print(query)
+                print(subject)
                 union = max(queryStop, subjectStop) - min(queryStart, subjectStart)
                 intersection = min(queryStop, subjectStop) - max(queryStart, subjectStart)
                 # if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
