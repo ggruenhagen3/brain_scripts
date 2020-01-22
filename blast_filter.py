@@ -75,15 +75,11 @@ def filterBlastOut(blast):
                 subjectStop = int(subject.split(":")[1].split("-")[1])
                 subjectLen = subjectStop - subjectStart
 
-                print(query)
-                print(subject)
                 # if queryLG == subjectLG and (algnLen > queryLen*0.9 or algnLen > subjectLen*0.9):
                 #     coordDict[query] = subject
                 if queryLG == subjectLG:
                     union = max(queryStop, subjectStop) - min(queryStart, subjectStart)
                     intersection = min(queryStop, subjectStop) - max(queryStart, subjectStart)
-                    print(union)
-                    print(intersection)
                     data.append(intersection/union)
                     coordDict[query] = subject
 
