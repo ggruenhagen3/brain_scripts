@@ -171,25 +171,25 @@ def findPitCastle(output, cell_pit_allele, cell_castle_allele, snp_coord, snp):
         bam_pos = int(lineSplit[3])
         bam_cell = line.split("CR:Z:")[1][0:16]
         bam_base = bam_seq[snp_pos - bam_pos]
-        if snp_coord == "NC_036790.1:5935396-5935396" and bam_base != pit_allele and bam_base != castle_allele:
-            print(line)
-            print(bam_cell)
-            print(bam_base)
-            print(pit_allele)
-            print(castle_allele)
-            print(cell_pit_allele)
-            print("Pit nor castle allele found")
+        # if snp_coord == "NC_036790.1:5935396-5935396" and bam_base != pit_allele and bam_base != castle_allele:
+        #     print(line)
+        #     print(bam_cell)
+        #     print(bam_base)
+        #     print(pit_allele)
+        #     print(castle_allele)
+        #     print(cell_pit_allele)
+        #     print("Pit nor castle allele found")
         if bam_base == pit_allele:
             cell_pit_allele[bam_cell] = cell_pit_allele.get(bam_cell, 0) + 1
             cell_castle_allele[bam_cell] = cell_castle_allele.get(bam_cell, 0) + 0
-            if snp_coord == "NC_036790.1:5935396-5935396":
-                print("Found pit allele")
-                print(cell_pit_allele[bam_cell])
+            # if snp_coord == "NC_036790.1:5935396-5935396":
+            #     print("Found pit allele")
+            #     print(cell_pit_allele[bam_cell])
         if bam_base == castle_allele:
             cell_pit_allele[bam_cell] = cell_pit_allele.get(bam_cell, 0) + 0
             cell_castle_allele[bam_cell] = cell_castle_allele.get(bam_cell, 0) + 1
-            if snp_coord == "NC_036790.1:5935396-5935396":
-                print("Found castle allele")
+            # if snp_coord == "NC_036790.1:5935396-5935396":
+            #     print("Found castle allele")
 
     return cell_pit_allele, cell_castle_allele
 
