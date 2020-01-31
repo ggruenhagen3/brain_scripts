@@ -37,6 +37,7 @@ def readGff(gff, vcf_genes):
                 lineSplit = line.split()
                 id = lineSplit[8].split(";")[0][3:]
                 name_local = lineSplit[8].find("gene=")
+                print(id)
                 if name_local >= 0:
                     name = lineSplit[8][name_local+5:]
                 if id in vcf_genes:
@@ -55,8 +56,8 @@ def main():
     vcf, gff, output, verbose = parseArgs()
     vcf_genes = readVcf(vcf)
     usable_genes = readGff(gff, vcf_genes)
-    print("Number of vcf_genes" + str(len(vcf_genes)))
-    print("Number of output genes" + str(len(usable_genes)))
+    print("Number of vcf_genes " + str(len(vcf_genes)))
+    print("Number of output genes " + str(len(usable_genes)))
     writeGenes(output, usable_genes)
 
 
