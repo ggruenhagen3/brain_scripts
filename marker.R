@@ -1,5 +1,6 @@
 library("stringr")
 library("dplyr")
+library("Seurat")
 options(warn=-1)
 
 rna_path <- "C:/Users/miles/Downloads/brain/"
@@ -47,6 +48,8 @@ for (i in 1:nrow(markers)) {
   result <- geneCap(gene, gene_names)
   gene <- result[1]
   error <- result[2]
+  print(gene)
+  print(error)
   if (! error) {
     png(filename = paste(rna_path, "results/painting/", bio, "/", gene, "_umap.png", sep=""), width = 900, height = 500, unit="px")
     p <- FeaturePlot(combined, features = c(gene), split.by = "cond", reduction = "umap", pt.size = 2, label=TRUE, order = TRUE)
