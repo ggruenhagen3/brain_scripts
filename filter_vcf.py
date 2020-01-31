@@ -25,8 +25,7 @@ def readVcf(vcf):
                     MC_allele = lineSplit[18][0:3]
                     CV_allele = lineSplit[13][0:3]
                     TI_allele = lineSplit[26][0:3]
-                    if close_dist < 10000 and CV_allele == TI_allele and CV_allele != MC_allele:
-                        print(close_gene)
+                    if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
                         genes.append(close_gene)
     genes = list(dict.fromkeys(genes))
     return genes
