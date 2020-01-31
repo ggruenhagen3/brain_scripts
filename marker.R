@@ -36,6 +36,7 @@ colnames(markers) <- c("gene", "bio")
 # markers[564,] <- c("SST", "test")
 
 # Paint the markers
+gene_names <- rownames(combined@assays$RNA)
 markers <- markers[which(markers$bio == "ASE"),]
 markers <- unique(markers)
 for (i in 1:nrow(markers)) {
