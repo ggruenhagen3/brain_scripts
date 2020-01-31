@@ -47,7 +47,7 @@ for (i in 1:nrow(markers)) {
   
   result <- geneCap(gene, gene_names)
   gene <- result[1]
-  error <- result[2]
+  error <- as.logical(result[2])
   print(gene)
   print(error)
   if (! error) {
