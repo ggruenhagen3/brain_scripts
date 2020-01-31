@@ -28,7 +28,7 @@ def readVcf(vcf):
                     if close_dist < 10000 and CV_allele == TI_allele and CV_allele != MC_allele:
                         print(close_gene)
                         genes.append(close_gene)
-
+    genes = list(dict.fromkeys(genes))
     return genes
 
 def readGff(gff, vcf_genes):
