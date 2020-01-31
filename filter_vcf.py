@@ -34,6 +34,7 @@ def readGff(gff, vcf_genes):
     with open(gff, 'r') as input:
         for line in input:
             if not line.startswith("#"):
+                print(line)
                 lineSplit = line.split()
                 id = lineSplit[8].split(";")[0][3:]
                 name = lineSplit[8].split(";")[4]
