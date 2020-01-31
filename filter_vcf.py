@@ -25,6 +25,7 @@ def readVcf(vcf):
                     CV_allele = lineSplit[13][0:3]
                     TI_allele = lineSplit[26][0:3]
                     if close_dist < 10000 and CV_allele == TI_allele and CV_allele != MC_allele:
+                        print(close_gene)
                         genes.append(close_gene)
 
     return genes
@@ -37,7 +38,6 @@ def readGff(gff, vcf_genes):
                 lineSplit = line.split()
                 id = lineSplit[8].split(";")[0][3:]
                 name_local = lineSplit[8].find("gene=")
-                print(id)
                 if name_local >= 0:
                     name = lineSplit[8][name_local+5:]
                 if id in vcf_genes:
