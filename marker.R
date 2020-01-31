@@ -38,6 +38,7 @@ colnames(markers) <- c("gene", "bio")
 # markers[564,] <- c("SST", "test")
 
 # Paint the markers
+combined@active.assay <- "RNA"
 gene_names <- rownames(combined@assays$RNA)
 markers <- markers[which(markers$bio == "ASE"),]
 markers <- unique(markers)
@@ -48,8 +49,12 @@ for (i in 1:nrow(markers)) {
   result <- geneCap(gene, gene_names)
   gene <- result[1]
   error <- as.logical(result[2])
-  print(gene)
-  print(error)
+  
+  if (i %% 50 == 0) {
+        print(i)
+        print(gene)
+  }
+    
   if (! error) {
     png(filename = paste(rna_path, "results/painting/", bio, "/", gene, "_umap.png", sep=""), width = 900, height = 500, unit="px")
     p <- FeaturePlot(combined, features = c(gene), split.by = "cond", reduction = "umap", pt.size = 2, label=TRUE, order = TRUE)
