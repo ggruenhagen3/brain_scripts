@@ -15,13 +15,16 @@ def readVcf(vcf):
     with open(vcf, 'r') as input:
         for line in input:
             lineSplit = line.split()
-            close_dist = line.split[7].split("=")[1].split("|")[0]
-            close_gene = line.split[7].split("") # TODO FIX ME
-            MC_allele = lineSplit[18][0:3]
-            CV_allele = lineSplit[13][0:3]
-            TI_allele = lineSplit[26][0:3]
-            if close_dist < 10000 and CV_allele == TI_allele and CV_allele != MC_allele:
-                genes.append(close_gene)
+            close_dist = lineSplit[7].split("=")[1].split("|")[0]
+            close_gene = lineSplit[7].split("|")[1]
+            gene_local = close_gene.find("Gene")
+            if gene_local > 0:
+                close_gene = close_gene[gene_local+5:]
+                MC_allele = lineSplit[18][0:3]
+                CV_allele = lineSplit[13][0:3]
+                TI_allele = lineSplit[26][0:3]
+                if close_dist < 10000 and CV_allele == TI_allele and CV_allele != MC_allele:
+                    genes.append(close_gene)
 
     return genes
 
