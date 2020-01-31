@@ -46,7 +46,7 @@ def readGff(gff, vcf_genes):
                     # print(id)
                     # print(name)
                     usable_genes.append(name)
-
+    usable_genes = list(dict.fromkeys(usable_genes))
     return usable_genes
 
 def writeGenes(output, genes):
