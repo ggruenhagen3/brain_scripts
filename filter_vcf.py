@@ -42,6 +42,8 @@ def readGff(gff, vcf_genes):
                     name = lineSplit[8][name_local+5:]
                     name = name.split(";")[0]
                 if id in vcf_genes:
+                    print(id)
+                    print(name)
                     usable_genes.append(name)
 
     return usable_genes
