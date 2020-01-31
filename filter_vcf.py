@@ -15,6 +15,7 @@ def readVcf(vcf):
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
+                print(line)
                 lineSplit = line.split()
                 close_dist = int(lineSplit[7].split("=")[1].split("|")[0])
                 close_gene = lineSplit[7].split("|")[1]
