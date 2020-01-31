@@ -21,6 +21,7 @@ def readVcf(vcf):
                 gene_local = close_gene.find("Gene")
                 if gene_local > 0:
                     close_gene = close_gene[gene_local+5:]
+                    close_gene = close_gene.split(":")[0]
                     MC_allele = lineSplit[18][0:3]
                     CV_allele = lineSplit[13][0:3]
                     TI_allele = lineSplit[26][0:3]
