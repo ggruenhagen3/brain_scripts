@@ -38,6 +38,7 @@ def readGff(gff, vcf_genes):
                 lineSplit = line.split()
                 id = lineSplit[8].split(";")[0][3:]
                 name_local = lineSplit[8].find("gene=")
+                name = ""
                 if name_local >= 0:
                     name = lineSplit[8][name_local+5:]
                     name = name.split(";")[0]
