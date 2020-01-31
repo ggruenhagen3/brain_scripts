@@ -15,7 +15,6 @@ def readVcf(vcf):
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
-                print(line)
                 lineSplit = line.split()
                 close_dist = int(lineSplit[7].split("=")[1].split("|")[0])
                 close_gene = lineSplit[7].split("|")[1]
@@ -34,6 +33,7 @@ def readGff(gff, vcf_genes):
     usable_genes = []
     with open(gff, 'r') as input:
         for line in input:
+            print(line)
             lineSplit = line.split()
             id = lineSplit[8].split(";")[0][3:]
             name = lineSplit[8].split(";")[4]
