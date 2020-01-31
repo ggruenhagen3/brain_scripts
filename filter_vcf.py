@@ -33,14 +33,14 @@ def readGff(gff, vcf_genes):
     usable_genes = []
     with open(gff, 'r') as input:
         for line in input:
-            print(line)
-            lineSplit = line.split()
-            id = lineSplit[8].split(";")[0][3:]
-            name = lineSplit[8].split(";")[4]
-            if name.startswith("gene="):
-                name = name[5:]
-            if id in vcf_genes:
-                usable_genes.append(name)
+            if not line.startswith("#"):
+                lineSplit = line.split()
+                id = lineSplit[8].split(";")[0][3:]
+                name = lineSplit[8].split(";")[4]
+                if name.startswith("gene="):
+                    name = name[5:]
+                if id in vcf_genes:
+                    usable_genes.append(name)
 
     return usable_genes
 
