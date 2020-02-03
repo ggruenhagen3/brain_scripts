@@ -48,8 +48,8 @@ def readGff(gff, vcf_genes):
                     # print(name)
                     found_ids.append(id)
                     usable_genes.append(name)
-    print("Number of vcf_genes found " + len(found_ids))
-    print("Number of vcf_genes found (dedup) " + len(list(dict.fromkeys(found_ids))))
+    print("Number of vcf_genes found " + str(len(found_ids)))
+    print("Number of vcf_genes found (dedup) " + str(len(list(dict.fromkeys(found_ids)))))
     usable_genes = list(dict.fromkeys(usable_genes))
     return usable_genes
 
