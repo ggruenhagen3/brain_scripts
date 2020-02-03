@@ -32,6 +32,7 @@ def readVcf(vcf):
 
 def readGff(gff, vcf_genes):
     usable_genes = []
+    found_ids = []
     with open(gff, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -45,7 +46,10 @@ def readGff(gff, vcf_genes):
                 if id in vcf_genes or name in vcf_genes:
                     # print(id)
                     # print(name)
+                    found_ids.append(id)
                     usable_genes.append(name)
+    print("Number of vcf_genes found " + len(found_ids))
+    print("Number of vcf_genes found (dedup) " + len(list(dict.fromkeys(found_ids))))
     usable_genes = list(dict.fromkeys(usable_genes))
     return usable_genes
 
