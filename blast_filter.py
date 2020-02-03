@@ -111,7 +111,7 @@ def writeNewPat(output, pat_lines, geneDict):
     # f.write(pat_lines[0] + "\t" + "ENS" + "\t" + "ENS2" + "\n")
     # for line in pat_lines[1:]:
     for line in pat_lines[0:]:
-        lineSplit = line.split()
+        lineSplit = line.split("\t")
         ens_name = str(geneDict.get(lineSplit[1], "NA"))
         if lineSplit[1].startswith("LOC"):
             ens2_name = ens_name
@@ -120,7 +120,10 @@ def writeNewPat(output, pat_lines, geneDict):
 
         new_line = ""
         for i in range(0, len(lineSplit)):
-            new_line += lineSplit[i] + "\t"
+            if i != 0:
+                new_line += "\t" + lineSplit[i]
+            else:
+                new_line = lineSplit[0]
             if i == 4 and lineSplit[0] != "GeneName":
                 new_line += ens_name + "\t" + ens2_name + "\t"
             if i == 4 and lineSplit[0] == "GeneName":
