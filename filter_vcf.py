@@ -12,6 +12,7 @@ def parseArgs():
 
 def readVcf(vcf):
     genes = []
+    kept_records = 0
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -27,6 +28,8 @@ def readVcf(vcf):
                     TI_allele = lineSplit[26][0:3]
                     if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
                         genes.append(close_gene)
+                        kept_records += 1
+    print("Records in VCF kept: " + str(kept_records))
     genes = list(dict.fromkeys(genes))
     return genes
 
@@ -48,8 +51,6 @@ def readGff(gff, vcf_genes):
                     # print(name)
                     found_ids.append(id)
                     usable_genes.append(name)
-    print("Number of vcf_genes found " + str(len(found_ids)))
-    print("Number of vcf_genes found (dedup) " + str(len(list(dict.fromkeys(found_ids)))))
     usable_genes = list(dict.fromkeys(usable_genes))
     return usable_genes
 
