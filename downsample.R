@@ -92,6 +92,27 @@ marker_genes <- validGenes(markers$gene, gene_names)
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 big_df <- data.frame()
 
+# Avg trans per cluster for ALL genes
+Idents(object = combined) <- "seurat_clusters"
+num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
+results_expr <- data.frame()
+cells_per_cluster <- c()
+trans_per_cluster <- c()
+for (i in 0:num_clusters) {
+  print(i)
+  this_cells <- WhichCells(combined, idents = i)
+  # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[,this_cells]) != 0))) # genes
+  trans_per_cluster <- c(trans_per_cluster, sum(colSums(combined@assays$RNA@counts[,this_cells]))) # trans
+  cells_per_cluster <- c(cells_per_cluster, length(this_cells))
+}
+avg_trans_per_cell_per_cluster <- trans_per_cluster/cells_per_cluster
+all_trans <- as.data.frame(avg_trans_per_cell_per_cluster)
+all_trans$trans_per_cluster <- trans_per_cluster
+all_trans$cells_per_cluster <- cells_per_cluster
+rownames(all_trans) <- 0:40
+
+
+# Bootstrap
 for (run in 1:50) {
   print(run)
   mat <- downsample(combined, marker_genes, run)
@@ -105,9 +126,9 @@ for (run in 1:50) {
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
   avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
-  df <- as.data.frame(avg_gene_per_cell_per_cluster)
+  df <- as.data.frame(avg_gene_per_cell_per_cluster / all_trans[,1]) # addition
   rownames(df) <- 0:40
-  big_df <- rbind(big_df, t(order(df$avg_gene_per_cell_per_cluster, decreasing = TRUE)-1))
+  big_df <- rbind(big_df, t(order(df[,1], decreasing = TRUE)-1))
 }
 
 rownames(big_df) <- rep(paste("run_", 1:50, sep =""))
@@ -118,5 +139,5 @@ for (cluster in 0:40) {
   rankSums <- c(rankSums, sum(which(big_df[,] == cluster, arr.ind = TRUE)[,2]))
 }
 order(rankSums)-1
-write.csv(order(rankSums)-1, file = paste(rna_path, "/results/down_boot_rank.csv", sep=""), row.names = FALSE)
+write.csv(order(rankSums)-1, file = paste(rna_path, "/results/down_boot_rank_all_trans.csv", sep=""), row.names = FALSE)
           
