@@ -1,5 +1,6 @@
 library("dplyr")
 library("Matrix")
+library("Seurat")
 
 geneCap <- function(gene, gene_names) {
   # Gene the gene name in the right format
