@@ -92,7 +92,7 @@ marker_genes <- validGenes(markers$gene, gene_names)
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 big_df <- data.frame()
 
-for (run in 1:3) {
+for (run in 1:50) {
   print(run)
   mat <- downsample(combined, marker_genes, run)
   
