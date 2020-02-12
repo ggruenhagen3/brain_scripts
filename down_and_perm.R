@@ -133,7 +133,7 @@ for (run in 4:7) {
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
   avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
-  perm_down_avg_gene <- c(perm_avg_gene, avg_gene_per_cell_per_cluster)
+  perm_down_avg_gene <- c(perm_down_avg_gene, avg_gene_per_cell_per_cluster)
 }
 sig <- quantile(perm_down_avg_gene, c(.975))
 print(sig)
