@@ -89,13 +89,14 @@ colnames(markers) <- c("gene", "bio")
 markers <- markers[which(markers$bio == "DISC_ASE"),]
 gene_names <- rownames(combined@assays$RNA)
 marker_genes <- validGenes(markers$gene, gene_names)
+valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
-down_avg_avg_gene <- c()
+down_avg_avg_gene <- rep(0, num_clusters+1)
 
 
 # No Perm, Bootstrap
-for (run in 1:50) {
-  cat(paste("no_perm", run))
+for (run in 1:3) {
+  cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
   
   cells_per_cluster <- c()
@@ -115,7 +116,7 @@ print(down_avg_avg_gene)
 # Perm, Bootstrap
 backup_ids <- combined@meta.data$seurat_clusters
 perm_down_avg_gene <- c()
-for (run in 51:100) {
+for (run in 4:7) {
   cat(paste("perm", run))
   set.seed(run)
   shuffled <- sample(backup_ids)
