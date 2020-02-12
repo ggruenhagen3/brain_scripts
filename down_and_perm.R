@@ -135,7 +135,7 @@ for (run in 4:7) {
   avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
   perm_down_avg_gene <- c(perm_avg_gene, avg_gene_per_cell_per_cluster)
 }
-sig <- quantile(perm_avg_gene, c(.975))
+sig <- quantile(perm_down_avg_gene, c(.975))
 print(sig)
 
 sig_clusters <- which(down_avg_avg_gene > sig)-1
