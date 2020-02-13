@@ -109,7 +109,7 @@ for (run in 1:50) {
 }
 
 avg_genes_per_cluster <- total_genes_per_cluster/50
-all <- t(sum(total_genes_per_cluster), sum(cells_per_cluster))
+all <- t(c(sum(total_genes_per_cluster), sum(cells_per_cluster)))
 results <- data.frame()
 for (i in 0:num_clusters) {
   fisher_p <- fisher.test(data.frame(cluster <- t(c(avg_genes_per_cluster[i+1],cells_per_cluster[i+1])), all <- all))$p.value
