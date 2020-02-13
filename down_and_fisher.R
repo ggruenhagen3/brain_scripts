@@ -109,10 +109,11 @@ for (run in 1:50) {
 }
 
 avg_genes_per_cluster <- total_genes_per_cluster/50
-all <- t(c(sum(total_genes_per_cluster), sum(cells_per_cluster)))
+all <- c(sum(total_genes_per_cluster), sum(cells_per_cluster))
 results <- data.frame()
 for (i in 0:num_clusters) {
-  fisher_p <- fisher.test(data.frame(cluster <- t(c(avg_genes_per_cluster[i+1],cells_per_cluster[i+1])), all <- all))$p.value
+  contig_table <- data.frame(cluster <- c(avg_genes_per_cluster[i+1],cells_per_cluster[i+1]), all <- all)
+  fisher_p <- fisher.test(contig_table)$p.value
   results <- rbind(results, t(c(i, avg_genes_per_cluster[i+1]/cells_per_cluster[i+1], fisher_p)))
 }
 print(all[1]/all[2])
