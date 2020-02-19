@@ -95,7 +95,7 @@ down_avg_avg_gene <- rep(0, num_clusters+1)
 
 
 # No Perm, Bootstrap
-for (run in 1:50) {
+for (run in 1:3) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
   
@@ -115,8 +115,8 @@ print(down_avg_avg_gene)
 
 # Perm, Bootstrap
 backup_ids <- combined@meta.data$seurat_clusters
-perm_down_avg_gene <- c()
-for (run in 51:100) {
+perm_down_avg_gene <- lapply(0:num_clusters, function(x) c())
+for (run in 4:7) {
   cat(paste("perm", run, "\n"))
   set.seed(run)
   shuffled <- sample(backup_ids)
@@ -129,15 +129,26 @@ for (run in 51:100) {
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
-    genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[valid_genes,this_cells]) != 0))) # genes
+    this_genes <- length(which(as.vector(mat[valid_genes,this_cells]) != 0))
+    genes_per_cluster <- c(genes_per_cluster, this_genes) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
+    perm_down_avg_gene[[i+1]] <- c(perm_down_avg_gene[[i+1]], this_genes/length(this_cells))
   }
   avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
-  perm_down_avg_gene <- c(perm_down_avg_gene, avg_gene_per_cell_per_cluster)
+  # perm_down_avg_gene <- c(perm_down_avg_gene, avg_gene_per_cell_per_cluster)
 }
-sig <- quantile(perm_down_avg_gene, c(.975))
-print(sig)
 
-sig_clusters <- which(down_avg_avg_gene > sig)-1
+# Compare empirical data to 97.5th percentile of the permutated data on a PER CLUSTER basis
+sig_clusters  <- c()
+for (i in 0:num_clusters) {
+  sig <- quantile(perm_down_avg_gene[[i+1]], c(0.975))
+  if ( down_avg_avg_gene[i] > sig ) {
+    sig_clusters <- i
+  }
+}
+# sig <- quantile(perm_down_avg_gene, c(.975))
+# print(sig)
+
+# sig_clusters <- which(down_avg_avg_gene > sig)-1
 print(sig_clusters)
 write.csv(sig_clusters, file = paste(rna_path, "/results/down_perm_sig_clusters.csv", sep=""), row.names = FALSE)
