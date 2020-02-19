@@ -142,7 +142,7 @@ for (run in 4:7) {
 sig_clusters  <- c()
 for (i in 0:num_clusters) {
   sig <- quantile(perm_down_avg_gene[[i+1]], c(0.975))
-  if ( down_avg_avg_gene[i] > sig ) {
+  if ( down_avg_avg_gene[i+1] > sig ) {
     sig_clusters <- i
   }
 }
