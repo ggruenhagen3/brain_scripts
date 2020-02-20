@@ -32,7 +32,7 @@ validGenes <- function(genes, gene_names) {
       valid_genes <- c(valid_genes, gene)
     }
   } # end gene for
-  valid_genes <- unqiue(valid_genes)
+  valid_genes <- unique(valid_genes)
   return(valid_genes)
 } # end validGenes function
 
