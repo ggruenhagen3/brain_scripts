@@ -90,7 +90,7 @@ markers <- markers[which(markers$bio == "DISC_ASE"),]
 print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
 print("After gene_names")
-marker_genes <- validGenes(markers$gene, gene_names)
+marker_genes <- unique(validGenes(markers$gene, gene_names))
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
