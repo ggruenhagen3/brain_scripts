@@ -97,7 +97,7 @@ down_avg_avg_gene <- rep(0, num_clusters+1)
 
 
 # No Perm, Bootstrap
-for (run in 1:3) {
+for (run in 1:50) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
   
@@ -118,7 +118,7 @@ print(down_avg_avg_gene)
 # Perm, Bootstrap
 backup_ids <- combined@meta.data$seurat_clusters
 perm_down_avg_gene <- lapply(0:num_clusters, function(x) c())
-for (run in 4:7) {
+for (run in 51:100) {
   cat(paste("perm", run, "\n"))
   set.seed(run)
   shuffled <- sample(backup_ids)
