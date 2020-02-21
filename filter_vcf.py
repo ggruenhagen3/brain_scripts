@@ -26,7 +26,8 @@ def readVcf(vcf):
                     MC_allele = lineSplit[18][0:3]
                     CV_allele = lineSplit[13][0:3]
                     TI_allele = lineSplit[26][0:3]
-                    if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
+                    # if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
+                    if close_dist < 25000:
                         genes.append(close_gene)
                         kept_records += 1
     print("Records in VCF kept: " + str(kept_records))
