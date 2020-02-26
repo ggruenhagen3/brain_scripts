@@ -97,10 +97,10 @@ num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1)
 num_runs <- 50
 
 sort(valid_genes)
-gene_df <- data.frame(gene <- rep(valid_genes, num_clusters+1), cluster <- rep(0:num_clusters,each=length(valid_genes)), sum <- rep(0, length(valid_genes)*(num_clusters+1)), p <-  rep(0, length(valid_genes)*(num_clusters+1)), q <-  rep(0, length(valid_genes)*(num_clusters+1)))
+gene_df <- data.frame(gene <- rep(valid_genes, num_clusters+1), cluster <- rep(0:num_clusters,each=length(valid_genes)), sum <- rep(0, length(valid_genes)*(num_clusters+1)), p <-  rep(0, length(valid_genes)*(num_clusters+1)), q <-  rep(0, length(valid_genes)*(num_clusters+1)), up <-  rep(FALSE, length(valid_genes)*(num_clusters+1)))
 perm_gene_df <- gene_df
-colnames(gene_df) <- c("gene","cluster", "sum", "p", "q")
-colnames(perm_gene_df) <- c("gene","cluster", "sum", "p", "q")
+colnames(gene_df) <- c("gene","cluster", "sum", "p", "q", "up")
+colnames(perm_gene_df) <- c("gene","cluster", "sum", "p", "q", "up")
 
 # No Perm, Bootstrap
 for (run in 1:num_runs) {
@@ -152,6 +152,9 @@ for (i in 1:nrow(gene_df)) {
   contig_table <- data.frame(no_perm <- no_perm, perm <- perm)
   fisher_p <- fisher.test(contig_table)$p.value
   gene_df[i,4] <- fisher_p
+  if ( (no_perm[1]/no_perm[2]) > (perm[1]/perm[2]) ) {
+    gene_df[i,5] <- TRUE
+  }
 }
 gene_df$q <- p.adjust(gene_df$p, method = "hochberg")
 gene_df$p_sig <- gene_df$p < 0.05
