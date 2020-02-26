@@ -153,7 +153,7 @@ for (i in 1:nrow(gene_df)) {
   fisher_p <- fisher.test(contig_table)$p.value
   gene_df[i,4] <- fisher_p
   if ( (no_perm[1]/no_perm[2]) > (perm[1]/perm[2]) ) {
-    gene_df[i,5] <- TRUE
+    gene_df$up <- TRUE
   }
 }
 gene_df$q <- p.adjust(gene_df$p, method = "hochberg")
