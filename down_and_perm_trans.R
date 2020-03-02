@@ -93,7 +93,7 @@ print("After gene_names")
 marker_genes <- unique(validGenes(markers$gene, gene_names))
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
-down_avg_avg_gene <- rep(0, num_clusters+1)
+down_avg_avg_trans <- rep(0, num_clusters+1)
 num_runs <- 50
 
 # No Perm, Bootstrap
