@@ -102,7 +102,7 @@ for (run in 1:num_runs) {
   mat <- downsample(combined, marker_genes, run)
   
   cells_per_cluster <- c()
-  genes_per_cluster <- c()
+  trans_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
