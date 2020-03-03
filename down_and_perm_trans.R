@@ -142,8 +142,10 @@ for (run in (num_runs+1):(num_runs+num_runs)) {
 
 # Compare empirical data to 97.5th percentile of the permutated data on a PER CLUSTER basis
 sig_clusters  <- c()
+df <- data.frame()
 for (i in 0:num_clusters) {
   sig <- quantile(perm_down_avg_trans[[i+1]], c(0.975))
+  df <- rbind(df, t(c(sig, down_avg_avg_trans[i+1])))
   if ( down_avg_avg_trans[i+1] > sig ) {
     sig_clusters <- i
   }
@@ -153,4 +155,5 @@ for (i in 0:num_clusters) {
 
 # sig_clusters <- which(down_avg_avg_gene > sig)-1
 print(sig_clusters)
-write.csv(sig_clusters, file = paste(rna_path, "/results/down_perm_sig_clusters.csv", sep=""), row.names = FALSE)
+write.csv(df, file = paste(rna_path, "/results/down_perm_trans_data.csv", sep=""), row.names = FALSE)
+write.csv(sig_clusters, file = paste(rna_path, "/results/down_perm_sig_clusters_trans.csv", sep=""), row.names = FALSE)
