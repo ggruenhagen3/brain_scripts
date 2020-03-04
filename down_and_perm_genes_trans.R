@@ -106,7 +106,7 @@ colnames(perm_gene_df) <- c("gene","cluster", "sum", "p", "q", "up")
 for (run in 1:num_runs) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
-  mat[mat != 0] <- 1 # allows for rowSums to give the number of positive cells
+  # mat[mat != 0] <- 1 # allows for rowSums to give the number of positive cells
   
   cells_per_cluster <- c()
   for (i in 0:num_clusters) {
@@ -127,7 +127,7 @@ for (run in (num_runs+1):(num_runs+num_runs)) {
   set.seed(run)
   shuffled <- sample(backup_ids)
   mat <- downsample(combined, marker_genes, run)
-  mat[mat != 0] <- 1 # allows for rowSums to give the number of positive cells
+  # mat[mat != 0] <- 1 # allows for rowSums to give the number of positive cells
   
   Idents(object = combined) <- shuffled
   num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
@@ -160,4 +160,4 @@ for (i in 1:nrow(gene_df)) {
 gene_df$q <- p.adjust(gene_df$p, method = "hochberg")
 gene_df$p_sig <- gene_df$p < 0.05
 gene_df$q_sig <- gene_df$q < 0.05
-write.csv(gene_df[which(gene_df$p_sig),], file = paste(rna_path, "/results/down_perm_sig_gene_clusters.csv", sep=""), row.names = FALSE)
+write.csv(gene_df[which(gene_df$p_sig),], file = paste(rna_path, "/results/down_perm_sig_gene_trans_clusters.csv", sep=""), row.names = FALSE)
