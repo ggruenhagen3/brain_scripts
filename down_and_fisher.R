@@ -86,7 +86,7 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-markers <- markers[which(markers$bio == "HIGH_FST_11_ALL"),]
+markers <- markers[which(markers$bio == "DISC_ASE"),]
 gene_names <- rownames(combined@assays$RNA)
 marker_genes <- validGenes(markers$gene, gene_names)
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
@@ -116,5 +116,8 @@ for (i in 0:num_clusters) {
   fisher_p <- fisher.test(contig_table)$p.value
   results <- rbind(results, t(c(i, avg_genes_per_cluster[i+1]/cells_per_cluster[i+1], fisher_p)))
 }
+results$fischer_q <- p.adjust(results[,3], method = "hochberg")
+results$p_sig <- results[,3] < 0.05
+results$q_sig <- results[,4] < 0.05
 print(all[1]/all[2])
 write.table(results, file = paste(rna_path, "/results/down_and_fisher.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)

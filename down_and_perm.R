@@ -86,7 +86,7 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-markers <- markers[which(markers$bio == "HIGH_FST_11_ALL"),]
+markers <- markers[which(markers$bio == "DISC_ASE"),]
 print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
 print("After gene_names")
@@ -145,7 +145,7 @@ sig_clusters  <- c()
 for (i in 0:num_clusters) {
   sig <- quantile(perm_down_avg_gene[[i+1]], c(0.975))
   if ( down_avg_avg_gene[i+1] > sig ) {
-    sig_clusters <- i
+    sig_clusters <- c(sig_clusters, i)
   }
 }
 # sig <- quantile(perm_down_avg_gene, c(.975))
