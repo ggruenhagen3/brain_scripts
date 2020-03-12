@@ -144,7 +144,7 @@ for (run in 51:100) {
 df <- data.frame()
 for (i in 0:num_clusters) {
   down <- c(down_avg_avg_gene[i+1],    cells_per_cluster[i+1])
-  perm <- c(perm_down_avg_gene[[i+1]], cells_per_cluster[i+1])
+  perm <- c(mean(perm_down_avg_gene[[i+1]]), cells_per_cluster[i+1])
   contig_table <- data.frame(down <- down, perm <- perm)
   fisher_p <- fisher.test(contig_table)$p.value
   df <- rbind(df, t(c(i, down, perm, fisher_p)) )
