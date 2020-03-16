@@ -93,31 +93,43 @@ num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1)
 
 # Bootstrap
 total_genes_per_cluster <- rep(0, num_clusters+1)
+total_trans_per_cluster <- rep(0, num_clusters+1)
 for (run in 1:50) {
   print(run)
   mat <- downsample(combined, marker_genes, run)
   
   cells_per_cluster <- c()
   genes_per_cluster <- c()
+  this_trans        <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
     genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[,this_cells]) != 0))) # genes
+    this_trans <- c(this_trans, sum(rowSums(as.matrix(mat[valid_genes,this_cells]))))
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
   total_genes_per_cluster <- total_genes_per_cluster + genes_per_cluster
+  total_trans_per_cluster <- total_trans_per_cluster + this_trans
 }
 
 avg_genes_per_cluster <- total_genes_per_cluster/50
+avg_trans_per_cluster <- total_trans_per_cluster/50
 all <- c(sum(avg_genes_per_cluster), sum(cells_per_cluster))
+all_trans <- c(sum(avg_trans_per_cluster), sum(cells_per_cluster))
 results <- data.frame()
 for (i in 0:num_clusters) {
   contig_table <- data.frame(cluster <- c(avg_genes_per_cluster[i+1],cells_per_cluster[i+1]), all <- all)
   fisher_p <- fisher.test(contig_table)$p.value
-  results <- rbind(results, t(c(i, avg_genes_per_cluster[i+1]/cells_per_cluster[i+1], fisher_p)))
+  contig_table_trans <- data.frame(cluster <- c(avg_trans_per_cluster[i+1],cells_per_cluster[i+1]), all <- all_trans)
+  fisher_p_trans <- fisher.test(contig_table_trans)$p.value
+  results <- rbind(results, t(c(i, avg_genes_per_cluster[i+1]/cells_per_cluster[i+1], all[1]/all[2], fisher_p, avg_trans_per_cluster[i+1]/cells_per_cluster[i+1], all_trans[1]/all_trans[2], fisher_p_trans)))
 }
-results$fischer_q <- p.adjust(results[,3], method = "hochberg")
-results$p_sig <- results[,3] < 0.05
-results$q_sig <- results[,4] < 0.05
+colnames(results) <- c("cluster", "avg_genes_per_cell_per_cluster", "all_avg_gene_per_cell", "p_gene", "avg_trans_per_cell_per_cluster", "all_avg_trans_per_cell", "p_trans")
+results$q_gene <- p.adjust(results$p_gene, method = "hochberg")
+results$p_gene_sig <- results$p_gene < 0.05
+results$q_gene_sig <- results$q_gene < 0.05
+results$q_trans <- p.adjust(results$p_trans, method = "hochberg")
+results$p_trans_sig <- results$p_trans < 0.05
+results$q_trans_sig <- results$q_trans < 0.05
 print(all[1]/all[2])
 write.table(results, file = paste(rna_path, "/results/down_and_fisher.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
