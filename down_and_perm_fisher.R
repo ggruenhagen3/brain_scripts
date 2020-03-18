@@ -109,10 +109,11 @@ for (run in 1:50) {
     genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[,this_cells]) != 0))) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
-  avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
-  down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
+  # avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
+  # down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
+  total_genes_per_cluster <- total_genes_per_cluster + genes_per_cluster
 }
-down_avg_avg_gene <- down_avg_avg_gene / 50
+down_avg_avg_gene <- total_genes_per_cluster / 50
 print(down_avg_avg_gene)
 
 # Perm, Bootstrap
@@ -134,9 +135,9 @@ for (run in 51:100) {
     this_genes <- length(which(as.vector(mat[valid_genes,this_cells]) != 0))
     genes_per_cluster <- c(genes_per_cluster, this_genes) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
-    perm_down_avg_gene[[i+1]] <- c(perm_down_avg_gene[[i+1]], this_genes/length(this_cells))
+    perm_down_avg_gene[[i+1]] <- c(perm_down_avg_gene[[i+1]], this_genes)
   }
-  avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
+  # avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
   # perm_down_avg_gene <- c(perm_down_avg_gene, avg_gene_per_cell_per_cluster)
 }
 
