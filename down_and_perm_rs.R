@@ -151,6 +151,6 @@ for (i in 0:num_clusters) {
   p <- wilcox.test(down_avg_gene[[i+1]], perm_down_avg_gene[[i+1]])$p.value
   df <- rbind(df, t(c(i, p)) )
 }
-df$fisher_q <- p.adjust(df[,6], method = "hochberg")
-df$q_sig <- df$fisher_q < 0.05
-write.table(df, file = paste(rna_path, "/results/down_and_perm_fisher.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+df$q <- p.adjust(df[,2], method = "hochberg")
+df$q_sig <- df$q < 0.05
+write.table(df, file = paste(rna_path, "/results/down_and_perm_rs.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
