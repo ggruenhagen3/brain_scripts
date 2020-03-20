@@ -140,6 +140,8 @@ for (run in (run_num+1):(run_num+run_num)) {
 }
 
 # Combine matrices
+colnames(down_genes_per_cell) <- c("Cell_ID", "isPerm", "num_genes_in_list")
+colnames(perm_down_avg_gene) <- c("Cell_ID", "isPerm", "num_genes_in_list")
 df <- rbind(down_genes_per_cell, perm_down_avg_gene)
 
 write.table(df, file = paste(rna_path, "/results/zack_matrix_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
