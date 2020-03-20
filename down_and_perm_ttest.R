@@ -96,7 +96,7 @@ marker_genes <- unique(validGenes(markers$gene, gene_names))
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
-run_num <- 3
+run_num <- 50
 
 # No Perm, Bootstrap
 down_genes_per_cell <- lapply(0:num_clusters, function(x) c())
