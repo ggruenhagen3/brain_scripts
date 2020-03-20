@@ -87,7 +87,8 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-markers <- markers[which(markers$bio == "ROCK_SAND"),]
+bio <- "RAN"
+markers <- markers[which(markers$bio == bio),]
 print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
 print("After gene_names")
@@ -154,4 +155,4 @@ for (i in 0:num_clusters) {
 }
 df$q <- p.adjust(df[,2], method = "hochberg")
 df$q_sig_enrich <- df$q < 0.05 & df[,3] == TRUE
-write.table(df, file = paste(rna_path, "/results/down_and_perm_rs.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+write.table(df, file = paste(rna_path, "/results/down_and_perm_rs_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)

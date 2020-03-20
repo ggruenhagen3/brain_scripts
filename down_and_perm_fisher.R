@@ -74,6 +74,7 @@ downsample <- function(combined, marker_genes, run) {
   return(marker_matrix)
 }
 ## END FUNCTIONS ##
+# rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"
 combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
 marker_path <- paste(rna_path, "data/markers/", sep="")
@@ -95,10 +96,10 @@ valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
 total_genes_per_cluster <- rep(0, num_clusters+1)
-
+run_num <- 3
 
 # No Perm, Bootstrap
-for (run in 1:50) {
+for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
   
@@ -114,13 +115,13 @@ for (run in 1:50) {
   # down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
   total_genes_per_cluster <- total_genes_per_cluster + genes_per_cluster
 }
-down_avg_avg_gene <- total_genes_per_cluster / 50
+down_avg_avg_gene <- total_genes_per_cluster / run_num
 print(down_avg_avg_gene)
 
 # Perm, Bootstrap
 backup_ids <- combined@meta.data$seurat_clusters
 perm_down_avg_gene <- lapply(0:num_clusters, function(x) c())
-for (run in 51:100) {
+for (run in (run_num+1):(run_num+run_num)) {
   cat(paste("perm", run, "\n"))
   set.seed(run)
   shuffled <- sample(backup_ids)

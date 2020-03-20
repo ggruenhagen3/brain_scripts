@@ -74,6 +74,7 @@ downsample <- function(combined, marker_genes, run) {
   return(marker_matrix)
 }
 ## END FUNCTIONS ##
+# rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"
 combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
 marker_path <- paste(rna_path, "data/markers/", sep="")
@@ -86,7 +87,8 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-markers <- markers[which(markers$bio == "RAN"),]
+bio <- "RAN"
+markers <- markers[which(markers$bio == bio),]
 print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
 print("After gene_names")
@@ -94,10 +96,10 @@ marker_genes <- unique(validGenes(markers$gene, gene_names))
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
-
+run_num <- 3
 
 # No Perm, Bootstrap
-for (run in 1:50) {
+for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
   
@@ -112,13 +114,13 @@ for (run in 1:50) {
   avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
   down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
 }
-down_avg_avg_gene <- down_avg_avg_gene / 50
+down_avg_avg_gene <- down_avg_avg_gene / run_num
 print(down_avg_avg_gene)
 
 # Perm, Bootstrap
 backup_ids <- combined@meta.data$seurat_clusters
 perm_down_avg_gene <- lapply(0:num_clusters, function(x) c())
-for (run in 51:100) {
+for (run in (run_num+1):(run_num+run_num)) {
   cat(paste("perm", run, "\n"))
   set.seed(run)
   shuffled <- sample(backup_ids)
@@ -153,4 +155,4 @@ for (i in 0:num_clusters) {
 
 # sig_clusters <- which(down_avg_avg_gene > sig)-1
 print(sig_clusters)
-write.csv(sig_clusters, file = paste(rna_path, "/results/down_perm_sig_clusters.csv", sep=""), row.names = FALSE)
+write.csv(sig_clusters, file = paste(rna_path, "/results/down_perm_sig_clusters_", bio, ".csv", sep=""), row.names = FALSE)

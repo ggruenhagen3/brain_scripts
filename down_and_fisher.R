@@ -86,7 +86,7 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-markers <- markers[which(markers$bio == "RAN"),]
+markers <- markers[which(markers$bio == "ROCK_SAND"),]
 gene_names <- rownames(combined@assays$RNA)
 marker_genes <- validGenes(markers$gene, gene_names)
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
