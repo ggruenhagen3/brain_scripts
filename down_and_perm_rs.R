@@ -149,8 +149,9 @@ for (run in (run_num+1):(run_num+run_num)) {
 df <- data.frame()
 for (i in 0:num_clusters) {
   p <- wilcox.test(down_avg_gene[[i+1]], perm_down_avg_gene[[i+1]])$p.value
-  df <- rbind(df, t(c(i, p)) )
+  
+  df <- rbind(df, t(c(i, p, mean(down_avg_gene[[i+1]]) > mean(perm_down_avg_gene[[i+1]]))) )
 }
 df$q <- p.adjust(df[,2], method = "hochberg")
-df$q_sig <- df$q < 0.05
+df$q_sig_enrich <- df$q < 0.05 & df[,3] == TRUE
 write.table(df, file = paste(rna_path, "/results/down_and_perm_rs.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
