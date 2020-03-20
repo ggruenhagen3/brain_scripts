@@ -138,4 +138,4 @@ results$q_trans <- p.adjust(results$p_trans, method = "hochberg")
 results$p_trans_sig_up <- results$p_trans < 0.05 & results$avg_trans_per_cell_per_cluster > results$all_avg_trans_per_cell
 results$q_trans_sig_up <- results$q_trans < 0.05 & results$avg_trans_per_cell_per_cluster > results$all_avg_trans_per_cell
 print(all[1]/all[2])
-write.table(results, file = paste(rna_path, "/results/down_and_fisher.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+write.table(results, file = paste(rna_path, "/results/down_and_fisher_2.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
