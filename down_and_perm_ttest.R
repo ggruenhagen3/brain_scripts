@@ -103,6 +103,7 @@ down_genes_per_cell <- lapply(0:num_clusters, function(x) c())
 for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
+  mat[which(mat[,] > 1)] <- 1
   
   cells_per_cluster <- c()
   genes_per_cluster <- c()
@@ -124,6 +125,7 @@ for (run in (run_num+1):(run_num+run_num)) {
   set.seed(run)
   shuffled <- sample(backup_ids)
   mat <- downsample(combined, marker_genes, run)
+  mat[which(mat[,] > 1)] <- 1
   
   Idents(object = combined) <- shuffled
   num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
