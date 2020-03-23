@@ -129,7 +129,7 @@ for (i in 0:num_clusters) {
   fisher_p <- fisher.test(contig_table)$p.value
   contig_table_trans <- data.frame(cluster <- c(avg_trans_per_cluster[i+1],cells_per_cluster[i+1]), all_trans <- all_trans)
   fisher_p_trans <- fisher.test(contig_table_trans)$p.value
-  results <- rbind(results, t(c(i, avg_genes_per_cluster[i+1]/cells_per_cluster[i+1], all[1]/all[2], fisher_p, avg_trans_per_cluster[i+1]/cells_per_cluster[i+1], all_trans[1]/all_trans[2], fisher_p_trans)))
+  results <- rbind(results, t(c(i, avg_genes_per_cluster[i+1]/avg_neg_genes_per_cluster[i+1], all[1]/all[2], fisher_p, avg_trans_per_cluster[i+1]/cells_per_cluster[i+1], all_trans[1]/all_trans[2], fisher_p_trans)))
 }
 colnames(results) <- c("cluster", "avg_genes_per_cell_per_cluster", "all_avg_gene_per_cell", "p_gene", "avg_trans_per_cell_per_cluster", "all_avg_trans_per_cell", "p_trans")
 results$q_gene <- p.adjust(results$p_gene, method = "hochberg")
