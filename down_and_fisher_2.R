@@ -120,7 +120,7 @@ for (run in 1:num_run) {
 avg_genes_per_cluster <- total_genes_per_cluster/num_run
 avg_trans_per_cluster <- total_trans_per_cluster/num_run
 avg_neg_genes_per_cluster <- total_neg_genes_per_cluster/num_run
-all <- c(sum(avg_genes_per_cluster), sum(cells_per_cluster))
+all <- c(sum(avg_genes_per_cluster), sum(avg_neg_genes_per_cluster))
 all_trans <- c(sum(avg_trans_per_cluster), sum(cells_per_cluster))
 results <- data.frame()
 for (i in 0:num_clusters) {
