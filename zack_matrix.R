@@ -110,7 +110,7 @@ for (run in 1:run_num) {
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
-    this_rows <- data.frame(this_cells, i, rep(FALSE, length(this_cells)), colSums(combined[,this_cells]))
+    this_rows <- data.frame(this_cells, i, rep(FALSE, length(this_cells)), colSums(mat[,this_cells]))
     down_genes_per_cell <- rbind(down_genes_per_cell, this_rows)
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
@@ -134,14 +134,14 @@ for (run in (run_num+1):(run_num+run_num)) {
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
-    this_rows <- data.frame(this_cells, i, rep(TRUE, length(this_cells)), colSums(combined[,this_cells]))
+    this_rows <- data.frame(this_cells, i, rep(TRUE, length(this_cells)), colSums(mat[,this_cells]))
     perm_down_avg_gene <- rbind(perm_down_avg_gene, this_rows)
   }
 }
 
 # Combine matrices
-colnames(down_genes_per_cell) <- c("Cell_ID", "isPerm", "num_genes_in_list")
-colnames(perm_down_avg_gene) <- c("Cell_ID", "isPerm", "num_genes_in_list")
+colnames(down_genes_per_cell) <- c("Cell_ID", "cluster", "isPerm", "num_genes_in_list")
+colnames(perm_down_avg_gene) <- c("Cell_ID","cluster", "isPerm", "num_genes_in_list")
 df <- rbind(down_genes_per_cell, perm_down_avg_gene)
 
 write.table(df, file = paste(rna_path, "/results/zack_matrix_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
