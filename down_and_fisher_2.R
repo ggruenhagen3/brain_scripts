@@ -108,7 +108,7 @@ for (run in 1:num_run) {
     this_cells <- WhichCells(combined, idents = i)
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
     genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[,this_cells]) != 0))) # genes
-    neg_genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[,this_cells]) == 0))) # genes
+    neg_genes_per_cluster <- c(neg_genes_per_cluster, length(which(as.vector(mat[,this_cells]) == 0))) # genes
     this_trans <- c(this_trans, sum(rowSums(as.matrix(mat[,this_cells]))))
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
