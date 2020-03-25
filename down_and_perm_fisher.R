@@ -87,7 +87,8 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-markers <- markers[which(markers$bio == "ROCK_SAND"),]
+bio <- "RAN"
+markers <- markers[which(markers$bio == bio),]
 print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
 print("After gene_names")

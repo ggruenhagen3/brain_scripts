@@ -86,11 +86,12 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-markers <- markers[which(markers$bio == "ROCK_SAND"),]
+bio <- "RAN"
+markers <- markers[which(markers$bio == bio),]
 gene_names <- rownames(combined@assays$RNA)
 marker_genes <- validGenes(markers$gene, gene_names)
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
-num_run <- 3
+num_run <- 50
 
 # Bootstrap
 total_genes_per_cluster <- rep(0, num_clusters+1)
@@ -133,4 +134,4 @@ results$q_trans <- p.adjust(results$p_trans, method = "hochberg")
 results$p_trans_sig_up <- results$p_trans < 0.05 & results$avg_trans_per_cell_per_cluster > results$all_avg_trans_per_cell
 results$q_trans_sig_up <- results$q_trans < 0.05 & results$avg_trans_per_cell_per_cluster > results$all_avg_trans_per_cell
 print(all[1]/all[2])
-write.table(results, file = paste(rna_path, "/results/down_and_fisher.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+write.table(results, file = paste(rna_path, "/results/down_and_fisher_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
