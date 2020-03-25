@@ -97,7 +97,7 @@ valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
 total_genes_per_cluster <- rep(0, num_clusters+1)
-run_num <- 3
+run_num <- 50
 
 # No Perm, Bootstrap
 for (run in 1:run_num) {
@@ -155,4 +155,4 @@ for (i in 0:num_clusters) {
 }
 df$fisher_q <- p.adjust(df[,6], method = "hochberg")
 df$q_sig <- df$fisher_q < 0.05
-write.table(df, file = paste(rna_path, "/results/down_and_perm_fisher.tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+write.table(df, file = paste(rna_path, "/results/down_and_perm_fisher_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
