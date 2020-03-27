@@ -87,7 +87,7 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-bio <- "RAN_2"
+bio <- "ROCK_SAND"
 markers <- markers[which(markers$bio == bio),]
 print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
@@ -110,7 +110,7 @@ for (run in 1:run_num) {
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
-    down_genes_per_cell[[i+1]] <- c(down_genes_per_cell[[i+1]], colSums(combined[,this_cells])) # genes
+    down_genes_per_cell[[i+1]] <- c(down_genes_per_cell[[i+1]], colSums(mat[,this_cells])) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
   
