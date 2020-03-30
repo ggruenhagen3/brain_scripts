@@ -180,4 +180,4 @@ for (i in 0:num_clusters) {
 
 # sig_clusters <- which(down_avg_avg_gene > sig)-1
 print(sig_clusters)
-write.csv(sig_clusters, file = paste(rna_path, "/results/down_perm_sig_clusters_", bio, ".csv", sep=""), row.names = FALSE)
+write.csv(sig_clusters, file = paste(rna_path, "/results/down_and_perm_2_", bio, ".csv", sep=""), row.names = FALSE)

@@ -175,5 +175,5 @@ for (i in 0:num_clusters) {
 colnames(df) <- c("cluster", "mean_down", "mean_down_perm", "p", "p_sig_enrich")
 df$q <- p.adjust(df$p)
 df$q_sig_enrich <- df$q < 0.05 & df$mean_down > df$mean_down_perm
-
-write.table(df, file = paste(rna_path, "/results/down_and_perm_ttest_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+df$q_sig_unenrich <- df$q < 0.05 & df$mean_down < df$mean_down_perm
+write.table(df, file = paste(rna_path, "/results/down_and_perm_ttest_2_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)

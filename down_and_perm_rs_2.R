@@ -180,4 +180,5 @@ for (i in 0:num_clusters) {
 }
 df$q <- p.adjust(df[,2], method = "hochberg")
 df$q_sig_enrich <- df$q < 0.05 & df[,3] == TRUE
-write.table(df, file = paste(rna_path, "/results/down_and_perm_rs_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+df$q_sig_unenrich <- df$q < 0.05 & df[,3] == FALSE
+write.table(df, file = paste(rna_path, "/results/down_and_perm_rs_2_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)

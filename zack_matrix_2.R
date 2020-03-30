@@ -122,36 +122,35 @@ marker_genes <- unique(validGenes(markers$gene, gene_names))
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
-total_genes_per_cluster <- rep(0, num_clusters+1)
 run_num <- 50
 
 # No Perm, Bootstrap
+down_genes_per_cell <- data.frame()
 for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
+  mat[which(mat[,] > 1)] <- 1
   
   cells_per_cluster <- c()
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
-    genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[,this_cells]) != 0))) # genes
+    this_rows <- data.frame(this_cells, i, rep(FALSE, length(this_cells)), colSums(mat[,this_cells]))
+    down_genes_per_cell <- rbind(down_genes_per_cell, this_rows)
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
   }
-  # avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
-  # down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
-  total_genes_per_cluster <- total_genes_per_cluster + genes_per_cluster
 }
-down_avg_avg_gene <- total_genes_per_cluster / run_num
-print(down_avg_avg_gene)
+
 
 # Perm, Bootstrap
 backup_ids <- combined@meta.data$seurat_clusters
-perm_down_avg_gene <- lapply(0:num_clusters, function(x) c())
+perm_down_avg_gene <- data.frame()
 for (run in (run_num+1):(run_num+run_num)) {
   cat(paste("perm", run, "\n"))
   set.seed(run)
   mat <- downsample(combined, marker_genes, run)
+  mat[which(mat[,] > 1)] <- 1
   
   new_cells <- shuffleClusters(combined)
   num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
@@ -160,24 +159,14 @@ for (run in (run_num+1):(run_num+run_num)) {
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- new_cells[[i+1]]
-    this_genes <- length(which(as.vector(mat[valid_genes,this_cells]) != 0))
-    genes_per_cluster <- c(genes_per_cluster, this_genes) # genes
-    cells_per_cluster <- c(cells_per_cluster, length(this_cells))
-    perm_down_avg_gene[[i+1]] <- c(perm_down_avg_gene[[i+1]], this_genes)
+    this_rows <- data.frame(this_cells, i, rep(TRUE, length(this_cells)), colSums(mat[,this_cells]))
+    perm_down_avg_gene <- rbind(perm_down_avg_gene, this_rows)
   }
-  # avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
-  # perm_down_avg_gene <- c(perm_down_avg_gene, avg_gene_per_cell_per_cluster)
 }
 
-# Compare empirical data to the permutated data on a PER CLUSTER basis
-df <- data.frame()
-for (i in 0:num_clusters) {
-  down <- c(down_avg_avg_gene[i+1],    cells_per_cluster[i+1])
-  perm <- c(mean(perm_down_avg_gene[[i+1]]), cells_per_cluster[i+1])
-  contig_table <- data.frame(down <- down, perm <- perm)
-  fisher_p <- fisher.test(contig_table)$p.value
-  df <- rbind(df, t(c(i, down, perm, fisher_p)) )
-}
-df$fisher_q <- p.adjust(df[,6], method = "hochberg")
-df$q_sig <- df$fisher_q < 0.05
-write.table(df, file = paste(rna_path, "/results/down_and_perm_fisher_2_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+# Combine matrices
+colnames(down_genes_per_cell) <- c("Cell_ID", "cluster", "isPerm", "num_genes_in_list")
+colnames(perm_down_avg_gene) <- c("Cell_ID","cluster", "isPerm", "num_genes_in_list")
+df <- rbind(down_genes_per_cell, perm_down_avg_gene)
+
+write.table(df, file = paste(rna_path, "/results/zack_matrix_2_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
