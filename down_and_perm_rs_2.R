@@ -74,7 +74,31 @@ downsample <- function(combined, marker_genes, run) {
   return(marker_matrix)
 }
 
+pickNewCells <- function(combined, num_clusters, num_cells) {
+  new_cells <- c()
+  for (i in 1:num_cells) {
+    ran_cluster <- sample(0:num_clusters, 1)
+    this_cells <- names(combined$seurat_clusters[which(combined$seurat_clusters == ran_cluster)])
+    new_cells <- c(new_cells, sample(this_cells,1))
+  }
+  
+  return(new_cells)
+}
 
+shuffleClusters <- function(combined) {
+  # The selection process for a new cluster should be as follows:
+  # 1. Pick a random cluster 0-40
+  # 2. Pick a random cell from that cluster to be a part of the new cluster
+  # This means that the new data set would likely have duplicate cells
+  new_cells <- lapply(0:num_clusters, function(x) c())
+  num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
+  for (i in 0:num_clusters) {
+    num_cells <- length(combined$seurat_clusters[which(combined$seurat_clusters == i)])
+    new_cells[[i+1]] <- pickNewCells(combined, num_clusters, num_cells)
+  }
+  
+  return(new_cells)
+}
 ## END FUNCTIONS ##
 # rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"
@@ -89,7 +113,7 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-bio <- "RAN"
+bio <- "RAN_2"
 markers <- markers[which(markers$bio == bio),]
 print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
@@ -102,6 +126,7 @@ total_genes_per_cluster <- rep(0, num_clusters+1)
 run_num <- 50
 
 # No Perm, Bootstrap
+down_avg_gene <- lapply(0:num_clusters, function(x) c())
 for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
@@ -113,6 +138,7 @@ for (run in 1:run_num) {
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
     genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[,this_cells]) != 0))) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
+    down_avg_gene[[i+1]] <- c(down_avg_gene[[i+1]], length(which(as.vector(mat[,this_cells]) != 0)))
   }
   # avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
   # down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
@@ -127,16 +153,15 @@ perm_down_avg_gene <- lapply(0:num_clusters, function(x) c())
 for (run in (run_num+1):(run_num+run_num)) {
   cat(paste("perm", run, "\n"))
   set.seed(run)
-  shuffled <- sample(backup_ids)
   mat <- downsample(combined, marker_genes, run)
   
-  Idents(object = combined) <- shuffled
+  new_cells <- shuffleClusters(combined)
   num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
   gene_names <- rownames(combined@assays$RNA)
   cells_per_cluster <- c()
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
-    this_cells <- WhichCells(combined, idents = i)
+    this_cells <- new_cells[[i+1]]
     this_genes <- length(which(as.vector(mat[valid_genes,this_cells]) != 0))
     genes_per_cluster <- c(genes_per_cluster, this_genes) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
@@ -149,12 +174,10 @@ for (run in (run_num+1):(run_num+run_num)) {
 # Compare empirical data to the permutated data on a PER CLUSTER basis
 df <- data.frame()
 for (i in 0:num_clusters) {
-  down <- c(down_avg_avg_gene[i+1],    cells_per_cluster[i+1])
-  perm <- c(mean(perm_down_avg_gene[[i+1]]), cells_per_cluster[i+1])
-  contig_table <- data.frame(down <- down, perm <- perm)
-  fisher_p <- fisher.test(contig_table)$p.value
-  df <- rbind(df, t(c(i, down, perm, fisher_p)) )
+  p <- wilcox.test(down_avg_gene[[i+1]], perm_down_avg_gene[[i+1]])$p.value
+  
+  df <- rbind(df, t(c(i, p, mean(down_avg_gene[[i+1]]) > mean(perm_down_avg_gene[[i+1]]))) )
 }
-df$fisher_q <- p.adjust(df[,6], method = "hochberg")
-df$q_sig <- df$fisher_q < 0.05
-write.table(df, file = paste(rna_path, "/results/down_and_perm_fisher_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
+df$q <- p.adjust(df[,2], method = "hochberg")
+df$q_sig_enrich <- df$q < 0.05 & df[,3] == TRUE
+write.table(df, file = paste(rna_path, "/results/down_and_perm_rs_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
