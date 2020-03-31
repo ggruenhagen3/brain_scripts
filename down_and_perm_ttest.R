@@ -134,7 +134,7 @@ for (run in (run_num+1):(run_num+run_num)) {
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
-    perm_down_avg_gene[[i+1]] <- c(perm_down_avg_gene[[i+1]], colSums(combined[,this_cells]))
+    perm_down_avg_gene[[i+1]] <- c(perm_down_avg_gene[[i+1]], colSums(mat[,this_cells]))
   }
 }
 
