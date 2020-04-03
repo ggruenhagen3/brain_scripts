@@ -67,10 +67,10 @@ def addClosestInfo(output_file, csv_dict, out_dict):
     out_keys = out_dict.keys()
     for key in csv_dict:
         if key in out_keys:
-            closest = csv_dict[key]
+            closest = out_dict[key]
         else:
             closest = ""
-        f.write(key + ",", out_dict[key] + "," + closest)
+        f.write(key + "," + closest + "," + csv_dict[key])
     f.close()
 
 def main():
