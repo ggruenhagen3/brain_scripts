@@ -40,24 +40,48 @@ def fakeVcf(csv_dict):
     f.writelines(new_lines)
     f.close()
 
+def findClosest(output):
+    out_dict = {}
+    lines = output.split("\n")
+    new_lines = convert_scaffolds.convertScaffolds(lines, True)
+    for line in new_lines:
+        lineSplit = line.split("\t")
+        scaffold = lineSplit[0]
+        position = lineSplit[1]
+        closest = lineSplit.split(",")
+        gene_local = closest.find("Gene")
+        if gene_local > 0:
+            close_gene = close_gene[gene_local + 5:]
+            close_gene = close_gene.split(":")[0]
+            out_dict[scaffold + "," + position] = close_gene
+        else:
+            print("Closest not found for:")
+            print("\t" + line)
+            out_dict[scaffold + "," + position] = ""
+
+    return out_dict
+
+def addClosestInfo(output, csv_dict, out_dict):
+    f = open(output, "w+")
+    for key in csv_dict:
+        f.write(key + ",", out_dict[key] + "," + csv_dict[key])
+    f.close()
+
 def main():
     csv, output, verbose = parseArgs()
     print("Reading csv")
     csv_dict = readCsv(csv)
-    print("Done")
+    print("Done\n")
     print("Making a fake vcf")
     fakeVcf(csv_dict)
-    print("Done")
+    print("Done\n")
     print("Calling snpEff (Don't forget to load the java module)")
     cwd = os.getcwd()
     os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff/")
     out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "Mzebra_ENS", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
-    # subprocess.call(["java", "-jar", "snpEff.jar", "closest", "Mzebra", cwd + "/tmp.vcf"])
-    # output = out.communicate()
-    print(out.communicate()[0])
-    # print(out.communicate()[0][0:50])
+    output = out.communicate()[0]
     os.chdir(cwd)
-    print("Done")
+    print("Done\n")
 
 if __name__ == '__main__':
     main()
