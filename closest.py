@@ -36,6 +36,7 @@ def fakeVcf(csv_dict):
         lines.append(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.\n")
 
     new_lines = convert_scaffolds.convertScaffolds(lines, True, False)
+    print(new_lines[0:1])
     f.writelines(new_lines)
     f.close()
 
@@ -47,7 +48,7 @@ def main():
     print("Making a fake vcf")
     fakeVcf(csv_dict)
     print("Done")
-    print("Calling snpEff")
+    print("Calling snpEff (Don't forget to load the java module)")
     cwd = os.getcwd()
     os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff/")
     out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "Mzebra_ENS", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
