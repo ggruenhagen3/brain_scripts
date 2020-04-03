@@ -36,7 +36,6 @@ def fakeVcf(csv_dict):
         lines.append(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.\n")
 
     new_lines = convert_scaffolds.convertScaffolds(lines, False)
-    print(new_lines[0:1])
     f.writelines(new_lines)
     f.close()
 
@@ -81,6 +80,12 @@ def main():
     out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "Mzebra_ENS", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
     output = out.communicate()[0]
     os.chdir(cwd)
+    print("Done\n")
+    print("Determing which gene is closest")
+    out_dict = findClosest(output)
+    print("Done\n")
+    print("Adding the closest info to the file")
+    addClosestInfo(output, csv_dict, out_dict)
     print("Done\n")
 
 if __name__ == '__main__':
