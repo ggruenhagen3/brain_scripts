@@ -1,0 +1,17 @@
+#PBS -N down_and_perm_genes
+#PBS -l mem=16gb
+#PBS -l nodes=2:ppn=4
+#PBS -l walltime=8:00:00
+#PBS -q biocluster-6
+#PBS -j oe
+#PBS -o down_and_perm_genes.out
+#PBS -m abe
+#PBS -M gwg@gatech.edu
+             
+cd $PBS_O_WORKDIR
+module purge
+module load anaconda3
+module load R
+conda activate seurat4
+
+Rscript down_and_perm_genes.R

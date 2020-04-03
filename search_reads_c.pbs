@@ -1,0 +1,15 @@
+#PBS -l mem=16gb
+#PBS -l nodes=2:ppn=4
+#PBS -l walltime=16:00:00
+#PBS -q biocluster-6
+#PBS -j oe
+#PBS -o search_reads_c.out
+#PBS -m a
+#PBS -M gwg@gatech.edu
+             
+cd $PBS_O_WORKDIR
+module purge
+module load anaconda3
+module load samtools
+
+python ~/scratch/brain/brain_scripts/search_reads.py ~/scratch/brain/data/snp/intersect_200.bed ~/scratch/brain/data/bams_filtered/ ~/scratch/brain/results/ase_c.txt -v -c
