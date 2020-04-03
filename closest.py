@@ -18,6 +18,7 @@ def parseArgs():
 def readCsv(csv):
     csv_dict = {}
     with open(csv, 'r') as input:
+        next(input) # ignore header
         for line in input:
             lineSplit = line.split(",")
             scaffold = lineSplit[0]
