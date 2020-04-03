@@ -64,8 +64,13 @@ def findClosest(output):
 
 def addClosestInfo(output_file, csv_dict, out_dict):
     f = open(output_file, "w+")
+    out_keys = out_dict.keys()
     for key in csv_dict:
-        f.write(key + ",", out_dict[key] + "," + csv_dict[key])
+        if key in out_keys:
+            closest = csv_dict[key]
+        else:
+            closest = ""
+        f.write(key + ",", out_dict[key] + "," + closest)
     f.close()
 
 def main():
