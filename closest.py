@@ -45,7 +45,8 @@ def main():
     print("Calling snpEff")
     cwd = os.getcwd()
     os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff/")
-    subprocess.call(["java", "-jar", "snpEff.jar", "closest", "Mzebra", cwd + "tmp.vcf", ">", cwd + "tmp_2.vcf"])
+    out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "Mzebra", cwd + "tmp.vcf"], stdout=subprocess.PIPE)
+    print(out[1][0:50])
     os.chdir(cwd)
     print("Done")
 
