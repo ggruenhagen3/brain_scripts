@@ -35,7 +35,7 @@ def fakeVcf(csv_dict):
         position = scaffold_and_position.split(",")[1]
         lines.append(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.\n")
 
-    new_lines = convert_scaffolds.convertScaffolds(lines, True, False)
+    new_lines = convert_scaffolds.convertScaffolds(lines, False)
     print(new_lines[0:1])
     f.writelines(new_lines)
     f.close()
