@@ -48,7 +48,7 @@ def main():
     out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "Mzebra", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
     # subprocess.call(["java", "-jar", "snpEff.jar", "closest", "Mzebra", cwd + "/tmp.vcf"])
     output = out.communicate()
-    print(output.decode())
+    print(output)
     # print(out.communicate()[0][0:50])
     os.chdir(cwd)
     print("Done")
