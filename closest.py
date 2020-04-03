@@ -2,6 +2,7 @@ import argparse
 import glob
 import subprocess
 import os
+import convert_scaffolds
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -27,11 +28,15 @@ def readCsv(csv):
     return csv_dict
 
 def fakeVcf(csv_dict):
+    lines = []
     f = open("tmp.vcf", "w+")
     for scaffold_and_position in csv_dict.keys():
         scaffold = scaffold_and_position.split(",")[0]
         position = scaffold_and_position.split(",")[1]
-        f.write(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.\n")
+        lines.append(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.\n")
+
+    new_lines = convert_scaffolds.convertScaffolds(lines, True, False)
+    f.writelines(new_lines)
     f.close()
 
 def main():
