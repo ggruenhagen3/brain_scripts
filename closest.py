@@ -62,7 +62,7 @@ def findClosest(output):
     return out_dict
 
 def addClosestInfo(output_file, csv_dict, out_dict):
-    f = open(output, "w+")
+    f = open(output_file, "w+")
     for key in csv_dict:
         f.write(key + ",", out_dict[key] + "," + csv_dict[key])
     f.close()
