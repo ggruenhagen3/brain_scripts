@@ -29,8 +29,8 @@ def readCsv(csv):
 def fakeVcf(csv_dict):
     f = open("tmp.vcf", "w+")
     for scaffold_and_position in csv_dict.keys():
-        scaffold = scaffold_and_position.split(",")
-        position = scaffold_and_position.split(",")
+        scaffold = scaffold_and_position.split(",")[0]
+        position = scaffold_and_position.split(",")[1]
         f.write(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.")
     f.close()
 
