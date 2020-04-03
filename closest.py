@@ -31,7 +31,7 @@ def fakeVcf(csv_dict):
     for scaffold_and_position in csv_dict.keys():
         scaffold = scaffold_and_position.split(",")
         position = scaffold_and_position.split(",")
-        f.write(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.)
+        f.write(scaffold + "\t" + position + "\t.\tG\tA\t.\t.\t.\t.\t.\t.\t.")
     f.close()
 
 def main():
