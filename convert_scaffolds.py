@@ -20,6 +20,9 @@ def readFile(file):
 
 
 def convertScaffolds(lines, toLG, toNC):
+    """"
+    From a list of lines, use regex to convert from LG to NC or NC to LG
+    """
     new_lines =[]
     dict = {}
     for i in range(1, 20):
