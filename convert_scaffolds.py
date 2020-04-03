@@ -19,7 +19,7 @@ def readFile(file):
     return lines
 
 
-def convertScaffolds(lines, toLG, toNC):
+def convertScaffolds(lines, toNC):
     """"
     From a list of lines, use regex to convert from LG to NC or NC to LG
     """
@@ -27,16 +27,16 @@ def convertScaffolds(lines, toLG, toNC):
     dict = {}
     for i in range(1, 20):
         # dict["LG" + str(i)] = "NC_0" + str(i + 36779.1)
-        dict["NC_0" + str(float(i) + float(36779.1))] = "LG" + str(i)
+        dict["NC_0" + str(float(i) + float(36779.1))] = "LG" + str(i) # key is NC_ and value is LG
 
     for line in lines:
         for key in dict.keys():
             if toNC:
-                my_regex = r'\b' + key + r'\b'
-                new_line = re.sub(my_regex, dict[key], line)  # Converts from LG to NC_
-            else:
                 my_regex = r'\b' + dict[key] + r'\b'
                 new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
+            else:
+                my_regex = r'\b' + key + r'\b'
+                new_line = re.sub(my_regex, dict[key], line)  # Converts from NC_ to LG
             if new_line != line:
                 new_lines.append(new_line)
                 break
