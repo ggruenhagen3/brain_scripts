@@ -61,14 +61,14 @@ def findClosest(output):
 
     return out_dict
 
-def addClosestInfo(output, csv_dict, out_dict):
+def addClosestInfo(output_file, csv_dict, out_dict):
     f = open(output, "w+")
     for key in csv_dict:
         f.write(key + ",", out_dict[key] + "," + csv_dict[key])
     f.close()
 
 def main():
-    csv, output, verbose = parseArgs()
+    csv, output_file, verbose = parseArgs()
     print("Reading csv")
     csv_dict = readCsv(csv)
     print("Done\n")
@@ -86,7 +86,7 @@ def main():
     out_dict = findClosest(output)
     print("Done\n")
     print("Adding the closest info to the file")
-    addClosestInfo(output, csv_dict, out_dict)
+    addClosestInfo(output_file, csv_dict, out_dict)
     print("Done\n")
 
 if __name__ == '__main__':
