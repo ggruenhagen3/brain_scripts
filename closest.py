@@ -76,8 +76,8 @@ def findClosest(output):
 
 def fixSnpEffClosest(out_dict, keys_to_fix, gtfDict):
     for key in keys_to_fix:
-        print(value)
         value = out_dict[key]
+        print(value)
         valueSplit = value.split("_")
         scaffold = valueSplit[1]
         start = valueSplit[2]
