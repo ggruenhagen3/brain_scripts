@@ -45,10 +45,7 @@ def findClosest(output):
     out_dict = {}
     lines = output.decode().split("\n")
     keys_to_fix = []
-    # print(lines[0])
-    # print(len(lines))
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
-    # print(len(new_lines))
     print(new_lines[0])
     print(new_lines[1])
     for line in new_lines:
@@ -68,37 +65,22 @@ def findClosest(output):
         elif gene_local < 0:
             print("Closest not found for:")
             print("\t" + line)
-            out_dict[scaffold + "," + position] = "no_closest"
+            out_dict[scaffold + "," + position] = "."  # no_closest
         elif closest > 25000:
-            out_dict[scaffold + "," + position] = "no_25kb"
+            out_dict[scaffold + "," + position] = "."  # no_25kb
 
     return out_dict, keys_to_fix
 
 def fixSnpEffClosest(out_dict, keys_to_fix, gtfDict):
     for key in keys_to_fix:
         value = out_dict[key]
-        print(value)
         valueSplit = value.split("_")
         scaffold = valueSplit[1]
         start = str(int(valueSplit[2])-1)
         end = valueSplit[3]
         new_id = gtfDict[scaffold + ":" + start + "-" + end]
         out_dict[key] = new_id
-        print(new_id)
     return out_dict
-
-# def readGTF(gtf):
-#     """
-#     Read the GTF file
-#     :param gtf: gtf
-#     :return id: gtf ids
-#     """
-#     gtfDict = {} # key is coord, value is gene
-#     with open(gtf, 'r') as input:
-#         for line in input:
-#             lineSplit = line.split("\s")
-#             id = lineSplit[9][1:-1]
-#             gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3]) - 1) + "-" + str(lineSplit[4])] = id
 
 def addClosestInfo(output_file, csv_dict, out_dict):
     f = open(output_file, "w+")
@@ -107,7 +89,7 @@ def addClosestInfo(output_file, csv_dict, out_dict):
         if key in out_keys:
             closest = out_dict[key]
         else:
-            closest = "no_key"
+            closest = ""  # no_key
         f.write(key + "," + closest + "," + csv_dict[key])
     f.close()
 
