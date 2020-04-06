@@ -43,11 +43,11 @@ def fakeVcf(csv_dict):
 def findClosest(output):
     out_dict = {}
     lines = output.decode().split("\n")
-    print(lines[0])
-    print(len(lines))
+    # print(lines[0])
+    # print(len(lines))
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
-    print(len(new_lines))
-    print(new_lines[0])
+    # print(len(new_lines))
+    # print(new_lines[0])
     for line in new_lines:
         lineSplit = line.split("\t")
         scaffold = lineSplit[0]
