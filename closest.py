@@ -80,8 +80,8 @@ def fixSnpEffClosest(out_dict, keys_to_fix, gtfDict):
         print(value)
         valueSplit = value.split("_")
         scaffold = valueSplit[1]
-        start = valueSplit[2]
-        end = str(int(valueSplit[3])-1)
+        start = str(int(valueSplit[2])-1)
+        end = valueSplit[3]
         new_id = gtfDict[scaffold + ":" + start + "-" + end]
         out_dict[key] = new_id
         print(new_id)
