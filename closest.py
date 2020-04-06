@@ -43,15 +43,8 @@ def fakeVcf(csv_dict):
 def findClosest(output):
     out_dict = {}
     lines = output.decode().split("\n")
-    # print(output)
-    # print(lines_test[0])
-    # print(lines_test[1])
-    # print(lines_test[len(lines_test)//2])
     print(lines[0])
-    print(lines[1])
     print(len(lines))
-    # print(lines[len(lines)//2])
-    # print(lines[len(lines)-5])
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
     print(len(new_lines))
     print(new_lines[0])
@@ -59,7 +52,7 @@ def findClosest(output):
         lineSplit = line.split("\t")
         scaffold = lineSplit[0]
         position = lineSplit[1]
-        closest = lineSplit.split(",")
+        closest = lineSplit[7].split(",")
         gene_local = closest.find("Gene")
         if gene_local > 0:
             close_gene = close_gene[gene_local + 5:]
