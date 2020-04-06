@@ -28,8 +28,8 @@ def convertScaffolds(lines, toNC):
     for i in range(1, 21):
         # dict["LG" + str(i)] = "NC_0" + str(i + 36779.1)
         dict["NC_0" + str(float(i) + float(36779.1))] = "LG" + str(i) # key is NC_ and value is LG
-    dict["NC_0367800.1"] = "LG22"
-    dict["NC_0367801.1"] = "LG23"
+    dict["NC_036800.1"] = "LG22"
+    dict["NC_036801.1"] = "LG23"
 
     for line in lines:
         for key in dict.keys():
