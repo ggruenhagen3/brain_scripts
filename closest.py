@@ -43,7 +43,11 @@ def fakeVcf(csv_dict):
 def findClosest(output):
     out_dict = {}
     lines = output.decode()
-    # lines = output.decode().split("\n")
+    lines_test = output.decode().split("\n")
+    print(output)
+    print(lines_test[0])
+    print(lines_test[1])
+    print(lines_test[len(lines_test)//2])
     print(lines[0])
     print(lines[1])
     print(len(lines))
