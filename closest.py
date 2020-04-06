@@ -60,10 +60,12 @@ def findClosest(output):
             close_gene = close_gene.split(":")[0]
             out_dict[scaffold + "," + position] = close_gene
             # print(scaffold + "," + position + " -> " + close_gene)
-        else:
+        elif gene_local < 0:
             print("Closest not found for:")
             print("\t" + line)
             out_dict[scaffold + "," + position] = "no_closest"
+        elif closest > 25000:
+            out_dict[scaffold + "," + position] = "no_25kb"
 
     return out_dict
 
