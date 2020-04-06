@@ -119,6 +119,7 @@ def main():
     print("Adding the closest info to the file")
     addClosestInfo(output_file, csv_dict, out_dict)
     print("Done\n")
+    os.remove("tmp.vcf")
 
 if __name__ == '__main__':
     main()
