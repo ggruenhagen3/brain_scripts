@@ -53,10 +53,9 @@ def findClosest(output):
         scaffold = lineSplit[0]
         position = lineSplit[1]
         close_gene = lineSplit[7]
-        closest = close_gene.split("|")[0][8:]
-        print(closest)
+        closest = int(close_gene.split("|")[0][8:])
         gene_local = close_gene.find("Gene")
-        if gene_local > 0:
+        if gene_local > 0 and closest < 25000:
             close_gene = close_gene[gene_local + 5:]
             close_gene = close_gene.split(":")[0]
             out_dict[scaffold + "," + position] = close_gene
@@ -64,7 +63,7 @@ def findClosest(output):
         else:
             print("Closest not found for:")
             print("\t" + line)
-            out_dict[scaffold + "," + position] = ""
+            out_dict[scaffold + "," + position] = "no_closest"
 
     return out_dict
 
