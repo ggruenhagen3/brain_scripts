@@ -46,8 +46,8 @@ def findClosest(output):
     lines = output.decode().split("\n")
     keys_to_fix = []
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
-    print(new_lines[0])
-    print(new_lines[1])
+    # print(new_lines[0])
+    # print(new_lines[1])
     for line in new_lines:
         lineSplit = line.split("\t")
         scaffold = lineSplit[0]
@@ -59,6 +59,8 @@ def findClosest(output):
             close_gene = close_gene[gene_local + 5:]
             close_gene = close_gene.split(":")[0]
             out_dict[scaffold + "," + position] = close_gene
+            if close_gene.startswith("EXON_"):
+                keys_to_fix.append(scaffold + "," + position)
             # print(scaffold + "," + position + " -> " + close_gene)
         elif gene_local < 0:
             print("Closest not found for:")
