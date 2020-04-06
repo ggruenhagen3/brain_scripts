@@ -44,7 +44,11 @@ def findClosest(output):
     out_dict = {}
     lines = output.decode()
     # lines = output.decode().split("\n")
+    print(lines[0])
+    print(lines[1])
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
+    print(len(new_lines))
+    print(new_lines[0])
     for line in new_lines:
         lineSplit = line.split("\t")
         scaffold = lineSplit[0]
