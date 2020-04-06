@@ -81,11 +81,24 @@ def fixSnpEffClosest(out_dict, keys_to_fix, gtfDict):
         valueSplit = value.split("_")
         scaffold = valueSplit[1]
         start = valueSplit[2]
-        end = valueSplit[3]
+        end = str(int(valueSplit[3])-1)
         new_id = gtfDict[scaffold + ":" + start + "-" + end]
         out_dict[key] = new_id
         print(new_id)
     return out_dict
+
+# def readGTF(gtf):
+#     """
+#     Read the GTF file
+#     :param gtf: gtf
+#     :return id: gtf ids
+#     """
+#     gtfDict = {} # key is coord, value is gene
+#     with open(gtf, 'r') as input:
+#         for line in input:
+#             lineSplit = line.split("\s")
+#             id = lineSplit[9][1:-1]
+#             gtfDict[str(lineSplit[0]) + ":" + str(int(lineSplit[3]) - 1) + "-" + str(lineSplit[4])] = id
 
 def addClosestInfo(output_file, csv_dict, out_dict):
     f = open(output_file, "w+")
