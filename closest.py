@@ -59,6 +59,8 @@ def findClosest(output):
             close_gene = close_gene[gene_local + 5:]
             close_gene = close_gene.split(":")[0]
             out_dict[scaffold + "," + position] = close_gene
+            if close_gene == "EXON_LG22_13103073_13107184":
+                print(line)
             # print(scaffold + "," + position + " -> " + close_gene)
         elif gene_local < 0:
             print("Closest not found for:")
