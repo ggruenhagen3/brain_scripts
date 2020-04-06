@@ -53,6 +53,8 @@ def findClosest(output):
         scaffold = lineSplit[0]
         position = lineSplit[1]
         close_gene = lineSplit[7]
+        closest = close_gene.split("|")[0][8:]
+        print(closest)
         gene_local = close_gene.find("Gene")
         if gene_local > 0:
             close_gene = close_gene[gene_local + 5:]
@@ -74,7 +76,7 @@ def addClosestInfo(output_file, csv_dict, out_dict):
             closest = out_dict[key]
         else:
             closest = "no_key"
-        f.write(key + "," + closest + "," + csv_dict[key] + "\n")
+        f.write(key + "," + closest + "," + csv_dict[key])
     f.close()
 
 def main():
