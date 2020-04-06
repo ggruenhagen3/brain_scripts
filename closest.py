@@ -52,8 +52,8 @@ def findClosest(output):
         lineSplit = line.split("\t")
         scaffold = lineSplit[0]
         position = lineSplit[1]
-        closest = lineSplit[7].split(",")
-        gene_local = closest.find("Gene")
+        close_gene = lineSplit[7]
+        gene_local = close_gene.find("Gene")
         if gene_local > 0:
             close_gene = close_gene[gene_local + 5:]
             close_gene = close_gene.split(":")[0]
