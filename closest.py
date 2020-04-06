@@ -3,6 +3,7 @@ import glob
 import subprocess
 import os
 import convert_scaffolds
+import blast_filter
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -43,6 +44,7 @@ def fakeVcf(csv_dict):
 def findClosest(output):
     out_dict = {}
     lines = output.decode().split("\n")
+    keys_to_fix = []
     # print(lines[0])
     # print(len(lines))
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
@@ -60,8 +62,8 @@ def findClosest(output):
             close_gene = close_gene[gene_local + 5:]
             close_gene = close_gene.split(":")[0]
             out_dict[scaffold + "," + position] = close_gene
-            if close_gene == "EXON_LG22_13103073_13107184":
-                print(line)
+            if close_gene.startswith("EXON_"):
+                keys_to_fix.append(scaffold + "," + position)
             # print(scaffold + "," + position + " -> " + close_gene)
         elif gene_local < 0:
             print("Closest not found for:")
@@ -70,6 +72,19 @@ def findClosest(output):
         elif closest > 25000:
             out_dict[scaffold + "," + position] = "no_25kb"
 
+    return out_dict, keys_to_fix
+
+def fixSnpEffClosest(out_dict, keys_to_fix, gtfDict):
+    for key in keys_to_fix:
+        print(value)
+        value = out_dict[key]
+        valueSplit = value.split("_")
+        scaffold = valueSplit[1]
+        start = valueSplit[2]
+        end = valueSplit[3]
+        new_id = gtfDict[scaffold + ":" + start + "-" + end]
+        out_dict[key] = new_id
+        print(new_id)
     return out_dict
 
 def addClosestInfo(output_file, csv_dict, out_dict):
@@ -93,14 +108,18 @@ def main():
     print("Done\n")
     print("Calling snpEff (Don't forget to load the java module)")
     cwd = os.getcwd()
-    os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff_2/")
+    snpEff_dir = "/nv/hp10/cpatil6/genomics-shared/snpEff/"
+    os.chdir(snpEff_dir)
     # os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff/")
     out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "-geneId", "Mzebra_ENS", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
     output = out.communicate()[0]
     os.chdir(cwd)
     print("Done\n")
     print("Determing which gene is closest")
-    out_dict = findClosest(output)
+    out_dict, keys_to_fix = findClosest(output)
+    print("\tFixing special cases")
+    gtfDict = blast_filter.readGTF(snpEff_dir + "Mzebra_ENS/genes.gtf")
+    out_dict = fixSnpEffClosest(out_dict, keys_to_fix, gtfDict)
     print("Done\n")
     print("Adding the closest info to the file")
     addClosestInfo(output_file, csv_dict, out_dict)
