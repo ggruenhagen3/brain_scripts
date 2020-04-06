@@ -46,6 +46,8 @@ def findClosest(output):
     # lines = output.decode().split("\n")
     print(lines[0])
     print(lines[1])
+    print(len(lines))
+    print(lines[len(lines)-1])
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
     print(len(new_lines))
     print(new_lines[0])
