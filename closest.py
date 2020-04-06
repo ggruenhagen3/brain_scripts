@@ -23,7 +23,7 @@ def readCsv(csv):
             lineSplit = line.split(",")
             scaffold = lineSplit[0]
             position = lineSplit[1]
-            remainder = lineSplit[3:len(lineSplit)]
+            remainder = lineSplit[2:len(lineSplit)]
             csv_dict[scaffold + "," + position] = ",".join(remainder)
 
     return csv_dict
@@ -55,7 +55,7 @@ def findClosest(output):
         close_gene = lineSplit[7]
         gene_local = close_gene.find("Gene")
         if gene_local > 0:
-            close_gene = close_gene[gene_local + 4:]
+            close_gene = close_gene[gene_local + 5:]
             close_gene = close_gene.split(":")[0]
             out_dict[scaffold + "," + position] = close_gene
             # print(scaffold + "," + position + " -> " + close_gene)
