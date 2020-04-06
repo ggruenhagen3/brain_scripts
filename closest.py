@@ -47,7 +47,8 @@ def findClosest(output):
     # print(len(lines))
     new_lines = convert_scaffolds.convertScaffolds(lines, True)
     # print(len(new_lines))
-    # print(new_lines[0])
+    print(new_lines[0])
+    print(new_lines[1])
     for line in new_lines:
         lineSplit = line.split("\t")
         scaffold = lineSplit[0]
@@ -92,7 +93,8 @@ def main():
     print("Done\n")
     print("Calling snpEff (Don't forget to load the java module)")
     cwd = os.getcwd()
-    os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff/")
+    os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff_2/")
+    # os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff/")
     out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "Mzebra_ENS", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
     output = out.communicate()[0]
     os.chdir(cwd)
