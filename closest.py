@@ -55,6 +55,7 @@ def findClosest(output):
             close_gene = close_gene[gene_local + 5:]
             close_gene = close_gene.split(":")[0]
             out_dict[scaffold + "," + position] = close_gene
+            print(scaffold + "," + position + " -> " + close_gene)
         else:
             print("Closest not found for:")
             print("\t" + line)
