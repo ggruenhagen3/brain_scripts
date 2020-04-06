@@ -95,7 +95,7 @@ def main():
     cwd = os.getcwd()
     os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff_2/")
     # os.chdir("/nv/hp10/cpatil6/genomics-shared/snpEff/")
-    out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "Mzebra_ENS", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
+    out = subprocess.Popen(["java", "-jar", "snpEff.jar", "closest", "-geneId", "Mzebra_ENS", cwd + "/tmp.vcf"], stdout=subprocess.PIPE)
     output = out.communicate()[0]
     os.chdir(cwd)
     print("Done\n")
