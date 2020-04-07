@@ -36,16 +36,19 @@ colnames(exons) <- sample_name
 colnames(introns) <- sample_name
 rownames(exons) <- gene_name
 rownames(introns) <- gene_name
-exons <- CreateSeuratObject(counts = exons, project = "EXON")
-introns <- CreateSeuratObject(counts = introns, project = "INTRON")
-exons$cond <- "EXON"
-introns$cond <- "INTRON"
-exons <- NormalizeData(exons, normalization.method = "LogNormalize", scale.factor = 100000)
-introns <- NormalizeData(introns, normalization.method = "LogNormalize", scale.factor = 100000)
-m_cor_hip <- merge(exons, introns, merge.data = TRUE)
+m_cor_hip <- exons + introns
+m_cor_hip <- CreateSeuratObject(counts = m_cor_hip, project = "M_COR_HIP")
+m_cor_hip <- NormalizeData(m_cor_hip, normalization.method = "LogNormalize", scale.factor = 100000)
+# exons <- CreateSeuratObject(counts = exons, project = "EXON")
+# introns <- CreateSeuratObject(counts = introns, project = "INTRON")
+# exons$cond <- "EXON"
+# introns$cond <- "INTRON"
+# exons <- NormalizeData(exons, normalization.method = "LogNormalize", scale.factor = 100000)
+# introns <- NormalizeData(introns, normalization.method = "LogNormalize", scale.factor = 100000)
+# m_cor_hip <- merge(exons, introns, merge.data = TRUE)
+cat(paste("Number of rows in metadata:", nrow(metadata), "\n"))
+cat(paste("Number of rows in m_cor_hip (no subset):", nrow(metadata), "\n"))
 m_cor_hip$orig_clust <- metadata$cluster_order
-# cat(paste("Number of rows in metadata:", nrow(metadata), "\n"))
-# cat(paste("Number of rows in m_cor_hip (no subset):", nrow(metadata), "\n"))
 m_cor_hip <- subset(m_cor_hip, subset = nFeature_RNA > 500)
 m_cor_hip <- FindVariableFeatures(object = m_cor_hip, mean.function = ExpMean, dispersion.function = LogVMR, nfeatures = 2000)
 m_cor_hip <- ScaleData(object = m_cor_hip, vars.to.regress = NULL)
