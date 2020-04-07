@@ -27,7 +27,7 @@ original_df <- inner_join(tsne_coordinates, metadata, by = "sample_name")
 head(original_df)
 # original_df <- cbind(tsne_coordinates[2:3], metadata$cluster_color)
 # colnames(original_df) <- c("tsne_1", "tsne_2", "cluster_color")
-png(paste(tome_path, "original_tsne.png", sep=""), width = 4800, height = 4800, unit = "px")
+png(paste(tome_path, "original_tsne.png", sep=""), width = 4800, height = 3600, unit = "px")
 ggplot(original_df, aes(tsne_1, tsne_2, color=cluster_color)) + geom_point() + theme_classic()
 dev.off()
 
@@ -43,8 +43,9 @@ introns$cond <- "INTRON"
 exons <- NormalizeData(exons, normalization.method = "LogNormalize", scale.factor = 100000)
 introns <- NormalizeData(introns, normalization.method = "LogNormalize", scale.factor = 100000)
 m_cor_hip <- merge(exons, introns, merge.data = TRUE)
-cat(paste("Number of rows in metadata:", nrow(metadata)))
-cat(paste("Number of rows in m_cor_hip (no subset):", nrow(metadata)))
+m_cor_hip$orig_clust <- metadata$cluster_order
+# cat(paste("Number of rows in metadata:", nrow(metadata), "\n"))
+# cat(paste("Number of rows in m_cor_hip (no subset):", nrow(metadata), "\n"))
 m_cor_hip <- subset(m_cor_hip, subset = nFeature_RNA > 500)
 m_cor_hip <- FindVariableFeatures(object = m_cor_hip, mean.function = ExpMean, dispersion.function = LogVMR, nfeatures = 2000)
 m_cor_hip <- ScaleData(object = m_cor_hip, vars.to.regress = NULL)
@@ -55,9 +56,21 @@ m_cor_hip <- FindNeighbors(m_cor_hip, reduction = "umap", dims = 1:2)
 m_cor_hip <- FindClusters(m_cor_hip, resolution = 0.1)
 
 png(paste(tome_path, "new_umap.png", sep=""), width = 4800, height = 4800, unit = "px")
+Idents(m_cor_hip) <- "seurat_clusters"
+DimPlot(m_cor_hip, reduction = "umap", label = TRUE)
+dev.off()
+
+png(paste(tome_path, "old_umap.png", sep=""), width = 4800, height = 4800, unit = "px")
+Idents(m_cor_hip) <- "cluster_order"
 DimPlot(m_cor_hip, reduction = "umap", label = TRUE)
 dev.off()
 
 png(paste(tome_path, "new_tsne.png", sep=""), width = 4800, height = 4800, unit = "px")
+Idents(m_cor_hip) <- "seurat_clusters"
+DimPlot(m_cor_hip, reduction = "tsne", label = TRUE)
+dev.off()
+
+png(paste(tome_path, "old_tsne.png", sep=""), width = 4800, height = 4800, unit = "px")
+Idents(m_cor_hip) <- "cluster_order"
 DimPlot(m_cor_hip, reduction = "tsne", label = TRUE)
 dev.off()
