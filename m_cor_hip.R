@@ -32,6 +32,10 @@ ggplot(original_df, aes(tsne_1, tsne_2, color=cluster_color)) + geom_point() + t
 dev.off()
 
 # Redo Clustering in Seurat
+colnames(exons) <- sample_name
+colnames(introns) <- sample_name
+rownames(exons) <- gene_name
+rownames(introns) <- gene_name
 exons <- CreateSeuratObject(counts = exons, project = "EXON")
 introns <- CreateSeuratObject(counts = introns, project = "INTRON")
 exons$cond <- "EXON"
