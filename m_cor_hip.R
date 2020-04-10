@@ -1,5 +1,5 @@
 # Mouse Atlas
-library(loomR)
+library("loomR")
 library("scrattch.io")
 library("Seurat")
 library("Matrix")
@@ -32,8 +32,10 @@ convertToHgncObj <- function(obj, organism) {
   
   # Initialize New Matricies
   print("Creating New Matrices...")
-  new_counts_matrix <- as.matrix(obj@assays$RNA@counts)
-  new_data_matrix   <- as.matrix(obj@assays$RNA@data)
+  # new_counts_matrix <- as.matrix(obj@assays$RNA@counts)
+  # new_data_matrix   <- as.matrix(obj@assays$RNA@data)
+  new_counts_matrix <- as(obj@assays$RNA@counts, "sparseMatrix") 
+  new_data_matrix   <- as(obj@assays$RNA@counts, "sparseMatrix") 
   
   not_i <- 0
   multiple_hgnc <- 0
