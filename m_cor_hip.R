@@ -32,10 +32,8 @@ convertToHgncObj <- function(obj, organism) {
   
   # Initialize New Matricies
   print("Creating New Matrices...")
-  # new_counts_matrix <- as.matrix(obj@assays$RNA@counts)
-  # new_data_matrix   <- as.matrix(obj@assays$RNA@data)
   new_counts_matrix <- as(obj@assays$RNA@counts, "sparseMatrix") 
-  new_data_matrix   <- as(obj@assays$RNA@counts, "sparseMatrix") 
+  new_data_matrix   <- as(obj@assays$RNA@data, "sparseMatrix") 
   
   not_i <- 0
   multiple_hgnc <- 0
@@ -45,7 +43,7 @@ convertToHgncObj <- function(obj, organism) {
       hgnc_gene <- all_hgnc[which(all_hgnc[,1] == gene),2]
       if (length(hgnc_gene) > 1) {
         multiple_hgnc <- multiple_hgnc + 1
-        upper_hgnc_gene <- hgnc_gene[which(startsWith(tolower(hgnc_gene), gene))]
+        upper_hgnc_gene <- hgnc_gene[which(startsWith(tolower(hgnc_gene), tolower(gene)))]
         if (length(upper_hgnc_gene) == 1) {
           hgnc_gene <- upper_hgnc_gene
         } else {
@@ -60,38 +58,44 @@ convertToHgncObj <- function(obj, organism) {
       not_i <- not_i + 1
     } # end gene not an hgnc gene
   } # end gene for
-  print(paste("Number of Genes not converted to HGNC:", not_i))
-  print(paste("Number of Genes with multple HGNC:", multiple_hgnc))
-  print(paste("Number of Genes with multple HGNC and non-ideal circumstance:", bad_multiple_hgnc))
-  
-  # Merge the duplicated rows
-  print("Removing duplicated HGNC rows...")
-  dup_genes <- rownames(new_counts_matrix)[which(duplicated(rownames(new_counts_matrix)))]
-  dup_ind <- c()
-  for (gene in dup_genes) {
-    ind <- which(rownames(new_counts_matrix) == gene)
-    
-    new_counts_row <- new_counts_matrix[ind[1],]
-    new_data_row   <- new_data_matrix[ind[1],]
-    for (i in 2:length(ind)) {
-      new_counts_row <- new_counts_row + new_counts_matrix[ind[i],]
-      new_data_row   <- new_data_row   + new_data_matrix[ind[i],]
-    }
-    new_counts_matrix[ind[1],] <- new_counts_row
-    new_data_matrix[ind[1],]   <- new_data_row
-    
-    # Delete the duplicated rows
-    dup_ind <- c(dup_ind, ind[2:length(ind)])
-  }
-  # Delete all the duplicated rows at once
-  new_counts_matrix <- new_counts_matrix[-dup_ind,]
-  new_data_matrix   <- new_data_matrix[-dup_ind,]
+  print(paste("\tNumber of Genes not converted to HGNC:", not_i))
+  print(paste("\tNumber of Genes with multple HGNC:", multiple_hgnc))
+  print(paste("\tNumber of Genes with multple HGNC and non-ideal circumstance:", bad_multiple_hgnc))
   
   # Remove mzebra rows
   print("Removing old org rows...")
   ind <- which(rownames(new_counts_matrix) %in% all_hgnc[,2])
   new_counts_matrix <- new_counts_matrix[ind,]
   new_data_matrix   <- new_data_matrix[ind,]
+  
+  # Merge the duplicated rows
+  print("Removing duplicated HGNC rows...")
+  dup_genes <- rownames(new_counts_matrix)[which(duplicated(rownames(new_counts_matrix)))]
+  remove_dup_ind <- c()
+  keep_dup_ind <- c()
+  j <- 0
+  keep_dup_matrix_counts <- matrix(0L, nrow = length(dup_genes), ncol = ncol(obj@assays$RNA@counts))
+  keep_dup_matrix_data   <- matrix(0L, nrow = length(dup_genes), ncol = ncol(obj@assays$RNA@data))
+  for (gene in dup_genes) {
+    ind <- which(rownames(new_counts_matrix) == gene)
+    keep_dup_matrix_counts[j,] <- colSums(obj@assays$RNA@counts[ind,])
+    keep_dup_matrix_data[j,]   <- colSums(obj@assays$RNA@data[ind,])
+    # new_counts_matrix[ind[1],] <- colSums(obj@assays$RNA@counts[ind,])
+    # new_data_matrix[ind[1],]   <- colSums(obj@assays$RNA@data[ind,])
+    j <- j + 1
+    keep_dup_ind <- c(keep_dup_ind, ind[1])
+    
+    # Delete the duplicated rows
+    remove_dup_ind <- c(remove_dup_ind, ind[2:length(ind)])
+  }
+  # Add all the new data at once
+  print("\tCombining the duplicated rows")
+  new_counts_matrix[keep_dup_ind,] <- keep_dup_matrix_counts
+  new_data_matrix[keep_dup_ind,]   <- keep_dup_matrix_data
+  # Delete all the duplicated rows at once
+  print("\tActually doing the removal now I swear")
+  new_counts_matrix <- new_counts_matrix[-remove_dup_ind,]
+  new_data_matrix   <- new_data_matrix[-remove_dup_ind,]
   
   print("Creating New Seurat Object...")
   obj_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj@project.name)
