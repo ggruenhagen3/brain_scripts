@@ -88,7 +88,7 @@ convertToHgncObj <- function(obj, organism) {
     j <- j + 1
   }
   # Delete all the duplicated rows at once
-  cat(paste("Number of rows before merging:", nrow(new_counts_matrix), "\n"))
+  cat(paste("-Number of rows before merging:", nrow(new_counts_matrix), "\n"))
   print("-Actually doing the removal now I swear")
   remove_dup_ind <- which(rownames(new_counts_matrix) %in% dup_genes)
   new_counts_matrix <- new_counts_matrix[-remove_dup_ind,]
@@ -98,7 +98,7 @@ convertToHgncObj <- function(obj, organism) {
   print("-Combining the duplicated rows")
   new_counts_matrix <- rbind(new_counts_matrix, keep_dup_matrix_counts)
   new_data_matrix   <- rbind(new_data_matrix, keep_dup_matrix_data)
-  cat(paste("Number of rows after merging:", nrow(new_counts_matrix), "\n"))
+  cat(paste("-Number of rows after merging:", nrow(new_counts_matrix), "\n"))
   proc.time() - ptm
   # new_counts_matrix[keep_dup_ind,] <- keep_dup_matrix_counts
   # new_data_matrix[keep_dup_ind,]   <- keep_dup_matrix_data
