@@ -13,10 +13,77 @@ options(stringsAsFactors = FALSE)
 ####################
 # Helper Functions #
 ####################
+keepCommonGenesObj <- function(obj_a, obj_b) {
+  # Finds the common genes between two Seurat objects and
+  # makes two new Seurat objects with just those genes.
+  genes_a <- rownames(obj_a@assays$RNA@counts)
+  genes_b <- rownames(obj_b@assays$RNA@counts)
+  common <- genes_a[which(genes_a %in% genes_b)]
+  print(paste("Found", length(common), "genes in common -", length(common)/length(genes_a) * 100, "of obj_a genes", length(common)/length(genes_b) * 100, "of obj_b genes" ))
+  
+  ## First Seurat Object
+  # Initialize New Matricies
+  print("Creating New Matrices (for First Seurat Object)...")
+  new_counts_matrix <- as(obj_a@assays$RNA@counts, "sparseMatrix") 
+  new_data_matrix   <- as(obj_a@assays$RNA@data, "sparseMatrix")
+  
+  # Removing Non-Overlapping Genes
+  print("Removing Non-Overlapping Genes (for the First Seurat Object)...")
+  all_ind_keep <- c()
+  all_ind <- 1:length(new_counts_matrix)
+  for (gene in common) {
+    ind_keep <- which(rownames(new_counts_matrix) == gene)
+    all_ind_keep <- c(all_ind_keep, ind_keep)
+  }
+  all_ind_remove <- all_ind[which(! all_ind %in% all_ind_keep)]
+  new_counts_matrix <- new_counts_matrix[-all_ind_remove,]
+  new_data_matrix   <- new_data_matrix[-all_ind_remove,]
+  
+  print("Creating New Seurat Object (for the First Seurat Object)...")
+  obj_a_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj@project.name)
+  obj_a_2 <- SetAssayData(object = obj_a_2, slot = 'data', new.data = new_data_matrix)
+  obj_a_2$seurat_clusters <- obj_a$seurat_clusters
+  
+  # Add the metadata
+  for (col in colnames(obj@meta.data)) {
+    obj_a_2@meta.data[col] <- obj_a@meta.data[col]
+  }
+  
+  ## Second Seurat Object
+  # Initialize New Matricies
+  print("Creating New Matrices (for First Seurat Object)...")
+  new_counts_matrix <- as(obj_b@assays$RNA@counts, "sparseMatrix") 
+  new_data_matrix   <- as(obj_b@assays$RNA@data, "sparseMatrix")
+  
+  # Removing Non-Overlapping Genes
+  print("Removing Non-Overlapping Genes (for the First Seurat Object)...")
+  all_ind_keep <- c()
+  all_ind <- 1:length(new_counts_matrix)
+  for (gene in common) {
+    ind_keep <- which(rownames(new_counts_matrix) == gene)
+    all_ind_keep <- c(all_ind_keep, ind_keep)
+  }
+  all_ind_remove <- all_ind[which(! all_ind %in% all_ind_keep)]
+  new_counts_matrix <- new_counts_matrix[-all_ind_remove,]
+  new_data_matrix   <- new_data_matrix[-all_ind_remove,]
+  
+  print("Creating New Seurat Object (for the First Seurat Object)...")
+  obj_b_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj@project.name)
+  obj_b_2 <- SetAssayData(object = obj_b_2, slot = 'data', new.data = new_data_matrix)
+  obj_b_2$seurat_clusters <- obj_b$seurat_clusters
+  
+  # Add the metadata
+  for (col in colnames(obj@meta.data)) {
+    obj_b_2@meta.data[col] <- obj_b@meta.data[col]
+  }
+  
+  return(list(obj_a_2, obj_b_2))
+}
+
 convertToHgncObj <- function(obj, organism) {
   # Convert a Seurat object to have all HGNC gene names
   print("Converting Genes Names...")
-  genes <- rownames(obj)
+  genes <- rownames(obj@assays$RNA@counts)
   if (organism == "mouse") {
     dataset_name <- "mmusculus_gene_ensembl"
   } else if (organism == "mzebra") {
@@ -88,7 +155,7 @@ convertToHgncObj <- function(obj, organism) {
     j <- j + 1
   }
   # Delete all the duplicated rows at once
-  cat(paste("-Number of rows before merging:", nrow(new_counts_matrix), "\n"))
+  print(paste("-Number of rows before merging:", nrow(new_counts_matrix)))
   print("-Actually doing the removal now I swear")
   remove_dup_ind <- which(rownames(new_counts_matrix) %in% dup_genes)
   new_counts_matrix <- new_counts_matrix[-remove_dup_ind,]
@@ -98,7 +165,7 @@ convertToHgncObj <- function(obj, organism) {
   print("-Combining the duplicated rows")
   new_counts_matrix <- rbind(new_counts_matrix, keep_dup_matrix_counts)
   new_data_matrix   <- rbind(new_data_matrix, keep_dup_matrix_data)
-  cat(paste("-Number of rows after merging:", nrow(new_counts_matrix), "\n"))
+  print(paste("-Number of rows after merging:", nrow(new_counts_matrix)))
   proc.time() - ptm
   # new_counts_matrix[keep_dup_ind,] <- keep_dup_matrix_counts
   # new_data_matrix[keep_dup_ind,]   <- keep_dup_matrix_data
