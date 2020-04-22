@@ -10,6 +10,8 @@ library("cowplot")
 library("RColorBrewer")
 library("dplyr")
 
+source("/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/all_f.R")
+
 # path <- "C:/Users/miles/Downloads/brain/data/9_brain/"
 path <- "/nv/hp10/ggruenhagen3/scratch/brain/data/9_brain/region/striatum/"
 
