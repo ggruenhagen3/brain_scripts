@@ -17,7 +17,7 @@ global_path <- "/nv/hp10/ggruenhagen3/scratch/brain/data/9_brain/region/"
 regions <- dir(global_path, pattern =paste("*", sep=""))
 
 # metadata <- readRDS(paste0(path, "annotation.BrainCellAtlas_Saunders_version_2018.04.01.RDS"))
-
+regions <- regions[2:length(regions)]
 for (region in regions) {
   obj_str <- region
   path <- paste0(global_path, region, "/")
@@ -54,7 +54,6 @@ for (region in regions) {
   integrated <- FindNeighbors(integrated, reduction = "umap", dims = 1:2)
   integrated <- FindClusters(integrated, resolution = 0.1)
   
-  
   integrated$cond[is.na(integrated$cond)] <- obj_str
   # Add cluster metadata
   cluster_assign <- cluster_assign[match(colnames(integrated), names(cluster_assign))]
@@ -74,6 +73,14 @@ for (region in regions) {
   dev.off()
   system(paste("rclone copy ", filename, " dropbox:BioSci-Streelman/George/Brain/9_brain/region/", region, sep=""))
 }
+# 
+# filename <- paste0(path, "vln.png")
+# png(filename, width = 1000, height = 1000)
+# Idents(integrated) <- "cond"
+# p <- VlnPlot(integrated, features = "PVALB", slot = "counts")
+# print(p)
+# dev.off()
+# system(paste("rclone copy ", filename, " dropbox:BioSci-Streelman/George/Brain/9_brain/region/", region, sep=""))
 
 # The Mallet
 # b1b2mz_hgnc_common <- FindVariableFeatures(b1b2mz_hgnc_common)
