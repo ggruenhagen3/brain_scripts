@@ -23,8 +23,8 @@ for (region in regions) {
   path <- paste0(global_path, region, "/")
   dge.path <- list.files(path, pattern = paste("*.gz", sep=""), full.names = TRUE)
   dge <- loadSparseDge(dge.path)
-  cluster_assign    <- readRDS( list.files(path, pattern = paste("*.cluster.assign.RDS", sep=""), full.names = TRUE)[1] )
-  subcluster_assign <- readRDS( list.files(path, pattern = paste("*.subcluster.assign.RDS", sep=""), full.names = TRUE) )
+  cluster_assign_orig <- readRDS( list.files(path, pattern = paste("*.cluster.assign.RDS", sep=""), full.names = TRUE)[1] )
+  subcluster_assign   <- readRDS( list.files(path, pattern = paste("*.subcluster.assign.RDS", sep=""), full.names = TRUE) )
   
   obj <- CreateSeuratObject(counts = dge, project = obj_str)
   obj <- FindVariableFeatures(object = obj, mean.function = ExpMean, dispersion.function = LogVMR, nfeatures = 2000)
@@ -44,19 +44,29 @@ for (region in regions) {
   obj_hgnc_common[[paste0("NormalizeData.RNA")]] <- tj[[paste0("NormalizeData.RNA")]]
   b1b2mz_hgnc_common[[paste0("NormalizeData.RNA")]] <- tj[[paste0("NormalizeData.RNA")]]
   
+  # Remove old objects
+  rm(dge)
+  rm(obj)
+  rm(obj_hgnc)
+  rm(b1b2mz_hgnc)
+  
   # Integrate them
   anchors <- FindIntegrationAnchors(object.list = list(b1b2mz_hgnc_common, obj_hgnc_common), reference = 2, dims = 1:30, k.filter = 150)
   integrated <- IntegrateData(anchorset = anchors, dims = 1:30)
-  DefaultAssay(integrated) <- "integrated"
+  # DefaultAssay(integrated) <- "integrated"
+  DefaultAssay(integrated) <- "RNA"
   integrated <- ScaleData(object = integrated, vars.to.regress = NULL)
   integrated <- RunPCA(integrated, npcs = 50, verbose = FALSE)
   integrated <- RunUMAP(integrated, reduction = "pca", dims = 1:20)
   integrated <- FindNeighbors(integrated, reduction = "umap", dims = 1:2)
   integrated <- FindClusters(integrated, resolution = 0.1)
   
-  integrated$cond[is.na(integrated$cond)] <- obj_str
+  integrated$cond[which(is.na(integrated$cond))] <- obj_str
+  integrated$cond <- factor(integrated$cond, levels = c('BHVE', 'CTRL', obj_str))
+  integrated$cond <- plyr::revalue(integrated$cond, c("BHVE" = "BHVE", "CTRL" = "CTRL", obj_str = obj_str, "NA" = obj_str))
   # Add cluster metadata
-  cluster_assign <- cluster_assign[match(colnames(integrated), names(cluster_assign))]
+  rm(obj)
+  # cluster_assign <- cluster_assign_orig[match(colnames(obj), names(cluster_assign_orig))]
   if (length(colnames(integrated)) != length(cluster_assign)) {
     cluster_assign <- c(as.vector(cluster_assign), rep("NA", length(colnames(obj)) - length(cluster_assign)))
   }
@@ -73,14 +83,14 @@ for (region in regions) {
   dev.off()
   system(paste("rclone copy ", filename, " dropbox:BioSci-Streelman/George/Brain/9_brain/region/", region, sep=""))
 }
-# 
-# filename <- paste0(path, "vln.png")
-# png(filename, width = 1000, height = 1000)
-# Idents(integrated) <- "cond"
-# p <- VlnPlot(integrated, features = "PVALB", slot = "counts")
-# print(p)
-# dev.off()
-# system(paste("rclone copy ", filename, " dropbox:BioSci-Streelman/George/Brain/9_brain/region/", region, sep=""))
+
+filename <- paste0(path, "vln.png")
+png(filename, width = 1000, height = 1000)
+Idents(integrated) <- "cond"
+p <- VlnPlot(integrated, features = "PVALB", slot = "data")
+print(p)
+dev.off()
+system(paste("rclone copy ", filename, " dropbox:BioSci-Streelman/George/Brain/9_brain/region/", region, sep=""))
 
 # The Mallet
 # b1b2mz_hgnc_common <- FindVariableFeatures(b1b2mz_hgnc_common)
