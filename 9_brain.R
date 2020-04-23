@@ -23,7 +23,7 @@ for (region in regions) {
   path <- paste0(global_path, region, "/")
   dge.path <- list.files(path, pattern = paste("*.gz", sep=""), full.names = TRUE)
   dge <- loadSparseDge(dge.path)
-  cluster_assign    <- readRDS( list.files(path, pattern = paste("*.cluster.assign.RDS", sep=""), full.names = TRUE) )
+  cluster_assign    <- readRDS( list.files(path, pattern = paste("*.cluster.assign.RDS", sep=""), full.names = TRUE)[1] )
   subcluster_assign <- readRDS( list.files(path, pattern = paste("*.subcluster.assign.RDS", sep=""), full.names = TRUE) )
   
   obj_str <- "striatum"
