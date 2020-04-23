@@ -21,10 +21,10 @@ regions <- dir(global_path, pattern =paste("*", sep=""))
 for (region in regions) {
   obj_str <- region
   path <- paste0(global_path, region, "/")
-  dge.path <- dir(path, pattern = paste("*.gz", sep=""))
+  dge.path <- list.files(path, pattern = paste("*.gz", sep=""), full.names = TRUE)
   dge <- loadSparseDge(dge.path)
-  cluster_assign    <- readRDS( dir(path, pattern = paste("*.cluster.assign.RDS", sep="")) )
-  subcluster_assign <- readRDS( dir(path, pattern = paste("*.subcluster.assign.RDS", sep="")) )
+  cluster_assign    <- readRDS( list.files(path, pattern = paste("*.cluster.assign.RDS", sep=""), full.names = TRUE) )
+  subcluster_assign <- readRDS( list.files(path, pattern = paste("*.subcluster.assign.RDS", sep=""), full.names = TRUE) )
   
   obj_str <- "striatum"
   obj <- CreateSeuratObject(counts = dge, project = obj_str)
