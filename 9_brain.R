@@ -45,7 +45,7 @@ for (region in regions) {
   b1b2mz_hgnc_common[[paste0("NormalizeData.RNA")]] <- tj[[paste0("NormalizeData.RNA")]]
   
   # Integrate them
-  anchors <- FindIntegrationAnchors(object.list = list(b1b2mz_hgnc_common, obj_hgnc_common), reference = 2, dims = 1:30)
+  anchors <- FindIntegrationAnchors(object.list = list(b1b2mz_hgnc_common, obj_hgnc_common), reference = 2, dims = 1:30, k.filter = 150)
   integrated <- IntegrateData(anchorset = anchors, dims = 1:30)
   DefaultAssay(integrated) <- "integrated"
   integrated <- ScaleData(object = integrated, vars.to.regress = NULL)
