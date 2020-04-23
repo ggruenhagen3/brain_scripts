@@ -26,7 +26,6 @@ for (region in regions) {
   cluster_assign    <- readRDS( list.files(path, pattern = paste("*.cluster.assign.RDS", sep=""), full.names = TRUE)[1] )
   subcluster_assign <- readRDS( list.files(path, pattern = paste("*.subcluster.assign.RDS", sep=""), full.names = TRUE) )
   
-  obj_str <- "striatum"
   obj <- CreateSeuratObject(counts = dge, project = obj_str)
   obj <- FindVariableFeatures(object = obj, mean.function = ExpMean, dispersion.function = LogVMR, nfeatures = 2000)
   obj <- ScaleData(object = obj, vars.to.regress = NULL)
