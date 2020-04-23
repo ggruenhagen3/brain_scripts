@@ -55,6 +55,7 @@ for (region in regions) {
   integrated <- IntegrateData(anchorset = anchors, dims = 1:30)
   # DefaultAssay(integrated) <- "integrated"
   DefaultAssay(integrated) <- "RNA"
+  integrated <- FindVariableFeatures(integrated)
   integrated <- ScaleData(object = integrated, vars.to.regress = NULL)
   integrated <- RunPCA(integrated, npcs = 50, verbose = FALSE)
   integrated <- RunUMAP(integrated, reduction = "pca", dims = 1:20)
