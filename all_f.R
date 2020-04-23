@@ -1,3 +1,14 @@
+library("stringr")
+library("ggplot2")
+library("biomaRt")
+library("Seurat")
+library("Matrix")
+library("reticulate")
+library("stringr")
+library("cowplot")
+library("RColorBrewer")
+library("dplyr")
+
 ####################
 # Helper Functions #
 ####################
@@ -18,7 +29,7 @@ keepCommonGenesObj <- function(obj_a, obj_b) {
   # Removing Non-Overlapping Genes
   print("Removing Non-Overlapping Genes (for the First Seurat Object)...")
   all_ind_keep <- c()
-  all_ind <- 1:length(new_counts_matrix)
+  all_ind <- 1:nrow(new_counts_matrix)
   for (gene in common) {
     ind_keep <- which(rownames(new_counts_matrix) == gene)
     all_ind_keep <- c(all_ind_keep, ind_keep)
