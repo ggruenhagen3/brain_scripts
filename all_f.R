@@ -41,7 +41,7 @@ keepCommonGenesObj <- function(obj_a, obj_b) {
   print("Creating New Seurat Object (for the First Seurat Object)...")
   obj_a_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj_a@project.name)
   obj_a_2 <- SetAssayData(object = obj_a_2, slot = 'data', new.data = new_data_matrix)
-  obj_a_2$seurat_clusters <- obj_a$seurat_clusters
+  # obj_a_2$seurat_clusters <- obj_a$seurat_clusters
   
   # Add the metadata
   for (col in colnames(obj_a@meta.data)) {
@@ -69,7 +69,7 @@ keepCommonGenesObj <- function(obj_a, obj_b) {
   print("Creating New Seurat Object (for the Second Seurat Object)...")
   obj_b_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj_b@project.name)
   obj_b_2 <- SetAssayData(object = obj_b_2, slot = 'data', new.data = new_data_matrix)
-  obj_b_2$seurat_clusters <- obj_b$seurat_clusters
+  # obj_b_2$seurat_clusters <- obj_b$seurat_clusters
   
   # Add the metadata
   for (col in colnames(obj_b@meta.data)) {
