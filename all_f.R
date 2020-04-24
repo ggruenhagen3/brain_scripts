@@ -177,7 +177,7 @@ convertToHgncObj <- function(obj, organism) {
   print("Creating New Seurat Object...")
   obj_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj@project.name)
   obj_2 <- SetAssayData(object = obj_2, slot = 'data', new.data = new_data_matrix)
-  obj_2$seurat_clusters <- obj$seurat_clusters
+  # obj_2$seurat_clusters <- obj$seurat_clusters
   
   # Add the metadata
   for (col in colnames(obj@meta.data)) {
