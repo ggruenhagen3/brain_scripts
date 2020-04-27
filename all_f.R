@@ -27,6 +27,7 @@ convertMzebraGeneListToMouse <- function(gene_list) {
 convertMzebraDFToMouse <- function(df, gene_column) {
   bad_genes <- df[,gene_column]
   bad_genes <- unique(bad_genes)
+  gene_list <- bad_genes
 
   mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
   mouse  = useEnsembl("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
