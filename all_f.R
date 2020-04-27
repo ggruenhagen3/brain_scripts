@@ -16,12 +16,20 @@ convertMzebraGeneListToMouse <- function(gene_list) {
   mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
   mouse  = useEnsembl("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
   
+  ensembl_genes <- getLDS(attributes = c("ensembl_gene_id"), filters = "ensembl_gene_id", values = gene_list , mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
+  zfin_genes    <- getLDS(attributes = c("zfin_id_symbol"), filters = "zfin_id_symbol", values = gene_list , mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
+  hgnc_genes    <- getLDS(attributes = c("hgnc_symbol"), filters = "hgnc_symbol", values = gene_list , mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
+  
+  all_hgnc <- rbind(ensembl_genes, setNames(zfin_genes, names(ensembl_genes)), setNames(hgnc_genes, names(ensembl_genes)))
+  all_hgnc = all_hgnc[!duplicated(all_hgnc[,1]),]
+  all_mouse <- all_hgnc
+  
   # DF to convert from org to HGNC
-  all_mouse <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = gene_list, mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
+  # all_mouse <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = gene_list, mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
   
   mouse_genes <- unique(all_mouse[,2])
   print(paste0(length(mouse_genes)/length(gene_list) * 100, "% Genes Converted (", length(mouse_genes), "/", length(gene_list), ")"))
-  return(mouse_genes)
+  return(all_mouse)
 }
 
 convertMzebraDFToMouse <- function(df, gene_column) {
@@ -29,11 +37,7 @@ convertMzebraDFToMouse <- function(df, gene_column) {
   bad_genes <- unique(bad_genes)
   gene_list <- bad_genes
 
-  mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
-  mouse  = useEnsembl("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
-  all_mouse <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = gene_list, mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
-  mouse_genes <- unique(all_mouse[,2])
-  print(paste0(length(mouse_genes)/length(gene_list) * 100, "% Genes Converted (", length(mouse_genes), "/", length(gene_list), ")"))
+  all_mouse <- convertMzebraGeneListToMouse(bad_genes)
   
   multiple_hgnc <- 0
   bad_multiple_hgnc <- 0
