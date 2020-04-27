@@ -13,8 +13,8 @@ library("dplyr")
 # Helper Functions #
 ####################
 convertMzebraGeneListToMouse <- function(gene_list) {
-  mzebra = useMart("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
-  mouse  = useMart("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
+  mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
+  mouse  = useEnsembl("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
   
   # DF to convert from org to HGNC
   all_mouse <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = gene_list, mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
@@ -22,6 +22,43 @@ convertMzebraGeneListToMouse <- function(gene_list) {
   mouse_genes <- unique(all_mouse[,2])
   print(paste0(length(mouse_genes)/length(gene_list) * 100, "% Genes Converted (", length(mouse_genes), "/", length(gene_list), ")"))
   return(mouse_genes)
+}
+
+convertMzebraDFToMouse <- function(df, gene_column) {
+  bad_genes <- df[,gene_column]
+  bad_genes <- unique(bad_genes)
+
+  mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
+  mouse  = useEnsembl("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
+  all_mouse <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = gene_list, mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
+  mouse_genes <- unique(all_mouse[,2])
+  print(paste0(length(mouse_genes)/length(gene_list) * 100, "% Genes Converted (", length(mouse_genes), "/", length(gene_list), ")"))
+  
+  multiple_hgnc <- 0
+  bad_multiple_hgnc <- 0
+  converter <- data.frame()
+  for (gene in bad_genes) {
+    mouse_gene <- all_mouse[which(all_mouse[,1] == gene),2]
+    new_mouse_gene <- mouse_gene[1]
+    if (length(mouse_gene) > 1) {
+      multiple_hgnc <- multiple_hgnc + 1
+      upper_mouse_gene <- mouse_gene[which(startsWith(tolower(gene), tolower(mouse_gene)))]
+      if (length(upper_mouse_gene) == 1) {
+        new_mouse_gene <- upper_mouse_gene
+      } else {
+        bad_multiple_hgnc <- bad_multiple_hgnc + 1
+        new_mouse_gene <- mouse_gene[1]
+      } # end bad multiple
+    } # end multiple
+    converter <- rbind(converter, setNames(data.frame(t(c(gene, new_mouse_gene))), c("mzebra", "mouse")) )
+  }
+  print(paste0("Muliplte Mouse: ", multiple_hgnc))
+  print(paste0("Bad Multiple Mouse: ", bad_multiple_hgnc))
+  
+  df[,gene_column] <- converter[match(df[,gene_column], converter[,1]),2]
+  df <- df[which(! is.na(df[,gene_column])),]
+  
+  return(df)
 }
 
 keepCommonGenesObj <- function(obj_a, obj_b) {
