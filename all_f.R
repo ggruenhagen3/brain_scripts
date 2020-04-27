@@ -12,6 +12,18 @@ library("dplyr")
 ####################
 # Helper Functions #
 ####################
+convertMzebraGeneListToMouse <- function(gene_list) {
+  mzebra = useMart("ensembl", dataset = "mzebra_gene_ensembl")
+  mouse  = useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+  
+  # DF to convert from org to HGNC
+  all_mouse <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = gene_list, mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
+  
+  mouse_genes <- unique(all_mouse[,2])
+  print(paste0(length(mouse_genes)/length(gene_list) * 100, "% Genes Converted (", length(mouse_genes), "/", length(gene_list), ")"))
+  return(mouse_genes)
+}
+
 keepCommonGenesObj <- function(obj_a, obj_b) {
   # Finds the common genes between two Seurat objects and
   # makes two new Seurat objects with just those genes.
