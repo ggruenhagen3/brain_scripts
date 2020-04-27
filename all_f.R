@@ -13,8 +13,8 @@ library("dplyr")
 # Helper Functions #
 ####################
 convertMzebraGeneListToMouse <- function(gene_list) {
-  mzebra = useMart("ensembl", dataset = "mzebra_gene_ensembl")
-  mouse  = useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+  mzebra = useMart("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
+  mouse  = useMart("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
   
   # DF to convert from org to HGNC
   all_mouse <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = gene_list, mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
