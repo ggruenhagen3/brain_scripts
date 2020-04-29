@@ -171,6 +171,8 @@ bonferroni_alpha <- alpha/num_clusters
 upper_tail <- bonferroni_alpha/2
 for (i in 0:num_clusters) {
   sig <- quantile(perm_down_avg_gene[[i+1]], c(1-upper_tail))
+  print(paste("Max value for perm cluster ", i, ":", max(perm_down_avg_gene[[i+1]])))
+  print(paste("Real value for cluster", i, ":", down_avg_avg_gene[i+1]))
   if ( down_avg_avg_gene[i+1] > sig ) {
     sig_clusters <- c(sig_clusters, i)
   }
