@@ -166,8 +166,8 @@ for (run in (run_num+1):(run_num+run_num)) {
 
 # Compare empirical data to 97.5th percentile of the permutated data on a PER CLUSTER basis
 sig_clusters  <- c()
-alpha <- 0.05
-bonferroni_alpha <- alpha/num_clusters
+alpha <- 0.01
+bonferroni_alpha <- (alpha/num_clusters)/length(gene_names)
 upper_tail <- bonferroni_alpha/2
 for (i in 0:num_clusters) {
   sig <- quantile(perm_down_avg_gene[[i+1]], c(1-upper_tail))
