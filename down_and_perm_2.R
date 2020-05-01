@@ -122,6 +122,7 @@ down_avg_avg_gene <- rep(0, num_clusters+1)
 run_num <- 50
 
 # No Perm, Bootstrap
+down_list <- lapply(0:num_clusters, function(x) c())
 for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
@@ -130,9 +131,11 @@ for (run in 1:run_num) {
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
+    this_genes <- length(which(as.vector(mat[,this_cells]) != 0))
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
-    genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(mat[,this_cells]) != 0))) # genes
+    genes_per_cluster <- c(genes_per_cluster, this_genes) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
+    down_list[[i+1]] <- c(down_list[[i+1]], this_genes)
   }
   avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
   down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
@@ -168,12 +171,16 @@ for (run in (run_num+1):(run_num+run_num)) {
 sig_clusters  <- c()
 alpha <- 0.01
 bonferroni_alpha <- (alpha/num_clusters)/length(gene_names)
-upper_tail <- bonferroni_alpha/2
+# upper_tail <- bonferroni_alpha/2
+upper_tail <- alpha/2
 for (i in 0:num_clusters) {
   sig <- quantile(perm_down_avg_gene[[i+1]], c(1-upper_tail))
   print(paste("Max value for perm cluster ", i, ":", max(perm_down_avg_gene[[i+1]])))
-  print(paste("Real value for cluster", i, ":", down_avg_avg_gene[i+1]))
-  if ( down_avg_avg_gene[i+1] > sig ) {
+  print(paste("Mean Real value for cluster", i, ":", down_avg_avg_gene[i+1]))
+  print(paste("Min Real Value for cluster", i, ":", min(down_list[[i+1]])))
+  bot_25 <- quantile(down_list[[i+1]], c(0.25))
+  print(paste("Bot 25 Value for cluster", i, ":", bot_25))
+  if ( bot_25 > sig ) {
     sig_clusters <- c(sig_clusters, i)
   }
 }
