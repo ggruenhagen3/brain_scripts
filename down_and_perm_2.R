@@ -135,7 +135,7 @@ for (run in 1:run_num) {
     # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
     genes_per_cluster <- c(genes_per_cluster, this_genes) # genes
     cells_per_cluster <- c(cells_per_cluster, length(this_cells))
-    down_list[[i+1]] <- c(down_list[[i+1]], this_genes)
+    down_list[[i+1]] <- c(down_list[[i+1]], this_genes/ length(this_cells))
   }
   avg_gene_per_cell_per_cluster <- genes_per_cluster/cells_per_cluster
   down_avg_avg_gene <- down_avg_avg_gene + avg_gene_per_cell_per_cluster
