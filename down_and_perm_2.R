@@ -186,7 +186,18 @@ for (i in 0:num_clusters) {
 }
 # sig <- quantile(perm_down_avg_gene, c(.975))
 # print(sig)
-
 # sig_clusters <- which(down_avg_avg_gene > sig)-1
+
+df <- t(as.data.frame(lapply(1:length(down_list), function(x) t(cbind(down_list[[x]], rep(x, length(num_clusters)+1), rep("Down", length(num_clusters)+1))))))
+df <- rbind(df, t(as.data.frame(lapply(1:length(perm_down_avg_gene), function(x) t(cbind(perm_down_avg_gene[[x]], rep(x, length(num_clusters)+1), rep("Down+Perm", length(num_clusters)+1)))))))
+colnames(df) <- c("avg_gene_per_cell_per_cluster", "cluster", "cond")
+df <- as.data.frame(df)
+df$avg_gene_per_cell_per_cluster <- as.numeric(as.vector(df$avg_gene_per_cell_per_cluster))
+df$cluster <- factor(df$cluster, levels = 1:(num_clusters+1))
+png(paste0(rna_path, "/results/down_and_perm_2_", bio, ".png"), width = 1800, height = 1000, res = 150)
+p <- ggplot(df, aes(x = cluster, y = avg_gene_per_cell_per_cluster, fill = cond)) + geom_boxplot(alpha = 0.6) + geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.3, aes(colour = cond)) + scale_colour_manual(values=c("#999999", "#56B4E9", "#3ac9bb")) + scale_fill_manual(values=c("#999999", "#3ac9bb", "#56B4E9")) + ggtitle("Mouse Mesenchyme: CytoTRACE Rank for Cells Expressing a Gene")
+print(p)
+dev.off()
+
 print(sig_clusters)
 write.csv(sig_clusters, file = paste(rna_path, "/results/down_and_perm_2_", bio, ".csv", sep=""), row.names = FALSE)
