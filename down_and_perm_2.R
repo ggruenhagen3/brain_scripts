@@ -181,7 +181,7 @@ for (i in 0:num_clusters) {
   print(paste("Min Real Value for cluster", i, ":", min(down_list[[i+1]])))
   bot_25 <- quantile(down_list[[i+1]], c(0.25))
   print(paste("Bot 25 Value for cluster", i, ":", bot_25))
-  if ( bot_25 > sig ) {
+  if ( min(down_list[[i+1]]) > max(perm_down_avg_gene[[i+1]]) ) {
     sig_clusters <- c(sig_clusters, i)
   }
 }
