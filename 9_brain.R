@@ -15,12 +15,13 @@ source("/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/all_f.R")
 # path <- "C:/Users/miles/Downloads/brain/data/9_brain/"
 global_path <- "/nv/hp10/ggruenhagen3/scratch/brain/data/9_brain/region/"
 regions <- dir(global_path, pattern =paste("*", sep=""))
-regions <- c("globulus_pallidus", "hippocampus")
+regions <- c("globulus_pallidus", "hippocampus", "striatum")
 
 # metadata <- readRDS(paste0(path, "annotation.BrainCellAtlas_Saunders_version_2018.04.01.RDS"))
 # regions <- regions[2:length(regions)]
 for (region in regions) {
   obj_str <- region
+  print("Region:", obj_str)
   path <- paste0(global_path, region, "/")
   dge.path <- list.files(path, pattern = paste("*.gz", sep=""), full.names = TRUE)
   dge <- loadSparseDge(dge.path)
@@ -97,14 +98,17 @@ for (region in regions) {
   system(paste("rclone copy ", filename, " dropbox:BioSci-Streelman/George/Brain/9_brain/region/", region, sep=""))
   
   for (i in 0:40) {
+    print(i)
     filename <- paste0(path, "split/cluster_", i, ".png")
     png(filename, width = 1000, height = 600)
-    Idents(integrated) <- "orig.cluster"
+    cells_to_plot <- c(cluster_cells, colnames(obj_hgnc_common))
+    Idents(integrated) <- "cond"
     Idents(b1b2mz_hgnc_common) <- "seurat_clusters"
     cluster_cells <- WhichCells(b1b2mz_hgnc_common, idents = i)
-    p1 <- DimPlot(integrated[,cluster_cells], reduction = "umap", label = TRUE) + xlim(c(min(integrated@reductions$umap@cell.embeddings[,1]), max(integrated@reductions$umap@cell.embeddings[,1]))) + ylim(c(min(integrated@reductions$umap@cell.embeddings[,2]), max(integrated@reductions$umap@cell.embeddings[,1])))
-    p2 <- DimPlot(integrated[,colnames(obj_hgnc_common)], reduction = "umap", label = TRUE)    + xlim(c(min(integrated@reductions$umap@cell.embeddings[,1]), max(integrated@reductions$umap@cell.embeddings[,1]))) + ylim(c(min(integrated@reductions$umap@cell.embeddings[,2]), max(integrated@reductions$umap@cell.embeddings[,1])))
-    p <- plot_grid(p1, p2)
+    p <- DimPlot(integrated[,cells_to_plot], reduction = "umap", label = TRUE)
+    # p1 <- DimPlot(integrated[,cluster_cells], reduction = "umap", label = TRUE) + xlim(c(min(integrated@reductions$umap@cell.embeddings[,1]), max(integrated@reductions$umap@cell.embeddings[,1]))) + ylim(c(min(integrated@reductions$umap@cell.embeddings[,2]), max(integrated@reductions$umap@cell.embeddings[,1])))
+    # p2 <- DimPlot(integrated[,colnames(obj_hgnc_common)], reduction = "umap", label = TRUE) + xlim(c(min(integrated@reductions$umap@cell.embeddings[,1]), max(integrated@reductions$umap@cell.embeddings[,1]))) + ylim(c(min(integrated@reductions$umap@cell.embeddings[,2]), max(integrated@reductions$umap@cell.embeddings[,1])))
+    # p <- plot_grid(p1, p2)
     print(p)
     dev.off()
     system(paste("rclone copy ", filename, " dropbox:BioSci-Streelman/George/Brain/9_brain/region/", region, "/split", sep=""))
