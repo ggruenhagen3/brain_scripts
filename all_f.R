@@ -4,7 +4,6 @@ library("biomaRt")
 library("Seurat")
 library("Matrix")
 library("reticulate")
-library("stringr")
 library("cowplot")
 library("RColorBrewer")
 library("dplyr")
@@ -12,6 +11,110 @@ library("dplyr")
 ####################
 # Helper Functions #
 ####################
+convertToMouseObj <- function(obj) {
+  # Converts a Mzebra Seurat object to a Mouse Seurat Object.
+  
+  # Convert a Seurat object to have all HGNC gene names
+  print("Converting Genes Names...")
+  genes <- rownames(obj@assays$RNA@counts)
+
+  mouse  = useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+  mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
+  
+  # DF to convert from org to HGNC
+  all_hgnc <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = genes , mart = mzebra, attributesL = c("external_gene_name"), martL = mouse, uniqueRows=T)
+  
+  # Initialize New Matricies
+  print("Creating New Matrices...")
+  new_counts_matrix <- as(obj@assays$RNA@counts, "sparseMatrix") 
+  new_data_matrix   <- as(obj@assays$RNA@data, "sparseMatrix") 
+  
+  not_i <- 0
+  multiple_hgnc <- 0
+  bad_multiple_hgnc <- 0
+  for (gene in genes) {
+    if (gene %in% all_hgnc[,1]) {
+      hgnc_gene <- all_hgnc[which(all_hgnc[,1] == gene),2]
+      if (length(hgnc_gene) > 1) {
+        multiple_hgnc <- multiple_hgnc + 1
+        upper_hgnc_gene <- hgnc_gene[which(startsWith(tolower(hgnc_gene), tolower(gene)))]
+        if (length(upper_hgnc_gene) == 1) {
+          hgnc_gene <- upper_hgnc_gene
+        } else {
+          bad_multiple_hgnc <- bad_multiple_hgnc + 1
+          hgnc_gene <- hgnc_gene[1]
+        } # end bad multiple
+      } # end multiple
+      
+      rownames(new_counts_matrix)[which(rownames(new_counts_matrix) == gene)] <- hgnc_gene
+      rownames(new_data_matrix)[which(rownames(new_data_matrix) == gene)] <- hgnc_gene
+    } else {
+      not_i <- not_i + 1
+    } # end gene not an hgnc gene
+  } # end gene for
+  print(paste("-Number of Genes not converted to HGNC:", not_i))
+  print(paste("-Number of Genes with multple HGNC:", multiple_hgnc))
+  print(paste("-Number of Genes with multple HGNC and non-ideal circumstance:", bad_multiple_hgnc))
+  
+  # Remove mzebra rows
+  print("Removing old org rows...")
+  ind <- which(rownames(new_counts_matrix) %in% all_hgnc[,2])
+  new_counts_matrix <- new_counts_matrix[ind,]
+  new_data_matrix   <- new_data_matrix[ind,]
+  
+  # Merge the duplicated rows
+  print("Removing duplicated HGNC rows...")
+  ptm <- proc.time()
+  dup_genes <- unique(rownames(new_counts_matrix)[which(duplicated(rownames(new_counts_matrix)))])
+  remove_dup_ind <- c()
+  keep_dup_ind <- c()
+  j <- 0
+  dup_matrix_short_counts <- new_counts_matrix[which(rownames(new_counts_matrix) %in% dup_genes),]
+  dup_matrix_short_data   <- new_data_matrix[which(rownames(new_data_matrix) %in% dup_genes),]
+  keep_dup_matrix_counts  <- matrix(0L, nrow = length(dup_genes), ncol = ncol(obj@assays$RNA@counts))
+  keep_dup_matrix_data    <- matrix(0L, nrow = length(dup_genes), ncol = ncol(obj@assays$RNA@data))
+  rownames(keep_dup_matrix_counts) <- dup_genes
+  rownames(keep_dup_matrix_data)   <- dup_genes
+  for (gene in dup_genes) {
+    ind_keep <- which(rownames(dup_matrix_short_counts) == gene)
+    keep_dup_matrix_counts[j,] <- colSums(dup_matrix_short_counts[ind_keep,])
+    keep_dup_matrix_data[j,]   <- colSums(dup_matrix_short_data[ind_keep,])
+    j <- j + 1
+  }
+  # Delete all the duplicated rows at once
+  print(paste("-Number of rows before merging:", nrow(new_counts_matrix)))
+  print("-Actually doing the removal now I swear")
+  remove_dup_ind <- which(rownames(new_counts_matrix) %in% dup_genes)
+  new_counts_matrix <- new_counts_matrix[-remove_dup_ind,]
+  new_data_matrix   <- new_data_matrix[-remove_dup_ind,]
+  # nrow(new_counts_matrix)
+  # Add all the new data at once
+  print("-Combining the duplicated rows")
+  new_counts_matrix <- rbind(new_counts_matrix, keep_dup_matrix_counts)
+  new_data_matrix   <- rbind(new_data_matrix, keep_dup_matrix_data)
+  print(paste("-Number of rows after merging:", nrow(new_counts_matrix)))
+  proc.time() - ptm
+  # new_counts_matrix[keep_dup_ind,] <- keep_dup_matrix_counts
+  # new_data_matrix[keep_dup_ind,]   <- keep_dup_matrix_data
+  # Delete temporary files
+  rm(dup_matrix_short_counts)
+  rm(dup_matrix_short_data)
+  rm(keep_dup_matrix_counts)
+  rm(keep_dup_matrix_data)
+  
+  print("Creating New Seurat Object...")
+  obj_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj@project.name)
+  obj_2 <- SetAssayData(object = obj_2, slot = 'data', new.data = new_data_matrix)
+  # obj_2$seurat_clusters <- obj$seurat_clusters
+  
+  # Add the metadata
+  for (col in colnames(obj@meta.data)) {
+    obj_2@meta.data[col] <- obj@meta.data[col]
+  }
+  
+  return(obj_2)
+}
+
 convertMzebraGeneListToMouse <- function(gene_list) {
   mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
   mouse  = useEnsembl("ensembl", mirror = "useast", dataset = "mmusculus_gene_ensembl")
