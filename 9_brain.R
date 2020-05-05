@@ -22,7 +22,7 @@ regions <- c("globulus_pallidus", "hippocampus", "striatum")
 # regions <- regions[2:length(regions)]
 for (region in regions) {
   obj_str <- region
-  print("Region:", obj_str)
+  print(paste0("Region:", obj_str))
   path <- paste0(global_path, region, "/")
   dge.path <- list.files(path, pattern = paste("*.gz", sep=""), full.names = TRUE)
   dge <- loadSparseDge(dge.path)
