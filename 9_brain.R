@@ -9,6 +9,7 @@ library("stringr")
 library("cowplot")
 library("RColorBrewer")
 library("dplyr")
+options(future.globals.maxSize = 6000 * 1024^2)
 
 source("/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/all_f.R")
 
@@ -53,17 +54,28 @@ for (region in regions) {
   rm(b1b2mz_hgnc)
   
   # Integrate them
-  # merge(obj_hgnc_common, b1b2mz_hgnc_common)
-  anchors <- FindIntegrationAnchors(object.list = list(b1b2mz_hgnc_common, obj_hgnc_common), reference = 2, dims = 1:30, k.filter = 150)
-  integrated <- IntegrateData(anchorset = anchors, dims = 1:30)
-  DefaultAssay(integrated) <- "integrated"
-  # DefaultAssay(integrated) <- "RNA"
+  obj_hgnc_common <- SCTransform(obj_hgnc_common)
+  b1b2mz_hgnc_common <- SCTransform(b1b2mz_hgnc_common)
+  integrate.features <- SelectIntegrationFeatures(object.list = list(obj_hgnc_common, b1b2mz_hgnc_common), nfeatures = 3000)
+  integrate.list     <- PrepSCTIntegration(object.list = list(obj_hgnc_common, b1b2mz_hgnc_common), anchor.features = integrate.features, verbose = FALSE)
+  integrated.anchors <- FindIntegrationAnchors(object.list = integrate.list, normalization.method = "SCT", anchor.features = integrate.features, verbose = FALSE)
+  integrated <-IntegrateData(anchorset = integrated.anchors, normalization.method = "SCT", verbose = FALSE)
   integrated <- FindVariableFeatures(integrated)
-  integrated <- ScaleData(object = integrated, vars.to.regress = NULL)
-  integrated <- RunPCA(integrated, npcs = 50, verbose = FALSE)
-  integrated <- RunUMAP(integrated, reduction = "pca", dims = 1:20)
+  integrated <- RunPCA(integrated, npcs = 20, verbose = FALSE)
+  integrated <- RunUMAP(integrated, reduction = "pca", dims = 1:20) 
   integrated <- FindNeighbors(integrated, reduction = "umap", dims = 1:2)
   integrated <- FindClusters(integrated, resolution = 0.1)
+  # # merge(obj_hgnc_common, b1b2mz_hgnc_common)
+  # anchors <- FindIntegrationAnchors(object.list = list(b1b2mz_hgnc_common, obj_hgnc_common), reference = 2, dims = 1:30, k.filter = 150)
+  # integrated <- IntegrateData(anchorset = anchors, dims = 1:30)
+  # DefaultAssay(integrated) <- "integrated"
+  # # DefaultAssay(integrated) <- "RNA"
+  # integrated <- FindVariableFeatures(integrated)
+  # integrated <- ScaleData(object = integrated, vars.to.regress = NULL)
+  # integrated <- RunPCA(integrated, npcs = 50, verbose = FALSE)
+  # integrated <- RunUMAP(integrated, reduction = "pca", dims = 1:20)
+  # integrated <- FindNeighbors(integrated, reduction = "umap", dims = 1:2)
+  # integrated <- FindClusters(integrated, resolution = 0.1)
   
   integrated$cond[which(is.na(integrated$cond))] <- obj_str
   integrated$cond <- factor(integrated$cond, levels = c('BHVE', 'CTRL', obj_str))
