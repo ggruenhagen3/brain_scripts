@@ -113,10 +113,10 @@ for (region in regions) {
     print(i)
     filename <- paste0(path, "split/cluster_", i, ".png")
     png(filename, width = 1000, height = 600)
-    cells_to_plot <- c(cluster_cells, colnames(obj_hgnc_common))
     Idents(integrated) <- "cond"
     Idents(b1b2mz_hgnc_common) <- "seurat_clusters"
     cluster_cells <- WhichCells(b1b2mz_hgnc_common, idents = i)
+    cells_to_plot <- c(cluster_cells, colnames(obj_hgnc_common))
     p <- DimPlot(integrated[,cells_to_plot], reduction = "umap", label = TRUE)
     # p1 <- DimPlot(integrated[,cluster_cells], reduction = "umap", label = TRUE) + xlim(c(min(integrated@reductions$umap@cell.embeddings[,1]), max(integrated@reductions$umap@cell.embeddings[,1]))) + ylim(c(min(integrated@reductions$umap@cell.embeddings[,2]), max(integrated@reductions$umap@cell.embeddings[,1])))
     # p2 <- DimPlot(integrated[,colnames(obj_hgnc_common)], reduction = "umap", label = TRUE) + xlim(c(min(integrated@reductions$umap@cell.embeddings[,1]), max(integrated@reductions$umap@cell.embeddings[,1]))) + ylim(c(min(integrated@reductions$umap@cell.embeddings[,2]), max(integrated@reductions$umap@cell.embeddings[,1])))
