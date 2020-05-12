@@ -29,6 +29,7 @@ run_num <- 50
 
 # No Perm, Bootstrap
 down_list <- lapply(0:num_clusters, function(x) c())
+no_list <- lapply(0:num_clusters, function(x) c())
 for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
@@ -37,8 +38,9 @@ for (run in 1:run_num) {
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
-    this_genes <- colSums(mat[,this_cells]) # number of transcripts expressed by cells in the cluster
+    this_genes <- sapply(marker_genes, function(gene) length(rownames(mat)[which(mat[gene, this_cells] > 0)])) # number of transcripts expressed by cells in the cluster
     down_list[[i+1]] <- c(down_list[[i+1]], this_genes)
+    no_list[[i+1]] <- c(no_list[[i+1]], length(this_cells) - this_genes)
   }
 }
 
@@ -48,9 +50,9 @@ for (i in 1:(num_clusters+1)) {
   wilcox_p <- wilcox.test(x = down_list[[i]], y  = unlist(down_list[all_other_clusters]), alternative = "greater")$p.value # wilcox to compare cluster to all other cells
   t_p      <- t.test(     x = down_list[[i]], y  = unlist(down_list[all_other_clusters]), alternative = "greater")$p.value
   
-  this_cells <- WhichCells(combined, idents = (i-1))
-  this_cluster <- c(sum(down_list[[i]]),                        length(this_cells))
-  all_clusters <- c(sum(unlist(down_list[all_other_clusters])), ncol(combined) - length(this_cells))
+  # this_cells <- WhichCells(combined, idents = (i-1))
+  this_cluster <- c(sum(down_list[[i]]),                        sum(no_list[[i]]))
+  all_clusters <- c(sum(unlist(down_list[all_other_clusters])), sum(down_list[all_other_clusters]))
   contig_table <- data.frame(this_cluster <- this_cluster, all_clusters <- all_clusters)
   fisher_p <- fisher.test(contig_table, alternative = "greater")$p.value
   
