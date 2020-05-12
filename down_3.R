@@ -52,7 +52,7 @@ for (i in 1:(num_clusters+1)) {
   
   # this_cells <- WhichCells(combined, idents = (i-1))
   this_cluster <- c(sum(down_list[[i]]),                        sum(no_list[[i]]))
-  all_clusters <- c(sum(unlist(down_list[all_other_clusters])), sum(down_list[all_other_clusters]))
+  all_clusters <- c(sum(unlist(down_list[all_other_clusters])), sum(unlist(no_list[all_other_clusters])))
   contig_table <- data.frame(this_cluster <- this_cluster, all_clusters <- all_clusters)
   fisher_p <- fisher.test(contig_table, alternative = "greater")$p.value
   
