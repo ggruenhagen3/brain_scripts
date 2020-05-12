@@ -40,7 +40,7 @@ new_obj <- CreateSeuratObject(counts = big_mat)
 new_obj$seurat_clusters <- combined$seurat_clusters
 Idents(new_obj) <- new_obj$seurat_clusters
 cluster_df <- myAverageExpression(new_obj, slot = "counts")
-results <- specificity.index(cluster_df, e_min = 0.05)
+results <- specificity.index(cluster_df, e_min = 0.01)
 colnames(results) <- 0:num_clusters
 fisher_results <- fisher.iteration(results, valid_genes, p.adjust = FALSE)
 fisher_results$q <- p.adjust(fisher_results$`0.05 - nominal`)
