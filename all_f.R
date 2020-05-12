@@ -11,6 +11,58 @@ library("dplyr")
 ####################
 # Helper Functions #
 ####################
+myTotalTrans <- function(obj, slot="data", assay="RNA", features = NULL, cells = NULL) {
+  result <- data.frame()
+  for (ident in levels(Idents(obj))) {
+    print(paste("Averaging Expression for", ident))
+    if (identical(features, NULL)) {
+      features = rownames(obj)
+    }
+    
+    this_cells <- WhichCells(obj, idents = ident)
+    if (! identical(cells, NULL)) {
+      this_cells <- this_cells[which(this_cells %in% cells)]
+    }
+    
+    if (length(features) == 1) {
+      newRow <- setNames(as.data.frame(sum(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells])), features)
+      names(newRow) <- features
+      result <- rbind(result, newRow)
+    } else {
+      result <- rbind(result, setNames(t(as.data.frame(rowSums(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells]))), features)) 
+    }
+    rownames(result)[length(rownames(result))] <- ident
+  }
+  result <- as.data.frame(t(result))
+  return(result)
+}
+
+myAverageExpression <- function(obj, slot="data", assay="RNA", features = NULL, cells=NULL) {
+  result <- data.frame()
+  for (ident in levels(Idents(obj))) {
+    print(paste("Averaging Expression for", ident))
+    if (identical(features, NULL)) {
+      features = rownames(obj)
+    }
+    
+    this_cells <- WhichCells(obj, idents = ident)
+    if (! identical(cells, NULL)) {
+      this_cells <- this_cells[which(this_cells %in% cells)]
+    }
+    
+    if (length(features) == 1) {
+      newRow <- setNames(as.data.frame(sum(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells])/length(this_cells)), features)
+      names(newRow) <- features
+      result <- rbind(result, newRow)
+    } else {
+      result <- rbind(result, setNames(t(as.data.frame(rowSums(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells]))/length(this_cells)), features)) 
+    }
+    rownames(result)[length(rownames(result))] <- ident
+  }
+  result <- as.data.frame(t(result))
+  return(result)
+}
+
 convertToMouseObj <- function(obj) {
   # Converts a Mzebra Seurat object to a Mouse Seurat Object.
   
@@ -564,4 +616,69 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename) {
   heatmap(pct_mat, Rowv=NA, Colv=NA, revC = TRUE, xlab = paste(df1_sample, "Cluster"), ylab = paste(df2_sample, "Cluster"), main = paste("% Best Guess b/w", df1_sample, "&", df2_sample), scale = "none")
   dev.off()
   return(mat)
+}
+
+
+downsample <- function(combined, marker_genes, run) {
+  set.seed(run)
+  min_trans <- min(combined$nCount_RNA)
+  gene_names <- rownames(combined@assays$RNA@counts)
+  # new_matrix <- matrix(, nrow = nrow(combined@assays$RNA@counts), ncol = ncol(combined@assays$RNA@counts), dimnames = list(gene_names, colnames(combined@assays$RNA@counts)))
+  # new_new_matrix <- matrix(, nrow=nrow(combined@assays$RNA@counts))
+  marker_matrix  <- matrix(, nrow=length(marker_genes), ncol = ncol(combined@assays$RNA@counts), dimnames = list(marker_genes, colnames(combined@assays$RNA@counts)))
+  i <- 0
+  for (cell in colnames(combined@assays$RNA@counts)) {
+    # i <- i + 1
+    # if (i%%500 == 1) {
+    #   print(cell)
+    # }
+    # start.time <- Sys.time()
+    
+    trans_names <- rep(gene_names, combined@assays$RNA@counts[,cell])
+    ran_trans_names <- sample(trans_names, min_trans)
+    ran_trans_names <- ran_trans_names[which(ran_trans_names %in% marker_genes)]
+    ran_df <- as.data.frame(table(ran_trans_names))
+    zero_gene_names <- marker_genes[which(! marker_genes %in% ran_trans_names)]
+    zero_df <- setNames(data.frame(zero_gene_names <- zero_gene_names, Freq <- rep(0, length(zero_gene_names))), c("ran_trans_names", "Freq"))
+    ran_df <- rbind(ran_df, zero_df)
+    rownames(ran_df) <- ran_df$ran_trans_names
+    ran_df <- ran_df[marker_genes,2]
+    # new_matrix[,cell] <-as.matrix(ran_df)
+    
+    
+    marker_matrix[,cell] <- as.matrix(ran_df)
+    # new_new_matrix <- cbind(new_new_matrix, as.matrix(ran_df))
+    
+    # end.time <- Sys.time()
+    # time.taken <- end.time - start.time
+    # print(time.taken)
+  }
+  
+  return(marker_matrix)
+}
+
+pickNewCells <- function(combined, num_clusters, num_cells) {
+  new_cells <- c()
+  for (i in 1:num_cells) {
+    ran_cluster <- sample(0:num_clusters, 1)
+    this_cells <- names(combined$seurat_clusters[which(combined$seurat_clusters == ran_cluster)])
+    new_cells <- c(new_cells, sample(this_cells,1))
+  }
+  
+  return(new_cells)
+}
+
+shuffleClusters <- function(combined) {
+  # The selection process for a new cluster should be as follows:
+  # 1. Pick a random cluster 0-40
+  # 2. Pick a random cell from that cluster to be a part of the new cluster
+  # This means that the new data set would likely have duplicate cells
+  new_cells <- lapply(0:num_clusters, function(x) c())
+  num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
+  for (i in 0:num_clusters) {
+    num_cells <- length(combined$seurat_clusters[which(combined$seurat_clusters == i)])
+    new_cells[[i+1]] <- pickNewCells(combined, num_clusters, num_cells)
+  }
+  
+  return(new_cells)
 }
