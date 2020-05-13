@@ -30,6 +30,8 @@ run_num <- 50
 # No Perm, Bootstrap
 down_list <- lapply(0:num_clusters, function(x) c())
 no_list <- lapply(0:num_clusters, function(x) c())
+mean_down_list <- lapply(0:num_clusters, function(x) c())
+mean_no_list <- lapply(0:num_clusters, function(x) c())
 for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
@@ -38,11 +40,19 @@ for (run in 1:run_num) {
   genes_per_cluster <- c()
   for (i in 0:num_clusters) {
     this_cells <- WhichCells(combined, idents = i)
+    if (run == 1) {
+      mean_down_list[[i+1]] <- rep(0, length(this_cells))
+      mean_no_list[[i+1]] <- rep(0, length(this_cells))
+    }
     this_genes <- sapply(marker_genes, function(gene) length(rownames(mat)[which(mat[gene, this_cells] > 0)])) # number of transcripts expressed by cells in the cluster
     down_list[[i+1]] <- c(down_list[[i+1]], this_genes)
     no_list[[i+1]] <- c(no_list[[i+1]], length(this_cells) - this_genes)
+    mean_down_list[[i+1]] <- mean_down_list[[i+1]] + this_genes
+    mean_no_list[[i+1]] <- mean_no_list[[i+1]] + (length(this_cells) - this_genes)
   }
 }
+mean_down_list <- lapply(1:length(mean_down_list), function(x) mean_down_list[[x]]/run_num)
+mean_no_list <- lapply(1:length(mean_no_list), function(x) mean_no_list[[x]]/run_num)
 
 df <- data.frame()
 for (i in 1:(num_clusters+1)) {
@@ -51,8 +61,8 @@ for (i in 1:(num_clusters+1)) {
   t_p      <- t.test(     x = down_list[[i]], y  = unlist(down_list[all_other_clusters]), alternative = "greater")$p.value
   
   # this_cells <- WhichCells(combined, idents = (i-1))
-  this_cluster <- c(sum(down_list[[i]]),                        sum(no_list[[i]]))
-  all_clusters <- c(sum(unlist(down_list[all_other_clusters])), sum(unlist(no_list[all_other_clusters])))
+  this_cluster <- c(sum(mean_down_list[[i]]),                        sum(mean_no_list[[i]]))
+  all_clusters <- c(sum(unlist(mean_down_list[all_other_clusters])), sum(unlist(mean_no_list[all_other_clusters])))
   contig_table <- data.frame(this_cluster <- this_cluster, all_clusters <- all_clusters)
   fisher_p <- fisher.test(contig_table, alternative = "greater")$p.value
   
@@ -61,8 +71,8 @@ for (i in 1:(num_clusters+1)) {
 colnames(df) <- c("cluster", "wilcox_p", "t_p", "fisher_p")
 df$wilcox_q <- p.adjust(df$wilcox_p, method = "bonferroni")
 df$t_q <- p.adjust(df$t_p, method = "bonferroni")
-df$fisher_q <- p.adjust(df$fisher_p)
+df$fisher_q <- p.adjust(df$fisher_p, method = "bonferroni")
 # df$cluster[which(df$wilcox_q < 0.05)]
 # df$cluster[which(df$t_q < 0.05)]
-df$cluster[which(df$fisher_p < 0.05)]
+df$cluster[which(df$fisher_q < 0.05)]
 write.table(df, file = paste(rna_path, "/results/down_3_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)
