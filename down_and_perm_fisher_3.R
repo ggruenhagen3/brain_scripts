@@ -28,8 +28,8 @@ total_genes_per_cluster <- rep(0, num_clusters+1)
 run_num <- 50
 
 # No Perm, Bootstrap
-down_pos <- lapply(0:num_clusters, function(x) c())
-down_neg <- lapply(0:num_clusters, function(x) c())
+down_pos <- lapply(0:num_clusters, function(x) 0)
+down_neg <- lapply(0:num_clusters, function(x) 0)
 for (run in 1:run_num) {
   cat(paste("no_perm", run, "\n"))
   mat <- downsample(combined, marker_genes, run)
@@ -49,8 +49,8 @@ print(down_avg_pos)
 
 # Perm, Bootstrap
 backup_ids <- combined@meta.data$seurat_clusters
-perm_pos <- lapply(0:num_clusters, function(x) c())
-perm_neg <- lapply(0:num_clusters, function(x) c())
+perm_pos <- lapply(0:num_clusters, function(x) 0)
+perm_neg <- lapply(0:num_clusters, function(x) 0)
 for (run in (run_num+1):(run_num+run_num)) {
   cat(paste("perm", run, "\n"))
   set.seed(run)
@@ -75,7 +75,7 @@ df <- data.frame()
 for (i in 0:num_clusters) {
   down <- c(down_avg_pos[[i+1]], down_avg_neg[[i+1]])
   perm <- c(perm_avg_pos[[i+1]], perm_avg_neg[[i+1]])
-  contig_table <- data.frame(down <- down, perm <- perm)
+  contig_table <- data.frame(down, perm)
   fisher_p <- fisher.test(contig_table, alternative = "greater")$p.value
   df <- rbind(df, t(c(i, down, perm, fisher_p)) )
 }
