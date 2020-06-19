@@ -76,7 +76,8 @@ for (i in 0:num_clusters) {
   down <- c(down_avg_pos[[i+1]], down_avg_neg[[i+1]])
   perm <- c(perm_avg_pos[[i+1]], perm_avg_neg[[i+1]])
   contig_table <- data.frame(down, perm)
-  fisher_p <- fisher.test(contig_table, alternative = "greater")$p.value
+  # fisher_p <- fisher.test(contig_table, alternative = "greater")$p.value
+  fisher_p <- fisher.test(contig_table)$p.value
   df <- rbind(df, t(c(i, down, perm, fisher_p)) )
 }
 df$fisher_q <- p.adjust(df[,6], method = "hochberg")
