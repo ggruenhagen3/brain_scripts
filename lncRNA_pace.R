@@ -1,4 +1,3 @@
-library("edgeR")
 library("Seurat")
 library("Matrix")
 library("reticulate")
