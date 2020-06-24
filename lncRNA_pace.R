@@ -34,7 +34,7 @@ colnames(gtf) <- c("LG", "source", "type", "start", "stop", "idk", "idk1", "idk2
 deg_17 <- deg$X[which(deg$cluster == 17 & deg$avg_logFC > 0)]
 neighbor_df <- data.frame()
 neighbor_degree <- c(-2, -1, 1, 2)
-for (deg in lncRNA_genes[1:2]) {
+for (deg in lncRNA_genes) {
   if (grepl(".", deg, fixed = TRUE)) {
     stop <- gregexpr(pattern ='\\.', deg)[[1]]
     deg <- substr(deg, 0, stop-1)
