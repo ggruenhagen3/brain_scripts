@@ -42,7 +42,9 @@ for (deg in lncRNA_genes) {
   deg_i <- as.numeric(rownames(gtf[which(gtf$gene_name == deg),]))
   neighbors <- list()
   for (degree in neighbor_degree) {
-    neighbors[as.character(degree)] = gtf$gene_name[deg_i + degree]
+    if (deg_i + degree >= 1 && deg_i + degree < length(gtf$gene_name)) { # weird errors on PACE, maybe it went to 0
+      neighbors[as.character(degree)] = gtf$gene_name[deg_i + degree]
+    }
   }
   if (all(neighbors %in% rownames(lncRNA))) {
     for (cluster in 0:num_clusters) {
