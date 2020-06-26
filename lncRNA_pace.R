@@ -38,7 +38,8 @@ for (deg in lncRNA_genes) {
   if (grepl(".", deg, fixed = TRUE)) {
     stop <- gregexpr(pattern ='\\.', deg)[[1]]
     deg <- substr(deg, 0, stop-1)
-  }  
+  }
+  print(deg)
   deg_i <- as.numeric(rownames(gtf[which(gtf$gene_name == deg),]))
   neighbors <- list()
   for (degree in neighbor_degree) {
