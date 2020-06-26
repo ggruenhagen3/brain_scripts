@@ -12,7 +12,7 @@ deg <- read.csv(deg_file, header = TRUE, stringsAsFactors = FALSE)
 deg$cluster <- factor(deg$cluster)
 
 lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
-combined <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/brain_shiny/data/combined.rds")
+combined <- readRDS("/nv/hp10/ggruenhagen3/scratch/d_tooth/data/tj.rds")
 lncRNA_genes <- rownames(lncRNA)[which(! rownames(lncRNA) %in% rownames(combined))]
 gtf <- read.table("/nv/hp10/ggruenhagen3/scratch/brain/data/ens_w_ncbi_sort.gtf", sep = "\t", stringsAsFactors = FALSE)
 num_clusters = 41
@@ -57,14 +57,6 @@ for (deg in lncRNA_genes) {
         this_mean_norm <- this_mean/mean(lncRNA$nCount_RNA[this_cells])
         neighbor_df <- rbind(neighbor_df, t(c(deg, neighbor, degree, cluster, this_mean, this_mean_norm)))
       }
-      # meanneg1 <- mean(lncRNA@assays$RNA@counts[neighborneg1, this_cells])
-      # mean1 <- mean(lncRNA@assays$RNA@counts[neighbor1, this_cells])
-      # mean2 <- mean(lncRNA@assays$RNA@counts[neighbor2, this_cells])
-      # meanneg1_norm <- meanneg1/mean(lncRNA$nCount_RNA[this_cells])
-      # mean1_norm <- mean1/mean(lncRNA$nCount_RNA[this_cells])
-      # mean2_norm <- mean2/mean(lncRNA$nCount_RNA[this_cells])
-      # newRow <- data.frame( c(deg, deg, deg), c(neighborneg1, neighbor1, neighbor2), c(-1, 1, 2), c(cluster, cluster, cluster), c(meanneg1, mean1, mean2), c(meanneg1_norm, mean1_norm, mean2_norm) )
-      # neighbor_df <- rbind(neighbor_df, newRow)
     } 
   } else {
     print(deg)
