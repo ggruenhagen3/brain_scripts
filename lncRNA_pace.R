@@ -72,7 +72,7 @@ neighbor_df$degree <- factor(neighbor_df$degree)
 neighbor_df$mean_norm <- as.numeric(as.vector(neighbor_df$mean_norm))
 
 png(filename="/nv/hp10/ggruenhagen3/scratch/brain/results/lncRNA_neighbor_expr_norm_all_4.png", width = 1000, height = 600)
-p = ggplot(neighbor_df, aes(cluster, mean_norm, fill = degree)) + geom_bar(stat = "identity", position = position_dodge()) + ylab("Mean expression of Neighbor of All lncRNA / Mean expression of All Genes") + scale_fill_manual(values = c("#111d5e", "#c70039", "#f37121", "#ffbd69"))
+p = ggplot(neighbor_df, aes(cluster, mean_norm, fill = degree)) + stat_summary(fun = "mean", geom = "bar", position=position_dodge()) + ylab("Mean expression of Neighbor of All lncRNA / Mean expression of All Genes") + scale_fill_manual(values = c("#111d5e", "#c70039", "#f37121", "#ffbd69"))
 print(p)
 dev.off()
 
