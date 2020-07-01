@@ -110,7 +110,7 @@ for (degree in neighbor_degree) {
 colnames(neighbor_df_3) <- c("degree", "mean_norm")
 
 png(filename="/nv/hp10/ggruenhagen3/scratch/brain/results/lncRNA_neighbor_expr_norm_avg_all_4.png", width = 1000, height = 600)
-p = ggplot(neighbor_df_3, aes(x = degree, y=as.numeric(as.vector(mean_norm)), fill = factor(degree))) + geom_bar(stat="identity") + ylab("Mean expression of Neighbor of lncRNA DEG in Cluster 17 / Mean expression of All Genes") + scale_fill_manual(values = c("#111d5e", "#c70039", "#f37121", "#ffbd69")) + ggtitle("Average Expression for Each Neighbor Across All Cells")
+p = ggplot(neighbor_df_3, aes(x = degree, y=as.numeric(as.vector(mean_norm)), fill = factor(degree))) + geom_bar(stat="identity") + ylab("Mean expression of All Neighbors of lncRNA / Mean expression of All Genes") + scale_fill_manual(values = c("#111d5e", "#c70039", "#f37121", "#ffbd69")) + ggtitle("Average Expression for Each Neighbor Across All Cells")
 print(p)
 dev.off()
 
