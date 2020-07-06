@@ -15,6 +15,7 @@ lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
 combined <- readRDS("/nv/hp10/ggruenhagen3/scratch/d_tooth/data/tj.rds")
 lncRNA_genes <- rownames(lncRNA)[which(! rownames(lncRNA) %in% rownames(combined))]
 gtf <- read.table("/nv/hp10/ggruenhagen3/scratch/brain/data/ens_w_ncbi_sort.gtf", sep = "\t", stringsAsFactors = FALSE)
+non_zero_lncRNA = lncRNA_genes[which(rowSums(as.matrix(lncRNA@assays$RNA@counts[lncRNA_genes,])) != 0)]
 num_clusters = 41
 
 gtf_gene_name <- c()
@@ -34,7 +35,7 @@ colnames(gtf) <- c("LG", "source", "type", "start", "stop", "idk", "idk1", "idk2
 deg_17 <- deg$X[which(deg$cluster == 17 & deg$avg_logFC > 0)]
 neighbor_df <- data.frame()
 neighbor_degree <- c(-2, -1, 1, 2)
-for (deg in lncRNA_genes) {
+for (deg in non_zero_lncRNA) {
   if (grepl(".", deg, fixed = TRUE)) {
     stop <- gregexpr(pattern ='\\.', deg)[[1]]
     deg <- substr(deg, 0, stop-1)
