@@ -92,6 +92,7 @@ gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0
 mat_fish = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 gene_cells = lapply(gene_names, function(x) c())
 names(gene_cells) = gene_names
+all_cells = colnames(obj)
 
 for (gene in gene_names) {
   gene_cells[[gene]] = colnames(obj)[which(obj@assays$RNA@counts[gene,] != 0)]
@@ -101,15 +102,16 @@ for (col in 2:length(gene_names)) {
     print(col)
   }
   gene1 = gene_names[col]
-  gene1_cells = gene_cells[[gene1]]
+  gene_1_cells = gene_cells[[gene1]]
   for ( row in 1:(col-1) ) {
     gene2 = gene_names[row]
-    gene2_cells = gene_cells[[gene2]]
+    gene_2_cells = gene_cells[[gene2]]
     ovlp = gene_1_cells[which(gene_1_cells %in% gene_2_cells)]
+    not_gene_2_cells = all_cells[which(! gene_2_cells %in% all_cells)]
     
     # Do a Fisher's Exact Test, where you test the ratio of positive gene1 cells
-    # in gene2 cells compared to the number of positive cell gene1 cells in all cells.
-    contig_table <- data.frame(c(length(ovlp), length(gene_2_cells)), c(length(gene_1_cells), ncol(obj)))
+    # in gene2 cells compared to the number of positive cell gene1 cells in not gene 2 cells.
+    contig_table <- data.frame(c(length(ovlp), length(gene_2_cells)), c(length(gene_1_cells), length(non_gene_2_cells)))
     mat_fish[row,col] = fisher.test(contig_table)$p.value
   }
 }
@@ -269,3 +271,11 @@ saveRDS(mat_j,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_j.RDS")
 # deg <- degree(ig_obj, mode="all")
 # V(ig_obj)$size <- deg*3
 # plot(ig_obj, vertex.label="")
+
+celsr_p = c()
+celsr_j = c()
+for ( row in 1:length(gene_names) ) {
+  gene2 <- gene_names[row]
+  celsr_p = c(celsr_p, jaccard.test(gene_bi[[gene1]], gene_bi[[gene2]], method = "mca", accuracy=1e-5)$pvalue)
+  celsr_j = c(celsr_j, jaccard(gene_bi[[gene1]], gene_bi[[gene2]]))
+}
