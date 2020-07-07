@@ -112,7 +112,7 @@ for (col in 2:length(gene_names)) {
   gene1 <- gene_names[col]
   for ( row in 1:(col-1) ) {
     gene2 <- gene_names[row]
-    mat_bi[row, col] = jaccard.test(gene_bi[[gene1]], gene_bi[[gene2]])$pvalue
+    mat_bi[row, col] = jaccard.test(gene_bi[[gene1]], gene_bi[[gene2]], method = "mca", accuracy=1e-5)$pvalue
     mat_j[row, col]  = jaccard(gene_bi[[gene1]], gene_bi[[gene2]])
   }
 }
