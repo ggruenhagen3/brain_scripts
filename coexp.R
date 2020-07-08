@@ -5,8 +5,8 @@ library("qvalue")
 library("jaccard")
 # iegs <- read.csv("C:/Users/miles/Downloads/zack_IEG_list_061720.csv", header = FALSE, stringsAsFactors = F)
 # iegs <- iegs$V1
-lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
-obj <- lncRNA
+combined <- readRDS("/nv/hp10/ggruenhagen3/scratch/d_tooth/data/combined.Rds")
+obj <- combined
 # combined <- readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
 # obj <- combined
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
@@ -89,69 +89,71 @@ gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0
 ######
 # Bi #
 ######
-mat_bi  = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
-mat_j   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
-gene_bi = lapply(gene_names, function(x) rep(0, ncol(obj)))
-names(gene_bi) = gene_names
-
-for (col in 1:ncol(obj)) {
-  if (col %% 100 == 0) {
-    print(col)
-  }
-  dat = obj@assays$RNA@counts[,col]
-  non_zero_genes = names(dat[which(dat > 0)])
-  for (gene in non_zero_genes) {
-    gene_bi[[gene]][col] = 1
-  }
-  # gene_bi[[non_zero_genes]][col] = 1
-}
-for (col in 2:length(gene_names)) {
-  if (col %% 100 == 0) {
-    print(col)
-  }
-  gene1 <- gene_names[col]
-  for ( row in 1:(col-1) ) {
-    gene2 <- gene_names[row]
-    mat_bi[row, col] = jaccard.test(gene_bi[[gene1]], gene_bi[[gene2]], method = "mca", accuracy=1e-5)$pvalue
-    mat_j[row, col]  = jaccard(gene_bi[[gene1]], gene_bi[[gene2]])
-  }
-}
-saveRDS(mat_bi,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_bi.RDS")
-saveRDS(mat_j,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_j.RDS")
-
-# ###############
-# # Transcripts #
-# ###############
-# mat_trans  <- matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
-# mat2_trans  <- matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+# mat_bi  = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+# mat_j   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+# gene_bi = lapply(gene_names, function(x) rep(0, ncol(obj)))
+# names(gene_bi) = gene_names
 # 
 # for (col in 1:ncol(obj)) {
-#   # for (col in 1:100) {
 #   if (col %% 100 == 0) {
 #     print(col)
 #   }
 #   dat = obj@assays$RNA@counts[,col]
 #   non_zero_genes = names(dat[which(dat > 0)])
-#   tmp <- mat_trans[non_zero_genes, non_zero_genes]
-#   dat = obj@assays$RNA@counts[non_zero_genes, col]
-#   this_trans_mat = as.matrix(sapply(1:length(non_zero_genes), function(x) dat[x] + dat))
-#   mat_trans[non_zero_genes, non_zero_genes] = tmp + this_trans_mat
+#   for (gene in non_zero_genes) {
+#     gene_bi[[gene]][col] = 1
+#   }
+#   # gene_bi[[non_zero_genes]][col] = 1
 # }
-# 
-# gene_trans = c()
-# for (gene in gene_names) {
-#   gene_trans[[gene]] = sum(obj@assays$RNA@counts[gene,])
-# }
-# gene_trans_vect = unlist(gene_trans)
-# for (col in 1:length(gene_names)) {
+# for (col in 2:length(gene_names)) {
 #   if (col %% 100 == 0) {
 #     print(col)
 #   }
-#   mat2_trans[,col] = gene_trans[[gene_names[col]]] + gene_trans_vect
+#   gene1 <- gene_names[col]
+#   for ( row in 1:(col-1) ) {
+#     gene2 <- gene_names[row]
+#     mat_bi[row, col] = jaccard.test(gene_bi[[gene1]], gene_bi[[gene2]], method = "mca", accuracy=1e-5)$pvalue
+#     mat_j[row, col]  = jaccard(gene_bi[[gene1]], gene_bi[[gene2]])
+#   }
 # }
-# mat3_trans = mat_trans/mat2_trans
-# 
-# mat3_trans_p = matrix(jaccard.rahman(as.vector(mat3_trans)), length(gene_names), length(gene_names), dimnames=list(gene_names, gene_names))
+# saveRDS(mat_bi,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_bi.RDS")
+# saveRDS(mat_j,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_j.RDS")
+
+# ###############
+# # Transcripts #
+# ###############
+mat_trans  <- matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+mat2_trans  <- matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+
+for (col in 1:ncol(obj)) {
+  # for (col in 1:100) {
+  if (col %% 100 == 0) {
+    print(col)
+  }
+  dat = obj@assays$RNA@counts[,col]
+  non_zero_genes = names(dat[which(dat > 0)])
+  tmp <- mat_trans[non_zero_genes, non_zero_genes]
+  dat = obj@assays$RNA@counts[non_zero_genes, col]
+  this_trans_mat = as.matrix(sapply(1:length(non_zero_genes), function(x) dat[x] + dat))
+  mat_trans[non_zero_genes, non_zero_genes] = tmp + this_trans_mat
+}
+
+gene_trans = c()
+for (gene in gene_names) {
+  gene_trans[[gene]] = sum(obj@assays$RNA@counts[gene,])
+}
+gene_trans_vect = unlist(gene_trans)
+for (col in 1:length(gene_names)) {
+  if (col %% 100 == 0) {
+    print(col)
+  }
+  mat2_trans[,col] = gene_trans[[gene_names[col]]] + gene_trans_vect
+}
+mat3_trans = mat_trans/mat2_trans
+
+mat3_trans_p = matrix(jaccard.rahman(as.vector(mat3_trans)), length(gene_names), length(gene_names), dimnames=list(gene_names, gene_names))
+saveRDS(mat3_trans, "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_mat3_trans.RDS")
+saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_mat3_trans_p.RDS")
 # egr1_top = sort(mat3_trans_p["egr1",])
 # 
 # non_zero_lncRNA = lncRNA_genes[which(lncRNA_genes %in% gene_names)]
