@@ -149,9 +149,11 @@ for (col in 1:length(gene_names)) {
   }
   mat2_trans[,col] = gene_trans[[gene_names[col]]] + gene_trans_vect
 }
-mat3_trans = mat_trans/mat2_trans
 
+mat3_trans = mat_trans/mat2_trans
 mat3_trans_p = matrix(jaccard.rahman(as.vector(mat3_trans)), length(gene_names), length(gene_names), dimnames=list(gene_names, gene_names))
+print("Done Filling Matrices")
+
 saveRDS(mat3_trans, "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_mat3_trans.RDS")
 saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_mat3_trans_p.RDS")
 # egr1_top = sort(mat3_trans_p["egr1",])
