@@ -2,6 +2,8 @@ library("Seurat")
 library("Matrix")
 library("qvalue")
 library("jaccard")
+library("foreach")
+library("doParallel")
 lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
 obj <- lncRNA
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
