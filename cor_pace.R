@@ -12,7 +12,7 @@ mat_data_cor = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dim
 # test = as.matrix(t(obj@assays$RNA@data))
 test = obj@assays$RNA@data
 ptm <- proc.time()
-cl <- makeCluster(8)
+cl <- makeCluster(4)
 registerDoParallel(cl)
 foreach(col = 2:100) %dopar% {
   gene1 = gene_names[col]
