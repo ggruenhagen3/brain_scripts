@@ -14,17 +14,34 @@ test = obj@assays$RNA@data
 ptm <- proc.time()
 cl <- makeCluster(4)
 registerDoParallel(cl)
-foreach(col = 2:100) %dopar% {
+# One for pvalues
+df_p  = foreach(col = 2:100, .combine=rbind) %dopar% {
   gene1 = gene_names[col]
+  thisRow = c()
   for ( row in 1:(col-1) ) {
     gene2 = gene_names[row]
     cor_res = cor.test(obj@assays$RNA@data[gene1,], obj@assays$RNA@data[gene2,])
-    mat_data_p[row,col]   = cor_res$p.value
-    mat_data_cor[row,col] = cor_res$estimate
+    thisRow = c(thisRow, cor_res$p.value)
+    # mat_data_p[row,col]   = cor_res$p.value
+    # mat_data_cor[row,col] = cor_res$estimate
+  }
+}
+# One for correlation
+df_cor = foreach(col = 2:100, .combine=rbind) %dopar% {
+  gene1 = gene_names[col]
+  thisRow = c()
+  for ( row in 1:(col-1) ) {
+    gene2 = gene_names[row]
+    cor_res = cor.test(obj@assays$RNA@data[gene1,], obj@assays$RNA@data[gene2,])
+    thisRow = c(thisRow, cor_res$estimate)
+    # mat_data_p[row,col]   = cor_res$p.value
+    # mat_data_cor[row,col] = cor_res$estimate
   }
 }
 stopCluster(cl)
 proc.time() - ptm
+saveRDS(df_p,   "/nv/hp10/ggruenhagen3/scratch/brain/data/df_p.RDS")
+saveRDS(df_cor, "/nv/hp10/ggruenhagen3/scratch/brain/data/df_cor.RDS")
 
 # for (col in 2:length(gene_names)) {
 #   if (col %% 100 == 0) {
