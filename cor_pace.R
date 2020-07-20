@@ -13,7 +13,7 @@ gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0
 # test = as.matrix(t(obj@assays$RNA@data))
 test = obj@assays$RNA@data
 ptm <- proc.time()
-cl <- makeCluster(8, outfile="/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/cor_pace.log")
+cl <- makeCluster(22, outfile="/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/cor_pace.log")
 registerDoParallel(cl)
 # One for pvalues
 df_p  = foreach(col = 2:length(gene_names), .combine='rbind') %dopar% {
@@ -30,6 +30,8 @@ df_p  = foreach(col = 2:length(gene_names), .combine='rbind') %dopar% {
   print(paste("Task", col, " done"))
   thisRow
 }
+saveRDS(df_p,   "/nv/hp10/ggruenhagen3/scratch/brain/data/df_p.RDS")
+print("Saved p-values")
 # One for correlation
 df_p  = foreach(col = 2:length(gene_names), .combine='rbind') %dopar% {
   gene1 = gene_names[col]
@@ -42,12 +44,13 @@ df_p  = foreach(col = 2:length(gene_names), .combine='rbind') %dopar% {
     # mat_data_cor[row,col] = cor_res$estimate
   }
   thisRow = c(thisRow, rep(0, length(gene_names) - length(thisRow))) # fill the rest with 0's
+  print(paste("Task", col, " done"))
   thisRow
 }
 stopCluster(cl)
 proc.time() - ptm
-saveRDS(df_p,   "/nv/hp10/ggruenhagen3/scratch/brain/data/df_p.RDS")
 saveRDS(df_cor, "/nv/hp10/ggruenhagen3/scratch/brain/data/df_cor.RDS")
+print("Saved correlations")
 
 # for (col in 2:length(gene_names)) {
 #   if (col %% 100 == 0) {
