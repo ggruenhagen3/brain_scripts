@@ -107,11 +107,12 @@ for (col in 2:length(gene_names)) {
     gene2 = gene_names[row]
     gene_2_cells = gene_cells[[gene2]]
     ovlp = gene_1_cells[which(gene_1_cells %in% gene_2_cells)]
+    not_ovlp = gene_1_cells[which(! gene_1_cells %in% gene_2_cells)]
     not_gene_2_cells = all_cells[which(! gene_2_cells %in% all_cells)]
     
     # Do a Fisher's Exact Test, where you test the ratio of positive gene1 cells
     # in gene2 cells compared to the number of positive cell gene1 cells in not gene 2 cells.
-    contig_table <- data.frame(c(length(ovlp), length(gene_2_cells)), c(length(gene_1_cells), length(not_gene_2_cells)))
+    contig_table <- data.frame(c(length(ovlp), length(gene_2_cells)), c(length(not_ovlp), length(not_gene_2_cells)))
     mat_fish[row,col] = fisher.test(contig_table)$p.value
   }
 }
