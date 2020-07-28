@@ -26,7 +26,7 @@ df_p  = foreach(col = 2:length(gene_names), .combine='rbind') %dopar% {
     # mat_data_p[row,col]   = cor_res$p.value
     # mat_data_cor[row,col] = cor_res$estimate
   }
-  thisRow = c(thisRow, rep(0, length(gene_names) - length(thisRow))) # fill the rest with 0's
+  thisRow = c(thisRow, rep(NA, length(gene_names) - length(thisRow))) # fill the rest with NA's
   print(paste("Task", col, " done"))
   thisRow
 }
@@ -43,7 +43,7 @@ df_p  = foreach(col = 2:length(gene_names), .combine='rbind') %dopar% {
     # mat_data_p[row,col]   = cor_res$p.value
     # mat_data_cor[row,col] = cor_res$estimate
   }
-  thisRow = c(thisRow, rep(0, length(gene_names) - length(thisRow))) # fill the rest with 0's
+  thisRow = c(thisRow, rep(NA, length(gene_names) - length(thisRow))) # fill the rest with NA's
   print(paste("Task", col, " done"))
   thisRow
 }
