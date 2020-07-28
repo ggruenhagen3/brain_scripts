@@ -5,8 +5,8 @@ library("qvalue")
 library("jaccard")
 # iegs <- read.csv("C:/Users/miles/Downloads/zack_IEG_list_061720.csv", header = FALSE, stringsAsFactors = F)
 # iegs <- iegs$V1
-lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
-obj <- lncRNA
+combined <- readRDS("/nv/hp10/ggruenhagen3/scratch/d_tooth/data/combined.Rds")
+obj <- combined
 # combined <- readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
 # obj <- combined
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
@@ -115,7 +115,7 @@ for (col in 2:length(gene_names)) {
     mat_fish[row,col] = fisher.test(contig_table)$p.value
   }
 }
-saveRDS(mat_fish,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_fish.RDS")
+saveRDS(mat_fish,   "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_fisher.RDS")
 
 
 ######
@@ -271,11 +271,3 @@ saveRDS(mat_j,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_j.RDS")
 # deg <- degree(ig_obj, mode="all")
 # V(ig_obj)$size <- deg*3
 # plot(ig_obj, vertex.label="")
-
-celsr_p = c()
-celsr_j = c()
-for ( row in 1:length(gene_names) ) {
-  gene2 <- gene_names[row]
-  celsr_p = c(celsr_p, jaccard.test(gene_bi[[gene1]], gene_bi[[gene2]], method = "mca", accuracy=1e-5)$pvalue)
-  celsr_j = c(celsr_j, jaccard(gene_bi[[gene1]], gene_bi[[gene2]]))
-}
