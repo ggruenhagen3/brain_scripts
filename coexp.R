@@ -122,8 +122,8 @@ gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0
 # ###############
 # # Transcripts #
 # ###############
-mat_trans  <- matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
-mat2_trans  <- matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+mat_trans  <- matrix(NA, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+mat2_trans  <- matrix(NA, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 
 for (col in 1:ncol(obj)) {
   # for (col in 1:100) {
