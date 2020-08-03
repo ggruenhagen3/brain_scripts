@@ -13,7 +13,7 @@ gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0
 # test = as.matrix(t(obj@assays$RNA@data))
 test = obj@assays$RNA@data
 ptm <- proc.time()
-cl <- makeCluster(22, outfile="/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/cor_pace.log")
+cl <- makeCluster(40, outfile="/nv/hp10/ggruenhagen3/scratch/brain/brain_scripts/cor_pace.log")
 registerDoParallel(cl)
 # One for pvalues
 df_p  = foreach(col = 2:length(gene_names), .combine='rbind') %dopar% {
