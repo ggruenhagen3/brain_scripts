@@ -117,7 +117,7 @@ for (col in 2:length(gene_names)) {
   }
 }
 saveRDS(mat_fish,   "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_fisher.RDS")
-
+print("All Done :)")
 
 ######
 # Bi #
@@ -149,8 +149,8 @@ saveRDS(mat_fish,   "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_fisher
 #     mat_j[row, col]  = jaccard(gene_bi[[gene1]], gene_bi[[gene2]])
 #   }
 # }
-saveRDS(mat_bi,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_bi.RDS")
-saveRDS(mat_j,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_j.RDS")
+# saveRDS(mat_bi,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_bi.RDS")
+# saveRDS(mat_j,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_j.RDS")
 
 # ###############
 # # Transcripts #
