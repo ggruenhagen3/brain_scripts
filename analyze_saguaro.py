@@ -45,6 +45,7 @@ def toDistanceMatrix(lines):
 
 def main():
     input, output = parseArgs()
+    readInput(input)
 
 if __name__ == '__main__':
     main()
