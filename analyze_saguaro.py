@@ -1,6 +1,7 @@
 import argparse
 import re
 from Bio.Phylo.TreeConstruction import DistanceMatrix
+from TreeConstruction import DistanceTreeConstructor
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Look for bi vs tri clusters in saguaro output')
@@ -21,14 +22,16 @@ def readInput(file):
         for line in input:
             if line.startswith("cactus"):
                 if doMakeTree and i > 0:
-                    print("Length of names:" + str(len(names)))
-                    print("Length of matrix: " + str(len(matrix)))
-                    print(matrix)
+                    # print("Length of names:" + str(len(names)))
+                    # print("Length of matrix: " + str(len(matrix)))
+                    # print(matrix)
                     dm = DistanceMatrix(names=names, matrix=matrix)
                     print(dm)
+                    tree = constructor.build_tree(dm)
+                    print(tree)
                     break
 
-                print("Line started with cactus, beginning to store info.")
+                # print("Line started with cactus, beginning to store info.")
                 doMakeTree = True
                 i = 0
                 names = []
@@ -39,13 +42,13 @@ def readInput(file):
                 print(i)
 
                 if i == 1:
-                    print("Storing names")
+                    # print("Storing names")
                     names = line.split()  # the first line is the name of the samples, save that
                 else:
-                    print("Reading lines into matrix")
+                    # print("Reading lines into matrix")
                     mat_list_str = line.split()[1: i]  # first element is the name of the sample, skip that
                     mat_line_float = [float(j) for j in mat_list_str] # only store lower triangle
-                    print("Length of mat row: " + str(len(mat_line_float)))
+                    # print("Length of mat row: " + str(len(mat_line_float)))
                     matrix.append(mat_line_float)
             i += 1
 
