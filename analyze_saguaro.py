@@ -42,7 +42,8 @@ def readInput(file):
                     names = line.split()  # the first line is the name of the samples, save that
                 else:
                     print("Reading lines into matrix")
-                    matrix.append(line.split()[1:])  # first element is the name of the sample, skip that
+                    mat_line_int = [int(i) for i in line.split()]
+                    matrix.append(mat_line_int()[1:])  # first element is the name of the sample, skip that
             i += 1
 
     return lines
