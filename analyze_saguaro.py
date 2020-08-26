@@ -41,6 +41,7 @@ def readInput(file):
     return lines
 
 def toDistanceMatrix(lines):
+    pass
 
 def main():
     input, output = parseArgs()
