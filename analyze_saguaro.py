@@ -34,7 +34,7 @@ def readInput(file):
                 matrix = []
                 lines.append(line)
 
-            if doMakeTree & i > 0:
+            if doMakeTree and i > 0:
                 print(i)
 
                 if i == 1:
