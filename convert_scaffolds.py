@@ -7,8 +7,13 @@ def parseArgs():
     parser.add_argument('output', metavar='o', help='Name of Output File')
     parser.add_argument("-l", "--lg_to_nc", help="Converts LG to NC", action="store_true")
     parser.add_argument("-n", "--nc_to_lg", help="Converts NC to NC", action="store_true")
+    parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
+                        type="string", default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
+                        const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
+    parser.add_argument("-p", "--pace", help="Running the script on pace: use pace location of the assembly report", action="store_true")
+
     args = parser.parse_args()
-    return args.input, args.output, args.lg_to_nc, args.nc_to_lg
+    return args.input, args.output, args.lg_to_nc, args.nc_to_lg, args.assembly_report_path, args.pace
 
 
 def readFile(file):
@@ -31,7 +36,7 @@ def readAssemblyReport(assemblyReportPath):
     return dict
 
 
-def convertScaffolds(lines, toNC, toLG):
+def convertScaffolds(lines, toNC, toLG, assembly_report_path):
     """"
     From a list of lines, use regex to convert from LG to NC or NC to LG
     """
@@ -42,8 +47,7 @@ def convertScaffolds(lines, toNC, toLG):
     #     dict["NC_0" + str(float(i) + float(36779.1))] = "LG" + str(i) # key is NC_ and value is LG
     # dict["NC_036800.1"] = "LG22"
     # dict["NC_036801.1"] = "LG23"
-    assemblyReportPath = "/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt"
-    dict = readAssemblyReport(assemblyReportPath)
+    dict = readAssemblyReport(assembly_report_path)
 
     for line in lines:
         for key in dict.keys():
@@ -67,9 +71,12 @@ def writeFile(file, lines):
 
 
 def main():
-    input, output, toNC, toLG = parseArgs()
+    input, output, toNC, toLG, assembly_report_path, pace = parseArgs()
     print("Converting from LG format to NC format")
     lines = readFile(input)
+    if pace:
+        print("Running script on PACE using ~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
+        assembly_report_path = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt"
     print("Number of input lines " + str(len(lines)))
     lines = convertScaffolds(lines, toNC, toLG)
     print("Number of output lines " + str(len(lines)))
