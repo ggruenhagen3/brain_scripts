@@ -21,11 +21,14 @@ def readInput(file):
         for line in input:
             if doMakeTree:
                 if i == 1:
+                    print("Storing names")
                     names = line.split() # the first line is the name of the samples, save that
                 else:
+                    print("Reading lines into matrix")
                     matrix.append(line.split()[1:]) # first element is the name of the sample, skip that
 
-            if line.startswith("cacuts"):
+            if line.startswith("cactus"):
+                print("Line started with cactus, beginning to store info.")
                 doMakeTree = True
                 i = 1
                 lines.append(line)
