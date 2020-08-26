@@ -19,17 +19,6 @@ def readInput(file):
     matrix = []
     with open(file, 'r') as input:
         for line in input:
-            if doMakeTree:
-                print(i)
-
-                if i == 1:
-                    print("Storing names")
-                    names = line.split() # the first line is the name of the samples, save that
-                else:
-                    print("Reading lines into matrix")
-                    matrix.append(line.split()[1:]) # first element is the name of the sample, skip that
-                i += 1
-
             if line.startswith("cactus"):
                 if i != 0:
                     print(names)
@@ -40,11 +29,22 @@ def readInput(file):
 
                 print("Line started with cactus, beginning to store info.")
                 doMakeTree = True
-                i = 1
+                i == 0
                 names = []
                 matrix = []
                 lines.append(line)
-                
+
+            if doMakeTree & i > 0:
+                print(i)
+
+                if i == 1:
+                    print("Storing names")
+                    names = line.split()  # the first line is the name of the samples, save that
+                else:
+                    print("Reading lines into matrix")
+                    matrix.append(line.split()[1:])  # first element is the name of the sample, skip that
+            i += 1
+
     return lines
 
 def toDistanceMatrix(lines):
