@@ -8,7 +8,7 @@ def parseArgs():
     parser.add_argument("-l", "--lg_to_nc", help="Converts LG to NC", action="store_true")
     parser.add_argument("-n", "--nc_to_lg", help="Converts NC to NC", action="store_true")
     parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
-                        type="String", default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
+                        default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
                         const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
     parser.add_argument("-p", "--pace", help="Running the script on pace: use pace location of the assembly report", action="store_true")
 
