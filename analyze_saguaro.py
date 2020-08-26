@@ -27,7 +27,8 @@ def readInput(file):
                     # print(matrix)
                     dm = DistanceMatrix(names=names, matrix=matrix)
                     print(dm)
-                    tree = constructor.build_tree(dm)
+                    constructor = DistanceTreeConstructor()
+                    tree = constructor.nj(dm)
                     print(tree)
                     break
 
