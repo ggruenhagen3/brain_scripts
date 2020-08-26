@@ -20,7 +20,7 @@ def readInput(file):
     with open(file, 'r') as input:
         for line in input:
             if line.startswith("cactus"):
-                if doMakeTree & i > 0:
+                if doMakeTree and i > 0:
                     print(names)
                     print(matrix)
                     dm = DistanceMatrix(names=names, matrix=matrix)
