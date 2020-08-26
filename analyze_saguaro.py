@@ -1,7 +1,7 @@
 import argparse
 import re
 from Bio.Phylo.TreeConstruction import DistanceMatrix
-from TreeConstruction import DistanceTreeConstructor
+from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Look for bi vs tri clusters in saguaro output')
