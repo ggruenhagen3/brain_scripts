@@ -78,7 +78,7 @@ def main():
         print("Running script on PACE using ~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
         assembly_report_path = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt"
     print("Number of input lines " + str(len(lines)))
-    lines = convertScaffolds(lines, toNC, toLG)
+    lines = convertScaffolds(lines, toNC, toLG, assembly_report_path)
     print("Number of output lines " + str(len(lines)))
     writeFile(output, lines)
     print("Done.")
