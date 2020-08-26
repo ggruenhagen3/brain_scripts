@@ -29,7 +29,7 @@ def readInput(file):
 
                 print("Line started with cactus, beginning to store info.")
                 doMakeTree = True
-                i == 0
+                i = 0
                 names = []
                 matrix = []
                 lines.append(line)
