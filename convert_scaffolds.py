@@ -75,8 +75,8 @@ def main():
     print("Converting from LG format to NC format")
     lines = readFile(input)
     if pace:
-        print("Running script on PACE using ~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
-        assembly_report_path = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt"
+        print("Running script on PACE using /nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
+        assembly_report_path = "/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt"
     print("Number of input lines " + str(len(lines)))
     lines = convertScaffolds(lines, toNC, toLG, assembly_report_path)
     print("Number of output lines " + str(len(lines)))
