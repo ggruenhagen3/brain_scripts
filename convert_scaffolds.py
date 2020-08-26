@@ -6,7 +6,7 @@ def parseArgs():
     parser.add_argument('input', metavar='i', help='Input File')
     parser.add_argument('output', metavar='o', help='Name of Output File')
     parser.add_argument("-l", "--lg_to_nc", help="Converts LG to NC", action="store_true")
-    parser.add_argument("-n", "--nc_to_lg", help="Converts NC to NC", action="store_true")
+    parser.add_argument("-n", "--nc_to_lg", help="Converts NC to LG", action="store_true")
     parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
                         default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
                         const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
@@ -72,7 +72,10 @@ def writeFile(file, lines):
 
 def main():
     input, output, toNC, toLG, assembly_report_path, pace = parseArgs()
-    print("Converting from LG format to NC format")
+    if toNC:
+        print("Converting from LG format to NC format")
+    if toLG:
+        print("Converting from NC format to LG format")
     lines = readFile(input)
     if pace:
         print("Running script on PACE using /nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
