@@ -58,13 +58,13 @@ def readInputLocalTrees(file):
 
 def readInput(file):
     lines = []
-    i = 0
+    i = 1
     names = []
     matrix = []
     with open(file, 'r') as input:
         next(input)  # skip first line
         for line in input:
-            if line.startswith("cactus") and i > 0:
+            if line.startswith("cactus"):
                 print(names)
                 print(matrix)
                 dm = DistanceMatrix(names=names, matrix=matrix)
