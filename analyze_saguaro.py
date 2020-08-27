@@ -65,6 +65,8 @@ def readInput(file):
         next(input)  # skip first line
         for line in input:
             if line.startswith("cactus") and i > 0:
+                print(names)
+                print(matrix)
                 dm = DistanceMatrix(names=names, matrix=matrix)
                 print(dm)
                 constructor = DistanceTreeConstructor()
@@ -77,13 +79,13 @@ def readInput(file):
                 matrix = []
             else:
                 if i == 1:
-                    # print("Storing names")
+                    print("Storing names")
                     names = line.split()  # the first line is the name of the samples, save that
                 else:
-                    # print("Reading lines into matrix")
+                    print("Reading lines into matrix")
                     mat_list_str = line.split()[1: i]  # first element is the name of the sample, skip that
                     mat_line_float = [float(j) for j in mat_list_str] # only store lower triangle
-                    # print("Length of mat row: " + str(len(mat_line_float)))
+                    print("Length of mat row: " + str(len(mat_line_float)))
                     matrix.append(mat_line_float)
             i += 1
     return
