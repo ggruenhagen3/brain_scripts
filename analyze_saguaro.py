@@ -83,7 +83,7 @@ def readInput(file):
                     names = line.split()  # the first line is the name of the samples, save that
                 else:
                     print("Reading lines into matrix")
-                    mat_list_str = line.split()[1: i]  # first element is the name of the sample, skip that
+                    mat_list_str = line.split()[1: i+1]  # first element is the name of the sample, skip that
                     mat_line_float = [float(j) for j in mat_list_str] # only store lower triangle
                     print("Length of mat row: " + str(len(mat_line_float)))
                     matrix.append(mat_line_float)
