@@ -2,15 +2,17 @@ import argparse
 
 # Arg Parser
 def parseArgs():
-    parser = argparse.ArgumentParser(description='Filter Blast Results')
+    parser = argparse.ArgumentParser(description='Find genes within 25kb of variants')
     parser.add_argument('vcf', metavar='v', help="VCF File to Filter")
     parser.add_argument('gff', metavar='g', help="GFF File from Chinar's snpEff")
     parser.add_argument('output', metavar='o', help='Name of Output File')
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
+    parser.add_argument("-a", "--ase", help="Do allele stuff that Zack needed for ASE?",
+                        action="store_true")
     args = parser.parse_args()
-    return args.vcf, args.gff, args.output, args.verbose
+    return args.vcf, args.gff, args.output, args.verbose, args.ase
 
-def readVcf(vcf):
+def readVcf(vcf, ase):
     genes = []
     kept_records = 0
     with open(vcf, 'r') as input:
@@ -23,9 +25,10 @@ def readVcf(vcf):
                 if gene_local > 0:
                     close_gene = close_gene[gene_local+5:]
                     close_gene = close_gene.split(":")[0]
-                    MC_allele = lineSplit[18][0:3]
-                    CV_allele = lineSplit[13][0:3]
-                    TI_allele = lineSplit[26][0:3]
+                    if ase:
+                        MC_allele = lineSplit[18][0:3]
+                        CV_allele = lineSplit[13][0:3]
+                        TI_allele = lineSplit[26][0:3]
                     # if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
                     if close_dist < 25000:
                         genes.append(close_gene)
@@ -63,8 +66,8 @@ def writeGenes(output, genes):
 
 
 def main():
-    vcf, gff, output, verbose = parseArgs()
-    vcf_genes = readVcf(vcf)
+    vcf, gff, output, verbose, ase = parseArgs()
+    vcf_genes = readVcf(vcf, ase)
     usable_genes = readGff(gff, vcf_genes)
     print("Number of vcf_genes " + str(len(vcf_genes)))
     print("Number of output genes " + str(len(usable_genes)))
