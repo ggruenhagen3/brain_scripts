@@ -1,5 +1,7 @@
 import argparse
 import re
+import time
+import sys
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Converts Linkage Group Names to NCBI Format with NC and vice versa')
@@ -40,6 +42,13 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path):
     """"
     From a list of lines, use regex to convert from LG to NC or NC to LG
     """
+    toolbar_width = 40
+
+    # setup toolbar
+    sys.stdout.write("[%s]" % (" " * toolbar_width))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
+
     new_lines =[]
     # dict = {}
     # for i in range(1, 21):
@@ -49,6 +58,8 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path):
     # dict["NC_036801.1"] = "LG23"
     dict = readAssemblyReport(assembly_report_path)
 
+    i = 0
+    previous_mark = 0
     for line in lines:
         for key in dict.keys():
             if toNC:
@@ -60,6 +71,14 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path):
             if new_line != line:
                 new_lines.append(new_line)
                 break
+        this_mark = i // (len(lines)/40)
+        # Update Toolbar
+        if this_mark > previous_mark:
+            sys.stdout.write("-")
+            sys.stdout.flush()
+        previous_mark = this_mark
+        i += 1
+    sys.stdout.write("]\n") # end toolbar
     return new_lines
 
 
