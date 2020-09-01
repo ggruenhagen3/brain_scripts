@@ -14,27 +14,30 @@ def parseArgs():
 
 def readVcf(vcf, ase):
     genes = []
+    out_of = 0
     kept_records = 0
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
+                out_of += 1
                 lineSplit = line.split()
                 print(line)
-                close_dist = int(lineSplit[7].split("=")[1].split("|")[0])
-                close_gene = lineSplit[7].split("|")[1]
-                gene_local = close_gene.find("Gene")
-                if gene_local > 0:
-                    close_gene = close_gene[gene_local+5:]
-                    close_gene = close_gene.split(":")[0]
-                    if ase:
-                        MC_allele = lineSplit[18][0:3]
-                        CV_allele = lineSplit[13][0:3]
-                        TI_allele = lineSplit[26][0:3]
-                    # if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
-                    if close_dist < 25000:
-                        genes.append(close_gene)
-                        kept_records += 1
-    print("Records in VCF kept: " + str(kept_records))
+                if lineSplit[7].startswith("CLOSEST"):
+                    close_dist = int(lineSplit[7].split("=")[1].split("|")[0])
+                    close_gene = lineSplit[7].split("|")[1]
+                    gene_local = close_gene.find("Gene")
+                    if gene_local > 0:
+                        close_gene = close_gene[gene_local+5:]
+                        close_gene = close_gene.split(":")[0]
+                        if ase:
+                            MC_allele = lineSplit[18][0:3]
+                            CV_allele = lineSplit[13][0:3]
+                            TI_allele = lineSplit[26][0:3]
+                        # if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
+                        if close_dist < 25000:
+                            genes.append(close_gene)
+                            kept_records += 1
+    print("Records in VCF kept: " + str(kept_records) + "out of " + str(out_of))
     genes = list(dict.fromkeys(genes))
     return genes
 
