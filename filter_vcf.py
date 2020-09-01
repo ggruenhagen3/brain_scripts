@@ -1,4 +1,6 @@
 import argparse
+import time
+import sys
 
 # Arg Parser
 def parseArgs():
@@ -39,12 +41,23 @@ def readVcf(vcf, ase, closest_column):
                             kept_records += 1
     print("Records in VCF kept: " + str(kept_records) + " out of " + str(out_of))
     genes = list(dict.fromkeys(genes))
+    print("Number of genes in VCF: " + str(len(genes)))
     return genes
 
 def readGff(gff, vcf_genes):
     usable_genes = []
     found_ids = []
+
+    # Setup toolbar
+    toolbar_width = 40
+    sys.stdout.write("[%s]" % (" " * toolbar_width))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
+    num_lines = len(open(gff).readlines())
+
     with open(gff, 'r') as input:
+        i = 0
+        previous_mark = 0
         for line in input:
             if not line.startswith("#"):
                 lineSplit = line.split()
@@ -59,6 +72,15 @@ def readGff(gff, vcf_genes):
                     # print(name)
                     found_ids.append(id)
                     usable_genes.append(name)
+
+            # update toolbar
+            this_mark = i // (num_lines / 40)
+            if this_mark != previous_mark:
+                sys.stdout.write("-")
+                sys.stdout.flush()
+            previous_mark = this_mark
+            i += 1
+    sys.stdout.write("]\n")  # end toolbar
     usable_genes = list(dict.fromkeys(usable_genes))
     return usable_genes
 
