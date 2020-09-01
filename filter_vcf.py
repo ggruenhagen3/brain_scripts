@@ -9,7 +9,7 @@ def parseArgs():
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     parser.add_argument("-a", "--ase", help="Do allele stuff that Zack needed for ASE?",
                         action="store_true")
-    parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)", type=int, default=7, const=7)
+    parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)", nargs='?', type=int, default=7, const=7)
     args = parser.parse_args()
     return args.vcf, args.gff, args.output, args.verbose, args.ase, args.closest_column
 
