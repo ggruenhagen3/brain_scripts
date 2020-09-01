@@ -37,7 +37,7 @@ def readVcf(vcf, ase, closest_column):
                         if close_dist < 25000:
                             genes.append(close_gene)
                             kept_records += 1
-    print("Records in VCF kept: " + str(kept_records) + "out of " + str(out_of))
+    print("Records in VCF kept: " + str(kept_records) + " out of " + str(out_of))
     genes = list(dict.fromkeys(genes))
     return genes
 
