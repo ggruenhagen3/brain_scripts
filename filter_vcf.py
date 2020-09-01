@@ -22,7 +22,6 @@ def readVcf(vcf, ase, closest_column):
             if not line.startswith("#"):
                 out_of += 1
                 lineSplit = line.split()
-                print(line)
                 if lineSplit[closest_column].startswith("CLOSEST"):
                     close_dist = int(lineSplit[closest_column].split("=")[1].split("|")[0])
                     close_gene = lineSplit[closest_column].split("|")[1]
