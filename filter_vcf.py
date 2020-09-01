@@ -9,10 +9,11 @@ def parseArgs():
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     parser.add_argument("-a", "--ase", help="Do allele stuff that Zack needed for ASE?",
                         action="store_true")
+    parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)", type=int, default=7, const=7)
     args = parser.parse_args()
-    return args.vcf, args.gff, args.output, args.verbose, args.ase
+    return args.vcf, args.gff, args.output, args.verbose, args.ase, args.closest_column
 
-def readVcf(vcf, ase):
+def readVcf(vcf, ase, closest_column):
     genes = []
     out_of = 0
     kept_records = 0
@@ -22,9 +23,9 @@ def readVcf(vcf, ase):
                 out_of += 1
                 lineSplit = line.split()
                 print(line)
-                if lineSplit[7].startswith("CLOSEST"):
-                    close_dist = int(lineSplit[7].split("=")[1].split("|")[0])
-                    close_gene = lineSplit[7].split("|")[1]
+                if lineSplit[closest_column].startswith("CLOSEST"):
+                    close_dist = int(lineSplit[closest_column].split("=")[1].split("|")[0])
+                    close_gene = lineSplit[closest_column].split("|")[1]
                     gene_local = close_gene.find("Gene")
                     if gene_local > 0:
                         close_gene = close_gene[gene_local+5:]
@@ -70,8 +71,8 @@ def writeGenes(output, genes):
 
 
 def main():
-    vcf, gff, output, verbose, ase = parseArgs()
-    vcf_genes = readVcf(vcf, ase)
+    vcf, gff, output, verbose, ase, closest_column = parseArgs()
+    vcf_genes = readVcf(vcf, ase, closest_column)
     usable_genes = readGff(gff, vcf_genes)
     print("Number of vcf_genes " + str(len(vcf_genes)))
     print("Number of output genes " + str(len(usable_genes)))
