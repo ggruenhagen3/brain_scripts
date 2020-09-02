@@ -42,9 +42,8 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path):
     """"
     From a list of lines, use regex to convert from LG to NC or NC to LG
     """
-    toolbar_width = 40
-
     # setup toolbar
+    toolbar_width = 40
     sys.stdout.write("[%s]" % (" " * toolbar_width))
     sys.stdout.flush()
     sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
@@ -61,6 +60,7 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path):
     i = 0
     previous_mark = 0
     for line in lines:
+        print(i)
         for key in dict.keys():
             if toNC:
                 my_regex = r'\b' + dict[key] + r'\b'
