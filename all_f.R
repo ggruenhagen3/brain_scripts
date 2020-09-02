@@ -519,8 +519,15 @@ convertToHgnc <- function(genes) {
   return(all_hgnc)
 }
 
-hgncMzebra <- function(genes, gene_names) {
-  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+hgncMzebra <- function(genes, gene_names, onPACE=F) {
+  # genes: genes to find hgnc conversions for
+  # gene_names: list of ALL mzebra gene names
+  # onPACE: is the script being run on PACE (default = FALSE)
+  if (onPACE) {
+    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  } else {
+    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  }
   valid_genes <- validGenes(genes, gene_names)
   all_hgnc <- convertToHgnc(gene_names)
   ind <- match(genes,pat$V2)
@@ -552,10 +559,10 @@ hgncMouse <- function(genes) {
   return(ensembl_genes)
 }
 
-hgncMzebraInPlace <- function(df, gene_column, gene_names) {
+hgncMzebraInPlace <- function(df, gene_column, gene_names, onPACE=F) {
   bad_genes <- df[,gene_column]
   bad_genes <- unique(bad_genes)
-  converter <- hgncMzebra(bad_genes, gene_names)
+  converter <- hgncMzebra(bad_genes, gene_names, onPACE)
   df[,gene_column] <- converter[match(df[,gene_column], converter[,1]),2]
   df <- df[which(! is.na(df[,gene_column])),]
   
