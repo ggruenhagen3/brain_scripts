@@ -13,7 +13,7 @@ def parseArgs():
                         action="store_true")
     parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)",
                         nargs='?', type=int, default=7, const=7)
-    parser.add_argument("-e", "--ens", help="Was Mzebra_% used (Mzebra_% uses ENSEMBL genes)?", action="store_true")
+    parser.add_argument("-e", "--ens", help="Was Mzebra_str used (Mzebra_str uses ENSEMBL genes)?", action="store_true")
     args = parser.parse_args()
     return args.vcf, args.gff, args.output, args.verbose, args.ase, args.closest_column, args.ens
 
