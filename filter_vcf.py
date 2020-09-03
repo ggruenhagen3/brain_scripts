@@ -1,6 +1,7 @@
 import argparse
 import time
 import sys
+import re
 
 # Arg Parser
 def parseArgs():
@@ -11,11 +12,13 @@ def parseArgs():
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     parser.add_argument("-a", "--ase", help="Do allele stuff that Zack needed for ASE?",
                         action="store_true")
-    parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)", nargs='?', type=int, default=7, const=7)
+    parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)",
+                        nargs='?', type=int, default=7, const=7)
+    parser.add_argument("-e", "--ens", help="Was Mzebra_% used (Mzebra_% uses ENSEMBL genes)?", action="store_true")
     args = parser.parse_args()
-    return args.vcf, args.gff, args.output, args.verbose, args.ase, args.closest_column
+    return args.vcf, args.gff, args.output, args.verbose, args.ase, args.closest_column, args.ens
 
-def readVcf(vcf, ase, closest_column):
+def readVcf(vcf, ase, closest_column, ens):
     genes = []
     out_of = 0
     kept_records = 0
@@ -37,6 +40,8 @@ def readVcf(vcf, ase, closest_column):
                             TI_allele = lineSplit[26][0:3]
                         # if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
                         if close_dist < 25000:
+                            if ens:
+                                close_gene = close_gene.replace("%", " (1 of many)")
                             genes.append(close_gene)
                             kept_records += 1
     print("Records in VCF kept: " + str(kept_records) + " out of " + str(out_of))
@@ -92,10 +97,13 @@ def writeGenes(output, genes):
 
 
 def main():
-    vcf, gff, output, verbose, ase, closest_column = parseArgs()
-    vcf_genes = readVcf(vcf, ase, closest_column)
-    usable_genes = readGff(gff, vcf_genes)
-    print("Number of vcf_genes " + str(len(vcf_genes)))
+    vcf, gff, output, verbose, ase, closest_column, ens = parseArgs()
+    vcf_genes = readVcf(vcf, ase, closest_column, ens)
+    if ens:
+        usable_genes = readGff(gff, vcf_genes)
+        print("Number of vcf_genes " + str(len(vcf_genes)))
+    else:
+        usable_genes = vcf_genes
     print("Number of output genes " + str(len(usable_genes)))
     writeGenes(output, usable_genes)
 
