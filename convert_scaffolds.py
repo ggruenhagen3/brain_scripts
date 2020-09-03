@@ -60,7 +60,6 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path):
     i = 0
     previous_mark = 0
     for line in lines:
-        print(i)
         for key in dict.keys():
             if toNC:
                 my_regex = r'\b' + dict[key] + r'\b'
