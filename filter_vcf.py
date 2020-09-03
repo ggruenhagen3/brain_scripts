@@ -1,7 +1,6 @@
 import argparse
 import time
 import sys
-import re
 
 # Arg Parser
 def parseArgs():
