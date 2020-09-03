@@ -13,7 +13,7 @@ def parseArgs():
                         action="store_true")
     parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)",
                         nargs='?', type=int, default=7, const=7)
-    parser.add_argument("-e", "--ens", help='Was Mzebra_% used (Mzebra_% uses ENSEMBL genes)?', action="store_true")
+    parser.add_argument("-e", "--ens", help='Was Mzebra_%% used (Mzebra_%% uses ENSEMBL genes)?', action="store_true")
     args = parser.parse_args()
     return args.vcf, args.gff, args.output, args.verbose, args.ase, args.closest_column, args.ens
 
@@ -40,7 +40,7 @@ def readVcf(vcf, ase, closest_column, ens):
                         # if close_dist < 25000 and CV_allele == TI_allele and CV_allele != MC_allele:
                         if close_dist < 25000:
                             if ens:
-                                close_gene = close_gene.replace('%', " (1 of many)")
+                                close_gene = close_gene.replace('%%', " (1 of many)")
                             genes.append(close_gene)
                             kept_records += 1
     print("Records in VCF kept: " + str(kept_records) + " out of " + str(out_of))
