@@ -99,10 +99,10 @@ def main():
     vcf, gff, output, verbose, ase, closest_column, ens = parseArgs()
     vcf_genes = readVcf(vcf, ase, closest_column, ens)
     if ens:
-        usable_genes = readGff(gff, vcf_genes)
-        print("Number of vcf_genes " + str(len(vcf_genes)))
-    else:
         usable_genes = vcf_genes
+    else:
+        usable_genes = readGff(gff, vcf_genes) # get the ids from the gff file
+        print("Number of vcf_genes " + str(len(vcf_genes)))
     print("Number of output genes " + str(len(usable_genes)))
     writeGenes(output, usable_genes)
 
