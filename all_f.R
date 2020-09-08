@@ -676,10 +676,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   #        Filepath for png output
   clusters = list()
   num_clusters = list()
+  all_logFC = c()
   for (i in 1:length(dfs)) {
     print(i)
     clusters[i] = unique(as.vector(dfs[[i]]$cluster))
     num_clusters[i] = length(clusters[i])
+    all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
   }
   
   # Now do Pairwise Comparison of each df's DEGs
@@ -690,10 +692,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
       
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
-          print(j)
-          print(length(clusters))
-          head(clusters[[j]])
-          print("--------------")
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
           ovlp = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene),])
           ovlp_same_dir = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC)),])
@@ -754,7 +752,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   }
   
   # Plot 1 - Ovlp
-  if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
+  if (any(sign(all_logFC) == -1)) {
     png(paste(filepath, filename, "_ovlp_same_dir.png", sep=""),  width = 500, height = 500, unit = "px", res = 72)
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common w/ Same Sign b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
@@ -766,7 +764,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   print("finished 1")
   
   # Plot 2 - Ovlp Best Guess
-  if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
+  if (any(sign(all_logFC) == -1)) {
     png(paste(filepath, filename, "_best_guess_same_dir.png", sep=""),  width = 500, height = 500, unit = "px")
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("Best Guess of DEGs w/ Same Sign")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
@@ -778,7 +776,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   print("finished 2")
   
   # Plot 3 - Pct
-  if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
+  if (any(sign(all_logFC) == -1)) {
     png(paste(filepath, filename, "_pct_same_dir.png", sep=""),  width = 500, height = 500, unit = "px")
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% DEGs w/ Same Sign in Common Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
@@ -790,7 +788,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   print("finished plot 3")
   
   # Plot 4 - Pct Best Guess
-  if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
+  if (any(sign(all_logFC) == -1)) {
     png(paste(filepath, filename, "_pct_best_guess_same_dir.png", sep=""),  width = 500, height = 500, unit = "px")
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% Best Guess of DEGs w/ Same Sign")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
