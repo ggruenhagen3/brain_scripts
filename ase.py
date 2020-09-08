@@ -7,7 +7,7 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Finds MC vs CV Counts')
     parser.add_argument('output_table', metavar='output_table', help='Output table annotated by snpEff')
     parser.add_argument('mc_cv', metavar='mc_cv', help='MC vs CV vcf file')
-    parser.add_argument("-g", "--gtf", help="Path to Mzebra_% gtf", nargs="?",
+    parser.add_argument("-g", "--gtf", help="Path to Mzebra_%% gtf", nargs="?",
                         default="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra_%%/genes.gtf",
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra_%%/genes.gtf")
 
