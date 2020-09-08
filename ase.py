@@ -25,7 +25,7 @@ def readOutputTable(output_table):
                 alt_count = int(info.split(";")[0])
                 print(info.index("="))
                 print(info.index("|"))
-                dist = int(info[info.index("="), info.index("|")])
+                dist = int(info[int(info.index("=")), int(info.index("|"))])
                 gene = info[info.index(":"), info.index(",Gene:")]
                 print(str(ref_count) + "\t" + str(alt_count) + "\t" + gene)
 
