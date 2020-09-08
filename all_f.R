@@ -669,7 +669,7 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
-heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
+heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xlab=F) {
   # Input: list of dataframes that are output of Seurat FindAllMarkers
   #        Vector of samples or whatever you want to name those two dataframes
   #        Base file name for png output
@@ -681,7 +681,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
     clusters[[i]] = unique(as.vector(dfs[[i]]$cluster))
     num_clusters[[i]] = length(clusters[[i]])
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
-    print(clusters[[i]])
   }
   
   # Now do Pairwise Comparison of each df's DEGs
@@ -696,7 +695,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
           ovlp = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene),])
           ovlp_same_dir = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC)),])
           
-          pct = (ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
+          pct = (2*ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           pct_same_dir = (ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           
           # Rename the clusters with their sample names to avoid confusion
@@ -723,6 +722,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   df$pct_col = df$pct > mean(df$pct)
   df$ovlp_same_dir_col = df$ovlp_same_dir > mean(df$ovlp_same_dir)
   df$pct_same_dir_col = df$pct_same_dir > mean(df$pct_same_dir)
+  if (labels == FALSE) {
+    df$ovlp_col = NULL
+    df$pct_col = NULL
+    df$ovlp_same_dir_col = NULL
+    df$pct_same_dir_col = NULL
+  }
   
   # Find Max's
   df$ovlp_best = df$ovlp
