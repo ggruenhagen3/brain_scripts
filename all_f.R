@@ -699,7 +699,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
           
           # Rename the clusters with their sample names to avoid confusion
           sample1_clust = paste0(samples[[i]], clusters[[i]][i_clust])
-          sample2_clust = paste0(sampels[[j]], clusters[[j]][j_clust])
+          sample2_clust = paste0(samples[[j]], clusters[[j]][j_clust])
           df <- rbind(df, t(c(sample1_clust, sample2_clust, ovlp, pct, ovlp_same_dir, pct_same_dir)))
         }
       }
