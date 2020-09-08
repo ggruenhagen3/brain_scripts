@@ -678,9 +678,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   num_clusters = list()
   all_logFC = c()
   for (i in 1:length(dfs)) {
-    print(i)
-    clusters[i] = unique(as.vector(dfs[[i]]$cluster))
-    num_clusters[i] = length(clusters[i])
+    clusters[[i]] = unique(as.vector(dfs[[i]]$cluster))
+    num_clusters[[i]] = length(clusters[i])
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
   }
   
@@ -700,8 +699,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
           pct_same_dir = (ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           
           # Rename the clusters with their sample names to avoid confusion
-          sample1_clust = paste0(samples[[i]], clusters[[i]][i_clust])
-          sample2_clust = paste0(samples[[j]], clusters[[j]][j_clust])
+          sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
+          sample2_clust = paste0(samples[[j]], " ", clusters[[j]][j_clust])
           df <- rbind(df, t(c(sample1_clust, sample2_clust, ovlp, pct, ovlp_same_dir, pct_same_dir)))
         }
       }
@@ -763,7 +762,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
   }
-  print("finished 1")
+  print("finished plot 1")
   
   # Plot 2 - Ovlp Best Guess
   if (any(sign(all_logFC) == -1)) {
@@ -775,7 +774,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_best > 0), aes(label=ovlp_best, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("Best Guess")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
   }
-  print("finished 2")
+  print("finished plot 2")
   
   # Plot 3 - Pct
   if (any(sign(all_logFC) == -1)) {
