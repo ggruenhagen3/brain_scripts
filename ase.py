@@ -15,7 +15,7 @@ def parseArgs():
                         const="counts.tsv")
 
     args = parser.parse_args()
-    return args.output_table, args.mc_cv, args.gtf, args.counts
+    return args.output_table, args.mc_cv, args.gtf, args.output
 
 def readGtf(gtf):
     trans_to_gene = {} # key = transcript, value = gene
