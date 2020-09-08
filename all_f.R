@@ -679,7 +679,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   all_logFC = c()
   for (i in 1:length(dfs)) {
     clusters[[i]] = unique(as.vector(dfs[[i]]$cluster))
-    num_clusters[[i]] = length(clusters[i])
+    num_clusters[[i]] = length(clusters[[i]])
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
     print(clusters[[i]])
   }
