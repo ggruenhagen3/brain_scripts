@@ -693,6 +693,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
           print(j)
           print(length(clusters))
           head(clusters[[j]])
+          print("--------------")
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
           ovlp = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene),])
           ovlp_same_dir = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC)),])
