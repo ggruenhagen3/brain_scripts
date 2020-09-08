@@ -30,6 +30,13 @@ def readGtf(gtf):
                 else:
                     gene = transcript
                 transcript = transcript.replace("G", "T")
+
+                transcript_pos = info.find("transcript_id")
+                if transcript_pos != -1:
+                    transcript = info[transcript_pos+14::]
+                    print(info)
+                    print(transcript)
+
                 trans_to_gene[transcript] = gene
     print(len(trans_to_gene.keys()))
     return trans_to_gene
