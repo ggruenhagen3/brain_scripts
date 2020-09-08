@@ -674,8 +674,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   for (i in 1:length(dfs)) {
     print(i)
     print(length(dfs))
-    clusters[[i]] = unique(as.vector(dfs[[i]]$cluster))
-    num_clusters[[i]] = length(clusters[[i]])
+    clusters[i] = unique(as.vector(dfs[[i]]$cluster))
+    num_clusters[i] = length(clusters[[i]])
   }
   
   # Now do Pairwise Comparison of each df's DEGs
