@@ -10,9 +10,12 @@ def parseArgs():
     parser.add_argument("-g", "--gtf", help="Path to Mzebra_%% gtf", nargs="?",
                         default="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra_%/genes.gtf",
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra_%/genes.gtf")
+    parser.add_argument("-o", "--output", help="Output file", nargs="?",
+                        default="counts.tsv",
+                        const="counts.tsv")
 
     args = parser.parse_args()
-    return args.output_table, args.mc_cv, args.gtf
+    return args.output_table, args.mc_cv, args.gtf, args.counts
 
 def readGtf(gtf):
     trans_to_gene = {} # key = transcript, value = gene
@@ -36,7 +39,7 @@ def readGtf(gtf):
                     transcript = info[transcript_pos+15:transcript_pos+33]
 
                 trans_to_gene[transcript] = gene
-    print(len(trans_to_gene.keys()))
+    print("Genes in Dictionary: " + str(len(trans_to_gene.keys())))
     return trans_to_gene
 
 
@@ -66,12 +69,21 @@ def readOutputTable(output_table, trans_to_gene):
                 i += 1
     print("Total: " + str(i))
     print("Not found: " + str(j))
+    return counts
 
+def writeCounts(counts, output):
+    f = open(output, "w")
+    f.write("GENE\tREF_COUNTS\tALT_COUNTS")
+    for gene in counts.keys():
+        f.write(gene + "\t" + str(counts[gene][0]) + "\t" + str(counts[gene][1]) + "\n")
+    f.close()
 
 def main():
-    output_table, mc_cv, gtf = parseArgs()
+    output_table, mc_cv, gtf, output = parseArgs()
     trans_to_gene = readGtf(gtf)
-    readOutputTable(output_table, trans_to_gene)
+    counts = readOutputTable(output_table, trans_to_gene)
+    writeCounts(counts, output)
+
 
 if __name__ == '__main__':
     main()
