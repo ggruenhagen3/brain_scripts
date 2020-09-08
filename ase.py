@@ -30,7 +30,6 @@ def readGtf(gtf):
                 else:
                     gene = transcript
                 transcript = transcript.replace("G", "T")
-                print(transcript)
                 trans_to_gene[transcript] = gene
     print(len(trans_to_gene.keys()))
     return trans_to_gene
@@ -50,8 +49,8 @@ def readOutputTable(output_table, trans_to_gene):
                 dist = int(info[int(info.index("="))+1:int(info.index("|"))])
                 start = info.index("Transcript:")+11
                 transcript = info[start:start+18]
-                gene = trans_to_gene[transcript]
                 if transcript in trans_to_gene.keys():
+                    gene = trans_to_gene[transcript]
                     print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
                 else:
                     j += 1
