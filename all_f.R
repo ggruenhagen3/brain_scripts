@@ -512,7 +512,12 @@ convertMouseDataFrameToHgnc = function(mouse_df, gene_column) {
   hgnc_df = getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = m_genes , mart = mouse, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
   colnames(hgnc_df) = c("mouse", "hgnc")
   hgnc_df = hgnc_df[which(! is.na(hgnc_df$hgnc)),]
-  return(hgnc_df)
+  
+  converter = hgnc_df
+  mouse_df[,gene_column] <- converter[match(mouse_df[,gene_column], converter[,1]),2]
+  df <- df[which(! is.na(df[,gene_column])),]
+  
+  return(df)
 }
 
 convertToHgnc <- function(genes) {
@@ -673,9 +678,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   num_clusters = list()
   for (i in 1:length(dfs)) {
     print(i)
-    print(length(dfs))
-    clusters[i] = unique(as.vector(dfs[[i]]$cluster))
-    num_clusters[i] = length(clusters[[i]])
+    clusters[i] = unique(as.vector(dfs[i]$cluster))
+    num_clusters[i] = length(clusters[i])
   }
   
   # Now do Pairwise Comparison of each df's DEGs
