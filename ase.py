@@ -26,10 +26,10 @@ def readGtf(gtf):
                 if gene_name_pos != -1:
                     gene = info[gene_name_pos+11::]
                     gene = gene.split('";')[0]
-                    gene = gene.replace("%%", " (1 of many)")
+                    gene.replace("%%", " (1 of many)")
                 else:
                     gene = transcript
-                transcript = transcript.replace("G", "T")
+                transcript.replace("G", "T")
                 print(transcript)
                 trans_to_gene[transcript] = gene
     return trans_to_gene
