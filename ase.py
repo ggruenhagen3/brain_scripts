@@ -22,7 +22,7 @@ def readGtf(gtf):
                 lineSplit = line.split()
                 info = lineSplit[8]
                 transcript = info[9:20]
-                gene_name_pos = info.index("gene_name")
+                gene_name_pos = info.find("gene_name")
                 if gene_name_pos != -1:
                     gene = info[gene_name_pos+11::]
                     gene = gene.split('";')[0]
