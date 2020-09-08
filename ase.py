@@ -73,7 +73,7 @@ def readOutputTable(output_table, trans_to_gene):
 
 def writeCounts(counts, output):
     f = open(output, "w")
-    f.write("GENE\tREF_COUNTS\tALT_COUNTS")
+    f.write("GENE\tREF_COUNTS\tALT_COUNTS\n")
     for gene in counts.keys():
         f.write(gene + "\t" + str(counts[gene][0]) + "\t" + str(counts[gene][1]) + "\n")
     f.close()
