@@ -19,7 +19,7 @@ def readGtf(gtf):
     with open(gtf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
-                lineSplit = line.split()
+                lineSplit = line.split("\t")
                 info = lineSplit[8]
                 transcript = info[9:20]
                 gene_name_pos = info.find("gene_name")
