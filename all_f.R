@@ -515,7 +515,7 @@ convertMouseDataFrameToHgnc = function(mouse_df, gene_column) {
   
   converter = hgnc_df
   mouse_df[,gene_column] <- converter[match(mouse_df[,gene_column], converter[,1]),2]
-  df <- df[which(! is.na(df[,gene_column])),]
+  mouse_df <- mouse_df[which(! is.na(mouse_df[,gene_column])),]
   
   return(df)
 }
