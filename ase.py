@@ -30,6 +30,7 @@ def readGtf(gtf):
                 else:
                     gene = transcript
                 transcript = transcript.replace("G", "T")
+                print(transcript)
                 trans_to_gene[transcript] = gene
     return trans_to_gene
 
