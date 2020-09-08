@@ -56,7 +56,11 @@ def readOutputTable(output_table, trans_to_gene):
                 transcript = info[start:start+18]
                 if transcript in trans_to_gene.keys():
                     gene = trans_to_gene[transcript]
-                    print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
+                    if gene not in counts.keys():
+                        counts[gene] = [ref_count, alt_count]
+                    else:
+                        counts[gene] = [counts[gene][0]+ref_count, counts[gene]+alt_count]
+                    # print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
                 else:
                     j += 1
                 i += 1
