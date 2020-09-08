@@ -678,7 +678,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   num_clusters = list()
   for (i in 1:length(dfs)) {
     print(i)
-    clusters[i] = unique(as.vector(dfs[i]$cluster))
+    clusters[i] = unique(as.vector(dfs[[i]]$cluster))
     num_clusters[i] = length(clusters[i])
   }
   
