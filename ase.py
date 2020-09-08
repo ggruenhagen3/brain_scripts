@@ -21,6 +21,7 @@ def readGtf(gtf):
             if not line.startswith("#"):
                 lineSplit = line.split()
                 info = lineSplit[8]
+                transcript = info[9:20]
                 gene_name_pos = info.find("gene_name")
                 if gene_name_pos != -1:
                     gene = info[gene_name_pos+11::]
@@ -28,7 +29,7 @@ def readGtf(gtf):
                     gene = gene.replace("%%", " (1 of many)")
                 else:
                     gene = transcript
-                transcript = info[9:20].replace("G", "T")
+                transcript = transcript.replace("G", "T")
                 trans_to_gene[transcript] = gene
     return trans_to_gene
 
