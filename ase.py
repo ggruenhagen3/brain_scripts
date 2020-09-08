@@ -29,6 +29,7 @@ def readOutputTable(output_table):
 
 def main():
     output_table, mc_cv = parseArgs()
+    readOutputTable(output_table)
 
 if __name__ == '__main__':
     main()
