@@ -12,9 +12,24 @@ def parseArgs():
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra_%%/genes.gtf")
 
     args = parser.parse_args()
-    return args.output_table, args.mc_cv
+    return args.output_table, args.mc_cv, args.gtf
 
-def readOutputTable(output_table):
+def readGtf(gtf):
+    trans_to_gene = {} # key = transcript, value = gene
+    with open(gtf, 'r') as input:
+        for line in input:
+            if not line.startswith("#"):
+                lineSplit = line.split()
+                info = lineSplit[8]
+                gene = info[info.index("gene_name")+11::]
+                gene = gene.split('";')[0]
+                gene = gene.replace("%%", " (1 of many)")
+                transcript = info[9:20].replace("G", "T")
+                trans_to_gene[transcript] = gene
+    return trans_to_gene
+
+
+def readOutputTable(output_table, trans_to_gene):
     counts = {}  # key = gene, value = [ref_count, alt_count]
     with open(output_table, 'r') as input:
         for line in input:
@@ -24,12 +39,14 @@ def readOutputTable(output_table):
                 info = lineSplit[7]
                 alt_count = int(info.split(";")[0])
                 dist = int(info[int(info.index("="))+1:int(info.index("|"))])
-                gene = info[info.index("Transcript:")+11:info.index(",Gene:")]
-                print(str(ref_count) + "\t" + str(alt_count) + "\t" + gene)
+                transcript = info[info.index("Transcript:")+11:info.index(",Gene:")]
+                gene = trans_to_gene[transcript]
+                print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
 
 def main():
-    output_table, mc_cv = parseArgs()
-    readOutputTable(output_table)
+    output_table, mc_cv, gtf = parseArgs()
+    trans_to_gene = readGtf(gtf)
+    readOutputTable(output_table, trans_to_gene)
 
 if __name__ == '__main__':
     main()
