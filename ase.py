@@ -33,7 +33,7 @@ def readGtf(gtf):
 
                 transcript_pos = info.find("transcript_id")
                 if transcript_pos != -1:
-                    transcript = info[transcript_pos+15:transcript_pos+23]
+                    transcript = info[transcript_pos+15:transcript_pos+33]
                     print(info)
                     print(transcript)
 
