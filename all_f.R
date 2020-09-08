@@ -687,7 +687,10 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   # Now do Pairwise Comparison of each df's DEGs
   df = data.frame() # big df of all pairwise comparisons
   for (i in 1:length(dfs)) {
+    print("--------")
+    print(i)
     for (i_clust in 1:num_clusters[[i]]) {
+      print(i_clust)
       i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
       
       for (j in 1:length(dfs)) {
