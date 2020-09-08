@@ -32,11 +32,14 @@ def readGtf(gtf):
                 transcript = transcript.replace("G", "T")
                 print(transcript)
                 trans_to_gene[transcript] = gene
+    print(len(trans_to_gene.keys()))
     return trans_to_gene
 
 
 def readOutputTable(output_table, trans_to_gene):
     counts = {}  # key = gene, value = [ref_count, alt_count]
+    i = 0
+    j = 0
     with open(output_table, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -48,7 +51,14 @@ def readOutputTable(output_table, trans_to_gene):
                 start = info.index("Transcript:")+11
                 transcript = info[start:start+18]
                 gene = trans_to_gene[transcript]
-                print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
+                if transcript in trans_to_gene.keys():
+                    print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
+                else:
+                    j += 1
+                i += 1
+    print("Total: " + str(i))
+    print("Not found: " + str(j))
+
 
 def main():
     output_table, mc_cv, gtf = parseArgs()
