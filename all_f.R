@@ -753,10 +753,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath) {
   
   # Plot 1 - Ovlp
   if (any(sign(all_logFC) == -1)) {
+    print("Up and downregulated DEGs analyzed")
     png(paste(filepath, filename, "_ovlp_same_dir.png", sep=""),  width = 500, height = 500, unit = "px", res = 72)
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common w/ Same Sign b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
   } else {
+    print(head(all_logFC))
     png(paste(filepath, filename, "_ovlp.png", sep=""),  width = 500, height = 500, unit = "px", res = 72)
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
     dev.off()
