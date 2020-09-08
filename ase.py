@@ -45,7 +45,8 @@ def readOutputTable(output_table, trans_to_gene):
                 info = lineSplit[7]
                 alt_count = int(info.split(";")[0])
                 dist = int(info[int(info.index("="))+1:int(info.index("|"))])
-                transcript = info[info.index("Transcript:")+11:info.index(",Gene:")]
+                start = info.index("Transcript:")+11
+                transcript = info[start:start+18]
                 gene = trans_to_gene[transcript]
                 print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
 
