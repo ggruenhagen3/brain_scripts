@@ -722,10 +722,10 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   df$pct_col = df$pct > mean(df$pct)
   df$ovlp_same_dir_col = df$ovlp_same_dir > mean(df$ovlp_same_dir)
   df$pct_same_dir_col = df$pct_same_dir > mean(df$pct_same_dir)
-  if (labels == FALSE) {
-    df$ovlp = ""
-    df$pct = ""
-  }
+  # if (labels == FALSE) {
+  #   df$ovlp = ""
+  #   df$pct = ""
+  # }
   
   # Find Max's
   df$ovlp_best = df$ovlp
