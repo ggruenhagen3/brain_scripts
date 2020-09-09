@@ -803,7 +803,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   df$df1_cluster = factor(df$df1_cluster, levels = rev(levels(df$df1_cluster)))
   
   # Plot 1 - Ovlp
-  png(png1_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
+  png(png1_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
   p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) +  ggtitle(png1_title) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
@@ -814,7 +814,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   print("finished plot 1")
   
   # Plot 2 - Ovlp Best Guess
-  png(png2_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
+  png(png2_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
   p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png2_title) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
@@ -825,7 +825,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   print("finished plot 2")
   
   # Plot 3 - Pct
-  png(png3_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
+  png(png3_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
   p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png3_title) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) 
@@ -836,7 +836,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   print("finished plot 3")
   
   # Plot 4 - Pct Best Guess
-  png(png4_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
+  png(png4_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
   p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png4_title) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
