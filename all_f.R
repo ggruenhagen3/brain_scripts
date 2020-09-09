@@ -680,7 +680,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   all_logFC = c()
   for (i in 1:length(dfs)) {
     clusters[[i]] = unique(as.vector(dfs[[i]]$cluster))
-    if (any(is.na(as.numeric(clusters[[i]])))) {
+    if (! any(is.na(as.numeric(clusters[[i]])))) {
+      print("Can sort numerically")
       clusters[[i]] = sort(as.numeric(clusters[[i]]))
     }
     num_clusters[[i]] = length(clusters[[i]])
