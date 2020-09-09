@@ -670,7 +670,7 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
-heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xlab=F, tri=T) {
+heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xlab=T, tri=T) {
   # Input: list of dataframes that are output of Seurat FindAllMarkers
   #        Vector of samples or whatever you want to name those two dataframes
   #        Base file name for png output
@@ -720,11 +720,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   if (tri) {
     print("Only Keeping Lower Triangle")
     new_df = data.frame()
-    clusters = unique(df$df1_cluster)
+    clusters = unique(as.vector(df$df1_cluster))
+    clusters = clusters[which(! is.na(clusters))]
     for (i in 1:length(clusters)) {
       i_clust = clusters[i]
       if (i == 1) print(i_clust)
-      for (j in 1:i+1) {
+      for (j in 1:i) {
         j_clust = clusters[j]
         if (i == 1) print(j_clust)
         new_df = rbind(new_df, df[which(df$df1_cluster == i_clust & df$df2_cluster == j_clust),])
@@ -801,7 +802,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   
   # Plot 1 - Ovlp
   png(png1_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
-  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) +  ggtitle(png1_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45))
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) +  ggtitle(png1_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
   if (! xlab)
@@ -812,7 +813,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   
   # Plot 2 - Ovlp Best Guess
   png(png2_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
-  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png2_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45))
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png2_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
   if (! xlab)
@@ -823,7 +824,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   
   # Plot 3 - Pct
   png(png3_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
-  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png3_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45))
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png3_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) 
   if (! xlab)
@@ -834,7 +835,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
   
   # Plot 4 - Pct Best Guess
   png(png4_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
-  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png4_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45))
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png4_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
   if (! xlab)
