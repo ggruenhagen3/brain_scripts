@@ -800,6 +800,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
     png4_title = paste("% Best Guess")
   }
   
+  df$df2_cluster = factor(df$df2_cluster, levels = rev(levels(df2_cluster)))
+  
   # Plot 1 - Ovlp
   png(png1_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
   p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) +  ggtitle(png1_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
