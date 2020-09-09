@@ -800,7 +800,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
     png4_title = paste("% Best Guess")
   }
   
-  df$df2_cluster = factor(df$df2_cluster, levels = rev(levels(df2_cluster)))
+  df$df2_cluster = factor(df$df2_cluster, levels = rev(levels(df$df2_cluster)))
   
   # Plot 1 - Ovlp
   png(png1_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 100)
