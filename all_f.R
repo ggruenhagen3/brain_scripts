@@ -723,8 +723,10 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
     clusters = unique(df$df1_cluster)
     for (i in 1:length(clusters)) {
       i_clust = clusters[i]
+      if (i == 1) print(i_clust)
       for (j in length(clusters):i+1) {
         j_clust = clusters[j]
+        if (i == 1) print(j_clust)
         new_df = rbind(new_df, df[which(df$df1_cluster == i_clust & df$df2_cluster == j_clust),])
       }
     }
