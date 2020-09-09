@@ -9,6 +9,7 @@ library("RColorBrewer")
 library("dplyr")
 library("gplots")
 library("viridis")
+library("reshape2")
 
 ####################
 # Helper Functions #
@@ -669,7 +670,7 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
-heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xlab=F) {
+heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xlab=F, tri=T) {
   # Input: list of dataframes that are output of Seurat FindAllMarkers
   #        Vector of samples or whatever you want to name those two dataframes
   #        Base file name for png output
@@ -708,6 +709,20 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
     }
     print(paste("Finished Pairwise Comparisons for", samples[[i]]))
   } # end parwise comparison
+  
+  if (tri) {
+    new_df = data.frame()
+    clusters = unique(df$df1_cluster)
+    for (i in 1:length(clusters)) {
+      i_clust = clusters[i]
+      for (j in i+1:length(clusters)) {
+        j_clust = clusters[j]
+        new_df = rbind(new_df, df[which(df$df1_cluster == i_clust & df$df2_cluster == j_clust)])
+      }
+    }
+    df = new_df
+    print(head(new_df, 50))
+  }
   
   ## This code to the end of the function is copied from HeatmapComparions 09/03/20 ##
   colnames(df) <- c("df1_cluster", "df2_cluster", "ovlp", "pct", "ovlp_same_dir", "pct_same_dir")
