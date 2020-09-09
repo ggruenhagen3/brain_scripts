@@ -754,55 +754,146 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
     df$pct_same_dir_best[which(df$df1_cluster == cluster & df$id != max_row)] = 0
   }
   
-  # Plot 1 - Ovlp
+  
   if (any(sign(all_logFC) == -1)) {
     print("Up and downregulated DEGs analyzed")
-    png(paste(filepath, filename, "_ovlp_same_dir.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px", res = 72)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common w/ Same Sign b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
+    png1_name = paste(filepath, filename, "_ovlp_same_dir.png", sep="")
+    png2_name = paste(filepath, filename, "_best_guess_same_dir.png", sep="")
+    png3_name = paste(filepath, filename, "_pct_same_dir.png", sep="")
+    png4_name = paste(filepath, filename, "_pct_best_guess_same_dir.png", sep="")
+    
+    png1_title = paste("DEGs in Common w/ Same Sign b/w Clusters")
+    png2_title = paste("Best Guess of DEGs w/ Same Sign")
+    png3_title = paste("% DEGs w/ Same Sign in Common Clusters")
+    png4_title = paste("% Best Guess of DEGs w/ Same Sign")
+    
+    df$ovlp = df$ovlp_same_dir
+    df$ovlp_col = df$ovlp_same_dir_col
+    df$ovlp_best = df$ovlp_same_dir_best
+    df$pct = df$pct_same_dir
+    df$pct_col = df$pct_same_dir_col
+    df$pct_best = df$pct_same_dir_best
+    # # Plot 1
+    # png(,  width = 250*length(dfs), height = 250*length(dfs), unit = "px", res = 72)
+    # p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(paste("DEGs in Common w/ Same Sign b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank())
+    # if (labels)
+    #   p = p + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
+    # if (! xlab)
+    #   p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
+    # print(p)
+    # dev.off()
+    # print("finished plot 1")
+    
   } else {
-    print(head(all_logFC))
-    png(paste(filepath, filename, "_ovlp.png", sep=""),   width = 250*length(dfs), height = 250*length(dfs), unit = "px", res = 72)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
+    print("Only Upregulated Genes")
+    png1_name = paste(filepath, filename, "_ovlp.png", sep="")
+    png2_name = paste(filepath, filename, "_best_guess.png", sep="")
+    png3_name = paste(filepath, filename, "_pct.png", sep="")
+    png4_name = paste(filepath, filename, "_pct_best_guess.png", sep="")
+    
+    png1_title = paste("DEGs in Common b/w Clusters")
+    png2_title = paste("Best Guess")
+    png3_title = paste("% DEGs in Common b/w Clusters")
+    png4_title = paste("% Best Guess")
+    # png(paste(filepath, filename, "_ovlp.png", sep=""),   width = 250*length(dfs), height = 250*length(dfs), unit = "px", res = 72)
+    # p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) +  ggtitle(paste("DEGs in Common b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank())
+    # if (labels)
+    #   p = p + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
+    # if (! xlab) 
+    #   p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
+    # print(p)
+    # dev.off()
+    # print("finished plot 1")
   }
+  
+  # Plot 1 - Ovlp
+  png(png1_name, width = 250*length(dfs), height = 250*length(dfs), unit = "px", res = 72)
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) +  ggtitle(png1_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank())
+  if (labels)
+    p = p + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
+  if (! xlab)
+    p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  print(p)
+  dev.off()
   print("finished plot 1")
   
-  # Plot 2 - Ovlp Best Guess
-  if (any(sign(all_logFC) == -1)) {
-    png(paste(filepath, filename, "_best_guess_same_dir.png", sep=""),   width = 250*length(dfs), height = 250*length(dfs), unit = "px")
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("Best Guess of DEGs w/ Same Sign")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
-  } else {
-    png(paste(filepath, filename, "_best_guess.png", sep=""),   width = 250*length(dfs), height = 250*length(dfs), unit = "px")
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_best > 0), aes(label=ovlp_best, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("Best Guess")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
-  }
+  png(png2_name, width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png2_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank())
+  if (labels)
+    p = p + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
+  if (! xlab)
+    p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  print(p)
+  dev.off()
   print("finished plot 2")
   
-  # Plot 3 - Pct
-  if (any(sign(all_logFC) == -1)) {
-    png(paste(filepath, filename, "_pct_same_dir.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% DEGs w/ Same Sign in Common Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
-  } else {
-    png(paste(filepath, filename, "_pct.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% DEGs in Common b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
-  }
+  png(png3_name,  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png3_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank())
+  if (labels)
+    p = p + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) 
+  if (! xlab)
+    p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  print(p)
+  dev.off()
   print("finished plot 3")
   
-  # Plot 4 - Pct Best Guess
-  if (any(sign(all_logFC) == -1)) {
-    png(paste(filepath, filename, "_pct_best_guess_same_dir.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% Best Guess of DEGs w/ Same Sign")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
-  } else {
-    png(paste(filepath, filename, "_pct_best_guess.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_best > 0), aes(label=format(round(pct_best, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% Best Guess")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
-    dev.off()
-  }
+  png(png4_name,  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png4_title) + guides(color = FALSE) + theme_classic() + theme(line = element_blank())
+  if (labels)
+    p = p + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000"))
+  if (! xlab)
+    p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  print(p)
+  dev.off()
   print("finished plot 4")
+  
+  # if (any(sign(all_logFC) == -1)) {
+  #   png(paste(filepath, filename, "_ovlp_same_dir.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px", res = 72)
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common w/ Same Sign b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # } else {
+  #   print(head(all_logFC))
+  #   png(paste(filepath, filename, "_ovlp.png", sep=""),   width = 250*length(dfs), height = 250*length(dfs), unit = "px", res = 72)
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("DEGs in Common b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # }
+  # print("finished plot 1")
+  
+  # Plot 2 - Ovlp Best Guess
+  # if (any(sign(all_logFC) == -1)) {
+  #   png(paste(filepath, filename, "_best_guess_same_dir.png", sep=""),   width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("Best Guess of DEGs w/ Same Sign")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # } else {
+  #   png(paste(filepath, filename, "_best_guess.png", sep=""),   width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_best > 0), aes(label=ovlp_best, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("Best Guess")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # }
+  # print("finished plot 2")
+  
+  # Plot 3 - Pct
+  # if (any(sign(all_logFC) == -1)) {
+  #   png(paste(filepath, filename, "_pct_same_dir.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% DEGs w/ Same Sign in Common Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # } else {
+  #   png(paste(filepath, filename, "_pct.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% DEGs in Common b/w Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # }
+  # print("finished plot 3")
+  
+  # Plot 4 - Pct Best Guess
+  # if (any(sign(all_logFC) == -1)) {
+  #   png(paste(filepath, filename, "_pct_best_guess_same_dir.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% Best Guess of DEGs w/ Same Sign")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # } else {
+  #   png(paste(filepath, filename, "_pct_best_guess.png", sep=""),  width = 250*length(dfs), height = 250*length(dfs), unit = "px")
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_best > 0), aes(label=format(round(pct_best, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + ggtitle(paste("% Best Guess")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()))
+  #   dev.off()
+  # }
+  # print("finished plot 4")
   
   return(df)
 }
