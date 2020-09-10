@@ -208,7 +208,7 @@ def extractGene(file, nc_format):
             info = lineSplit[8]
             if nc_format:
                 gene_name_search = re.search('gene "', info)
-                gene_name_start = 5
+                gene_name_start = 6
             else:
                 gene_name_search = re.search("gene_name", info)
                 gene_name_start = 11
