@@ -7,6 +7,9 @@ from Bio.Phylo.TreeConstruction import DistanceMatrix
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 from matplotlib.pyplot import figure
 
+# Global Variables
+tri = ["2162", "2241", "2298", "2302", "2319", "2332", "403", "404", "493", "494", "495"]
+
 def parseArgs():
     parser = argparse.ArgumentParser(description='Look for bi vs tri clusters in saguaro output')
     parser.add_argument('input', metavar='i', help='Saguaro saguaro.cactus file')
@@ -84,7 +87,10 @@ def readInput(file):
 
                     # Color Branches
                     tree.root.color = "gray"
-                    tree.name("2320").color = "red"
+                    for sample in tri:
+                        cur_node = tree.common_ancestor({"name": sample})
+                        cur_node.color = "blue"
+                    # tree.name("2320").color = "red"
 
                     # Draw the figure
                     # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
@@ -117,7 +123,6 @@ def readInput(file):
 
 def allTriTree(tree_raw):
     is_all_tri = False
-    tri = ["2162", "2241", "2298", "2302", "2319", "2332", "403", "404", "493", "494", "495"]
     previous_isTri = False
     i = 0
     flips = 0
