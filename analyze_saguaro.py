@@ -97,8 +97,10 @@ def readInput(file):
 
                     # Draw the figure
                     # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
+                    plt.figure(figsize=(12, 6))
                     Phylo.draw(tree)
-                    # fig = plt.figure(figsize=(12, 6))
+                    frame1 = plt.gca()
+                    frame1.axes.get_yaxis().set_visible(False)
                     plt.show()
                     png_name = str(cactus) + ".png"
                     plt.savefig(png_name)
