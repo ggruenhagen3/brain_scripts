@@ -95,6 +95,7 @@ def readInput(file):
                         cur_node = tree.common_ancestor({"name": sample}) # idk how to access nodes
                         cur_node.color = "#f54242" # red
 
+                    # Remove Internal Node Labels
                     non_terms = tree.get_nonterminals()
                     for non_term in non_terms:
                         non_term.name = ""
@@ -102,7 +103,7 @@ def readInput(file):
                     # Draw the figure
                     # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
                     plt.figure(figsize=(12, 6))
-                    Phylo.draw(tree)
+                    Phylo.draw(tree, branch_labels=lambda c: c.branch_length)
                     frame1 = plt.gca()
                     frame1.axes.get_yaxis().set_visible(False)
                     plt.show()
