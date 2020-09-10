@@ -82,8 +82,11 @@ def readInput(file):
                         print("ALL TRI TREE!!!")
                     Phylo.draw(tree)
                     plt.show()
-                    plt.savefig(cactus + ".png")
-                    os.system("rclone copy " + cactus + ".png dropbox:BioSci-Streelman/George/tmp/")
+                    png_name = str(cactus) + ".png"
+                    plt.savefig()
+                    rclone_cmd = "rclone copy " + png_name + " dropbox:BioSci-Streelman/George/tmp/"
+                    print(rclone_cmd)
+                    os.system(rclone_cmd)
                     break
 
                 cactus = line
