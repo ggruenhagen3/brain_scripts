@@ -137,7 +137,8 @@ def allTriTree(tree_raw):
     previous_isTri = False
     i = 0
     flips = 0
-    for line in tree_raw:
+    lines = tree_raw.split("\n")
+    for line in lines:
         print(line)
         lineSplit = line.split("'")
         if len(lineSplit) > 1:
