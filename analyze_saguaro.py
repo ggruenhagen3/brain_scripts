@@ -103,7 +103,7 @@ def readInput(file):
                     # Draw the figure
                     # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
                     plt.figure(figsize=(12, 6))
-                    Phylo.draw(tree, branch_labels=lambda c: c.branch_length)
+                    Phylo.draw(tree, branch_labels=lambda c: "{:.2f}".format(c.branch_length))
                     frame1 = plt.gca()
                     frame1.axes.get_yaxis().set_visible(False)
                     plt.show()
