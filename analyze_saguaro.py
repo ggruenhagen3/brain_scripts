@@ -2,6 +2,7 @@ import argparse
 import re
 import os
 import Bio.Phylo as Phylo
+import matplotlib.pyplot as plt
 from Bio.Phylo.TreeConstruction import DistanceMatrix
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 
@@ -75,7 +76,8 @@ def readInput(file):
                 tree = constructor.nj(dm)
                 print(tree)
                 Phylo.draw(tree)
-                savefig("tree.png")
+                plt.show()
+                plt.savefig("tree.png")
                 os.system("rclone copy tree.png dropbox:BioSci-Streelman/George/tmp/")
                 break
 
