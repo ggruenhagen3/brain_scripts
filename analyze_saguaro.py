@@ -31,7 +31,7 @@ def parseArgs():
     parser.add_argument("-n", "--nc_format", help="Write sites in nc format", action="store_true")
     # parser.add_argument("-l", "--local_trees", help="Use LocalTrees.out instead of saguaro.cactus file", action="store_true")
     args = parser.parse_args()
-    return args.input, args.local_trees, args.bed_output, args.gene_output, args.gtf, args.nc_format
+    return args.input, args.local_trees, args.bed_output, args.gene_output, args.gtf, args.tmp, args.nc_format
 
 def readInputLocalTrees(file):
     lines = []
