@@ -1,5 +1,7 @@
 import argparse
 import re
+import os
+import Bio.Phylo as Phylo
 from Bio.Phylo.TreeConstruction import DistanceMatrix
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 
