@@ -91,7 +91,7 @@ def readInput(file):
                     for sample in tri:
                         cur_node = tree.common_ancestor({"name": sample}) # idk how to access nodes
                         cur_node.color = "#4287f5" # blue
-                    for sample in tri:
+                    for sample in bi:
                         cur_node = tree.common_ancestor({"name": sample}) # idk how to access nodes
                         cur_node.color = "#f54242" # red
 
