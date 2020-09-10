@@ -147,6 +147,8 @@ def allTriTree(tree_raw):
                     flips += 1
                 previous_isTri = cur_isTri
                 i += 1
+    if flips == 1:
+        is_all_tri = True
     return is_all_tri
 
 def toDistanceMatrix(lines):
