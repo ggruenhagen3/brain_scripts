@@ -143,6 +143,7 @@ def allTriTree(tree_raw):
             cur_sample = lineSplit[1]
             if not cur_sample.startswith("Inner"):
                 cur_isTri = cur_sample in tri
+                print(cur_isTri)
                 if i > 0 and cur_isTri != previous_isTri:
                     flips += 1
                 previous_isTri = cur_isTri
