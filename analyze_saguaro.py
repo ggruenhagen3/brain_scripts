@@ -178,8 +178,8 @@ def findSites(tri_cacti, local_trees):
                 lineSplit = line.split()
                 this_catus = lineSplit[0]
                 if this_catus in tri_cacti:
-                    start = max(lineSplit[2] + 25000, 0)  # ensures the 25kb buffer doesn't make starting position below 0
-                    stop = lineSplit[4] + 25000
+                    start = str(max(lineSplit[2] + 25000, 0))  # ensures the 25kb buffer doesn't make starting position below 0
+                    stop = str(lineSplit[4] + 25000)
                     sites.append(str(lineSplit[1][:-1] + "\t" + start + "\t" + stop))
     return sites
 
