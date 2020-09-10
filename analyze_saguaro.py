@@ -1,4 +1,5 @@
 import argparse
+import socket
 import convert_scaffolds
 import re
 import os
