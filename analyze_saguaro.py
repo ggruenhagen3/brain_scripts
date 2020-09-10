@@ -14,12 +14,13 @@ bi =  ["1619", "1818", "1860", "1863", "1912", "1983", "2277", "2320"]
 def parseArgs():
     parser = argparse.ArgumentParser(description='Look for bi vs tri clusters in saguaro output')
     parser.add_argument('input', metavar='i', help='Saguaro saguaro.cactus file')
+    parser.add_argument('local_trees', metavar='l', help='Saguaro LocalTrees.out file')
     parser.add_argument("-o", "--output", help="Name of output file", nargs="?",
-                        default="/nv/hp10/ggruenhagen3/scratch/ts_ms/saguaro_good.txt",
-                        const="/nv/hp10/ggruenhagen3/scratch/ts_ms/saguaro_good.txt")
-    parser.add_argument("-l", "--local_trees", help="Use LocalTrees.out instead of saguaro.cactus file", action="store_true")
+                        default="/nv/hp10/ggruenhagen3/scratch/ts_ms/saguaro_sep_sites.txt",
+                        const="/nv/hp10/ggruenhagen3/scratch/ts_ms/saguaro_sep_sites.txt")
+    # parser.add_argument("-l", "--local_trees", help="Use LocalTrees.out instead of saguaro.cactus file", action="store_true")
     args = parser.parse_args()
-    return args.input, args.output, args.local_trees
+    return args.input, args.local_trees, args.output
 
 def readInputLocalTrees(file):
     lines = []
@@ -69,6 +70,7 @@ def readInput(file):
     i = 1
     names = []
     matrix = []
+    tri_cacti = []
     with open(file, 'r') as input:
         # next(input)  # skip first line
         for line in input:
@@ -86,6 +88,7 @@ def readInput(file):
                     tree_raw = str(tree)
                     if allTriTree(tree_raw):
                         print("ALL TRI TREE!!!")
+                        tri_cacti = cactus
 
                     # Color Branches
                     tree.root.color = "gray"
@@ -130,7 +133,7 @@ def readInput(file):
                     # print("Length of mat row: " + str(len(mat_line_float)))
                     matrix.append(mat_line_float)
             i += 1
-    return
+    return tri_cacti
 
 def allTriTree(tree_raw):
     is_all_tri = False
@@ -155,15 +158,35 @@ def allTriTree(tree_raw):
         is_all_tri = True
     return is_all_tri
 
-def toDistanceMatrix(lines):
-    pass
+def findSites(tri_cacti, local_trees):
+    start_search = False
+    sites = []
+    with open(local_trees, 'r') as input:
+        # next(input)  # skip first line
+        for line in input:
+            if line.startswith("REPORTING Traceback and Update"):
+                start_search = True
+            if start_search and line.startswith("cactus"):
+                lineSplit = line.split()
+                this_catus = lineSplit[0]
+                if this_catus in tri_cacti:
+                    sites = str(lineSplit[1][:-1] + "\t" + lineSplit[2] + "\t" + lineSplit[4])
+    return sites
+
+def writeBed(sites, output):
+    f = open(output, "w")
+    for site in sites:
+        f.write(site + "\n")
+    f.close()
 
 def main():
-    input, output, local_trees = parseArgs()
-    if local_trees:
-        readInputLocalTrees(input)
-    else:
-        readInput(input)
+    input, local_trees, output = parseArgs()
+    # if local_trees:
+        # readInputLocalTrees(input)
+    tri_cacti = readInput(input)
+    sites = findSites(tri_cacti, local_trees)
+    writeBed(sites, output)
+
 
 if __name__ == '__main__':
     main()
