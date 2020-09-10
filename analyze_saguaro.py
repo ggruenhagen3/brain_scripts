@@ -20,8 +20,8 @@ def parseArgs():
                         default="saguaro_sep_sites_lg_w_25kb.bed",
                         const="saguaro_sep_sites_lg_w_25kb.bed")
     parser.add_argument("-go", "--gene_output", help="Name of output file of genes near bi v tri sties", nargs="?",
-                        default="saguaro_sep_genes.txt",
-                        const="saguaro_sep_genes.txt")
+                        default="saguaro_sep_genes_ens.txt",
+                        const="saguaro_sep_genes_ens.txt")
     parser.add_argument("-f", "--gtf", help="Input gtf file to find genes from", nargs="?",
                         default="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf",
                         const="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf")
