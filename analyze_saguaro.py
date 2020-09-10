@@ -170,7 +170,7 @@ def findSites(tri_cacti, local_trees):
                 lineSplit = line.split()
                 this_catus = lineSplit[0]
                 if this_catus in tri_cacti:
-                    sites = str(lineSplit[1][:-1] + "\t" + lineSplit[2] + "\t" + lineSplit[4])
+                    sites.append(str(lineSplit[1][:-1] + "\t" + lineSplit[2] + "\t" + lineSplit[4]))
     return sites
 
 def writeBed(sites, output):
