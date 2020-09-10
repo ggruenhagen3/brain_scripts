@@ -138,6 +138,7 @@ def allTriTree(tree_raw):
     i = 0
     flips = 0
     for line in tree_raw:
+        print(line)
         lineSplit = line.split("'")
         if len(lineSplit) > 1:
             cur_sample = lineSplit[1]
