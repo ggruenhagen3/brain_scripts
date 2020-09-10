@@ -232,7 +232,7 @@ def main():
     sites = findSites(tri_cacti, local_trees)
     writeBed(sites, bed_output, nc_format)
     os.system("bedtools intersect -wa -a " + gtf + " -b " + bed_output + " > " + tmp)
-    genes = extractGene(tmp)
+    genes = extractGene(tmp, nc_format)
     writeGenes(genes, gene_output)
 
 
