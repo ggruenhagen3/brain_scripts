@@ -103,7 +103,7 @@ def readInput(file):
                     frame1.axes.get_yaxis().set_visible(False)
                     plt.show()
                     png_name = str(cactus) + ".png"
-                    plt.savefig(png_name)
+                    plt.savefig(png_name, bbox_inches='tight', pad_inches=0)
                     rclone_cmd = "rclone copy " + png_name + " dropbox:BioSci-Streelman/George/tmp/"
                     print(rclone_cmd)
                     os.system(rclone_cmd)
