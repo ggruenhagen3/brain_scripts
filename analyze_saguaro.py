@@ -25,6 +25,9 @@ def parseArgs():
     parser.add_argument("-f", "--gtf", help="Input gtf file to find genes from", nargs="?",
                         default="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf",
                         const="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf")
+    parser.add_argument("-t", "--tmp", help="Name of temporary gtf file", nargs="?",
+                        default="saguaro_sep_sites.gtf",
+                        const="saguaro_sep_sites.gtf")
     parser.add_argument("-n", "--nc_format", help="Write sites in nc format", action="store_true")
     # parser.add_argument("-l", "--local_trees", help="Use LocalTrees.out instead of saguaro.cactus file", action="store_true")
     args = parser.parse_args()
@@ -197,9 +200,9 @@ def writeGenes(genes, gene_output):
         f.write(gene + "\n")
     f.close()
 
-def extractGene():
+def extractGene(file):
     genes = []
-    with open("saguaro_se_sites.gtf", 'r') as input:
+    with open(file, 'r') as input:
         for line in input:
             lineSplit = line.split("\t")
             info = lineSplit[8]
@@ -215,14 +218,14 @@ def extractGene():
     return genes
 
 def main():
-    input, local_trees, bed_output, gene_output, gtf, nc_format = parseArgs()
+    input, local_trees, bed_output, gene_output, gtf, tmp, nc_format = parseArgs()
     # if local_trees:
         # readInputLocalTrees(input)
     tri_cacti = readInput(input)
     sites = findSites(tri_cacti, local_trees)
     writeBed(sites, bed_output, nc_format)
-    os.system("bedtools intersect -wa -a " + gtf + " -b " + bed_output + " > saguaro_sep_sites.gtf")
-    genes = extractGene()
+    os.system("bedtools intersect -wa -a " + gtf + " -b " + bed_output + " > " + tmp)
+    genes = extractGene(tmp)
     writeGenes(genes, gene_output)
 
 
