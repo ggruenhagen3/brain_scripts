@@ -198,7 +198,7 @@ def main():
     tri_cacti = readInput(input)
     sites = findSites(tri_cacti, local_trees)
     writeBed(sites, bed_output, nc_format)
-    os.system("bedtools intersect -wa -a" + bed_output + " -b " + gtf + " > saguaro_sep_sites.gtf")
+    os.system("bedtools intersect -wa -a " + bed_output + " -b " + gtf + " > saguaro_sep_sites.gtf")
 
 if __name__ == '__main__':
     main()
