@@ -77,7 +77,7 @@ def readInput(file):
                     tree = constructor.nj(dm)
                     print(cactus)
                     print(tree)
-                    tree_raw = print(tree)
+                    tree_raw = str(tree)
                     if allTriTree(tree_raw):
                         print("ALL TRI TREE!!!")
                     Phylo.draw(tree)
