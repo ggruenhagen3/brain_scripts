@@ -20,8 +20,8 @@ def parseArgs():
                         default="saguaro_sep_sites_lg_w_25kb.bed",
                         const="saguaro_sep_sites_lg_w_25kb.bed")
     parser.add_argument("-go", "--gene_output", help="Name of output file of genes near bi v tri sties", nargs="?",
-                        default="saguaro_sep_genes.bed",
-                        const="saguaro_sep_genes.bed")
+                        default="saguaro_sep_genes.txt",
+                        const="saguaro_sep_genes.txt")
     parser.add_argument("-f", "--gtf", help="Input gtf file to find genes from", nargs="?",
                         default="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf",
                         const="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf")
@@ -222,6 +222,8 @@ def main():
     sites = findSites(tri_cacti, local_trees)
     writeBed(sites, bed_output, nc_format)
     os.system("bedtools intersect -wa -a " + gtf + " -b " + bed_output + " > saguaro_sep_sites.gtf")
+    genes = extractGene()
+    writeGenes(genes, gene_output)
 
 
 if __name__ == '__main__':
