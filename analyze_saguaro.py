@@ -191,6 +191,29 @@ def writeBed(sites, bed_output, nc_format):
         f.write(site + "\n")
     f.close()
 
+def writeGenes(genes, gene_output):
+    f = open(gene_output, "w")
+    for gene in genes:
+        f.write(gene + "\n")
+    f.close()
+
+def extractGene():
+    genes = []
+    with open("saguaro_se_sites.gtf", 'r') as input:
+        for line in input:
+            lineSplit = line.split("\t")
+            info = lineSplit[8]
+            gene_name_search = re.search("gene_name", info)
+            if gene_name_search:
+                gene_name = info[gene_name_search.start():].split(";")[0][11:-1]
+                genes.append(gene_name)
+            else:
+                gene_id = info.split('"')[1]
+                genes.append(gene_id)
+    genes = list(genes) # removes duplicates
+    genes = genes.sort()
+    return genes
+
 def main():
     input, local_trees, bed_output, gene_output, gtf, nc_format = parseArgs()
     # if local_trees:
@@ -199,6 +222,7 @@ def main():
     sites = findSites(tri_cacti, local_trees)
     writeBed(sites, bed_output, nc_format)
     os.system("bedtools intersect -wa -a " + gtf + " -b " + bed_output + " > saguaro_sep_sites.gtf")
+
 
 if __name__ == '__main__':
     main()
