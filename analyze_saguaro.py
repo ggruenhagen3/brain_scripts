@@ -65,22 +65,28 @@ def readInput(file):
     names = []
     matrix = []
     with open(file, 'r') as input:
-        next(input)  # skip first line
+        # next(input)  # skip first line
         for line in input:
             if line.startswith("cactus"):
-                print(names)
-                print(matrix)
-                dm = DistanceMatrix(names=names, matrix=matrix)
-                print(dm)
-                constructor = DistanceTreeConstructor()
-                tree = constructor.nj(dm)
-                print(tree)
-                Phylo.draw(tree)
-                plt.show()
-                plt.savefig("tree.png")
-                os.system("rclone copy tree.png dropbox:BioSci-Streelman/George/tmp/")
-                break
+                if i > 1:
+                    # print(names)
+                    # print(matrix)
+                    dm = DistanceMatrix(names=names, matrix=matrix)
+                    # print(dm)
+                    constructor = DistanceTreeConstructor()
+                    tree = constructor.nj(dm)
+                    print(cactus)
+                    print(tree)
+                    tree_raw = print(tree)
+                    if allTriTree(tree_raw):
+                        print("ALL TRI TREE!!!")
+                    Phylo.draw(tree)
+                    plt.show()
+                    plt.savefig(cactus + ".png")
+                    os.system("rclone copy " + cactus + ".png dropbox:BioSci-Streelman/George/tmp/")
+                    break
 
+                cactus = line
                 i = 0
                 names = []
                 matrix = []
@@ -96,6 +102,24 @@ def readInput(file):
                     matrix.append(mat_line_float)
             i += 1
     return
+
+def allTriTree(tree_raw):
+    is_all_tri = False
+    tri = ["2162", "2241", "2298", "2302", "2319", "2332", "403", "404", "493", "494", "495"]
+    previous_isTri = False
+    i = 0
+    flips = 0
+    for line in tree_raw:
+        lineSplit = line.split("'")
+        if len(lineSplit) > 1:
+            cur_sample = lineSplit[1]
+            if not cur_sample.startswith("Inner"):
+                cur_isTri = cur_sample in tri
+                if i > 0 and cur_isTri != previous_isTri:
+                    flips += 1
+                previous_isTri = cur_isTri
+                i += 1
+    return is_all_tri
 
 def toDistanceMatrix(lines):
     pass
