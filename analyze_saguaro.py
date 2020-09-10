@@ -72,6 +72,9 @@ def readInput(file):
                 constructor = DistanceTreeConstructor()
                 tree = constructor.nj(dm)
                 print(tree)
+                Phylo.draw(tree)
+                savefig("tree.png")
+                os.system("rclone copy tree.png dropbox:BioSci-Streelman/George/tmp/")
                 break
 
                 i = 0
