@@ -95,6 +95,10 @@ def readInput(file):
                         cur_node = tree.common_ancestor({"name": sample}) # idk how to access nodes
                         cur_node.color = "#f54242" # red
 
+                    non_terms = tree.get_nonterminals()
+                    for non_term in non_terms:
+                        non_term.name = ""
+
                     # Draw the figure
                     # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
                     plt.figure(figsize=(12, 6))
@@ -103,8 +107,8 @@ def readInput(file):
                     frame1.axes.get_yaxis().set_visible(False)
                     plt.show()
                     png_name = str(cactus) + ".png"
-                    plt.savefig(png_name, bbox_inches='tight', pad_inches=0)
-                    rclone_cmd = "rclone copy " + png_name + " dropbox:BioSci-Streelman/George/tmp/"
+                    plt.savefig(png_name, bbox_inches='tight', pad_inches=0, transparent=True)
+                    rclone_cmd = "rclone copy " + png_name + " dropbox:BioSci-Streelman/George/Tooth/ts_ms/saguaro/"
                     print(rclone_cmd)
                     os.system(rclone_cmd)
                     # break
