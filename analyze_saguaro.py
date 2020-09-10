@@ -141,6 +141,7 @@ def allTriTree(tree_raw):
         lineSplit = line.split("'")
         if len(lineSplit) > 1:
             cur_sample = lineSplit[1]
+            print(cur_sample)
             if not cur_sample.startswith("Inner"):
                 cur_isTri = cur_sample in tri
                 print(cur_isTri)
