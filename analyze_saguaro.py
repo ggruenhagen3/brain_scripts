@@ -101,13 +101,13 @@ def readInput(file):
                         non_term.name = ""
 
                     # Draw the figure
-                    # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
                     plt.figure(figsize=(12, 6))
-                    Phylo.draw(tree, branch_labels=lambda c: "{:.2f}".format(c.branch_length))
-                    frame1 = plt.gca()
-                    frame1.axes.get_yaxis().set_visible(False)
+                    Phylo.draw_graphviz(tree, prog="neato", node_size=0)
+                    # Phylo.draw(tree, branch_labels=lambda c: "{:.2f}".format(c.branch_length))
+                    # frame1 = plt.gca()
+                    # frame1.axes.get_yaxis().set_visible(False)
                     plt.show()
-                    png_name = str(cactus) + ".png"
+                    png_name = str(cactus) + "_unrooted.png"
                     plt.savefig(png_name, bbox_inches='tight', pad_inches=0, transparent=True)
                     rclone_cmd = "rclone copy " + png_name + " dropbox:BioSci-Streelman/George/Tooth/ts_ms/saguaro/"
                     print(rclone_cmd)
