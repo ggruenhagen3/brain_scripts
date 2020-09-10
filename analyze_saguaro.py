@@ -214,7 +214,8 @@ def extractGene(file):
                 gene_id = info.split('"')[1]
                 genes.append(gene_id)
     genes = list(genes) # removes duplicates
-    genes = genes.sort()
+    genes.sort()
+    print(str(len(genes)) + " genes found within 25kb of regions that have a phylogeny that separates bi from tri")
     return genes
 
 def main():
