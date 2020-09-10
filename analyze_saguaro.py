@@ -143,10 +143,10 @@ def allTriTree(tree_raw):
         lineSplit = line.split("'")
         if len(lineSplit) > 1:
             cur_sample = lineSplit[1]
-            print(cur_sample)
+            # print(cur_sample)
             if not cur_sample.startswith("Inner"):
                 cur_isTri = cur_sample in tri
-                print(cur_isTri)
+                # print(cur_isTri)
                 if i > 0 and cur_isTri != previous_isTri:
                     flips += 1
                 previous_isTri = cur_isTri
