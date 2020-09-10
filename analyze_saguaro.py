@@ -1,5 +1,4 @@
 import argparse
-import socket
 import convert_scaffolds
 import re
 import os
@@ -187,7 +186,7 @@ def findSites(tri_cacti, local_trees):
 def writeBed(sites, bed_output, nc_format):
     f = open(bed_output, "w")
     if not nc_format:
-        sites = convert_scaffolds(sites, False, True, "/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
+        sites = convert_scaffolds.convertScaffolds(sites, False, True, "/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
     for site in sites:
         f.write(site + "\n")
     f.close()
