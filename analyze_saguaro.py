@@ -5,6 +5,7 @@ import Bio.Phylo as Phylo
 import matplotlib.pyplot as plt
 from Bio.Phylo.TreeConstruction import DistanceMatrix
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
+from matplotlib.pyplot import figure
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Look for bi vs tri clusters in saguaro output')
@@ -80,6 +81,9 @@ def readInput(file):
                     tree_raw = str(tree)
                     if allTriTree(tree_raw):
                         print("ALL TRI TREE!!!")
+
+                    # Draw the figure
+                    figure(num=None, figsize=(6, 6), dpi=80, facecolor='w', edgecolor='k')
                     Phylo.draw(tree)
                     plt.show()
                     png_name = str(cactus) + ".png"
@@ -87,7 +91,7 @@ def readInput(file):
                     rclone_cmd = "rclone copy " + png_name + " dropbox:BioSci-Streelman/George/tmp/"
                     print(rclone_cmd)
                     os.system(rclone_cmd)
-                    break
+                    # break
 
                 cactus = str(line).strip()
                 i = 0
