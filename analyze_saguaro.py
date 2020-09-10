@@ -9,6 +9,7 @@ from matplotlib.pyplot import figure
 
 # Global Variables
 tri = ["2162", "2241", "2298", "2302", "2319", "2332", "403", "404", "493", "494", "495"]
+bi =  ["1619", "1818", "1860", "1863", "1912", "1983", "2277", "2320"]
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Look for bi vs tri clusters in saguaro output')
@@ -88,9 +89,11 @@ def readInput(file):
                     # Color Branches
                     tree.root.color = "gray"
                     for sample in tri:
-                        cur_node = tree.common_ancestor({"name": sample})
-                        cur_node.color = "blue"
-                    # tree.name("2320").color = "red"
+                        cur_node = tree.common_ancestor({"name": sample}) # idk how to access nodes
+                        cur_node.color = "#4287f5" # blue
+                    for sample in tri:
+                        cur_node = tree.common_ancestor({"name": sample}) # idk how to access nodes
+                        cur_node.color = "#f54242" # red
 
                     # Draw the figure
                     # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
