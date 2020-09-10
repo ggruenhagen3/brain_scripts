@@ -1,4 +1,5 @@
 import argparse
+import convert_scaffolds
 import re
 import os
 import Bio.Phylo as Phylo
@@ -15,12 +16,19 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Look for bi vs tri clusters in saguaro output')
     parser.add_argument('input', metavar='i', help='Saguaro saguaro.cactus file')
     parser.add_argument('local_trees', metavar='l', help='Saguaro LocalTrees.out file')
-    parser.add_argument("-o", "--output", help="Name of output file", nargs="?",
-                        default="/nv/hp10/ggruenhagen3/scratch/ts_ms/saguaro_sep_sites.txt",
-                        const="/nv/hp10/ggruenhagen3/scratch/ts_ms/saguaro_sep_sites.txt")
+    parser.add_argument("-bo", "--bed_output", help="Name of bed output file of sites with bi v tri cacti (with a 25 kb buffer)", nargs="?",
+                        default="saguaro_sep_sites_lg_w_25kb.bed",
+                        const="saguaro_sep_sites_lg_w_25kb.bed")
+    parser.add_argument("-go", "--gene_output", help="Name of output file of genes near bi v tri sties", nargs="?",
+                        default="saguaro_sep_genes.bed",
+                        const="saguaro_sep_genes.bed")
+    parser.add_argument("-f", "--gtf", help="Input gtf file to find genes from", nargs="?",
+                        default="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf",
+                        const="/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/ens_w_ncbi_2_sort.gtf")
+    parser.add_argument("-n", "--nc_format", help="Write sites in nc format", action="store_true")
     # parser.add_argument("-l", "--local_trees", help="Use LocalTrees.out instead of saguaro.cactus file", action="store_true")
     args = parser.parse_args()
-    return args.input, args.local_trees, args.output
+    return args.input, args.local_trees, args.bed_output, args.gene_output, args.gtf, args.nc_format
 
 def readInputLocalTrees(file):
     lines = []
@@ -170,23 +178,27 @@ def findSites(tri_cacti, local_trees):
                 lineSplit = line.split()
                 this_catus = lineSplit[0]
                 if this_catus in tri_cacti:
-                    sites.append(str(lineSplit[1][:-1] + "\t" + lineSplit[2] + "\t" + lineSplit[4]))
+                    start = max(lineSplit[2] + 25000, 0)  # ensures the 25kb buffer doesn't make starting position below 0
+                    stop = lineSplit[4] + 25000
+                    sites.append(str(lineSplit[1][:-1] + "\t" + start + "\t" + stop))
     return sites
 
-def writeBed(sites, output):
-    f = open(output, "w")
+def writeBed(sites, bed_output, nc_format):
+    f = open(bed_output, "w")
+    if not nc_format:
+        sites = convert_scaffolds(sites, False, True, "/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
     for site in sites:
         f.write(site + "\n")
     f.close()
 
 def main():
-    input, local_trees, output = parseArgs()
+    input, local_trees, bed_output, gene_output, gtf, nc_format = parseArgs()
     # if local_trees:
         # readInputLocalTrees(input)
     tri_cacti = readInput(input)
     sites = findSites(tri_cacti, local_trees)
-    writeBed(sites, output)
-
+    writeBed(sites, bed_output, nc_format)
+    os.system("bedtools -wa -a" + bed_output + " -b " + gtf + " > saguaro_sep_sites.gtf")
 
 if __name__ == '__main__':
     main()
