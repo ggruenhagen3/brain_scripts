@@ -200,15 +200,21 @@ def writeGenes(genes, gene_output):
         f.write(gene + "\n")
     f.close()
 
-def extractGene(file):
+def extractGene(file, nc_format):
     genes = []
     with open(file, 'r') as input:
         for line in input:
             lineSplit = line.split("\t")
             info = lineSplit[8]
-            gene_name_search = re.search("gene_name", info)
+            if nc_format:
+                gene_name_search = re.search('gene "', info)
+                gene_name_start = 5
+            else:
+                gene_name_search = re.search("gene_name", info)
+                gene_name_start = 11
+
             if gene_name_search:
-                gene_name = info[gene_name_search.start():].split(";")[0][11:-1]
+                gene_name = info[gene_name_search.start():].split(";")[0][gene_name_start:-1]
                 genes.append(gene_name)
             else:
                 gene_id = info.split('"')[1]
