@@ -82,10 +82,14 @@ def readInput(file):
                     if allTriTree(tree_raw):
                         print("ALL TRI TREE!!!")
 
+                    # Color Branches
+                    tree.root.color = "gray"
+                    tree.name("2320").color = "red"
+
                     # Draw the figure
                     # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
                     Phylo.draw(tree)
-                    plt.figure(figsize=(12,6))
+                    # fig = plt.figure(figsize=(12, 6))
                     plt.show()
                     png_name = str(cactus) + ".png"
                     plt.savefig(png_name)
