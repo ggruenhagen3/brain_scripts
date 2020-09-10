@@ -83,8 +83,9 @@ def readInput(file):
                         print("ALL TRI TREE!!!")
 
                     # Draw the figure
-                    figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
+                    # figure(num=None, figsize=(30, 6), dpi=80, facecolor='w', edgecolor='k')
                     Phylo.draw(tree)
+                    plt.figure(figsize=(12,6))
                     plt.show()
                     png_name = str(cactus) + ".png"
                     plt.savefig(png_name)
