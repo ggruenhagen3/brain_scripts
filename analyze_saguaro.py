@@ -219,7 +219,7 @@ def extractGene(file, nc_format):
             else:
                 gene_id = info.split('"')[1]
                 genes.append(gene_id)
-    genes = list(genes) # removes duplicates
+    genes = list(set(genes)) # removes duplicates
     genes.sort()
     print(str(len(genes)) + " genes found within 25kb of regions that have a phylogeny that separates bi from tri")
     return genes
