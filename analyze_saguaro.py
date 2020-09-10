@@ -89,7 +89,7 @@ def readInput(file):
                     os.system(rclone_cmd)
                     break
 
-                cactus = line
+                cactus = str(line).strip()
                 i = 0
                 names = []
                 matrix = []
