@@ -83,7 +83,7 @@ def readInput(file):
                     Phylo.draw(tree)
                     plt.show()
                     png_name = str(cactus) + ".png"
-                    plt.savefig()
+                    plt.savefig(png_name)
                     rclone_cmd = "rclone copy " + png_name + " dropbox:BioSci-Streelman/George/tmp/"
                     print(rclone_cmd)
                     os.system(rclone_cmd)
