@@ -9,13 +9,14 @@ def parseArgs():
     parser.add_argument('output', metavar='o', help='Name of Output File')
     parser.add_argument("-l", "--lg_to_nc", help="Converts LG to NC", action="store_true")
     parser.add_argument("-n", "--nc_to_lg", help="Converts NC to LG", action="store_true")
+    parser.add_argument("-v", "--verbose", help="Print every line?", action="store_true")
     parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
                         default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
                         const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
     parser.add_argument("-p", "--pace", help="Running the script on pace: use pace location of the assembly report", action="store_true")
 
     args = parser.parse_args()
-    return args.input, args.output, args.lg_to_nc, args.nc_to_lg, args.assembly_report_path, args.pace
+    return args.input, args.output, args.lg_to_nc, args.nc_to_lg, args.verbose, args.assembly_report_path, args.pace
 
 
 def readFile(file):
@@ -38,7 +39,7 @@ def readAssemblyReport(assemblyReportPath):
     return dict
 
 
-def convertScaffolds(lines, toNC, toLG, assembly_report_path):
+def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
     """"
     From a list of lines, use regex to convert from LG to NC or NC to LG
     """
@@ -60,6 +61,8 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path):
     i = 0
     previous_mark = 0
     for line in lines:
+        if verbose:
+            print(i)
         for key in dict.keys():
             if toNC:
                 my_regex = r'\b' + dict[key] + r'\b'
@@ -89,7 +92,7 @@ def writeFile(file, lines):
 
 
 def main():
-    input, output, toNC, toLG, assembly_report_path, pace = parseArgs()
+    input, output, toNC, toLG, verbose, assembly_report_path, pace = parseArgs()
     if toNC:
         print("Converting from LG format to NC format")
     if toLG:
@@ -99,7 +102,7 @@ def main():
         print("Running script on PACE using /nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
         assembly_report_path = "/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt"
     print("Number of input lines " + str(len(lines)))
-    lines = convertScaffolds(lines, toNC, toLG, assembly_report_path)
+    lines = convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose)
     print("Number of output lines " + str(len(lines)))
     writeFile(output, lines)
     print("Done.")
