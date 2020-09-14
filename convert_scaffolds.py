@@ -95,12 +95,12 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
     for key in dict.keys():
         if verbose:
             print("converting " + key + "/" + dict[key])
-        
+
         if toNC:
             my_regex = r'\b' + dict[key] + r'\b'
         else:
             my_regex = r'\b' + key + r'\b'
-        rec = re.complie(my_regex)  # pre-compile the regex to increase speed
+        rec = re.compile(my_regex)  # pre-compile the regex to increase speed
         for line in lines:
             if toNC:
                 new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
