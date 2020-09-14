@@ -56,13 +56,14 @@ def converScaffoldsSed(toNC, toLG, assembly_report_path, output, verbose=False):
     sed_command = ""
     for key in dict.keys():
         if toNC:
-            new_command = "sed 's/" + str(dict[key]) + "/" + str(key) + "/g"
+            new_command = "sed 's/" + str(dict[key]) + "/" + str(key) + "/g'"
         else:
-            new_command = "sed 's/" + str(key) + "/" + str(dict[key]) + "/g"
+            new_command = "sed 's/" + str(key) + "/" + str(dict[key]) + "/g'"
         sed_command = sed_command + " | " + new_command
         # i += 1
     sed_command = sed_command[3:] # trim off the first pipe
     sed_command = sed_command + " > " + str(output)
+    print(sed_command)
     success = os.system(sed_command)
     if success:
         print("Sed command was successful!")
