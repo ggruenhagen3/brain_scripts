@@ -51,7 +51,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
     indicative_not_found = 0
     indicative_found_count = 0
     non_indicative_not_found = 0
-    n_fail = 0
+    n_fail_allele = 0
     with open(output_table, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -106,13 +106,15 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                     else:
                         j += 1
                 else:
-                    n_fail += 1
+                    n_fail_allele += 1
                 i += 1
+    n_fail = n_fail_allele + indicative_found_count + non_indicative_not_found
     print("\tTotal Genes in Output Table: " + str(i))
     print("\tGenes in Output Table Not Found in GTF: " + str(j) + "\n")
     print("\tEntries Able to Determine MC from CV (Total Successes): " + str(indicative_found_count) + " (" +
-          str( (indicative_found_count/(indicative_found_count+n_fail))*100 ) + ")")
-    print("\tTotal Failures: " + str(n_fail) + " (" + str((n_fail/(indicative_found_count+n_fail))*100) + ")")
+          str( (indicative_found_count/(indicative_found_count+n_fail))*100 ) + "%)")
+    print("\tTotal Failures: " + str(n_fail) + " (" + str((n_fail/(indicative_found_count+n_fail))*100) + "%)")
+    print("\t\tEntries With <5 Counts For Both Alleles: " + str(n_fail_allele))
     print("\t\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
     print("\t\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
     return counts
