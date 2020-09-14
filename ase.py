@@ -111,8 +111,8 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
     print("\tTotal Genes in Output Table: " + str(i))
     print("\tGenes in Output Table Not Found in GTF: " + str(j) + "\n")
     print("\tEntries Able to Determine MC from CV (Total Successes): " + str(indicative_found_count) + " (" +
-          str( (indicative_found_count/(indicative_found_count+n_fail))* 100) ) + ")"
-    print("\tTotal Failures: " + str(n_fail) + " (" + str((n_fail/(indicative_found_count+n_fail))* 100) + ")")
+          str( (indicative_found_count/(indicative_found_count+n_fail))*100 ) + ")")
+    print("\tTotal Failures: " + str(n_fail) + " (" + str((n_fail/(indicative_found_count+n_fail))*100) + ")")
     print("\t\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
     print("\t\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
     return counts
