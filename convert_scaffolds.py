@@ -103,6 +103,7 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
 
     i = 0
     previous_mark = 0
+    keys = dict.keys()
     for line in lines:
         if verbose:
             print(i)
@@ -113,8 +114,11 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
             else:
                 new_line = rec.sub(dict[key], line)  # Converts from NC_ to LG
             if new_line != line:
-                new_lines.append(new_line)
+                line = new_line
                 break
+        new_lines.append(line)
+        if line.startswith("NW"):
+            keys.reverse()
         this_mark = i // (len(lines)/40)
         # Update Toolbar
         if this_mark > previous_mark:
