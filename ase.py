@@ -99,7 +99,6 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                                     counts[gene] = [mc_count, cv_count]
                                 else:
                                     counts[gene] = [counts[gene][0]+mc_count, counts[gene][1]+cv_count]
-                                # print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
                     else:
                         j += 1
                 i += 1
@@ -137,11 +136,13 @@ def findMC(mc_cv):
                     if cv_alleles[0] not in mc_alleles:
                         if cv_alleles[0] not in alleles:
                                 cv_alleles[0] = alleles[int(cv_alleles[0])]
+                        mc_alleles_mod = [alleles[int(x)] for x in mc_alleles]
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_alleles[0], mc_alleles]
                 if mc_alleles[0] == mc_alleles[1]:
                     if mc_alleles[0] not in cv_alleles:
                         if mc_alleles[0] not in alleles:
                                 mc_alleles[0] = alleles[int(mc_alleles[0])]
+                        cv_alleles_mod = [alleles[int(x)] for x in cv_alleles]
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_alleles[0], cv_alleles]
     return mc_cv_dict
 
