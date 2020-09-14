@@ -132,17 +132,13 @@ def findMC(mc_cv):
                 mc = lineSplit[10]
                 cv_alleles = [cv.split("/")[0], cv.split("/")[1][0:1]]
                 mc_alleles = [mc.split("/")[0], mc.split("/")[1][0:1]]
+                cv_alleles = [x if x=="." else alleles[int(x)] for x in cv_alleles]
+                mc_alleles = [x if x=="." else alleles[int(x)] for x in mc_alleles]
                 if cv_alleles[0] == cv_alleles[1]:
                     if cv_alleles[0] not in mc_alleles:
-                        if cv_alleles[0] not in alleles:
-                                cv_alleles[0] = alleles[int(cv_alleles[0])]
-                        mc_alleles_mod = [alleles[int(x)] for x in mc_alleles]
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_alleles[0], mc_alleles]
                 if mc_alleles[0] == mc_alleles[1]:
                     if mc_alleles[0] not in cv_alleles:
-                        if mc_alleles[0] not in alleles:
-                                mc_alleles[0] = alleles[int(mc_alleles[0])]
-                        cv_alleles_mod = [alleles[int(x)] for x in cv_alleles]
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_alleles[0], cv_alleles]
     return mc_cv_dict
 
