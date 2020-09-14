@@ -92,20 +92,22 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
 
     i = 0
     previous_mark = 0
-    for line in lines:
-        if verbose:
-            print(i)
-        for key in dict.keys():
+    for key in dict.keys():
+        if toNC:
+            my_regex = r'\b' + dict[key] + r'\b'
+        else:
+            my_regex = r'\b' + key + r'\b'
+        rec = re.complie(my_regex)  # pre-compile the regex to increase speed
+        for line in lines:
             if toNC:
-                my_regex = r'\b' + dict[key] + r'\b'
                 new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
             else:
-                my_regex = r'\b' + key + r'\b'
                 new_line = re.sub(my_regex, dict[key], line)  # Converts from NC_ to LG
             if new_line != line:
                 new_lines.append(new_line)
                 break
-        this_mark = i // (len(lines)/40)
+
+        this_mark = i // (len(dict.keys())/40)
         # Update Toolbar
         if this_mark > previous_mark:
             sys.stdout.write("-")
