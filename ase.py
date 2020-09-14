@@ -11,7 +11,7 @@ def parseArgs():
     parser.add_argument("-g", "--gtf", help="Path to Mzebra_%% gtf", nargs="?",
                         default="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra_%/genes.gtf",
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra_%/genes.gtf")
-    parser.add_argument("-o", "--output", help="Output file", nargs="?",
+    parser.add_argument("-o", "--output", help="Output counts file", nargs="?",
                         default="counts.tsv",
                         const="counts.tsv")
 
@@ -49,6 +49,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
     i = 0
     j = 0
     indicative_not_found = 0
+    indicative_found_count = 0
     non_indicative_not_found = 0
     with open(output_table, 'r') as input:
         for line in input:
@@ -75,6 +76,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                                 cv_count = alt_count
                                 if lineSplit[4] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
+                                    print(lineSplit[4] + " not found in " + str(mc_cv_dict[pos][2]))
                             elif indicative_allele == lineSplit[4]:
                                 mc_count = alt_count
                                 cv_count = ref_count
@@ -85,6 +87,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                                 indicative_found = False
 
                             if indicative_found:
+                                indicative_found_count += 1
                                 # If the indicative allele was cv, not mc, then flip the logic
                                 if mc_cv_dict[pos][0] == "cv":
                                     tmp = mc_count
@@ -102,6 +105,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                 i += 1
     print("\tTotal Genes in Output Table: " + str(i))
     print("\tGenes in Output Table Not Found in GTF: " + str(j))
+    print("\tEntries Able to Determine MC from CV: " + str(indicative_found_count))
     print("\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
     print("\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
     return counts
@@ -143,7 +147,7 @@ def findMC(mc_cv):
 
 def writeCounts(counts, output):
     f = open(output, "w")
-    f.write("GENE\tCV_COUNTS\tMC_COUNTS\n")
+    f.write("GENE\tMC_COUNTS\tCV_COUNTS\n")
     for gene in counts.keys():
         f.write(gene + "\t" + str(counts[gene][0]) + "\t" + str(counts[gene][1]) + "\n")
     f.close()
