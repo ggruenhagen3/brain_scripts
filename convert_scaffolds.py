@@ -120,7 +120,7 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
                 # Reorder last used key to front
                 if last_key != key:
                     ind = keys.index(key)
-                    keys = keys[ind:] + keys[1:ind]
+                    keys = keys[ind:] + keys[0:ind]
                     print(len(keys))
                 last_key = key
                 break
