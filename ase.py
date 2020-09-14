@@ -51,6 +51,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
     indicative_not_found = 0
     indicative_found_count = 0
     non_indicative_not_found = 0
+    n_fail = 0
     with open(output_table, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -61,6 +62,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                 dist = int(info[int(info.index("="))+1:int(info.index("|"))])
                 start = info.index("Transcript:")+11
                 transcript = info[start:start+18]
+                success = False
                 if ref_count > 5 and alt_count > 5:  # filtering step from Chinar
                     if transcript in trans_to_gene.keys():
                         gene = trans_to_gene[transcript]
@@ -69,24 +71,26 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                         pos = lineSplit[0] + ":" + lineSplit[1]
                         if pos in mc_cv_dict.keys():
                             indicative_allele = mc_cv_dict[pos][1]
-                            indicative_found = True
                             # See if the indicative allele is found
                             if indicative_allele == lineSplit[3]:
                                 mc_count = ref_count
                                 cv_count = alt_count
+                                success = True
                                 if lineSplit[4] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
-                                    print(lineSplit[4] + " not found in " + str(mc_cv_dict[pos][2]))
+                                    success = False
+                                    # print(lineSplit[4] + " not found in " + str(mc_cv_dict[pos][2]))
                             elif indicative_allele == lineSplit[4]:
                                 mc_count = alt_count
                                 cv_count = ref_count
+                                success = True
                                 if lineSplit[3] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
+                                    success = False
                             else:
                                 indicative_not_found += 1
-                                indicative_found = False
 
-                            if indicative_found:
+                            if success:
                                 indicative_found_count += 1
                                 # If the indicative allele was cv, not mc, then flip the logic
                                 if mc_cv_dict[pos][0] == "cv":
@@ -101,12 +105,16 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                                     counts[gene] = [counts[gene][0]+mc_count, counts[gene][1]+cv_count]
                     else:
                         j += 1
+                else:
+                    n_fail += 1
                 i += 1
     print("\tTotal Genes in Output Table: " + str(i))
-    print("\tGenes in Output Table Not Found in GTF: " + str(j))
-    print("\tEntries Able to Determine MC from CV: " + str(indicative_found_count))
-    print("\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
-    print("\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
+    print("\tGenes in Output Table Not Found in GTF: " + str(j) + "\n")
+    print("\tEntries Able to Determine MC from CV (Total Successes): " + str(indicative_found_count) +
+          str(indicative_found_count/(indicative_found_count+n_fail)))
+    print("\tTotal Failures: " + str(n_fail) + str(n_fail/(indicative_found_count+n_fail)))
+    print("\t\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
+    print("\t\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
     return counts
 
 def findMC(mc_cv):
