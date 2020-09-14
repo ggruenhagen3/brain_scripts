@@ -2,6 +2,7 @@ import argparse
 import re
 import time
 import sys
+import os
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Converts Linkage Group Names to NCBI Format with NC and vice versa')
@@ -10,13 +11,14 @@ def parseArgs():
     parser.add_argument("-l", "--lg_to_nc", help="Converts LG to NC", action="store_true")
     parser.add_argument("-n", "--nc_to_lg", help="Converts NC to LG", action="store_true")
     parser.add_argument("-v", "--verbose", help="Print every line?", action="store_true")
+    parser.add_argument("-s", "--sed", help="Use sed to convert the scaffolds", action="store_true")
     parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
                         default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
                         const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
     parser.add_argument("-p", "--pace", help="Running the script on pace: use pace location of the assembly report", action="store_true")
 
     args = parser.parse_args()
-    return args.input, args.output, args.lg_to_nc, args.nc_to_lg, args.verbose, args.assembly_report_path, args.pace
+    return args.input, args.output, args.lg_to_nc, args.nc_to_lg, args.verbose, args.sed, args.assembly_report_path, args.pace
 
 
 def readFile(file):
@@ -27,7 +29,7 @@ def readFile(file):
     return lines
 
 def readAssemblyReport(assemblyReportPath):
-    dict = {}
+    dict = {}  # key is nc and value is lg
     with open(assemblyReportPath, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -37,6 +39,35 @@ def readAssemblyReport(assemblyReportPath):
                 if lg == "na":
                     dict[lineSplit[6]] = lineSplit[4]
     return dict
+
+def converScaffoldsSed(toNC, toLG, assembly_report_path, output, verbose=False):
+    """"
+    From a list of lines, use sytem calls with sed to convert from LG to NC or NC to LG
+    """
+    # # setup toolbar
+    # toolbar_width = 40
+    # sys.stdout.write("[%s]" % (" " * toolbar_width))
+    # sys.stdout.flush()
+    # sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
+
+    dict = readAssemblyReport(assembly_report_path)
+
+    # i = 0
+    sed_command = ""
+    for key in dict.keys():
+        if toNC:
+            new_command = "sed 's/" + str(dict[key]) + "/" + str(key) + "/g"
+        else:
+            new_command = "sed 's/" + str(key) + "/" + str(dict[key]) + "/g"
+        sed_command = sed_command + " | " + new_command
+        # i += 1
+    sed_command = sed_command[3:] # trim off the first pipe
+    sed_command = sed_command + " > " + str(output)
+    success = os.system(sed_command)
+    if success:
+        print("Sed command was successful!")
+    else:
+        print("Sed command was not successful.")
 
 
 def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
@@ -92,20 +123,27 @@ def writeFile(file, lines):
 
 
 def main():
-    input, output, toNC, toLG, verbose, assembly_report_path, pace = parseArgs()
+    input, output, toNC, toLG, verbose, sed, assembly_report_path, pace = parseArgs()
     if toNC:
         print("Converting from LG format to NC format")
     if toLG:
         print("Converting from NC format to LG format")
-    lines = readFile(input)
+
     if pace:
-        print("Running script on PACE using /nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
+        print(
+            "Running script on PACE using /nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
         assembly_report_path = "/nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt"
-    print("Number of input lines " + str(len(lines)))
-    lines = convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose)
-    print("Number of output lines " + str(len(lines)))
-    writeFile(output, lines)
-    print("Done.")
+
+    if sed:
+        print("Using sed to convert scaffolds")
+        converScaffoldsSed(toNC, toLG, assembly_report_path, output, verbose)
+    else:
+        lines = readFile(input)
+        print("Number of input lines " + str(len(lines)))
+        lines = convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose)
+        print("Number of output lines " + str(len(lines)))
+        writeFile(output, lines)
+        print("Done.")
 
 
 if __name__ == '__main__':
