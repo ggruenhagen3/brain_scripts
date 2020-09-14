@@ -47,6 +47,8 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
     counts = {}  # key = gene, value = [mc_count, cv_count]
     i = 0
     j = 0
+    indicative_not_found = 0
+    non_indicative_not_found = 0
     with open(output_table, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -61,19 +63,46 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                     if transcript in trans_to_gene.keys():
                         gene = trans_to_gene[transcript]
 
-                        # Determine if this is an indicative position of mc or cv
                         # Determine whether ref is mc or if alt is mc
+                        pos = lineSplit[0] + ":" + lineSplit[1]
+                        if pos in mc_cv_dict.keys():
+                            indicative_allele = mc_cv_dict[pos][1]
+                            indicative_found = True
+                            # See if the indicative allele is found
+                            if indicative_allele == lineSplit[3]:
+                                mc_count = ref_count
+                                cv_count = alt_count
+                                if lineSplit[4] not in mc_cv_dict[pos][3]:
+                                    non_indicative_not_found += 1
+                            elif indicative_allele == lineSplit[4]:
+                                mc_count = alt_count
+                                cv_count = ref_count
+                                if lineSplit[3] not in mc_cv_dict[pos][3]:
+                                    non_indicative_not_found += 1
+                            else:
+                                indicative_not_found += 1
+                                indicative_found = False
 
-                        if gene not in counts.keys():
-                            counts[gene] = [ref_count, alt_count]
-                        else:
-                            counts[gene] = [counts[gene][0]+ref_count, counts[gene][1]+alt_count]
-                        # print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
+                            if indicative_found:
+                                # If the indicative allele was cv, not mc, then flip the logic
+                                if mc_cv_dict[0] == "cv":
+                                    tmp = mc_count
+                                    mc_count = cv_count
+                                    cv_count = tmp
+
+                                # Add the counts
+                                if gene not in counts.keys():
+                                    counts[gene] = [mc_count, cv_count]
+                                else:
+                                    counts[gene] = [counts[gene][0]+mc_count, counts[gene][1]+cv_count]
+                                # print(str(ref_count) + "\t" + str(alt_count) + "\t" + transcript + "\t" + gene)
                     else:
                         j += 1
                 i += 1
     print("\tTotal Genes in Output Table: " + str(i))
     print("\tGenes in Output Table Not Found in GTF: " + str(j))
+    print("\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
+    print("\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
     return counts
 
 def findMC(mc_cv):
@@ -99,22 +128,21 @@ def findMC(mc_cv):
                 mc = lineSplit[10]
                 cv_alleles = [cv.split("/")[0], cv.split("/")[1][0:1]]
                 mc_alleles = [mc.split("/")[0], mc.split("/")[1][0:1]]
-                for cv_allele in cv_alleles:
-                    if cv_allele not in mc_alleles:
-                        if cv_allele not in alleles:
-                            print(cv_allele)
-                            cv_allele = alleles[int(cv_allele)]
-                        mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_allele]
-                for mc_allele in mc_alleles:
-                    if mc_allele not in mc_alleles:
-                        if mc_allele not in alleles:
-                            mc_allele = alleles[int(mc_allele)]
-                        mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_allele]
+                if cv_alleles[0] == cv_alleles[1]:
+                    if cv_alleles[0] not in mc_alleles:
+                        if cv_alleles[0] not in alleles:
+                                cv_allele = alleles[int(cv_alleles[0])]
+                        mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_allele, mc_alleles]
+                if mc_alleles[0] == mc_alleles[1]:
+                    if mc_alleles[0] not in cv_alleles:
+                        if mc_alleles[0] not in alleles:
+                                mc_allele = alleles[int(mc_alleles[0])]
+                        mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_allele, cv_alleles]
     return mc_cv_dict
 
 def writeCounts(counts, output):
     f = open(output, "w")
-    f.write("GENE\tREF_COUNTS\tALT_COUNTS\n")
+    f.write("GENE\tCV_COUNTS\tMC_COUNTS\n")
     for gene in counts.keys():
         f.write(gene + "\t" + str(counts[gene][0]) + "\t" + str(counts[gene][1]) + "\n")
     f.close()
