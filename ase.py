@@ -105,7 +105,7 @@ def findMC(mc_cv):
                     if mc_allele not in mc_alleles:
                         if mc_allele not in alleles:
                             mc_allele = alleles[int(mc_allele)]
-                        mc_cv_dict[[lineSplit[0], lineSplit[1]]] = ["mc", mc_allele]
+                        mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_allele]
     return mc_cv_dict
 
 def writeCounts(counts, output):
