@@ -103,7 +103,7 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
 
     i = 0
     previous_mark = 0
-    keys = dict.keys()
+    keys = list(dict.keys())
     print(keys[1:5])
     for line in lines:
         if verbose:
