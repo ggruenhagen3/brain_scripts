@@ -89,22 +89,23 @@ def findMC(mc_cv):
 
     with open(mc_cv, 'r') as input:
         for line in input:
-            lineSplit = line.split()
-            alleles = [lineSplit[3], lineSplit[4], "."]
-            cv = lineSplit[9]
-            mc = lineSplit[10]
-            cv_alleles = [cv.split("/")[0], cv.split("/")[1][0:1]]
-            mc_alleles = [mc.split("/")[0], mc.split("/")[1][0:1]]
-            for cv_allele in cv_alleles:
-                if cv_allele not in mc_alleles:
-                    if cv_allele not in alleles:
-                        cv_allele = alleles[int(cv_allele)]
-                    mc_cv_dict[[lineSplit[0], lineSplit[1]]] = ["cv", cv_allele]
-            for mc_allele in mc_alleles:
-                if mc_allele not in mc_alleles:
-                    if mc_allele not in alleles:
-                        mc_allele = alleles[int(mc_allele)]
-                    mc_cv_dict[[lineSplit[0], lineSplit[1]]] = ["mc", mc_allele]
+            if not line.startswith("#"):
+                lineSplit = line.split()
+                alleles = [lineSplit[3], lineSplit[4], "."]
+                cv = lineSplit[9]
+                mc = lineSplit[10]
+                cv_alleles = [cv.split("/")[0], cv.split("/")[1][0:1]]
+                mc_alleles = [mc.split("/")[0], mc.split("/")[1][0:1]]
+                for cv_allele in cv_alleles:
+                    if cv_allele not in mc_alleles:
+                        if cv_allele not in alleles:
+                            cv_allele = alleles[int(cv_allele)]
+                        mc_cv_dict[[lineSplit[0], lineSplit[1]]] = ["cv", cv_allele]
+                for mc_allele in mc_alleles:
+                    if mc_allele not in mc_alleles:
+                        if mc_allele not in alleles:
+                            mc_allele = alleles[int(mc_allele)]
+                        mc_cv_dict[[lineSplit[0], lineSplit[1]]] = ["mc", mc_allele]
     return mc_cv_dict
 
 def writeCounts(counts, output):
