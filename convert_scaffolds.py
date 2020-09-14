@@ -93,6 +93,9 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
     i = 0
     previous_mark = 0
     for key in dict.keys():
+        if verbose:
+            print("converting " + key + "/" + dict[key])
+        
         if toNC:
             my_regex = r'\b' + dict[key] + r'\b'
         else:
