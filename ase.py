@@ -86,7 +86,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
 
                             if indicative_found:
                                 # If the indicative allele was cv, not mc, then flip the logic
-                                if mc_cv_dict[0] == "cv":
+                                if mc_cv_dict[pos][0] == "cv":
                                     tmp = mc_count
                                     mc_count = cv_count
                                     cv_count = tmp
