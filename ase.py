@@ -90,7 +90,7 @@ def findMC(mc_cv):
     with open(mc_cv, 'r') as input:
         for line in input:
             if not line.startswith("#"):
-                print(line)
+                # print(line)
                 lineSplit = line.split()
                 alleles = [lineSplit[3]]
                 alleles.extend(lineSplit[4].split(","))
