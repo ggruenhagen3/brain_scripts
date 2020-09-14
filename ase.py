@@ -152,11 +152,17 @@ def findMC(mc_cv):
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_alleles[0], cv_alleles]
     return mc_cv_dict
 
-def writeCounts(counts, output):
+def writeCounts(counts, output, trans_to_gene):
+    all_gene = trans_to_gene.values().sort()
     f = open(output, "w")
     f.write("GENE\tMC_COUNTS\tCV_COUNTS\n")
-    for gene in counts.keys():
-        f.write(gene + "\t" + str(counts[gene][0]) + "\t" + str(counts[gene][1]) + "\n")
+    for gene in all_gene:
+        mc_counts = 0
+        cv_counts = 0
+        if gene in counts.keys():
+            mc_counts = counts[gene][0]
+            cv_counts = counts[gene][1]
+        f.write(gene + "\t" + str(mc_counts) + "\t" + str(cv_counts) + "\n")
     f.close()
 
 def main():
@@ -168,7 +174,7 @@ def main():
     print("Summing MC and CV distinguishing alleles in file")
     counts = readOutputTable(output_table, trans_to_gene, mc_cv_dict)
     print("Writing Output")
-    writeCounts(counts, output)
+    writeCounts(counts, output, trans_to_gene)
     print("Done")
 
 if __name__ == '__main__':
