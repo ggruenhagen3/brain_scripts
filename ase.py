@@ -153,7 +153,8 @@ def findMC(mc_cv):
     return mc_cv_dict
 
 def writeCounts(counts, output, trans_to_gene):
-    all_gene = list(set(trans_to_gene.values())).sort()
+    all_gene = list(set(trans_to_gene.values()))
+    all_gene.sort()
     f = open(output, "w")
     f.write("GENE\tMC_COUNTS\tCV_COUNTS\n")
     for gene in all_gene:
