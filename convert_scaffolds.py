@@ -91,18 +91,27 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
     # dict["NC_036801.1"] = "LG23"
     dict = readAssemblyReport(assembly_report_path)
 
+    # Pre-compile regex
+    rec_dict = {}  # key is key and value is pre-compiled regex
+    for key in dict.keys():
+        if toNC:
+            my_regex = r'\b' + dict[key] + r'\b'
+        else:
+            my_regex = r'\b' + key + r'\b'
+        rec = re.compile(my_regex)
+        rec_dict[key] = rec
+
     i = 0
     previous_mark = 0
     for line in lines:
         if verbose:
             print(i)
         for key in dict.keys():
+            rec = rec_dict[key]
             if toNC:
-                my_regex = r'\b' + dict[key] + r'\b'
-                new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
+                new_line = rec.sub(key, line)  # Converts from LG to NC_
             else:
-                my_regex = r'\b' + key + r'\b'
-                new_line = re.sub(my_regex, dict[key], line)  # Converts from NC_ to LG
+                new_line = rec.sub(dict[key], line)  # Converts from NC_ to LG
             if new_line != line:
                 new_lines.append(new_line)
                 break
