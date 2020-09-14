@@ -92,7 +92,7 @@ def findMC(mc_cv):
             if not line.startswith("#"):
                 print(line)
                 lineSplit = line.split()
-                alleles = [lineSplit[3]].extend(lineSplit[4]).append(".") # ref, alt1, alt2, alt3, etc..., .
+                alleles = [lineSplit[3]].extend(lineSplit[4].split(",")).append(".") # ref, alt1, alt2, alt3, etc..., .
                 cv = lineSplit[9]
                 mc = lineSplit[10]
                 cv_alleles = [cv.split("/")[0], cv.split("/")[1][0:1]]
