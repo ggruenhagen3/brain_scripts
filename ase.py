@@ -100,7 +100,7 @@ def findMC(mc_cv):
                     if cv_allele not in mc_alleles:
                         if cv_allele not in alleles:
                             cv_allele = alleles[int(cv_allele)]
-                        mc_cv_dict[[lineSplit[0], lineSplit[1]]] = ["cv", cv_allele]
+                        mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_allele]
                 for mc_allele in mc_alleles:
                     if mc_allele not in mc_alleles:
                         if mc_allele not in alleles:
