@@ -116,17 +116,13 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
                 new_line = rec.sub(dict[key], line)  # Converts from NC_ to LG
             if new_line != line:
                 line = new_line
-                # Reorder last used key to front
+                # Reorder last used key to front. Dramatically increases speed in sorted files.
                 if last_key != key:
                     ind = keys.index(key)
                     keys = keys[ind:] + keys[0:ind]
                 last_key = key
                 break
         new_lines.append(line)
-        # if line.startswith("NW"):
-        #     keys.reverse()
-        #     print(keys[1:5])
-        #     break
         this_mark = i // (len(lines)/40)
         # Update Toolbar
         if this_mark > previous_mark:
@@ -169,7 +165,7 @@ def main():
         writeFile(output, lines)
         print("Done.")
     end = time.time()
-    print("Runtime is " + str(end-start))
+    print("Runtime is " + str(end-start) + "seconds.")
 
 
 if __name__ == '__main__':

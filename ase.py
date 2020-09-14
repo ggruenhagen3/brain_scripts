@@ -2,6 +2,7 @@ import argparse
 import re
 import time
 import sys
+import os
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Finds MC vs CV Counts')
@@ -72,12 +73,12 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                             if indicative_allele == lineSplit[3]:
                                 mc_count = ref_count
                                 cv_count = alt_count
-                                if lineSplit[4] not in mc_cv_dict[pos][3]:
+                                if lineSplit[4] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
                             elif indicative_allele == lineSplit[4]:
                                 mc_count = alt_count
                                 cv_count = ref_count
-                                if lineSplit[3] not in mc_cv_dict[pos][3]:
+                                if lineSplit[3] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
                             else:
                                 indicative_not_found += 1
