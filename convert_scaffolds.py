@@ -104,7 +104,6 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
     i = 0
     previous_mark = 0
     keys = list(dict.keys())
-    print(len(keys))
     last_key = keys[1]
     for line in lines:
         if verbose:
@@ -121,7 +120,6 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
                 if last_key != key:
                     ind = keys.index(key)
                     keys = keys[ind:] + keys[0:ind]
-                    print(len(keys))
                 last_key = key
                 break
         new_lines.append(line)
