@@ -106,9 +106,9 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
                 new_line = re.sub(my_regex, key, line)  # Converts from LG to NC_
             else:
                 new_line = re.sub(my_regex, dict[key], line)  # Converts from NC_ to LG
-            if new_line != line:
-                new_lines.append(new_line)
-                break
+            # if new_line != line:
+            new_lines.append(new_line)
+                # break
 
         this_mark = i // (len(dict.keys())/40)
         # Update Toolbar
