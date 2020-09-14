@@ -104,6 +104,7 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
     i = 0
     previous_mark = 0
     keys = dict.keys()
+    print(keys[1:5])
     for line in lines:
         if verbose:
             print(i)
@@ -119,6 +120,8 @@ def convertScaffolds(lines, toNC, toLG, assembly_report_path, verbose=False):
         new_lines.append(line)
         if line.startswith("NW"):
             keys.reverse()
+            print(keys[1:5])
+            break
         this_mark = i // (len(lines)/40)
         # Update Toolbar
         if this_mark > previous_mark:
@@ -139,6 +142,7 @@ def writeFile(file, lines):
 
 def main():
     input, output, toNC, toLG, verbose, sed, assembly_report_path, pace = parseArgs()
+    start = time.time()
     if toNC:
         print("Converting from LG format to NC format")
     if toLG:
@@ -159,6 +163,8 @@ def main():
         print("Number of output lines " + str(len(lines)))
         writeFile(output, lines)
         print("Done.")
+    end = time.time()
+    print("Runtime is " + str(end-start))
 
 
 if __name__ == '__main__':
