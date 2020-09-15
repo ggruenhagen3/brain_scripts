@@ -175,7 +175,7 @@ def writeCounts(counts, output, trans_to_gene):
 def writeVcf(output_lines, zack):
     f = open(zack, "w")
     for line in output_lines:
-        f.write(line + "\n")
+        f.write(line)
     f.close()
 
 def main():
