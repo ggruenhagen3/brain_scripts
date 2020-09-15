@@ -70,15 +70,16 @@ def gapHist(gaps, output, zoom):
 
     plt.show()
     plt.savefig(output)
+    plt.clf()
 
-
-    pctile = math.floor(np.percentile(gaps, 90))
-    print("90th percentile (for the zoom histogram) is " + str(pctile))
+    this_pctile = 95
+    pctile = math.floor(np.percentile(gaps, this_pctile))
+    print(str(this_pctile) + "th percentile (for the zoom histogram) is " + str(pctile))
     gaps = [x for x in gaps if x < pctile]
     bins = np.linspace(math.ceil(min(gaps)), math.floor(max(gaps)), 20)  # zoomed figure
     plt.xlim([min(gaps) - 5, max(gaps) + 5])
     plt.hist(gaps, bins=bins, alpha=0.5)
-    plt.title('Distance Between SNPs - Zoom on 90th Percentile')
+    plt.title('Distance Between SNPs - Zoom on ' + this_pctile + 'th Percentile')
     plt.xlabel('Distance Between SNPs')
     plt.ylabel('Count')
     plt.tight_layout()
