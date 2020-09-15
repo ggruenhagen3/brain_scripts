@@ -14,7 +14,7 @@ def parseArgs():
     parser.add_argument("-o", "--output", help="Output counts file", nargs="?",
                         default="counts.tsv",
                         const="counts.tsv")
-    parser.add_argument("-z", "--zack", help="Output informative vcf sites as Zack suggested", naargs="?",
+    parser.add_argument("-z", "--zack", help="Output informative vcf sites as Zack suggested", nargs="?",
                         default=False)
 
     args = parser.parse_args()
