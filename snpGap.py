@@ -9,6 +9,9 @@ def parseArgs():
     parser.add_argument("-o", "--output", help="Output png histogram", nargs="?",
                         default="gap_hist.png",
                         const="gap_hist.png")
+    parser.add_argument("-z", "--zoom", help="Output png zoom histogram", nargs="?",
+                        default="gap_hist_zoom.png",
+                        const="gap_hist_zoom.png")
     # parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
     #                     default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
     #                     const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
@@ -52,30 +55,45 @@ def findSnpGap(vcf_lines, contigs):
 
     return gaps, na
 
-def gapHist(gaps, output):
+def gapHist(gaps, output, zoom):
     """
     Make a histogram of distance between SNPs
     """
     bins = np.linspace(math.ceil(min(gaps)), math.floor(max(gaps)), 20)  # fixed number of bins
 
+    plt.tight_layout()
     plt.xlim([min(gaps) - 5, max(gaps) + 5])
     plt.hist(gaps, bins=bins, alpha=0.5)
     plt.title('Distance Between SNPs')
-    plt.xlabel('variable X (20 evenly spaced bins)')
+    plt.xlabel('Distance Between SNPs')
     plt.ylabel('Count')
 
     plt.show()
     plt.savefig(output)
 
+
+    bins = np.linspace(math.ceil(min(gaps)), math.floor(np.percentile(gaps, 75)), 20)  # zoomed figure
+
+    plt.tight_layout()
+    plt.xlim([min(gaps) - 5, max(gaps) + 5])
+    plt.hist(gaps, bins=bins, alpha=0.5)
+    plt.title('Distance Between SNPs')
+    plt.xlabel('Distance Between SNPs')
+    plt.ylabel('Count')
+
+    plt.show()
+    plt.savefig(zoom)
+
 def main():
-    vcf, output = parseArgs()
+    vcf, output, zoom = parseArgs()
     print("Reading VCF")
     lines, contigs = readFile(vcf)
     print("Finding Distance between SNPs")
     gaps, na = findSnpGap(lines, contigs)
+    print("Average Distance Between SNPs: " + str(sum(gaps)/len(gaps)))
     print("Number of SNPs where the last SNP was on a different contig: " + str(na))
     print("Creating Histogram")
-    gapHist(gaps, output)
+    gapHist(gaps, output, zoom)
     print("Done")
     # if pace:
     #     print("Running script on PACE using /nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
