@@ -12,6 +12,8 @@ def parseArgs():
     parser.add_argument("-z", "--zoom", help="Output png zoom histogram", nargs="?",
                         default="gap_hist_zoom.png",
                         const="gap_hist_zoom.png")
+    parser.add_argument("-p", "--percentile", help="Percentile to zoom in on the histogram", nargs="?",
+                        default=75)
     # parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
     #                     default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
     #                     const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
@@ -19,7 +21,7 @@ def parseArgs():
     #                     action="store_true")
 
     args = parser.parse_args()
-    return args.vcf, args.output, args.zoom
+    return args.vcf, args.output, args.zoom, args.percentile
 
 def readFile(vcf):
     lines = []
@@ -55,7 +57,7 @@ def findSnpGap(vcf_lines, contigs):
 
     return gaps, na
 
-def gapHist(gaps, output, zoom):
+def gapHist(gaps, output, zoom, this_pctile):
     """
     Make a histogram of distance between SNPs
     """
@@ -72,7 +74,6 @@ def gapHist(gaps, output, zoom):
     plt.savefig(output)
     plt.clf()
 
-    this_pctile = 95
     pctile = math.floor(np.percentile(gaps, this_pctile))
     print(str(this_pctile) + "th percentile (for the zoom histogram) is " + str(pctile))
     gaps = [x for x in gaps if x < pctile]
@@ -88,7 +89,7 @@ def gapHist(gaps, output, zoom):
     plt.savefig(zoom)
 
 def main():
-    vcf, output, zoom = parseArgs()
+    vcf, output, zoom, percentile = parseArgs()
     print("Reading VCF")
     lines, contigs = readFile(vcf)
     print("Finding Distance between SNPs")
@@ -96,7 +97,7 @@ def main():
     print("Average Distance Between SNPs: " + str(sum(gaps)/len(gaps)))
     print("Number of SNPs where the last SNP was on a different contig: " + str(na))
     print("Creating Histogram")
-    gapHist(gaps, output, zoom)
+    gapHist(gaps, output, zoom, percentile)
     print("Done")
     # if pace:
     #     print("Running script on PACE using /nv/hp10/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt as assembly report path")
