@@ -14,9 +14,11 @@ def parseArgs():
     parser.add_argument("-o", "--output", help="Output counts file", nargs="?",
                         default="counts.tsv",
                         const="counts.tsv")
+    parser.add_argument("-z", "--zack", help="Output informative vcf sites as Zack suggested", naargs="?",
+                        default=False)
 
     args = parser.parse_args()
-    return args.output_table, args.mc_cv, args.gtf, args.output
+    return args.output_table, args.mc_cv, args.gtf, args.output, args.zack
 
 def readGtf(gtf):
     trans_to_gene = {} # key = transcript, value = gene
@@ -44,8 +46,9 @@ def readGtf(gtf):
     return trans_to_gene
 
 
-def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
+def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
     counts = {}  # key = gene, value = [mc_count, cv_count]
+    output_lines = []
     i = 0
     j = 0
     indicative_not_found = 0
@@ -98,6 +101,9 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
                                     mc_count = cv_count
                                     cv_count = tmp
 
+                                if zack != False:
+                                    output_lines.append(line)
+
                                 # Add the counts
                                 if gene not in counts.keys():
                                     counts[gene] = [mc_count, cv_count]
@@ -117,7 +123,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict):
     print("\t\tEntries With <5 Counts For Both Alleles: " + str(n_fail_allele))
     print("\t\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
     print("\t\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
-    return counts
+    return counts, output_lines
 
 def findMC(mc_cv):
     """"
@@ -166,15 +172,24 @@ def writeCounts(counts, output, trans_to_gene):
         f.write(gene + "\t" + str(mc_counts) + "\t" + str(cv_counts) + "\n")
     f.close()
 
+def writeVcf(output_lines, zack):
+    f = open(zack, "w")
+    for line in output_lines:
+        f.write(line + "\n")
+    f.close()
+
 def main():
-    output_table, mc_cv, gtf, output = parseArgs()
+    output_table, mc_cv, gtf, output, zack = parseArgs()
     print("Reading GTF")
     trans_to_gene = readGtf(gtf)
     print("Finding alleles that distinguish MC from CV")
     mc_cv_dict = findMC(mc_cv)
     print("Summing MC and CV distinguishing alleles in file")
-    counts = readOutputTable(output_table, trans_to_gene, mc_cv_dict)
-    print("Writing Output")
+    counts, output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack)
+    if zack:
+        print("Writing Informative Sites VCF")
+        writeVcf(output_lines, zack)
+    print("Writing Counts Output")
     writeCounts(counts, output, trans_to_gene)
     print("Done")
 
