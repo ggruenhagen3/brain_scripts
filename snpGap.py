@@ -19,7 +19,7 @@ def parseArgs():
     #                     action="store_true")
 
     args = parser.parse_args()
-    return args.vcf, args.output
+    return args.vcf, args.output, args.zoom
 
 def readFile(vcf):
     lines = []
