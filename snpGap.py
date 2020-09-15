@@ -61,25 +61,25 @@ def gapHist(gaps, output, zoom):
     """
     bins = np.linspace(math.ceil(min(gaps)), math.floor(max(gaps)), 20)  # fixed number of bins
 
-    plt.tight_layout()
     plt.xlim([min(gaps) - 5, max(gaps) + 5])
     plt.hist(gaps, bins=bins, alpha=0.5)
     plt.title('Distance Between SNPs')
     plt.xlabel('Distance Between SNPs')
     plt.ylabel('Count')
+    plt.tight_layout()
 
     plt.show()
     plt.savefig(output)
 
 
     bins = np.linspace(math.ceil(min(gaps)), math.floor(np.percentile(gaps, 75)), 20)  # zoomed figure
-
-    plt.tight_layout()
+    print(math.floor(np.percentile(gaps, 75)))
     plt.xlim([min(gaps) - 5, max(gaps) + 5])
     plt.hist(gaps, bins=bins, alpha=0.5)
     plt.title('Distance Between SNPs')
     plt.xlabel('Distance Between SNPs')
     plt.ylabel('Count')
+    plt.tight_layout()
 
     plt.show()
     plt.savefig(zoom)
