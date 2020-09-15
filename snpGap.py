@@ -46,6 +46,7 @@ def findSnpGap(vcf_lines, contigs):
                 gaps.append(int(start) - int(previous_start))
             else:
                 na += 1
+        i += 1
         previous_contig = contig
         previous_start = start
 
@@ -68,6 +69,7 @@ def gapHist(gaps, output):
 
 def main():
     vcf, output = parseArgs()
+    print("Reading VCF")
     lines, contigs = readFile(vcf)
     print("Finding Distance between SNPs")
     gaps, na = findSnpGap(lines, contigs)
