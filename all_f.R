@@ -716,6 +716,9 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
             total_ovlp = ovlp*i_clust_df$correction_factor[1] + ovlp*j_clust_df$correction_factor[1]
             total_ovlp_same_dir = ovlp_same_dir*i_clust_df$correction_factor[1] + ovlp_same_dir*j_clust_df$correction_factor[1]
             with_correction = "w/ Correction for Gene Conversion"
+            print(paste("Correction factor found in", samples[[i]]), "and", samples[[j]])
+            print(colnames(i_clust_df))
+            print(colnames(j_clust_df))
           }
           # i_correct = correction_factor[[org[i]]]
           # j_correct = correction_factor[[org[j]]]
