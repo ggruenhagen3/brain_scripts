@@ -681,6 +681,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   clusters = list()
   num_clusters = list()
   all_logFC = c()
+  with_correction = ""
   for (i in 1:length(dfs)) {
     clusters[[i]] = unique(as.vector(dfs[[i]]$cluster))
     if (! any(is.na(as.numeric(clusters[[i]])))) {
@@ -714,6 +715,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           if ("correction_factor" %in% colnames(j_clust_df) && "correction_factor" %in% colnames(i_clust_df)) {
             total_ovlp = ovlp*i_clust_df$correction_factor[1] + ovlp*j_clust_df$correction_factor[1]
             total_ovlp_same_dir = ovlp_same_dir*i_clust_df$correction_factor[1] + ovlp_same_dir*j_clust_df$correction_factor[1]
+            with_correction = "w/ Correction for Gene Conversion"
           }
           # i_correct = correction_factor[[org[i]]]
           # j_correct = correction_factor[[org[j]]]
@@ -812,10 +814,10 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png3_name = paste(filepath, filename, "_pct_same_dir.png", sep="")
     png4_name = paste(filepath, filename, "_pct_best_guess_same_dir.png", sep="")
     
-    png1_title = paste("DEGs in Common w/ Same Sign b/w Clusters")
-    png2_title = paste("Best Guess of DEGs w/ Same Sign")
-    png3_title = paste("% DEGs w/ Same Sign in Common Clusters")
-    png4_title = paste("% Best Guess of DEGs w/ Same Sign")
+    png1_title = paste("DEGs in Common w/ Same Sign b/w Clusters", with_correction)
+    png2_title = paste("Best Guess of DEGs w/ Same Sign", with_correction)
+    png3_title = paste("% DEGs w/ Same Sign in Common Clusters", with_correction)
+    png4_title = paste("% Best Guess of DEGs w/ Same Sign", with_correction)
     
     df$ovlp = df$ovlp_same_dir
     df$ovlp_col = df$ovlp_same_dir_col
@@ -830,10 +832,10 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png3_name = paste(filepath, filename, "_pct.png", sep="")
     png4_name = paste(filepath, filename, "_pct_best_guess.png", sep="")
     
-    png1_title = paste("DEGs in Common b/w Clusters")
-    png2_title = paste("Best Guess")
-    png3_title = paste("% DEGs in Common b/w Clusters")
-    png4_title = paste("% Best Guess")
+    png1_title = paste("DEGs in Common b/w Clusters", with_correction)
+    png2_title = paste("Best Guess", with_correction)
+    png3_title = paste("% DEGs in Common b/w Clusters", with_correction)
+    png4_title = paste("% Best Guess", with_correction)
   }
   
   df$df1_cluster = factor(df$df1_cluster, levels = rev(levels(df$df1_cluster)))
