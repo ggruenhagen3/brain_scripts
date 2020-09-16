@@ -548,22 +548,24 @@ hgncMzebra <- function(genes, gene_names, onPACE=F) {
   }
   valid_genes <- validGenes(genes, gene_names)
   all_hgnc <- convertToHgnc(gene_names)
-  ind <- match(genes,pat$V2)
-  ind <- ind[! is.na(ind)]
+  ind_bool <- match(genes,pat$V2)
+  ind <- ind_bool[! is.na(ind_bool)]
   found_names <- as.vector(pat$V7[ind])
   found_names <- found_names[!is.na(found_names)]
   found_names_hgnc <- as.vector(pat$V8[ind])
-  found_names_hgnc <- found_names_hgnc[!is.na(found_names_hgnc)]
+  # found_names_hgnc <- found_names_hgnc[!is.na(found_names_hgnc)]
   
   df1 <- setNames(as.data.frame(found_names_hgnc), c("hgnc"))
-  found_names_hgnc <- inner_join(df1, all_hgnc, by = "hgnc")
+  found_names_hgnc = setNames(data.frame(genes[which(! is.na(ind_bool))], found_names_hgnc), c("mzebra", "hgnc"))
+  found_names_hgnc = found_names_hgnc[which(! is.na(found_names_hgnc$hgnc)),]
+  # found_names_hgnc <- inner_join(df1, all_hgnc, by = "hgnc")
   
   pseudo_hgnc <- toupper(genes)
   df1 <- setNames(as.data.frame(pseudo_hgnc), c("hgnc"))
   found_mzebra <- inner_join(df1, all_hgnc, by = "hgnc")
   
   found_mzebra <- found_mzebra[,2:1]
-  found_names_hgnc <- found_names_hgnc[,2:1]
+  # found_names_hgnc <- found_names_hgnc[,2:1]
   good_df <- rbind(all_hgnc, setNames(found_names, names(all_hgnc)), setNames(found_mzebra, names(all_hgnc)), setNames(found_names_hgnc, names(all_hgnc)))
   good_df <- unique(good_df)
   return(good_df)
@@ -670,11 +672,12 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
-heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xlab=T, tri=T) {
+heatmapComparisonMulti = function(dfs, samples, filename, filepath, org, labels=F, xlab=T, tri=T) {
   # Input: list of dataframes that are output of Seurat FindAllMarkers
   #        Vector of samples or whatever you want to name those two dataframes
   #        Base file name for png output
   #        Filepath for png output
+  #        org: a vector of organisms the samples belong to ("mzebra", "mouse", "human")
   clusters = list()
   num_clusters = list()
   all_logFC = c()
@@ -688,6 +691,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
   }
   
+  # Correct for gene conversion
+  correction_factor = list()
+  correction_factor[["mzebra"]] = 28622/16735  # all mzebra genes, all converted mzebra genes
+  correction_factor[["mouse"]]  = 23420/17140 
+  correction_factor[["human"]]  = 1
+  
   # Now do Pairwise Comparison of each df's DEGs
   df = data.frame() # big df of all pairwise comparisons
   for (i in 1:length(dfs)) {
@@ -699,6 +708,11 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, labels=F, xl
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
           ovlp = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene),])
           ovlp_same_dir = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC)),])
+          
+          i_correct = correction_factor[[org[i]]]
+          j_correct = correction_factor[[org[j]]]
+          ovlp = ovlp * i_correct * j_correct
+          ovlp_same_dir = ovlp * i_correct * j_correct
           
           pct = (2*ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           pct_same_dir = (ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
