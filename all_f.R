@@ -672,7 +672,7 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
-heatmapComparisonMulti = function(dfs, samples, filename, filepath, org, labels=F, xlab=T, tri=T) {
+heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_factors, labels=F, xlab=T, tri=T) {
   # Input: list of dataframes that are output of Seurat FindAllMarkers
   #        Vector of samples or whatever you want to name those two dataframes
   #        Base file name for png output
@@ -691,11 +691,11 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, org, labels=
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
   }
   
-  # Correct for gene conversion
-  correction_factor = list()
-  correction_factor[["mzebra"]] = 28622/16735  # all mzebra genes, all converted mzebra genes
-  correction_factor[["mouse"]]  = 23420/17140 
-  correction_factor[["human"]]  = 1
+  # # Correct for gene conversion
+  # correction_factor = list()
+  # correction_factor[["mzebra"]] = 28622/16735  # all mzebra genes, all converted mzebra genes
+  # correction_factor[["mouse"]]  = 23420/17140 
+  # correction_factor[["human"]]  = 1
   
   # Now do Pairwise Comparison of each df's DEGs
   df = data.frame() # big df of all pairwise comparisons
@@ -706,16 +706,22 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, org, labels=
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
-          ovlp = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene),])
+          ovlp = length(unique(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene)]))
           ovlp_same_dir = length(unique(j_clust_df$gene[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC))]))
           
+          total_ovlp = 2*ovlp
+          total_ovlp_same_dir = 2*ovlp_same_dir
+          if ("correction_factor" %in% colnames(j_clust_df) && "correction_factor" %in% colnames(i_clust_df)) {
+            total_ovlp = ovlp*i_clust_df$correction_factor[1] + ovlp*j_clust_df$correction_factor[1]
+            total_ovlp_same_dir = ovlp_same_dir*i_clust_df$correction_factor[1] + ovlp_same_dir*j_clust_df$correction_factor[1]
+          }
           # i_correct = correction_factor[[org[i]]]
           # j_correct = correction_factor[[org[j]]]
           # ovlp = ovlp * i_correct * j_correct
           # ovlp_same_dir = ovlp * i_correct * j_correct
           
-          pct = (2*ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
-          pct_same_dir = (2*ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
+          pct = (total_ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
+          pct_same_dir = (total_ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           
           # Rename the clusters with their sample names to avoid confusion
           sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
@@ -723,12 +729,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, org, labels=
           
           
           if (pct_same_dir > 100) {
+            print("Error pct ovlp > 100")
             print(sample1_clust)
             print(sample2_clust)
             print(ovlp_same_dir)
             print(nrow(i_clust_df))
             print(nrow(j_clust_df))
-            break
           }
           
           
