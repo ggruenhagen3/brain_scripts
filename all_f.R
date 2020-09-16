@@ -709,17 +709,29 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, org, labels=
           ovlp = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene),])
           ovlp_same_dir = nrow(j_clust_df[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC)),])
           
-          i_correct = correction_factor[[org[i]]]
-          j_correct = correction_factor[[org[j]]]
-          ovlp = ovlp * i_correct * j_correct
-          ovlp_same_dir = ovlp * i_correct * j_correct
+          # i_correct = correction_factor[[org[i]]]
+          # j_correct = correction_factor[[org[j]]]
+          # ovlp = ovlp * i_correct * j_correct
+          # ovlp_same_dir = ovlp * i_correct * j_correct
           
           pct = (2*ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
-          pct_same_dir = (ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
+          pct_same_dir = (2*ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           
           # Rename the clusters with their sample names to avoid confusion
           sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
           sample2_clust = paste0(samples[[j]], " ", clusters[[j]][j_clust])
+          
+          
+          if (pct_same_dir > 100) {
+            print(sample1_clust)
+            print(sample2_clust)
+            print(ovlp_same_dir)
+            print(nrow(i_clust_df))
+            print(nrow(j_clust_df))
+            break
+          }
+          
+          
           df <- rbind(df, t(c(sample1_clust, sample2_clust, ovlp, pct, ovlp_same_dir, pct_same_dir)))
         }
       }
