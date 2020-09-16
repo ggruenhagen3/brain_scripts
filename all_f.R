@@ -710,13 +710,17 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           ovlp = length(unique(j_clust_df$gene[which(j_clust_df$gene %in% i_clust_df$gene)]))
           ovlp_same_dir = length(unique(j_clust_df$gene[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC))]))
           
+          # Rename the clusters with their sample names to avoid confusion
+          sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
+          sample2_clust = paste0(samples[[j]], " ", clusters[[j]][j_clust])
+          
           total_ovlp = 2*ovlp
           total_ovlp_same_dir = 2*ovlp_same_dir
           if ("correction_factor" %in% colnames(j_clust_df) && "correction_factor" %in% colnames(i_clust_df)) {
             total_ovlp = ovlp*i_clust_df$correction_factor[1] + ovlp*j_clust_df$correction_factor[1]
             total_ovlp_same_dir = ovlp_same_dir*i_clust_df$correction_factor[1] + ovlp_same_dir*j_clust_df$correction_factor[1]
             with_correction = "w/ Correction for Gene Conversion"
-            print(paste("Correction factor found in", samples[[i]]), "and", samples[[j]])
+            print(paste("Correction factor found in", sample1_clust), "and", sample2_clust)
             print(colnames(i_clust_df))
             print(colnames(j_clust_df))
           }
@@ -728,9 +732,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           pct = (total_ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           pct_same_dir = (total_ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           
-          # Rename the clusters with their sample names to avoid confusion
-          sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
-          sample2_clust = paste0(samples[[j]], " ", clusters[[j]][j_clust])
           
           
           if (pct_same_dir > 100) {
