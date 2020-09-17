@@ -59,9 +59,10 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
         for line in input:
             if not line.startswith("#"):
                 lineSplit = line.split()
-                ref_count = int(lineSplit[6])
+                ref_count = round(float(lineSplit[5]))
                 info = lineSplit[7]
-                alt_count = int(info.split(";")[0])
+                # alt_count = int(info.split(";")[0])
+                alt_count = int(lineSplit[6])
                 dist = int(info[int(info.index("="))+1:int(info.index("|"))])
                 start = info.index("Transcript:")+11
                 transcript = info[start:start+18]
@@ -101,10 +102,10 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                                     mc_count = cv_count
                                     cv_count = tmp
 
-                                print(line)
-                                print(mc_cv_dict[pos])
-                                print("MC count is " + str(mc_count))
-                                print("CV count is " + str(cv_count))
+                                    # print(line)
+                                    # print(mc_cv_dict[pos])
+                                    # print("MC count is " + str(mc_count))
+                                    # print("CV count is " + str(cv_count))
 
                                 if zack != False:
                                     output_lines.append(line)
