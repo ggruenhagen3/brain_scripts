@@ -902,8 +902,8 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       df1_cluster <- df1[which(df1$cluster == df1_clusters[i]),]
       df2_cluster <- df2[which(df2$cluster == df2_clusters[j]),]
       
-      ovlp <- nrow(df2[which(df2_cluster$gene %in% df1_cluster$gene),])
-      ovlp_same_dir = nrow(df2[which(df2_cluster$gene %in% df1_cluster$gene & sign(df2_cluster$avg_logFC) == sign(df1_cluster$avg_logFC)),])
+      ovlp <- length(unique(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene)]))
+      ovlp_same_dir = length(unique(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene & sign(df2_cluster$avg_logFC) == sign(df1_cluster$avg_logFC))]))
       
       total_ovlp = 2*ovlp
       total_ovlp_same_dir = 2*ovlp_same_dir
@@ -911,13 +911,24 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
         total_ovlp = ovlp*df1_cluster$correction_factor[1] + ovlp*df2_cluster$correction_factor[1]
         total_ovlp_same_dir = ovlp_same_dir*df1_cluster$correction_factor[1] + ovlp_same_dir*df2_cluster$correction_factor[1]
         with_correction = "w/ Correction for Gene Conversion"
-        # print(paste("Correction factor found in", sample1_clust, "and", sample2_clust))
-        # print(colnames(df1_cluster))
-        # print(colnames(df2_cluster))
+        print(paste0("Correction factor found in ", df1_sample, "_", df1_clusters[i], " and ", df2_sample, "_", df2_clusters[j]))
+        print(colnames(df1_cluster))
+        print(colnames(df2_cluster))
       }
       
       pct = (total_ovlp / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
       pct_same_dir = (total_ovlp_same_dir / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
+      
+      # Check if pct is greater than 100
+      if (pct_same_dir > 100) {
+        print("Error pct ovlp > 100")
+        print(paste0(df1_sample, "_", df1_clusters[i]))
+        print(paste0(df2_sample, "_", df2_clusters[j]))
+        print(ovlp_same_dir)
+        print(nrow(i_clust_df))
+        print(nrow(j_clust_df))
+        print(total_ovlp_same_dir)
+      }
       
       df <- rbind(df, t(c(df1_clusters[i], df2_clusters[j], ovlp, pct, ovlp_same_dir, pct_same_dir)))
     }
