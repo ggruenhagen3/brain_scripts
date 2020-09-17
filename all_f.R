@@ -911,9 +911,9 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
         total_ovlp = ovlp*df1_cluster$correction_factor[1] + ovlp*df2_cluster$correction_factor[1]
         total_ovlp_same_dir = ovlp_same_dir*df1_cluster$correction_factor[1] + ovlp_same_dir*df2_cluster$correction_factor[1]
         with_correction = "w/ Correction for Gene Conversion"
-        print(paste0("Correction factor found in ", df1_sample, "_", df1_clusters[i], " and ", df2_sample, "_", df2_clusters[j]))
-        print(colnames(df1_cluster))
-        print(colnames(df2_cluster))
+        # print(paste0("Correction factor found in ", df1_sample, "_", df1_clusters[i], " and ", df2_sample, "_", df2_clusters[j]))
+        # print(colnames(df1_cluster))
+        # print(colnames(df2_cluster))
       }
       
       pct = (total_ovlp / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
