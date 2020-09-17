@@ -707,8 +707,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
-          ovlp = length(unique(j_clust_df$gene[which(j_clust_df$gene %in% i_clust_df$gene)]))
-          ovlp_same_dir = length(unique(j_clust_df$gene[which(j_clust_df$gene %in% i_clust_df$gene & sign(j_clust_df$avg_logFC) == sign(i_clust_df$avg_logFC))]))
+          
+          ovlp_genes = unique(j_clust_df$gene[which(j_clust_df$gene %in% i_clust_df$gene)])
+          ovlp = length(ovlp_genes)
+          j_clust_sign = sign(j_clust_df$avg_logFC[which(j_clust_df$gene %in% ovlp_genes)])
+          i_clust_sign = sign(i_clust_df$avg_logFC[which(i_clust_df$gene %in% ovlp_genes)])
+          ovlp_same_dir = length(ovlp_genes[which(j_clust_sign == i_clust_sign)])
           
           # Rename the clusters with their sample names to avoid confusion
           sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
@@ -902,8 +906,11 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       df1_cluster <- df1[which(df1$cluster == df1_clusters[i]),]
       df2_cluster <- df2[which(df2$cluster == df2_clusters[j]),]
       
-      ovlp <- length(unique(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene)]))
-      ovlp_same_dir = length(unique(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene & sign(df2_cluster$avg_logFC) == sign(df1_cluster$avg_logFC))]))
+      ovlp_genes = unique(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene)])
+      ovlp = length(unique(ovlp_genes))
+      df2_sign = sign(df2$avg_logFC[which(df2$gene %in% ovlp_genes)])
+      df1_sign = sign(df1$avg_logFC[which(df1$gene %in% ovlp_genes)])
+      ovlp_same_dir = length(unique(ovlp_genes[which(df1_sign == df2_sign)]))
       
       total_ovlp = 2*ovlp
       total_ovlp_same_dir = 2*ovlp_same_dir
