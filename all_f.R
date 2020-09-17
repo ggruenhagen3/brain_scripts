@@ -914,6 +914,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       df1_sign = sign(df1_cluster$avg_logFC[which(df1_cluster$gene %in% ovlp_genes)])
       print(df2_cluster$avg_logFC[which(df2_cluster$gene %in% ovlp_genes)])
       print(df1_cluster$gene[which(df1_cluster$gene %in% ovlp_genes)])
+      print(df1_cluster$gene[which(df1_cluster$gene %in% ovlp_genes)])
       print(unique(df1_cluster$gene[which(df1_cluster$gene %in% ovlp_genes)]))
       print(ovlp)
       ovlp_same_dir_genes = unique(ovlp_genes[which(df1_sign == df2_sign)])
