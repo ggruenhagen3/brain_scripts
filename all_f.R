@@ -919,14 +919,14 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       pct = (total_ovlp / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
       pct_same_dir = (total_ovlp_same_dir / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
       
-      if (df1_clusters[i] == 0 & df2_clusters[j] == "Glia") {
+      if (df1_clusters[i] == "Glia" & df2_clusters[j] == 0) {
         print(df1_clusters[i])
         print(df2_clusters[j])
         print(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene & sign(df2_cluster$avg_logFC) == sign(df1_cluster$avg_logFC))])
       }
-      if (df1_clusters[i] == 0){
-        print(df1_clusters[i])
-        print(df1_cluster)
+      if (df2_clusters[j] == 0){
+        print(df2_clusters[j])
+        print(df2_cluster)
       }
         
       
