@@ -1035,7 +1035,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   }
   print("finished plot 4")
   
-  return(df, gene_df)
+  return(list(df, gene_df))
 }
 
 
