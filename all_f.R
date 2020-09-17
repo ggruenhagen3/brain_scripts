@@ -703,12 +703,15 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   for (i in 1:length(dfs)) {
     for (i_clust in 1:num_clusters[[i]]) {
       i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
+      i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
       
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
+          j_clust_df = j_clust_df[!duplicated(j_clust_df$gene),]
           
           ovlp_genes = unique(j_clust_df$gene[which(j_clust_df$gene %in% i_clust_df$gene)])
+          ovlp_genes = ovlp_genes[which(! is.na(ovlp_genes))]
           ovlp = length(ovlp_genes)
           j_clust_sign = sign(j_clust_df$avg_logFC[which(j_clust_df$gene %in% ovlp_genes)])
           i_clust_sign = sign(i_clust_df$avg_logFC[which(i_clust_df$gene %in% ovlp_genes)])
@@ -914,11 +917,6 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       ovlp = length(unique(ovlp_genes))
       df2_sign = sign(df2_cluster$avg_logFC[which(df2_cluster$gene %in% ovlp_genes)])
       df1_sign = sign(df1_cluster$avg_logFC[which(df1_cluster$gene %in% ovlp_genes)])
-      print(df2_cluster$avg_logFC[which(df2_cluster$gene %in% ovlp_genes)])
-      print(df2_cluster[which(df2_cluster$gene %in% ovlp_genes),])
-      print(df2_cluster$gene[which(df2_cluster$gene %in% ovlp_genes)])
-      print(unique(df2_cluster$gene[which(df2_cluster$gene %in% ovlp_genes)]))
-      print(ovlp)
       ovlp_same_dir_genes = unique(ovlp_genes[which(df1_sign == df2_sign)])
       ovlp_same_dir = length(ovlp_same_dir_genes)
       
