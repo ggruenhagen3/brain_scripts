@@ -101,6 +101,11 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                                     mc_count = cv_count
                                     cv_count = tmp
 
+                                print(line)
+                                print(mc_cv_dict[pos])
+                                print("MC count is " + str(mc_count))
+                                print("CV count is " + str(cv_count))
+
                                 if zack != False:
                                     output_lines.append(line)
 
