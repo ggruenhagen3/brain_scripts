@@ -941,7 +941,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       
       df <- rbind(df, t(c(df1_clusters[i], df2_clusters[j], ovlp, pct, ovlp_same_dir, pct_same_dir)))
       
-      new_gene_df_rows = data.frame(rep(paste(df1_clusters[i]), ovlp_same_dir), rep(paste(df2_clusters[j]), ovlp_same_dir), ovlp_same_dir_genes)
+      new_gene_df_rows = data.frame(rep(paste(df1_clusters[i]), ovlp_same_dir), rep(paste(df2_clusters[j]), ovlp_same_dir), sort(ovlp_same_dir_genes))
       colnames(new_gene_df_rows) = c(paste(df1_sample, "Cluster"), paste(df2_sample, "Cluster"), "Genes In Common")
       gene_df = rbind(gene_df, new_gene_df_rows)
     }
