@@ -916,8 +916,8 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
         # print(colnames(df2_cluster))
       }
       
-      pct = (total_ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
-      pct_same_dir = (total_ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
+      pct = (total_ovlp / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
+      pct_same_dir = (total_ovlp_same_dir / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
       
       df <- rbind(df, t(c(df1_clusters[i], df2_clusters[j], ovlp, pct, ovlp_same_dir, pct_same_dir)))
     }
