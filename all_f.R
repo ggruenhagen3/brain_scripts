@@ -923,6 +923,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
         print(df1_clusters[i])
         print(df2_clusters[j])
         print(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene & sign(df2_cluster$avg_logFC) == sign(df1_cluster$avg_logFC))])
+        print(df1_cluster$gene[which(df1_cluster$gene %in% df2_cluster$gene & sign(df1_cluster$avg_logFC) == sign(df2_cluster$avg_logFC))])
       }
       # if (df2_clusters[j] == 0){
       #   print(df2_clusters[j])
