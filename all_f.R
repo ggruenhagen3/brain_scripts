@@ -901,6 +901,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   df1_num_clusters <- length(df1_clusters)
   df2_num_clusters <- length(df2_clusters)
   df <- data.frame()
+  gene_df = data.frame()
   for (i in 1:df1_num_clusters) {
     for (j in 1:df2_num_clusters) {
       df1_cluster <- df1[which(df1$cluster == df1_clusters[i]),]
@@ -910,7 +911,8 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       ovlp = length(unique(ovlp_genes))
       df2_sign = sign(df2$avg_logFC[which(df2$gene %in% ovlp_genes)])
       df1_sign = sign(df1$avg_logFC[which(df1$gene %in% ovlp_genes)])
-      ovlp_same_dir = length(unique(ovlp_genes[which(df1_sign == df2_sign)]))
+      ovlp_same_dir_genes = unique(ovlp_genes[which(df1_sign == df2_sign)])
+      ovlp_same_dir = length(ovlp_same_dir_genes)
       
       total_ovlp = 2*ovlp
       total_ovlp_same_dir = 2*ovlp_same_dir
@@ -926,18 +928,6 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       pct = (total_ovlp / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
       pct_same_dir = (total_ovlp_same_dir / (nrow(df1_cluster) + nrow(df2_cluster))) * 100
       
-      if (df1_clusters[i] == "Glia" & df2_clusters[j] == 0) {
-        print(df1_clusters[i])
-        print(df2_clusters[j])
-        print(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene & sign(df2_cluster$avg_logFC) == sign(df1_cluster$avg_logFC))])
-        print(df1_cluster$gene[which(df1_cluster$gene %in% df2_cluster$gene & sign(df1_cluster$avg_logFC) == sign(df2_cluster$avg_logFC))])
-      }
-      # if (df2_clusters[j] == 0){
-      #   print(df2_clusters[j])
-      #   print(df2_cluster)
-      # }
-        
-      
       # Check if pct is greater than 100
       if (pct_same_dir > 100) {
         print("Error pct ovlp > 100")
@@ -950,6 +940,10 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       }
       
       df <- rbind(df, t(c(df1_clusters[i], df2_clusters[j], ovlp, pct, ovlp_same_dir, pct_same_dir)))
+      
+      new_gene_df_rows = data.frame(rep(paste(df1_clusters[i]), ovlp_same_dir), rep(paste(df2_clusters[j]), ovlp_same_dir), ovlp_same_dir_genes)
+      colnames(new_gene_df_rows) = c(paste(df1_sample, "Cluster"), paste(df2_sample, "Cluster"), "Genes In Common")
+      gene_df = rbind(gene_df)
     }
   }
   
@@ -1041,7 +1035,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   }
   print("finished plot 4")
   
-  return(df)
+  return(df, gene_df)
 }
 
 
