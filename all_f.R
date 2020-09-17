@@ -906,6 +906,8 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
     for (j in 1:df2_num_clusters) {
       df1_cluster <- df1[which(df1$cluster == df1_clusters[i]),]
       df2_cluster <- df2[which(df2$cluster == df2_clusters[j]),]
+      df1_cluster = df1_cluster[!duplicated(df1_cluster$gene)]
+      df2_cluster = df2_cluster[!duplicated(df2_cluster$gene)]
       
       ovlp_genes = unique(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene)])
       ovlp_genes = ovlp_genes[which(! is.na(ovlp_genes))]
