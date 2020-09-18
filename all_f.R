@@ -900,6 +900,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     # Prepare the Data
     dend_mat = matrix(, nrow=length(all_genes), ncol=length(all_clusters), dimnames = list(all_genes, all_clusters))
     print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
+    print(head(all_genes))
     j = 0
     for (i in 1:length(dfs)) {
       print(i)
@@ -907,9 +908,9 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
         gene_in_all_genes = i_clust_df$gene[which(i_clust_df$gene %in% all_genes)]
-        print(length(gene_in_all_genes))
+        # print(length(gene_in_all_genes))
         dend_mat[gene_in_all_genes, j] = i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)]
-        print(i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)])
+        # print(i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)])
         j = j + 1
       }
     }
