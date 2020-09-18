@@ -912,14 +912,14 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
       }
     }
     
-    print("Plotting the dendrogram")
-    png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
-    print(heatmap.2(dend_mat, scale = "none", dendrogram = "both"))
-    dev.off()
-    print("finished dendrogram")
+    # print("Plotting the dendrogram")
+    # png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
+    # print(heatmap.2(dend_mat, scale = "none", dendrogram = "both"))
+    # dev.off()
+    # print("finished dendrogram")
   }
   
-  return(df)
+  return(df, dend_mat)
 }
 
 heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepath) {
