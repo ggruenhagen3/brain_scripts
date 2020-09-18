@@ -692,7 +692,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     }
     num_clusters[[i]] = length(clusters[[i]])
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
-    all_genes = c(all_genes, dfs[[i]]$gene)
     all_clusters = c(all_clusters, clusters[[i]])
   }
   
@@ -721,6 +720,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           i_clust_sign = sign(i_clust_df$avg_logFC[which(i_clust_df$gene %in% ovlp_genes)])
           ovlp_same_dir_genes = unique(ovlp_genes[which(j_clust_sign == i_clust_sign)])
           ovlp_same_dir = length(ovlp_same_dir_genes)
+          all_genes = unique(c(all_genes, ovlp_same_dir_genes))
           
           # Rename the clusters with their sample names to avoid confusion
           sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
@@ -906,7 +906,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
       for (i_clust in 1:num_clusters[[i]]) {
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
-        dend_mat[i_clust_df$gene, j] = i_clust_df$avg_logFC
+        gene_in_all_genes = i_clust_df$gene[which(i_clust_df$gene %in% all_genes)]
+        dend_mat[gene_in_all_genes, j] = i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)]
         j = j + 1
       }
     }
