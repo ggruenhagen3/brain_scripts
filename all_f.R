@@ -672,7 +672,7 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
-heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_factors, labels=F, xlab=T, tri=T) {
+heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_factors, labels=F, xlab=T, tri=T, dendrogram=T) {
   # Input: list of dataframes that are output of Seurat FindAllMarkers
   #        Vector of samples or whatever you want to name those two dataframes
   #        Base file name for png output
@@ -681,6 +681,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   clusters = list()
   num_clusters = list()
   all_logFC = c()
+  all_genes = c()
+  all_clusters = c()
   with_correction = ""
   for (i in 1:length(dfs)) {
     clusters[[i]] = unique(as.vector(dfs[[i]]$cluster))
@@ -690,6 +692,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     }
     num_clusters[[i]] = length(clusters[[i]])
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
+    all_genes = c(all_genes, dfs[[i]]$gene)
+    all_clusters = c(all_clusters, clusters[[i]])
   }
   
   # # Correct for gene conversion
@@ -715,7 +719,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           ovlp = length(ovlp_genes)
           j_clust_sign = sign(j_clust_df$avg_logFC[which(j_clust_df$gene %in% ovlp_genes)])
           i_clust_sign = sign(i_clust_df$avg_logFC[which(i_clust_df$gene %in% ovlp_genes)])
-          ovlp_same_dir = length(ovlp_genes[which(j_clust_sign == i_clust_sign)])
+          ovlp_same_dir_genes = unique(ovlp_genes[which(j_clust_sign == i_clust_sign)])
+          ovlp_same_dir = length(ovlp_same_dir_genes)
           
           # Rename the clusters with their sample names to avoid confusion
           sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
@@ -744,7 +749,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
             print(nrow(i_clust_df))
             print(nrow(j_clust_df))
           }
-          
           
           df <- rbind(df, t(c(sample1_clust, sample2_clust, ovlp, pct, ovlp_same_dir, pct_same_dir)))
         }
@@ -819,6 +823,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png2_name = paste(filepath, filename, "_best_guess_same_dir.png", sep="")
     png3_name = paste(filepath, filename, "_pct_same_dir.png", sep="")
     png4_name = paste(filepath, filename, "_pct_best_guess_same_dir.png", sep="")
+    png5_name = paste(filepath, filename, "_dend_same_dir.png", sep="")
     
     png1_title = paste("DEGs in Common w/ Same Sign b/w Clusters")
     png2_title = paste("Best Guess of DEGs w/ Same Sign")
@@ -837,6 +842,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png2_name = paste(filepath, filename, "_best_guess.png", sep="")
     png3_name = paste(filepath, filename, "_pct.png", sep="")
     png4_name = paste(filepath, filename, "_pct_best_guess.png", sep="")
+    png5_name = paste(filepath, filename, "_dend.png", sep="")
     
     png1_title = paste("DEGs in Common b/w Clusters")
     png2_title = paste("Best Guess")
@@ -889,6 +895,25 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   print(p)
   dev.off()
   print("finished plot 4")
+  
+  if (dendrogram) {
+    # Prepare the Data
+    dend_mat = matrix(, nrow=length(all_genes), ncol=length(all_clusters), dimnames = list(all_genes, all_clusters))
+    j = 0
+    for (i in 1:length(dfs)) {
+      for (i_clust in 1:num_clusters[[i]]) {
+        i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
+        i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
+        dend_mat[i_clust_df$gene, j] = i_clust_df$avg_logFC
+        j = j + 1
+      }
+    }
+    
+    png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
+    print(heatmap.2(dend_mat, scale = "none", dendrogram = "both"))
+    dev.off()
+    print("finished dendrogram")
+  }
   
   return(df)
 }
