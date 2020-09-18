@@ -902,6 +902,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
     j = 0
     for (i in 1:length(dfs)) {
+      print(i)
       for (i_clust in 1:num_clusters[[i]]) {
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
@@ -910,6 +911,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
       }
     }
     
+    print("Plotting the dendrogram")
     png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
     print(heatmap.2(dend_mat, scale = "none", dendrogram = "both"))
     dev.off()
