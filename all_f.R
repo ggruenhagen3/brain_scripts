@@ -919,7 +919,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     # print("finished dendrogram")
   }
   
-  return(df, dend_mat)
+  return(list(df, dend_mat))
 }
 
 heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepath) {
