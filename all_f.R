@@ -732,9 +732,9 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
             total_ovlp = ovlp*i_clust_df$correction_factor[1] + ovlp*j_clust_df$correction_factor[1]
             total_ovlp_same_dir = ovlp_same_dir*i_clust_df$correction_factor[1] + ovlp_same_dir*j_clust_df$correction_factor[1]
             with_correction = "w/ Correction for Gene Conversion"
-            print(paste("Correction factor found in", sample1_clust, "and", sample2_clust))
-            print(colnames(i_clust_df))
-            print(colnames(j_clust_df))
+            # print(paste("Correction factor found in", sample1_clust, "and", sample2_clust))
+            # print(colnames(i_clust_df))
+            # print(colnames(j_clust_df))
           }
           
           pct = (total_ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
@@ -899,6 +899,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   if (dendrogram) {
     # Prepare the Data
     dend_mat = matrix(, nrow=length(all_genes), ncol=length(all_clusters), dimnames = list(all_genes, all_clusters))
+    print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
     j = 0
     for (i in 1:length(dfs)) {
       for (i_clust in 1:num_clusters[[i]]) {
