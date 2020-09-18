@@ -907,7 +907,9 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
         gene_in_all_genes = i_clust_df$gene[which(i_clust_df$gene %in% all_genes)]
+        print(length(gene_in_all_genes))
         dend_mat[gene_in_all_genes, j] = i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)]
+        print(i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)])
         j = j + 1
       }
     }
