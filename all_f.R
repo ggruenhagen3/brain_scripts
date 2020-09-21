@@ -720,7 +720,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           i_clust_sign = sign(i_clust_df$avg_logFC[which(i_clust_df$gene %in% ovlp_genes)])
           ovlp_same_dir_genes = unique(ovlp_genes[which(j_clust_sign == i_clust_sign)])
           ovlp_same_dir = length(ovlp_same_dir_genes)
-          all_genes = unique(c(all_genes, ovlp_same_dir_genes))
+          all_genes = c(all_genes, ovlp_same_dir_genes)
           
           # Rename the clusters with their sample names to avoid confusion
           sample1_clust = paste0(samples[[i]], " ", clusters[[i]][i_clust])
@@ -898,6 +898,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   
   if (dendrogram) {
     # Prepare the Data
+    all_genes = all_genes[which(duplicated(all_genes))] # only keep those which are found in comparisons twice. Reduces number of genes
     dend_mat = matrix(, nrow=length(all_genes), ncol=length(all_clusters), dimnames = list(all_genes, all_clusters))
     print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
     for (i in 1:length(dfs)) {
@@ -911,13 +912,13 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     }
     
     dend_mat[which(is.na(dend_mat))] = 0
-    dend_mat=dend_mat[1:2000,]
+    # dend_mat=dend_mat[1:2000,]
     
-    my_palette <- colorRampPalette(c("#ff9a76", "#ffeadb", "#679b9b"))(n = 299)
+    my_palette <- colorRampPalette(c("#ff4b5c", "#e0ece4", "#056674"))(n = 299)
     print("Plotting the dendrogram")
     par(mar=c(10, 4.1, 4.1, 2.1))
     png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
-    heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none", col=my_palette, margins=c(10,5))
+    heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none", col=my_palette, margins=c(10,5), srtCol=45)
     dev.off()
     print("finished dendrogram")
   }
