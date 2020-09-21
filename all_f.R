@@ -741,7 +741,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           pct_same_dir = (total_ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           
           # Check if pct is greater than 100
-          if (pct_same_dir > 100) {
+          if (sample1_clust != sample2_clust && pct_same_dir > 100) {
             print("Error pct ovlp > 100")
             print(sample1_clust)
             print(sample2_clust)
@@ -901,20 +901,13 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     dend_mat = matrix(, nrow=length(all_genes), ncol=length(all_clusters), dimnames = list(all_genes, all_clusters))
     print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
     print(head(all_genes))
-    j = 0
     for (i in 1:length(dfs)) {
-      print(i)
-      print(head(dfs[[i]]))
       for (i_clust in unique(dfs[[i]]$cluster)) {
-        print(i_clust)
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == i_clust),]
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
         gene_in_all_genes = i_clust_df$gene[which(i_clust_df$gene %in% all_genes)]
         clust_name = paste(samples[[i]], i_clust)
         dend_mat[gene_in_all_genes, clust_name] = sign(i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)])
-        
-        
-        j = j + 1
       }
     }
     
