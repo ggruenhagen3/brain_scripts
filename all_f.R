@@ -915,7 +915,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     dend_mat[which(is.na(dend_mat))] = 0
     # dend_mat=dend_mat[1:2000,]
     
-    my_palette <- colorRampPalette(c("#ff4b5c", "#e0ece4", "#056674"))(n = 299)
+    my_palette <- colorRampPalette(c("#ff4b5c", "#FFFFFF", "#056674"))(n = 299)
     print("Plotting the dendrogram")
     par(mar=c(10, 4.1, 4.1, 2.1))
     png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
