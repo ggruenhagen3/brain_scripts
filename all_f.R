@@ -915,6 +915,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     dend_mat=dend_mat[1:2000,]
     print("Plotting the dendrogram")
     png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
+    par(mar=c(8, 4.1, 4.1, 2.1))
     heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none")
     dev.off()
     print("finished dendrogram")
