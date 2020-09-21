@@ -692,7 +692,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     }
     num_clusters[[i]] = length(clusters[[i]])
     all_logFC = c(all_logFC, dfs[[i]]$avg_logFC)
-    all_clusters = c(all_clusters, paste0(samples[[i]], clusters[[i]]))
+    all_clusters = c(all_clusters, paste(samples[[i]], clusters[[i]]))
   }
   
   # # Correct for gene conversion
@@ -910,7 +910,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == i_clust),]
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
         gene_in_all_genes = i_clust_df$gene[which(i_clust_df$gene %in% all_genes)]
-        clust_name = paste0(samples[[i]], i_clust)
+        clust_name = paste(samples[[i]], i_clust)
         dend_mat[gene_in_all_genes, clust_name] = sign(i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)])
         
         
