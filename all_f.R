@@ -823,7 +823,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png2_name = paste(filepath, filename, "_best_guess_same_dir.png", sep="")
     png3_name = paste(filepath, filename, "_pct_same_dir.png", sep="")
     png4_name = paste(filepath, filename, "_pct_best_guess_same_dir.png", sep="")
-    png5_name = paste(filepath, filename, "_dend_same_dir.png", sep="")
+    png5_name = paste(filepath, filename, "_mag_dend_same_dir.png", sep="")
+    png6_name = paste(filepath, filename, "_dend_same_dir.png", sep="")
     
     png1_title = paste("DEGs in Common w/ Same Sign b/w Clusters")
     png2_title = paste("Best Guess of DEGs w/ Same Sign")
@@ -842,7 +843,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png2_name = paste(filepath, filename, "_best_guess.png", sep="")
     png3_name = paste(filepath, filename, "_pct.png", sep="")
     png4_name = paste(filepath, filename, "_pct_best_guess.png", sep="")
-    png5_name = paste(filepath, filename, "_dend.png", sep="")
+    png5_name = paste(filepath, filename, "_mag_dend.png", sep="")
+    png6_name = paste(filepath, filename, "_dend.png", sep="")
     
     png1_title = paste("DEGs in Common b/w Clusters")
     png2_title = paste("Best Guess")
@@ -928,7 +930,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     dend_mat[na_ind] = 0
     print("Plotting the direction dendrogram")
     par(mar=c(10, 4.1, 4.1, 2.1))
-    png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
+    png(png6_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
     heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none", margins=c(10,5), srtCol=45)
     dev.off()
     print("finished direction dendrogram")
