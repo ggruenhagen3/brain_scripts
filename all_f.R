@@ -903,37 +903,27 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
     print(head(all_genes))
     j = 0
-    # for (i in 1:length(dfs)) {
-    #   for (i_clust in 1:num_clusters[[i]]) {
-    #     i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
-    #     i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
-    
     for (i in 1:length(dfs)) {
       print(i)
       print(head(dfs[[i]]))
       for (i_clust in unique(dfs[[i]]$cluster)) {
         print(i_clust)
-        # print(clusters[[i]])
-        # print(clusters[[i]][i_clust])
-        # print(clusters[[i]][i_clust] %in% dfs[[i]]$cluster)
-        # i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == i_clust),]
-        print(head(i_clust_df))
-        # print(head(i_clust_df$gene))
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
         gene_in_all_genes = i_clust_df$gene[which(i_clust_df$gene %in% all_genes)]
-        # print(length(gene_in_all_genes))
         dend_mat[gene_in_all_genes, j] = i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)]
-        # print(i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)])
+        
+        
         j = j + 1
       }
     }
     
-    # print("Plotting the dendrogram")
-    # png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
-    # print(heatmap.2(dend_mat, scale = "none", dendrogram = "both"))
-    # dev.off()
-    # print("finished dendrogram")
+    dend_mat=dend_mat[1:2000,]
+    print("Plotting the dendrogram")
+    png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
+    print(heatmap.2(dend_mat, scale = "none", dendrogram = "both"))
+    dev.off()
+    print("finished dendrogram")
   }
   
   return(list(df, dend_mat))
