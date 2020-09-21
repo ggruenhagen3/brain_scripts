@@ -913,6 +913,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
       print(head(dfs[[i]]))
       for (i_clust in 1:num_clusters[[i]]) {
         print(i_clust)
+        print(clusters[[i]][i_clust])
+        print(clusters[[i]][i_clust] %in% dfs[[i]]$cluster)
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
         print(head(i_clust_df))
         # print(head(i_clust_df$gene))
