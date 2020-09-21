@@ -910,7 +910,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == i_clust),]
         i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
         gene_in_all_genes = i_clust_df$gene[which(i_clust_df$gene %in% all_genes)]
-        dend_mat[gene_in_all_genes, j] = i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)]
+        dend_mat[gene_in_all_genes, i_clust] = i_clust_df$avg_logFC[which(i_clust_df$gene %in% all_genes)]
         
         
         j = j + 1
@@ -920,8 +920,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     dend_mat[which(is.na(dend_mat))] = 1
     dend_mat=dend_mat[1:2000,]
     print("Plotting the dendrogram")
-    png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
-    print(heatmap.2(dend_mat, scale = "none", dendrogram = "both"))
+    png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
+    print(heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none"))
     dev.off()
     print("finished dendrogram")
   }
