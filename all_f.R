@@ -707,7 +707,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     for (i_clust in 1:num_clusters[[i]]) {
       i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
       i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
-      print(head(i_clust_df$gene))
       
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
@@ -918,6 +917,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
       }
     }
     
+    dend_mat[which(is.na(dend_mat))] = 1
     dend_mat=dend_mat[1:2000,]
     print("Plotting the dendrogram")
     png(png5_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
