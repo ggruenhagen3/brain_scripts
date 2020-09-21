@@ -911,7 +911,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     for (i in 1:length(dfs)) {
       print(i)
       print(head(dfs[[i]]))
-      for (i_clust in dfs[[i]]$cluster) {
+      for (i_clust in unique(dfs[[i]]$cluster)) {
         print(i_clust)
         # print(clusters[[i]])
         # print(clusters[[i]][i_clust])
