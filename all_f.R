@@ -919,7 +919,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     # dend_mat=dend_mat[1:2000,]
     
     Colors=brewer.pal(11,"Spectral")
-    my_palette1=colorRampPalette(Colors)(n = 5)
+    my_palette1=colorRampPalette(Colors)(n = 9)
     my_palette <- colorRampPalette(c("#ff4b5c", "#FFFFFF", "#056674"))(n = 299)
     print("Plotting the magnitude dendrogram")
     par(mar=c(10, 4.1, 4.1, 2.1))
