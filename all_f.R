@@ -900,7 +900,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     # Prepare the Data
     dend_mat = matrix(, nrow=length(all_genes), ncol=length(all_clusters), dimnames = list(all_genes, all_clusters))
     print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
-    print(head(all_genes))
     for (i in 1:length(dfs)) {
       for (i_clust in unique(dfs[[i]]$cluster)) {
         i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == i_clust),]
@@ -913,10 +912,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     
     dend_mat[which(is.na(dend_mat))] = 0
     dend_mat=dend_mat[1:2000,]
+    
+    my_palette <- colorRampPalette(c("red", "gray", "green"))(n = 299)
     print("Plotting the dendrogram")
     png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
-    par(mar=c(8, 4.1, 4.1, 2.1))
-    heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none")
+    par(mar=c(10, 4.1, 4.1, 2.1))
+    heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none", col=my_palette)
     dev.off()
     print("finished dendrogram")
   }
