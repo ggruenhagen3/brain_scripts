@@ -899,7 +899,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   if (dendrogram) {
     # Prepare the Data
     all_genes = all_genes[which(duplicated(all_genes))] # only keep those which are found in comparisons twice. Reduces number of genes
-    all_genes = unique(genes)
+    all_genes = unique(all_genes)
     dend_mat = matrix(, nrow=length(all_genes), ncol=length(all_clusters), dimnames = list(all_genes, all_clusters))
     print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
     for (i in 1:length(dfs)) {
