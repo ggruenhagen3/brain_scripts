@@ -919,12 +919,12 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     # dend_mat=dend_mat[1:2000,]
     
     Colors=brewer.pal(11,"Spectral")
-    my_palette1=colorRampPalette(Colors)(n = 9)
+    my_palette1=colorRampPalette(Colors)(n = 299)
     my_palette <- colorRampPalette(c("#ff4b5c", "#FFFFFF", "#056674"))(n = 299)
     print("Plotting the magnitude dendrogram")
     par(mar=c(10, 4.1, 4.1, 2.1))
     png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
-    heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45)
+    heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=T)
     dev.off()
     print("finished magnitude dendrogram")
     
@@ -933,7 +933,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     print("Plotting the direction dendrogram")
     par(mar=c(10, 4.1, 4.1, 2.1))
     png(png6_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
-    heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45)
+    heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=T)
     dev.off()
     print("finished direction dendrogram")
   }
