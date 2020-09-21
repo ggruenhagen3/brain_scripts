@@ -913,11 +913,11 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     dend_mat[which(is.na(dend_mat))] = 0
     dend_mat=dend_mat[1:2000,]
     
-    my_palette <- colorRampPalette(c("red", "gray", "green"))(n = 299)
+    my_palette <- colorRampPalette(c("#ff9a76", "#ffeadb", "#679b9b"))(n = 299)
     print("Plotting the dendrogram")
-    png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
     par(mar=c(10, 4.1, 4.1, 2.1))
-    heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none", col=my_palette)
+    png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
+    heatmap.2(dend_mat, scale = "none", dendrogram = "both", trace = "none", col=my_palette, margins=c(10,5))
     dev.off()
     print("finished dendrogram")
   }
