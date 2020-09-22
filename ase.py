@@ -55,6 +55,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
     indicative_found_count = 0
     non_indicative_not_found = 0
     n_fail_allele = 0
+    far_count = 0
     with open(output_table, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -96,6 +97,10 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                             else:
                                 indicative_not_found += 1
 
+                            if dist > 25000:
+                                success = False
+                                far_count += 1
+
                             if success:
                                 indicative_found_count += 1
                                 # If the indicative allele was cv, not mc, then flip the logic
@@ -124,7 +129,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                 else:
                     n_fail_allele += 1
                 i += 1
-    n_fail = n_fail_allele + indicative_found_count + non_indicative_not_found
+    n_fail = n_fail_allele + indicative_found_count + non_indicative_not_found + far_count
     print("\tTotal Genes in Output Table: " + str(i))
     print("\tGenes in Output Table Not Found in GTF: " + str(j) + "\n")
     print("\tEntries Able to Determine MC from CV (Total Successes): " + str(indicative_found_count) + " (" +
@@ -133,6 +138,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
     print("\t\tEntries With <5 Counts For Both Alleles: " + str(n_fail_allele))
     print("\t\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
     print("\t\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
+    print("\t\tEntries > 25kb Away From Closest Gene: " + str(far_count))
     return counts, output_lines
 
 def findMC(mc_cv):
