@@ -67,6 +67,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                 start = info.index("Transcript:")+11
                 transcript = info[start:start+18]
                 success = False
+                ref_is_mc = True
                 if ref_count > 5 and alt_count > 5:  # filtering step from Chinar
                     if transcript in trans_to_gene.keys():
                         gene = trans_to_gene[transcript]
@@ -87,6 +88,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                             elif indicative_allele == lineSplit[4]:
                                 mc_count = alt_count
                                 cv_count = ref_count
+                                mc_is_ref = False
                                 success = True
                                 if lineSplit[3] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
@@ -101,6 +103,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                                     tmp = mc_count
                                     mc_count = cv_count
                                     cv_count = tmp
+                                    mc_is_ref = not mc_is_ref
 
                                     # print(line)
                                     # print(mc_cv_dict[pos])
@@ -108,6 +111,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                                     # print("CV count is " + str(cv_count))
 
                                 if zack != False:
+                                    line = line.rstrip() + "\t" + str(mc_is_ref) + "\n"
                                     output_lines.append(line)
 
                                 # Add the counts
