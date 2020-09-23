@@ -213,6 +213,7 @@ def prune(lines):
             previous_contig = contig
             i += 1
         lines = output_lines
+        output_lines = []
         # gaps, na = snpGap.findSnpGap(lines)
         iter += 1
 
@@ -275,7 +276,7 @@ def main():
     output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack)
     print("Pruning SNPs < 202 bp apart, that may inflate counts")
     pruned_lines = prune(output_lines)
-    gaps = snpGap.findSnpGap(pruned_lines)
+    gaps, na = snpGap.findSnpGap(pruned_lines)
     print("Number of SNPs with gap length <= 202: " + str(len([x for x in gaps if x <= 202])))
     print()
     print("Summing MC and CV counts per gene")
