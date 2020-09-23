@@ -42,6 +42,7 @@ def findSnpGap(vcf_lines, contigs):
     previous_start = 0
     gaps = []
     na = 0
+    previous_line = ""
     for line in vcf_lines:
         lineSplit = line.split()
         contig = lineSplit[0]
@@ -49,9 +50,14 @@ def findSnpGap(vcf_lines, contigs):
         if i != 0:
             if contig == previous_contig:
                 gaps.append(int(start) - int(previous_start))
+                if int(start) - int(previous_start) <= 202:
+                    print(previous_line)
+                    print(line)
+                    print("------------")
             else:
                 na += 1
         i += 1
+        previous_line = line
         previous_contig = contig
         previous_start = start
 
@@ -94,8 +100,8 @@ def main():
     lines, contigs = readFile(vcf)
     print("Finding Distance between SNPs")
     gaps, na = findSnpGap(lines, contigs)
-    print("Number of SNPs with gap length < 202: " + str(len([x for x in gaps if x < 202])))
-    print("Number of SNPs with gap length = 0: " + str(len([x for x in gaps if x == 0])))
+    print("Number of SNPs with gap length <= 202: " + str(len([x for x in gaps if x <= 202])))
+    # print("Number of SNPs with gap length = 0: " + str(len([x for x in gaps if x == 0])))
     print("Average Distance Between SNPs: " + str(sum(gaps)/len(gaps)))
     print("Number of SNPs where the last SNP was on a different contig: " + str(na))
     print("Creating Histogram")
