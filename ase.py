@@ -68,7 +68,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                 start = info.index("Transcript:")+11
                 transcript = info[start:start+18]
                 success = False
-                ref_is_mc = True
+                mc_is_ref = True
                 if ref_count > 5 and alt_count > 5:  # filtering step from Chinar
                     if transcript in trans_to_gene.keys():
                         gene = trans_to_gene[transcript]
@@ -79,16 +79,12 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                             indicative_allele = mc_cv_dict[pos][1]
                             # See if the indicative allele is found
                             if indicative_allele == lineSplit[3]:
-                                mc_count = ref_count
-                                cv_count = alt_count
                                 success = True
                                 if lineSplit[4] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
                                     success = False
                                     # print(lineSplit[4] + " not found in " + str(mc_cv_dict[pos][2]))
                             elif indicative_allele == lineSplit[4]:
-                                mc_count = alt_count
-                                cv_count = ref_count
                                 mc_is_ref = False
                                 success = True
                                 if lineSplit[3] not in mc_cv_dict[pos][2]:
@@ -115,15 +111,8 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                                     # print("MC count is " + str(mc_count))
                                     # print("CV count is " + str(cv_count))
 
-                                if zack:
-                                    line = line.rstrip() + "\t" + str(mc_is_ref) + "\n"
-                                    output_lines.append(line)
-
-                                # # Add the counts
-                                # if gene not in counts.keys():
-                                #     counts[gene] = [mc_count, cv_count]
-                                # else:
-                                #     counts[gene] = [counts[gene][0]+mc_count, counts[gene][1]+cv_count]
+                                line = line.rstrip() + "\t" + str(mc_is_ref) + "\n"
+                                output_lines.append(line)
                     else:
                         j += 1
                 else:
@@ -189,7 +178,7 @@ def prune(lines):
             if contig == previous_contig:
                 travelled += start - previous_start
                 travelled_lines.append(line)
-                if start - previous_start > 202:
+                if start - previous_start < 202:
                     print("Should be pruned")
                 if travelled > 202:
                     max_count = 0
@@ -209,10 +198,32 @@ def prune(lines):
     print("SNPs Pruned: " + str(n_pruned))
     return output_lines
 
-def findCounts(lines):
+def findCounts(lines, trans_to_gene):
     counts = {}  # key = gene, value = [mc_count, cv_count]
     for line in lines:
         lineSplit = line.split()
+        ref_count = round(float(lineSplit[5]))
+        info = lineSplit[7]
+        # alt_count = int(info.split(";")[0])
+        alt_count = int(lineSplit[6])
+        dist = int(info[int(info.index("=")) + 1:int(info.index("|"))])
+        start = info.index("Transcript:") + 11
+        transcript = info[start:start + 18]
+        gene = trans_to_gene[transcript]
+        mc_is_ref = lineSplit[len(lineSplit) - 1]
+
+        mc_count = ref_count
+        cv_count = alt_count
+        if mc_is_ref == "False":
+            mc_count = alt_count
+            cv_count = ref_count
+
+        # Add the counts
+        if gene not in counts.keys():
+            counts[gene] = [mc_count, cv_count]
+        else:
+            counts[gene] = [counts[gene][0]+mc_count, counts[gene][1]+cv_count]
+
     return counts
 
 def writeCounts(counts, output, trans_to_gene):
