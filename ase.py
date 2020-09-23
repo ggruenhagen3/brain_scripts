@@ -193,8 +193,6 @@ def prune(lines):
                         n_pruned += len(travelled_lines)-1
                         travelled = 0
                         travelled_lines = []
-                        print(n_pruned)
-                        break
                 else:
                     travelled_lines.append(line)
 
