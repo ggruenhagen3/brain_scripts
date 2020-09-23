@@ -194,8 +194,7 @@ def prune(lines):
                         travelled = 0
                         travelled_lines = []
                         print(n_pruned)
-                        if n_pruned > 4:
-                            break
+                        break
                 else:
                     travelled_lines.append(line)
 
@@ -204,7 +203,7 @@ def prune(lines):
         previous_contig = contig
         i += 1
 
-    print("SNPs Pruned: " + str(n_pruned))
+    print("SNPs Pruned: " + str(len(lines) - len(output_lines)))
     for line in output_lines:
         print(line)
     return output_lines
