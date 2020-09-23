@@ -189,6 +189,8 @@ def prune(lines):
             if contig == previous_contig:
                 travelled += start - previous_start
                 travelled_lines.append(line)
+                if start - previous_start > 202:
+                    print("Should be pruned")
                 if travelled > 202:
                     max_count = 0
                     max_line = ""
