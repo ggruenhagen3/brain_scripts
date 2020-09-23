@@ -101,9 +101,6 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                                 indicative_found_count += 1
                                 # If the indicative allele was cv, not mc, then flip the logic
                                 if mc_cv_dict[pos][0] == "cv":
-                                    tmp = mc_count
-                                    mc_count = cv_count
-                                    cv_count = tmp
                                     mc_is_ref = not mc_is_ref
 
                                     # print(line)
@@ -204,9 +201,7 @@ def findCounts(lines, trans_to_gene):
         lineSplit = line.split()
         ref_count = round(float(lineSplit[5]))
         info = lineSplit[7]
-        # alt_count = int(info.split(";")[0])
         alt_count = int(lineSplit[6])
-        dist = int(info[int(info.index("=")) + 1:int(info.index("|"))])
         start = info.index("Transcript:") + 11
         transcript = info[start:start + 18]
         gene = trans_to_gene[transcript]
