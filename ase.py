@@ -171,8 +171,8 @@ def prune(lines):
         lineSplit = line.split()
         contig = lineSplit[0]
         start = int(lineSplit[1])
+        print(line)
         if i != 0:
-            print(i)
             if contig == previous_contig:
                 travelled += start - previous_start
                 travelled_lines.append(line)
@@ -188,6 +188,7 @@ def prune(lines):
                             max_line = t_line
                     output_lines.append(max_line)
                     n_pruned += len(travelled_lines)-1
+                    break
 
         previous_start = start
         previous_contig = contig
