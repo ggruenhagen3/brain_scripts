@@ -171,12 +171,11 @@ def prune(lines):
     gap_iter = 0
     n_lines = len(lines)
     gaps, na = snpGap.findSnpGap(lines)
-    print(gaps[1:5])
     while len([x for x in gaps if x < 203]) > 0:
     # for iter in range(1, 2):
     #     print(iter)
         output_lines = []
-        print("SNPs < 202: " + str(len([x for x in gaps if x < 203])))
+        print("Iteration " + gap_iter + " # Distance b/w SNPs < 202: " + str(len([x for x in gaps if x < 203])))
         for line in lines:
             lineSplit = line.split()
             contig = lineSplit[0]
