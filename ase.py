@@ -175,7 +175,7 @@ def prune(lines):
     # for iter in range(1, 2):
     #     print(iter)
         output_lines = []
-        print("Iteration " + gap_iter + " # Distance b/w SNPs < 202: " + str(len([x for x in gaps if x < 203])))
+        print("Iteration " + str(gap_iter) + " # Distance b/w SNPs < 202: " + str(len([x for x in gaps if x < 203])))
         for line in lines:
             lineSplit = line.split()
             contig = lineSplit[0]
