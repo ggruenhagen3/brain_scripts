@@ -1,4 +1,5 @@
 import argparse
+import snpGap
 import re
 import time
 import sys
@@ -167,44 +168,46 @@ def prune(lines):
     output_lines = []
     n_pruned = 0
     i = 0
-    for line in lines:
-        lineSplit = line.split()
-        contig = lineSplit[0]
-        start = int(lineSplit[1])
-        if i != 0:
-            if contig == previous_contig:
-                travelled += start - previous_start
-                # if start - previous_start < 202:
-                #     print("Should be pruned")
-                # if travelled < 202:
-                #     travelled_lines.append(line)
-                # else:
+    for j in 3:
+        for line in lines:
+            lineSplit = line.split()
+            contig = lineSplit[0]
+            start = int(lineSplit[1])
+            if i != 0:
+                if contig == previous_contig:
+                    travelled += start - previous_start
+                    # if start - previous_start < 202:
+                    #     print("Should be pruned")
+                    # if travelled < 202:
+                    #     travelled_lines.append(line)
+                    # else:
 
-                if start == 2327196 or start == 2327269:
-                    print("Travelled: " + str(travelled))
-                if travelled > 202:
-                    if len(travelled_lines) == 0:
-                        output_lines.append(line)
-                    else:
-                        max_count = 0
-                        max_line = ""
-                        for t_line in travelled_lines:
-                            t_lineSplit = t_line.split()
-                            counts = round(float(t_lineSplit[5])) + int(t_lineSplit[6])
-                            if counts > max_count:
-                                max_count = counts
-                                max_line = t_line
-                        output_lines.append(max_line)
-                        n_pruned += len(travelled_lines)-1
-                    travelled = 0
-                    travelled_lines = []
+                    if start == 2327196 or start == 2327269:
+                        print("Travelled: " + str(travelled))
+                    if travelled > 202:
+                        if len(travelled_lines) == 0:
+                            output_lines.append(line)
+                        else:
+                            max_count = 0
+                            max_line = ""
+                            for t_line in travelled_lines:
+                                t_lineSplit = t_line.split()
+                                counts = round(float(t_lineSplit[5])) + int(t_lineSplit[6])
+                                if counts > max_count:
+                                    max_count = counts
+                                    max_line = t_line
+                            output_lines.append(max_line)
+                            n_pruned += len(travelled_lines)-1
+                        travelled = 0
+                        travelled_lines = []
 
-                travelled_lines.append(line)
+                    travelled_lines.append(line)
 
 
-        previous_start = start
-        previous_contig = contig
-        i += 1
+            previous_start = start
+            previous_contig = contig
+            i += 1
+        lines = output_lines
 
     print("SNPs Pruned: " + str(len(lines) - len(output_lines)))
     return output_lines
@@ -265,7 +268,9 @@ def main():
     output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack)
     print("Pruning SNPs < 202 bp apart, that may inflate counts")
     pruned_lines = prune(output_lines)
-    pruned_lines = prune(pruned_lines)
+    gaps = snpGap.findSnpGap(pruned_lines)
+    print("Number of SNPs with gap length <= 202: " + str(len([x for x in gaps if x <= 202])))
+    print()
     print("Summing MC and CV counts per gene")
     counts = findCounts(pruned_lines, trans_to_gene)
     if zack:
