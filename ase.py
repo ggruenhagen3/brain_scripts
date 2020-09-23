@@ -115,15 +115,15 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                                     # print("MC count is " + str(mc_count))
                                     # print("CV count is " + str(cv_count))
 
-                                if zack != False:
+                                if zack:
                                     line = line.rstrip() + "\t" + str(mc_is_ref) + "\n"
                                     output_lines.append(line)
 
-                                # Add the counts
-                                if gene not in counts.keys():
-                                    counts[gene] = [mc_count, cv_count]
-                                else:
-                                    counts[gene] = [counts[gene][0]+mc_count, counts[gene][1]+cv_count]
+                                # # Add the counts
+                                # if gene not in counts.keys():
+                                #     counts[gene] = [mc_count, cv_count]
+                                # else:
+                                #     counts[gene] = [counts[gene][0]+mc_count, counts[gene][1]+cv_count]
                     else:
                         j += 1
                 else:
@@ -139,7 +139,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
     print("\t\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
     print("\t\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
     print("\t\tEntries > 25kb Away From Closest Gene: " + str(far_count))
-    return counts, output_lines
+    return output_lines
 
 def findMC(mc_cv):
     """"
@@ -164,8 +164,8 @@ def findMC(mc_cv):
                 mc = lineSplit[10]
                 cv_alleles = [cv.split("/")[0], cv.split("/")[1][0:1]]
                 mc_alleles = [mc.split("/")[0], mc.split("/")[1][0:1]]
-                cv_alleles = [x if x=="." else alleles[int(x)] for x in cv_alleles]
-                mc_alleles = [x if x=="." else alleles[int(x)] for x in mc_alleles]
+                cv_alleles = [x if x == "." else alleles[int(x)] for x in cv_alleles]
+                mc_alleles = [x if x == "." else alleles[int(x)] for x in mc_alleles]
                 if cv_alleles[0] == cv_alleles[1]:
                     if cv_alleles[0] not in mc_alleles:
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_alleles[0], mc_alleles]
@@ -173,6 +173,46 @@ def findMC(mc_cv):
                     if mc_alleles[0] not in cv_alleles:
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_alleles[0], cv_alleles]
     return mc_cv_dict
+
+
+def prune(lines):
+    travelled = 0
+    travelled_lines = []
+    output_lines = []
+    n_pruned = 0
+    i = 0
+    for line in lines:
+        lineSplit = line.split()
+        contig = lineSplit[1]
+        if i != 0:
+            if contig == previous_contig:
+                start = lineSplit[2]
+                ref_count = round(float(lineSplit[5]))
+                alt_count = int(lineSplit[6])
+                travelled += start - previous_start
+                travelled_lines.append(line)
+                if travelled > 202:
+                    max_count = 0
+                    max_line = ""
+                    for t_line in travelled_lines:
+                        t_lineSplit = t_line.split()
+                        counts = round(float(t_lineSplit[5])) + int(t_lineSplit[6])
+                        if counts > max_count:
+                            max_line = t_line
+                    output_lines.append(max_line)
+                    n_pruned += len(travelled_lines)-1
+
+        previous_start = start
+        previous_contig = contig
+        i += 1
+
+    print("SNPs Pruned: " + str(n_pruned))
+    return output_lines
+
+def findCounts():
+    counts = {}  # key = gene, value = [mc_count, cv_count]
+
+    return counts
 
 def writeCounts(counts, output, trans_to_gene):
     all_gene = list(set(trans_to_gene.values()))
@@ -201,7 +241,7 @@ def main():
     print("Finding alleles that distinguish MC from CV")
     mc_cv_dict = findMC(mc_cv)
     print("Summing MC and CV distinguishing alleles in file")
-    counts, output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack)
+    output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack)
     if zack:
         print("Writing Informative Sites VCF")
         writeVcf(output_lines, zack)
