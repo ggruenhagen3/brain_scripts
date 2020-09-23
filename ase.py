@@ -180,7 +180,7 @@ def prune(lines):
                 #     travelled_lines.append(line)
                 # else:
 
-                if start == 172124 or start == 172143:
+                if start == 2327196 or start == 2327269:
                     print("Travelled: " + str(travelled))
                 if travelled > 202:
                     if len(travelled_lines) == 0:
@@ -198,7 +198,7 @@ def prune(lines):
                         n_pruned += len(travelled_lines)-1
                     travelled = 0
                     travelled_lines = []
-                    
+
                 travelled_lines.append(line)
 
 
@@ -269,7 +269,7 @@ def main():
     counts = findCounts(pruned_lines, trans_to_gene)
     if zack:
         print("Writing Informative Sites VCF")
-        writeVcf(pruned_lines, zack)
+        writeVcf(output_lines, zack)
     print("Writing Counts Output")
     writeCounts(counts, output, trans_to_gene)
     print("Done")
