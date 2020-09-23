@@ -165,7 +165,7 @@ def findMC(mc_cv):
 def prune(lines):
     travelled = 0
     travelled_lines = []
-    output_lines = []
+    # output_lines = []
     n_pruned = 0
     i = 0
     iter = 1
@@ -174,6 +174,7 @@ def prune(lines):
     # print(gaps[1:5])
     # while len([x for x in gaps if x < 203]) > 0:
     for j in range(1,1):
+        print(j)
         output_lines = []
         # print("SNPs < 202: " + str(len([x for x in gaps if x < 203])))
         for line in lines:
@@ -185,9 +186,6 @@ def prune(lines):
                     travelled += start - previous_start
                     # if start - previous_start < 202:
                     #     print("Should be pruned")
-                    # if travelled < 202:
-                    #     travelled_lines.append(line)
-                    # else:
 
                     if start == 2327196 or start == 2327269:
                         print("Travelled: " + str(travelled))
