@@ -172,7 +172,7 @@ def prune(lines):
     # gaps, na = snpGap.findSnpGap(lines)
     # print(gaps[1:5])
     # while len([x for x in gaps if x < 203]) > 0:
-    for j in range(1,3):
+    for j in range(1,1):
         # print("SNPs < 202: " + str(len([x for x in gaps if x < 203])))
         for line in lines:
             lineSplit = line.split()
