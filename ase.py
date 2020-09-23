@@ -175,7 +175,6 @@ def prune(lines):
         if i != 0:
             if contig == previous_contig:
                 travelled += start - previous_start
-                travelled_lines.append(line)
                 # if start - previous_start < 202:
                 #     print("Should be pruned")
                 if travelled > 202:
@@ -185,6 +184,7 @@ def prune(lines):
                         t_lineSplit = t_line.split()
                         counts = round(float(t_lineSplit[5])) + int(t_lineSplit[6])
                         if counts > max_count:
+                            max_count = counts
                             max_line = t_line
                     output_lines.append(max_line)
                     n_pruned += len(travelled_lines)-1
@@ -193,6 +193,9 @@ def prune(lines):
                     print(n_pruned)
                     if n_pruned > 4:
                         break
+                else:
+                    travelled_lines.append(line)
+
 
         previous_start = start
         previous_contig = contig
