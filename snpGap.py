@@ -34,7 +34,7 @@ def readFile(vcf):
     contigs = list(set(contigs))  # remove duplicates
     return lines, contigs
 
-def findSnpGap(vcf_lines, contigs):
+def findSnpGap(vcf_lines):
     """"
     Find the average number of base pairs SNPs are away from each other.
     """
@@ -50,10 +50,10 @@ def findSnpGap(vcf_lines, contigs):
         if i != 0:
             if contig == previous_contig:
                 gaps.append(int(start) - int(previous_start))
-                if int(start) - int(previous_start) <= 202:
-                    print(previous_line)
-                    print(line)
-                    print("------------")
+                # if int(start) - int(previous_start) <= 202:
+                #     print(previous_line)
+                #     print(line)
+                #     print("------------")
             else:
                 na += 1
         i += 1
