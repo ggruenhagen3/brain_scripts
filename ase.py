@@ -175,7 +175,7 @@ def prune(lines):
     # for iter in range(1, 2):
     #     print(iter)
         output_lines = []
-        print("Iteration " + str(gap_iter) + " # Distance b/w SNPs < 202: " + str(len([x for x in gaps if x < 203])))
+        print("\tIteration " + str(gap_iter) + ", # Distance b/w SNPs < 202: " + str(len([x for x in gaps if x < 203])))
         for line in lines:
             lineSplit = line.split()
             contig = lineSplit[0]
@@ -215,7 +215,7 @@ def prune(lines):
         gaps, na = snpGap.findSnpGap(lines)
         gap_iter += 1
 
-    print(str(gap_iter) + " Iterations Pruned " + str(n_lines - len(output_lines)) + " SNPs")
+    print("\t" + str(gap_iter) + " Iterations Pruned " + str(n_lines - len(output_lines)) + " SNPs")
     return output_lines
 
 def findCounts(lines, trans_to_gene):
