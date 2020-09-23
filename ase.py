@@ -211,7 +211,7 @@ def prune(lines):
             previous_contig = contig
             i += 1
         lines = output_lines
-        gaps = snpGap.findSnpGap(lines)
+        gaps, na = snpGap.findSnpGap(lines)
         iter += 1
 
     print(str(iter) + " Iterations Pruned " + str(len(lines) - len(output_lines)) + " SNPs")
