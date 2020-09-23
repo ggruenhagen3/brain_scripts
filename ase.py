@@ -270,7 +270,7 @@ def main():
     counts = findCounts(pruned_lines, trans_to_gene)
     if zack:
         print("Writing Informative Sites VCF")
-        writeVcf(output_lines, zack)
+        writeVcf(pruned_lines, zack)
     print("Writing Counts Output")
     writeCounts(counts, output, trans_to_gene)
     print("Done")
