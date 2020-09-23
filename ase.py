@@ -188,6 +188,8 @@ def prune(lines):
                             max_line = t_line
                     output_lines.append(max_line)
                     n_pruned += len(travelled_lines)-1
+                    travelled = 0
+                    travelled_lines = []
                     print(n_pruned)
                     if n_pruned > 4:
                         break
