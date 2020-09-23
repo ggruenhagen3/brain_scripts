@@ -176,6 +176,8 @@ def prune(lines):
                 travelled += start - previous_start
                 # if start - previous_start < 202:
                 #     print("Should be pruned")
+                if start == 172124 or start == 172143:
+                    print("Travelled: " + str(travelled))
                 if travelled > 202:
                     if len(travelled_lines) == 0:
                         output_lines.append(line)
