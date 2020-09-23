@@ -184,11 +184,9 @@ def prune(lines):
     for line in lines:
         lineSplit = line.split()
         contig = lineSplit[1]
+        start = lineSplit[2]
         if i != 0:
             if contig == previous_contig:
-                start = lineSplit[2]
-                ref_count = round(float(lineSplit[5]))
-                alt_count = int(lineSplit[6])
                 travelled += start - previous_start
                 travelled_lines.append(line)
                 if travelled > 202:
