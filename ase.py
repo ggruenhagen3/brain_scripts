@@ -184,8 +184,7 @@ def prune(lines):
     for line in lines:
         lineSplit = line.split()
         contig = lineSplit[0]
-        start = lineSplit[1]
-        print(start)
+        start = int(lineSplit[1])
         if i != 0:
             if contig == previous_contig:
                 travelled += start - previous_start
