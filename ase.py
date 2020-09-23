@@ -202,8 +202,6 @@ def prune(lines):
         i += 1
 
     print("SNPs Pruned: " + str(len(lines) - len(output_lines)))
-    for line in output_lines:
-        print(line)
     return output_lines
 
 def findCounts(lines, trans_to_gene):
