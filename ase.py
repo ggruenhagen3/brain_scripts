@@ -265,6 +265,7 @@ def main():
     output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack)
     print("Pruning SNPs < 202 bp apart, that may inflate counts")
     pruned_lines = prune(output_lines)
+    pruned_lines = prune(pruned_lines)
     print("Summing MC and CV counts per gene")
     counts = findCounts(pruned_lines, trans_to_gene)
     if zack:
