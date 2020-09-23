@@ -215,7 +215,7 @@ def prune(lines):
         lines = output_lines
         gaps, na = snpGap.findSnpGap(lines)
 
-    print("\t" + str(gap_iter) + " Iterations Pruned " + str(n_lines - len(output_lines)) + " ( " + str((n_lines - len(output_lines))/n_lines) + "%) SNPs")
+    print("\t" + str(gap_iter) + " Iterations Pruned " + str(n_lines - len(output_lines)) + " ( " + str((n_lines - len(output_lines))/n_lines * 100) + "%) SNPs")
     return output_lines
 
 def findCounts(lines, trans_to_gene):
