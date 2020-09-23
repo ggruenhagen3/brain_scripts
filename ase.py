@@ -188,7 +188,9 @@ def prune(lines):
                             max_line = t_line
                     output_lines.append(max_line)
                     n_pruned += len(travelled_lines)-1
-                    break
+                    print(n_pruned)
+                    if n_pruned > 4:
+                        break
 
         previous_start = start
         previous_contig = contig
@@ -254,7 +256,7 @@ def main():
     print("Pruning SNPs < 202 bp apart, that may inflate counts")
     pruned_lines = prune(output_lines)
     print("Summing MC and CV counts per gene")
-    counts = findCounts(pruned_lines)
+    counts = findCounts(pruned_lines, trans_to_gene)
     if zack:
         print("Writing Informative Sites VCF")
         writeVcf(pruned_lines, zack)
