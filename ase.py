@@ -192,8 +192,8 @@ def prune(lines):
                                 max_line = t_line
                         output_lines.append(max_line)
                         n_pruned += len(travelled_lines)-1
-                        travelled = 0
-                        travelled_lines = []
+                    travelled = 0
+                    travelled_lines = []
                 else:
                     travelled_lines.append(line)
 
