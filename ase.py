@@ -209,9 +209,10 @@ def prune(lines):
     print("SNPs Pruned: " + str(n_pruned))
     return output_lines
 
-def findCounts():
+def findCounts(lines):
     counts = {}  # key = gene, value = [mc_count, cv_count]
-
+    for line in lines:
+        lineSplit = line.split()
     return counts
 
 def writeCounts(counts, output, trans_to_gene):
