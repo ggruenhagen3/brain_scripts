@@ -672,6 +672,42 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
+expressionDend = function(objs, my_slot="counts") {
+  # Purpose: Create dendrograms of expression of genes in clusters of mulitple objects
+  # Input:
+  #       obj: list of Seurat objects
+  # Output: dendrograms
+  
+  # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
+  print("Finding Genes to Use in Dendrogram")
+  imp_genes = c()
+  min_pct = 0.1
+  for (obj in objs) {
+    print(obj$project[1])
+    Idents(obj) = obj$seurat_clusters
+    for (cluster in unique(obj$seurat_clusters)) {
+      n_cells_cluster = length(WhichCells(obj, idents = cluster))
+      for (gene in rownames(obj)) {
+        expr1 = FetchData(object = tj, vars = gene, slot=my_slot)
+        if (my_slot == "data") {
+          pos_cells = colnames(tj[, which(x = expr1 > 0)])
+        } else {
+          pos_cells = colnames(tj[, which(x = expr1 > 1)])
+        }
+        if (pos_cells/n_cells_cluster > min_pct) {
+          imp_genes = c(imp_genes, gene)
+        }
+      } # end gene for
+    } # end cluster for
+  } # end obj for
+  imp_genes = unique(imp_genes)
+  print(paste("Using", length(imp_genes), "in dendrogram"))
+  
+  # 2. Get Expression Data at Genes
+  
+  return(TRUE)
+}
+
 heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_factors, labels=F, xlab=T, tri=T, dendrogram=T) {
   # Input: list of dataframes that are output of Seurat FindAllMarkers
   #        Vector of samples or whatever you want to name those two dataframes
