@@ -678,32 +678,60 @@ expressionDend = function(objs, my_slot="counts") {
   #       obj: list of Seurat objects
   # Output: dendrograms
   
+  # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
+  print("Finding Genes to Use in Dendrogram")
   non_zero_genes = c()
+  all_clusters = 
   for (obj in objs) {
     gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
     non_zero_genes = c(non_zero_genes, gene_names)
+    all_clusters = c(all_clusters, paste(obj$project), levels(obj$seurat_clusters))
   }
-  
-  # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
-  print("Finding Genes to Use in Dendrogram")
-  imp_genes = c()
-  min_pct = 0.1
-  for (obj in objs) {
-    print(obj$project[[1]])
-    Idents(obj) = obj$seurat_clusters
-    mat = obj@assays$RNA@counts
-    mat[which(mat > 1)] = 1
-    for (cluster in levels(obj$seurat_clusters)) {
-      cells_cluster = WhichCells(object = obj, idents = cluster)
-      n_cells_min = min_pct * length(cells_cluster)
-      genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[non_zero_genes,cells_cluster])) >= n_cells_min)]
-      imp_genes = c(imp_genes, genes_pass)
-    } # end cluster for
-  } # end obj for
+  non_zero_table = table(non_zero_genes)
+  non_zero_genes = names(non_zero_table)[which(non_zero_table == length(objs))]
+  # 
+  # imp_genes = c()
+  # min_pct = 0.1
+  # for (obj in objs) {
+  #   print(obj$project[[1]])
+  #   Idents(obj) = obj$seurat_clusters
+  #   mat = obj@assays$RNA@counts
+  #   mat[which(mat > 1)] = 1
+  #   for (cluster in levels(obj$seurat_clusters)) {
+  #     cells_cluster = WhichCells(object = obj, idents = cluster)
+  #     n_cells_min = min_pct * length(cells_cluster)
+  #     genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[non_zero_genes,cells_cluster])) >= n_cells_min)]
+  #     imp_genes = c(imp_genes, genes_pass)
+  #   } # end cluster for
+  # } # end obj for
+  imp_genes = non_zero_genes
   imp_genes = unique(imp_genes)
   print(paste("Using", length(imp_genes), "in dendrogram"))
   
   # 2. Get Expression Data at Genes
+  dend_mat = matrix(0L, nrow=length(imp_genes), ncol=length(all_clusters), dimnames = list(imp_genes, all_clusters))
+  print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
+  for (obj in objs) {
+    Idents(obj) = obj$seurat_clusters
+    for (cluster in levels(obj$seurat_clusters)) {
+      cluster_name = paste(obj$project[[1]], cluster)
+      dend_mat[imp_genes,cluster_name] = obj@assays$RNA@counts[imp_genes, cluster]
+    }
+  }
+  
+  # Create the Plot
+  png5_name = "test_dend.png"
+  Colors=brewer.pal(11,"Spectral")
+  # my_breaks = c(seq(-10, -2, length=100), seq(-2,-0.1,length=100), seq(-0.1, 0.1, length=100), seq(0.1,2,length=100), seq(2,10,length=100))
+  my_palette1=colorRampPalette(Colors)(n = 299)
+  my_palette <- colorRampPalette(c("#ff4b5c", "#FFFFFF", "#056674"))(n = 299)
+  print("Plotting the dendrogram")
+  par(mar=c(10, 4.1, 4.1, 2.1))
+  png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
+  heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=T, main="Expression")
+  dev.off()
+  print("Finished plotting")
+  
   
   return(TRUE)
 }
