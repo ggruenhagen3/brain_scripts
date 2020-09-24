@@ -699,7 +699,7 @@ expressionDend = function(objs, my_slot="counts") {
           }
         }, error = function(e) {
           0
-          print(gene)
+          # print(gene)
         })
         if (pos_cells/n_cells_cluster > min_pct) {
           imp_genes = c(imp_genes, gene)
