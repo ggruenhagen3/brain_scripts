@@ -685,7 +685,7 @@ expressionDend = function(objs, my_slot="counts") {
   for (obj in objs) {
     print(obj$project[1])
     Idents(obj) = obj$seurat_clusters
-    for (cluster in unique(obj$seurat_clusters)) {
+    for (cluster in levels(obj$seurat_clusters)) {
       n_cells_cluster = length(WhichCells(obj, idents = cluster))
       for (gene in rownames(obj)) {
         expr1 = FetchData(object = tj, vars = gene, slot=my_slot)
