@@ -687,8 +687,9 @@ expressionDend = function(objs, my_slot="counts") {
   for (obj in objs) {
     print(obj$project[1])
     Idents(obj) = obj$seurat_clusters
+    mat = obj@assays$RNA@counts
+    mat[which(mat > 1)] = 1
     for (cluster in levels(obj$seurat_clusters)) {
-      print(cluster)
       cells_cluster = WhichCells(object = obj, idents = cluster)
       n_cells_min = min_pct * length(cells_cluster)
       genes_pass = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts[,cells_cluster])) >= n_cells_min)]
