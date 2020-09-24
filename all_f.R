@@ -678,6 +678,8 @@ expressionDend = function(objs, my_slot="counts") {
   #       obj: list of Seurat objects
   # Output: dendrograms
   
+  # gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+  
   # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
   print("Finding Genes to Use in Dendrogram")
   imp_genes = c()
@@ -687,24 +689,10 @@ expressionDend = function(objs, my_slot="counts") {
     Idents(obj) = obj$seurat_clusters
     for (cluster in levels(obj$seurat_clusters)) {
       print(cluster)
-      n_cells_cluster = length(WhichCells(object = obj, idents = cluster))
-      for (gene in rownames(obj)) {
-        expr1 = FetchData(object = obj, vars = gene, slot=my_slot)
-        
-        pos_cells = tryCatch({
-          if (my_slot == "data") {
-            length(obj[, which(x = expr1 > 0)])
-          } else {
-            length(obj[, which(x = expr1 > 1)])
-          }
-        }, error = function(e) {
-          0
-          # print(gene)
-        })
-        if (pos_cells/n_cells_cluster > min_pct) {
-          imp_genes = c(imp_genes, gene)
-        }
-      } # end gene for
+      cells_cluster = WhichCells(object = obj, idents = cluster)
+      n_cells_min = min_pct * length(cells_cluster)
+      genes_pass = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts[,cells_cluster])) >= n_cells_min)]
+      imp_genes = c(imp_genes, genes_pass)
     } # end cluster for
   } # end obj for
   imp_genes = unique(imp_genes)
