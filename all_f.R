@@ -681,7 +681,7 @@ expressionDend = function(objs, my_slot="counts") {
   # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
   print("Finding Genes to Use in Dendrogram")
   non_zero_genes = c()
-  all_clusters = 
+  all_clusters = c()
   for (obj in objs) {
     gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
     non_zero_genes = c(non_zero_genes, gene_names)
