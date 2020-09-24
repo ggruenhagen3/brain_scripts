@@ -678,7 +678,11 @@ expressionDend = function(objs, my_slot="counts") {
   #       obj: list of Seurat objects
   # Output: dendrograms
   
-  # gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+  non_zero_genes = c()
+  for (obj in objs) {
+    gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+    non_zero_genes = c(non_zero_genes, gene_names)
+  }
   
   # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
   print("Finding Genes to Use in Dendrogram")
@@ -692,7 +696,7 @@ expressionDend = function(objs, my_slot="counts") {
     for (cluster in levels(obj$seurat_clusters)) {
       cells_cluster = WhichCells(object = obj, idents = cluster)
       n_cells_min = min_pct * length(cells_cluster)
-      genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[,cells_cluster])) >= n_cells_min)]
+      genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[non_zero_genes,cells_cluster])) >= n_cells_min)]
       imp_genes = c(imp_genes, genes_pass)
     } # end cluster for
   } # end obj for
