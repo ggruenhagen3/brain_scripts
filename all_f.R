@@ -689,11 +689,11 @@ expressionDend = function(objs, my_slot="counts") {
       print(cluster)
       n_cells_cluster = length(WhichCells(object = obj, idents = cluster))
       for (gene in rownames(obj)) {
-        expr1 = FetchData(object = tj, vars = gene, slot=my_slot)
+        expr1 = FetchData(object = obj, vars = gene, slot=my_slot)
         if (my_slot == "data") {
-          pos_cells = colnames(tj[, which(x = expr1 > 0)])
+          pos_cells = colnames(obj[, which(x = expr1 > 0)])
         } else {
-          pos_cells = colnames(tj[, which(x = expr1 > 1)])
+          pos_cells = colnames(obj[, which(x = expr1 > 1)])
         }
         if (pos_cells/n_cells_cluster > min_pct) {
           imp_genes = c(imp_genes, gene)
