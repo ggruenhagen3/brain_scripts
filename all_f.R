@@ -690,7 +690,7 @@ expressionDend = function(objs, my_slot="counts") {
     # } else {
     #   all_clusters = c(all_clusters, paste(obj$project[[1]], levels(obj$seurat_clusters)))
     # }
-    all_clusters = c(all_clusters, paste(obj$project[[1]], levels(obj$seurat_clusters)))
+    all_clusters = c(all_clusters, paste(obj$project[[1]], sort(unique(as.vector((obj$seurat_clusters))))))
   }
   non_zero_table = table(non_zero_genes)
   non_zero_genes = names(non_zero_table)[which(non_zero_table == length(objs))]
