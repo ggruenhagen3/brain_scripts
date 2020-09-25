@@ -685,11 +685,16 @@ expressionDend = function(objs, my_slot="counts") {
   for (obj in objs) {
     gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
     non_zero_genes = c(non_zero_genes, gene_names)
-    all_clusters = c(all_clusters, paste(obj$project), levels(obj$seurat_clusters))
+    # if ("annot" %in% colnames(obj@meta.data)) {
+    #   all_clusters = c(all_clusters, paste(obj$project[[1]], unique(obj$annot)))
+    # } else {
+    #   all_clusters = c(all_clusters, paste(obj$project[[1]], levels(obj$seurat_clusters)))
+    # }
+    all_clusters = c(all_clusters, paste(obj$project[[1]], levels(obj$seurat_clusters)))
   }
   non_zero_table = table(non_zero_genes)
   non_zero_genes = names(non_zero_table)[which(non_zero_table == length(objs))]
-  # 
+  
   # imp_genes = c()
   # min_pct = 0.1
   # for (obj in objs) {
@@ -712,26 +717,43 @@ expressionDend = function(objs, my_slot="counts") {
   dend_mat = matrix(0L, nrow=length(imp_genes), ncol=length(all_clusters), dimnames = list(imp_genes, all_clusters))
   print(paste("Creating Dendrogram Matrix of size", nrow(dend_mat), "x", ncol(dend_mat)))
   for (obj in objs) {
+    print(obj$project[[1]])
+    # if ("annot" %in% colnames(obj@meta.data)) {
+    #   clusters = unique(obj$annot)
+    #   Idents(obj) = obj$annot
+    # } else {
+    #   clusters = levels(obj$seurat_clusters)
+    #   Idents(obj) = obj$seurat_clusters
+    # }
     Idents(obj) = obj$seurat_clusters
-    for (cluster in levels(obj$seurat_clusters)) {
+    clusters = sort(unique(as.vector(obj$seurat_clusters)))
+    for (cluster in clusters) {
+      cells_cluster = WhichCells(object = obj, idents = cluster)
       cluster_name = paste(obj$project[[1]], cluster)
-      dend_mat[imp_genes,cluster_name] = obj@assays$RNA@counts[imp_genes, cluster]
+      dend_mat[imp_genes,cluster_name] = rowSums(obj@assays$RNA@data[imp_genes, cells_cluster])/length(cells_cluster)
     }
   }
   
+  dend_mat[which(dend_mat > 4)] = 4
   # Create the Plot
   png5_name = "test_dend.png"
-  Colors=brewer.pal(11,"Spectral")
+  Colors=rev(brewer.pal(11,"Spectral"))
   # my_breaks = c(seq(-10, -2, length=100), seq(-2,-0.1,length=100), seq(-0.1, 0.1, length=100), seq(0.1,2,length=100), seq(2,10,length=100))
   my_palette1=colorRampPalette(Colors)(n = 299)
   my_palette <- colorRampPalette(c("#ff4b5c", "#FFFFFF", "#056674"))(n = 299)
   print("Plotting the dendrogram")
   par(mar=c(10, 4.1, 4.1, 2.1))
-  png(png5_name, width = 300*length(dfs)+50, height = 300*length(dfs), unit = "px", res = 120)
-  heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=T, main="Expression")
+  png(png5_name, width = 50*length(all_clusters)+50, height = 50*length(all_clusters), unit = "px", res = 120)
+  heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=F, main="Mean Expression")
   dev.off()
   print("Finished plotting")
   
+  # genes_0 = c()
+  # for (row in rownames(dend_mat)) {
+  #   if (all(dend_mat[row,] == 0))
+  #     genes_0 = c(genes_0, row)
+  # }
+  # length(genes_0)
   
   return(TRUE)
 }
