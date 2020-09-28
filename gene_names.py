@@ -15,7 +15,7 @@ def parseArgs():
                         nargs='?', type=int, default=1, const=1)
 
     args = parser.parse_args()
-    return args.input, args.output, args.gff, agrs.id_to_name, args.gene_column
+    return args.input, args.output, args.gff, args.id_to_name, args.gene_column
 
 def readGff(gff):
     id_name = {}  # key is id, value is name
