@@ -47,9 +47,9 @@ def readInput(input, gene_column, id_name, id_to_name):
                 i += 1
                 lineSplit = line.split()
                 cur_id = lineSplit[gene_column]
-                if id in id_name.keys():
+                if cur_id in id_name.keys():
                     if id_to_name:
-                        replacement_name = id_name[id]
+                        replacement_name = id_name[cur_id]
                         new_lines.append(line.replace(cur_id, replacement_name))
                         n_lines_converted += 1
             else:
