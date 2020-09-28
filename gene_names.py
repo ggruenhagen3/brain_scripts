@@ -8,7 +8,7 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Converts gene names')
     parser.add_argument('input', metavar='ingput', help='Input File to convert')
     parser.add_argument('output', metavar='output', help='Output Table')
-    pargers.add_argument('gff', metavar='gff', help='Input Gff File')
+    parser.add_argument('gff', metavar='gff', help='Input Gff File')
     parser.add_argument("-n", "--id_to_name", help="Convert gene ids to gene names",
                         action="store_true")
     parser.add_argument("-c", "--gene_column", help="Column number with the gene",
