@@ -34,7 +34,7 @@ def readGff(gff):
                 if gene_name_pos != -1:
                     gene = info[gene_name_pos+11::]
                     gene = gene.split('";')[0]
-                id_name[id] = gene
+                    id_name[id] = gene
     return id_name
 
 def readInput(input, gene_column, id_name):
@@ -43,14 +43,16 @@ def readInput(input, gene_column, id_name):
     i = 0
     with open(input, 'r') as file:
         for line in file:
-            i += 1
             if not line.startswith("#"):
+                i += 1
                 lineSplit = line.split()
                 cur_id = lineSplit[gene_column]
                 if id in id_name.keys():
                     replacement_name = id_name[id]
                     new_lines.append(line.replace(cur_id, replacement_name))
                     n_lines_converted += 1
+            else:
+                new_lines.append(line)
     print(str(n_lines_converted) + " converted out of " + str(i) + " (" + str(n_lines_converted/i * 100) + "%)")
     return new_lines
 
