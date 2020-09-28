@@ -22,7 +22,7 @@ def readGff(gff):
     with open(gff, 'r') as input:
         for line in input:
             if not line.startswith("#"):
-                lineSplit = line.split()
+                lineSplit = line.split("\t")
                 info = lineSplit[8]
 
                 gene_id_pos = info.find("gene_id")
