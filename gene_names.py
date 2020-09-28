@@ -29,7 +29,6 @@ def readGff(gff):
                 if gene_id_pos != -1:
                     id = info[gene_id_pos + 9::]
                     id = id.split('";')[0]
-                print(id)
 
                 gene_name_pos = info.find("gene_name")
                 if gene_name_pos != -1:
@@ -48,13 +47,13 @@ def readInput(input, gene_column, id_name, id_to_name):
                 i += 1
                 lineSplit = line.split()
                 cur_id = lineSplit[gene_column-1]
-                print(cur_id)
-                if cur_id in id_name.keys():
-                    if id_to_name:
-                        print("Id found")
+                if id_to_name:
+                    if cur_id in id_name.keys():
                         replacement_name = id_name[cur_id]
                         new_lines.append(line.replace(cur_id, replacement_name))
                         n_lines_converted += 1
+                    else:
+                        new_lines.append(line)
             else:
                 new_lines.append(line)
     print(str(n_lines_converted) + " converted out of " + str(i) + " (" + str(n_lines_converted/i * 100) + "%)")
