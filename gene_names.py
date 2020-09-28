@@ -46,7 +46,7 @@ def readInput(input, gene_column, id_name, id_to_name):
             if not line.startswith("#"):
                 i += 1
                 lineSplit = line.split()
-                cur_id = lineSplit[gene_column]
+                cur_id = lineSplit[gene_column-1]
                 if cur_id in id_name.keys():
                     if id_to_name:
                         replacement_name = id_name[cur_id]
