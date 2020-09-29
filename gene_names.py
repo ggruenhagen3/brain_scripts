@@ -29,13 +29,13 @@ def readGff(gff):
                 if gene_id_pos != -1:
                     id = info[gene_id_pos + 9::]
                     id = id.split('";')[0]
+                    print(id)
 
                 gene_name_pos = info.find("gene_name")
                 if gene_name_pos != -1:
                     gene = info[gene_name_pos+11::]
                     gene = gene.split('";')[0]
                     id_name[id] = gene
-                    print(gene)
     print("\tFound " + str(len(id_name.keys())) + " genes in gff.")
     return id_name
 
