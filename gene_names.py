@@ -6,7 +6,7 @@ import os
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Converts gene names')
-    parser.add_argument('input', metavar='ingput', help='Input File to convert')
+    parser.add_argument('input', metavar='input', help='Input File to convert')
     parser.add_argument('output', metavar='output', help='Output Table')
     parser.add_argument('gff', metavar='gff', help='Input Gff File')
     parser.add_argument("-n", "--id_to_name", help="Convert gene ids to gene names",
@@ -35,6 +35,7 @@ def readGff(gff):
                     gene = info[gene_name_pos+11::]
                     gene = gene.split('";')[0]
                     id_name[id] = gene
+    print("\tFound " + str(len(id_name.keys())) + " genes in gff.")
     return id_name
 
 def readInput(input, gene_column, id_name, id_to_name):
@@ -73,7 +74,7 @@ def main():
     new_lines = readInput(input, gene_column, id_name, id_to_name)
     print("Writing Output")
     writeOutput(output, new_lines)
-
+    print("Done")
 
 if __name__ == '__main__':
     main()
