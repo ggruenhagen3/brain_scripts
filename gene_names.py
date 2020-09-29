@@ -10,7 +10,7 @@ def parseArgs():
     parser.add_argument('output', metavar='output', help='Output Table')
     parser.add_argument('gff', metavar='gff', help='Input Gff File')
     parser.add_argument("-n", "--id_to_name", help="Convert gene ids to gene names",
-                        action="store_true")
+                        action="store_true", default=True)
     parser.add_argument("-c", "--gene_column", help="Column number with the gene",
                         nargs='?', type=int, default=1, const=1)
 
@@ -29,7 +29,6 @@ def readGff(gff):
                 if gene_id_pos != -1:
                     id = info[gene_id_pos + 9::]
                     id = id.split('";')[0]
-                    print(id)
 
                 gene_name_pos = info.find("gene_name")
                 if gene_name_pos != -1:
