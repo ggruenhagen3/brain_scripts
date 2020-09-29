@@ -35,6 +35,7 @@ def readGff(gff):
                     gene = info[gene_name_pos+11::]
                     gene = gene.split('";')[0]
                     id_name[id] = gene
+                    print(gene)
     print("\tFound " + str(len(id_name.keys())) + " genes in gff.")
     return id_name
 
@@ -48,7 +49,6 @@ def readInput(input, gene_column, id_name, id_to_name):
                 i += 1
                 lineSplit = line.split()
                 cur_id = lineSplit[gene_column-1]
-                print(cur_id)
                 if id_to_name:
                     if cur_id in id_name.keys():
                         replacement_name = id_name[cur_id]
