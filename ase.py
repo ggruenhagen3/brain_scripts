@@ -18,8 +18,7 @@ def parseArgs():
     parser.add_argument("-z", "--zack", help="Output informative vcf sites as Zack suggested", nargs="?",
                         default=False)
     parser.add_argument("-t", "--threshold", help="The count threshold mc and cv must pass for each gene", nargs="?",
-                        default=5,
-                        const=5)
+                        type=int, default=5, const=5)
 
     args = parser.parse_args()
     return args.output_table, args.mc_cv, args.gtf, args.output, args.zack, args.threshold
