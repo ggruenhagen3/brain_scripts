@@ -123,7 +123,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False, thresho
     print("\tEntries Able to Determine MC from CV (Total Successes): " + str(indicative_found_count) + " (" +
           str( (indicative_found_count/(indicative_found_count+n_fail))*100 ) + "%)")
     print("\tTotal Failures: " + str(n_fail) + " (" + str((n_fail/(indicative_found_count+n_fail))*100) + "%)")
-    print("\t\tEntries With <5 Counts For Both Alleles: " + str(n_fail_allele))
+    print("\t\tEntries With <" + str(threshold) + " Counts For Both Alleles: " + str(n_fail_allele))
     print("\t\tEntries Unable to Determine MC from CV: " + str(indicative_not_found))
     print("\t\tEntries With Incorrect Non-indicative Alleles: " + str(non_indicative_not_found))
     print("\t\tEntries > 25kb Away From Closest Gene: " + str(far_count))
