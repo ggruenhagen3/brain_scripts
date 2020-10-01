@@ -17,9 +17,12 @@ def parseArgs():
                         const="counts.tsv")
     parser.add_argument("-z", "--zack", help="Output informative vcf sites as Zack suggested", nargs="?",
                         default=False)
+    parser.add_argument("-t", "--threshold", help="The count threshold mc and cv must pass for each gene", nargs="?",
+                        default=5,
+                        const=5)
 
     args = parser.parse_args()
-    return args.output_table, args.mc_cv, args.gtf, args.output, args.zack
+    return args.output_table, args.mc_cv, args.gtf, args.output, args.zack, args.threshold
 
 def readGtf(gtf):
     trans_to_gene = {} # key = transcript, value = gene
@@ -47,7 +50,7 @@ def readGtf(gtf):
     return trans_to_gene
 
 
-def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
+def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False, threshold=5):
     counts = {}  # key = gene, value = [mc_count, cv_count]
     output_lines = []
     i = 0
@@ -70,7 +73,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                 transcript = info[start:start+18]
                 success = False
                 mc_is_ref = True
-                if ref_count > 5 and alt_count > 5:  # filtering step from Chinar
+                if ref_count > threshold and alt_count > threshold:  # filtering step from Chinar
                     if transcript in trans_to_gene.keys():
                         # Determine whether ref is mc or if alt is mc
                         pos = lineSplit[0] + ":" + lineSplit[1]
@@ -259,13 +262,13 @@ def writeVcf(output_lines, zack):
     f.close()
 
 def main():
-    output_table, mc_cv, gtf, output, zack = parseArgs()
+    output_table, mc_cv, gtf, output, zack, threshold = parseArgs()
     print("Reading GTF")
     trans_to_gene = readGtf(gtf)
     print("Finding alleles that distinguish MC from CV")
     mc_cv_dict = findMC(mc_cv)
     print("Applying filters and finding sites where MC and CV alleles are distinguishable")
-    output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack)
+    output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack, threshold)
     print("Pruning SNPs < 202 bp apart, that may inflate counts")
     pruned_lines = prune(output_lines)
     gaps, na = snpGap.findSnpGap(pruned_lines)
