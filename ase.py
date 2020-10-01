@@ -59,7 +59,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
     far_count = 0
     with open(output_table, 'r') as input:
         for line in input:
-            if not line.startswith("#"):
+            if not line.startswith("#") and not line.startswith("contig"):
                 lineSplit = line.split()
                 ref_count = round(float(lineSplit[5]))
                 info = lineSplit[7]
@@ -72,14 +72,13 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                 mc_is_ref = True
                 if ref_count > 5 and alt_count > 5:  # filtering step from Chinar
                     if transcript in trans_to_gene.keys():
-                        gene = trans_to_gene[transcript]
-
                         # Determine whether ref is mc or if alt is mc
                         pos = lineSplit[0] + ":" + lineSplit[1]
                         if pos in mc_cv_dict.keys():
                             indicative_allele = mc_cv_dict[pos][1]
+                            org = mc_cv_dict[pos][0]
                             # See if the indicative allele is found
-                            if indicative_allele == lineSplit[3]:
+                            if org == "mc" and indicative_allele == lineSplit[3]:
                                 success = True
                                 if lineSplit[4] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
@@ -88,7 +87,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                             elif indicative_allele == lineSplit[4]:
                                 mc_is_ref = False
                                 success = True
-                                if lineSplit[3] not in mc_cv_dict[pos][2]:
+                                if org == "mc" and lineSplit[3] not in mc_cv_dict[pos][2]:
                                     non_indicative_not_found += 1
                                     success = False
                             else:
@@ -101,7 +100,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False):
                             if success:
                                 indicative_found_count += 1
                                 # If the indicative allele was cv, not mc, then flip the logic
-                                if mc_cv_dict[pos][0] == "cv":
+                                if org == "cv":
                                     mc_is_ref = not mc_is_ref
 
                                     # print(line)
@@ -137,7 +136,8 @@ def findMC(mc_cv):
         mc_cv_dict: a dictionary w/ key is an indicative position and value is a list of length 2, the first position is
                     "mc" or "cv" and the second position is the distinguishing allele.
     """
-    mc_cv_dict = {}  # key is an indicative position and value is "mc" or "cv"
+    mc_cv_dict = {}  # key is an indicative position and value is ["mc" or "cv", indicative allele, other alleles]
+    # cv_homo = {}  # key is an indicative position and value is indicative allele
 
     with open(mc_cv, 'r') as input:
         for line in input:
@@ -154,18 +154,17 @@ def findMC(mc_cv):
                 cv_alleles = [x if x == "." else alleles[int(x)] for x in cv_alleles]
                 mc_alleles = [x if x == "." else alleles[int(x)] for x in mc_alleles]
                 if cv_alleles[0] == cv_alleles[1]:
-                    if cv_alleles[0] not in mc_alleles:
-                        mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_alleles[0], mc_alleles]
+                    mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["cv", cv_alleles[0], ""]
                 if mc_alleles[0] == mc_alleles[1]:
                     if mc_alleles[0] not in cv_alleles:
                         mc_cv_dict[lineSplit[0] + ":" + lineSplit[1]] = ["mc", mc_alleles[0], cv_alleles]
-    return mc_cv_dict
 
+    return mc_cv_dict
 
 def prune(lines):
     travelled = 0
     travelled_lines = []
-    # output_lines = []
+    output_lines = []
     n_pruned = 0
     i = 0
     gap_iter = 0
@@ -184,11 +183,6 @@ def prune(lines):
             if i != 0:
                 if contig == previous_contig:
                     travelled += start - previous_start
-                    # if start - previous_start < 202:
-                    #     print("Should be pruned")
-
-                    # if start == 2327196 or start == 2327269:
-                    #     print("Travelled: " + str(travelled))
                     if travelled > 202:
                         if len(travelled_lines) == 0:
                             output_lines.append(line)

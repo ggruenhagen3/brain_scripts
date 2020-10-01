@@ -165,7 +165,7 @@ def main():
         writeFile(output, lines)
         print("Done.")
     end = time.time()
-    print("Runtime is " + str(end-start) + "seconds.")
+    print("Runtime is " + str(end-start) + " seconds.")
 
 
 if __name__ == '__main__':
