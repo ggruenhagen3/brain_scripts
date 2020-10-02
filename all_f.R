@@ -999,6 +999,7 @@ expressionDend = function(objs, my_slot="counts") {
   }
   
   # dend_mat[which(dend_mat > 4)] = 4
+  dend_mat = log2(dend_mat)
   
   # Create the Plot
   png5_name = "test_dend.png"
@@ -1009,7 +1010,7 @@ expressionDend = function(objs, my_slot="counts") {
   print("Plotting the dendrogram")
   par(mar=c(10, 4.1, 4.1, 2.1))
   png(png5_name, width = 50*length(all_clusters)+50, height = 50*length(all_clusters), unit = "px", res = 120)
-  heatmap.2(dend_mat, scale = "row", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=F, main="Mean Expression")
+  heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=F, main="Mean Expression")
   dev.off()
   print("Finished plotting")
   
