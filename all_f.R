@@ -1000,6 +1000,7 @@ expressionDend = function(objs, my_slot="counts") {
   
   # dend_mat[which(dend_mat > 4)] = 4
   dend_mat = log2(dend_mat)
+  dend_mat <- dend_mat[is.finite(rowSums(dend_mat)),]
   
   # Create the Plot
   png5_name = "test_dend.png"
