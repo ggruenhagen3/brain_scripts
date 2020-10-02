@@ -10,10 +10,274 @@ library("dplyr")
 library("gplots")
 library("viridis")
 library("reshape2")
+library("edgeR")
+library("data.table")
 
 ####################
 # Helper Functions #
 ####################
+markerHeatmap = function(obj, markers, myslot="data") {
+  #' Make a heatmap of all the markers by all the clusters
+  #'
+  #' @param obj Seurat object
+  #' @param markers vector of marker genes
+  #' @param myslot slot of Seurat Object to pull expression data from
+  #' @return p heatmap
+  
+  markers = markers[which(markers %in% rownames(obj))]
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  
+  clusters = sort(unique(as.vector(Idents(obj))))
+  if (! any(is.na(as.numeric(Idents(obj))))) {
+    print("Can sort numerically")
+    clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  }
+  exp_df = data.frame()
+  for (i in 1:length(clusters)) {
+    cluster = clusters[i]
+    cluster_cells <- WhichCells(obj, idents = cluster)
+    cluster_mean_exp = rowMeans(exp[markers, cluster_cells])
+    exp_df = rbind(exp_df, data.frame(rep(cluster, length(markers)), markers, cluster_mean_exp))
+  }
+  colnames(exp_df) = c("Cluster", "Gene", "Mean_Expression")
+  
+  exp_df = as.data.table(exp_df)
+  exp_df[, fillScaled := scale(Mean_Expression), Gene] # scales value per gene
+  
+  p = ggplot(exp_df, aes(Cluster, Gene)) + geom_tile(aes(fill=fillScaled)) + scale_fill_viridis(discrete=FALSE, breaks = c(min(exp_df$fillScaled), max(exp_df$fillScaled)), labels=c("Low", "High")) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + labs(fill = "Relative Expression") + scale_x_continuous(expand=c(0,0))
+  
+  # Increase number of ticks
+  x_labs = clusters
+  x_labs[c(FALSE, TRUE)] = "" # R trickery -> selects every other element
+  if (! any(is.na(as.numeric(Idents(obj)))))
+    p = p + scale_x_continuous(breaks=clusters, labels =x_labs, expand=c(0,0))
+  
+  return(p)
+}
+
+degDend = function(mat, genes, png_name, include_samples=c()) {
+  #' Dendrogram of DEGs
+  #' 
+  #' @param mat matrix of counts data for all genes
+  #' @param genes genes to use in the dendrogram
+  #' @param include_samples only include samples in the dendrogram with these names
+  
+  if (length(include_samples) != 0) {
+    mat = mat[,which(colnames(mat) %in% include_samples)]
+  }
+  mat = mat[which(rownames(mat) %in% genes),]
+  
+  # z = cpm(mat, normalized.lib.size=TRUE)
+  # scaledata <- t(scale(t(z)))
+  # scaledata <- scaledata[complete.cases(scaledata),]
+  # mat = scaledata
+  
+  mat = log2(mat)
+  mat <- mat[is.finite(rowSums(mat)),]
+  
+  Colors=rev(brewer.pal(11,"Spectral"))
+  my_palette1 = colorRampPalette(Colors)(n = 299)
+  my_palette <- colorRampPalette(c("#ff4b5c", "#FFFFFF", "#056674"))(n = 299)
+  print("Plotting the dendrogram")
+  png(png_name, width=500, height=500, res=100)
+  heatmap.2(mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", srtCol=45, symm=F,symkey=F,symbreaks=F, main="Log2 Expression")
+  dev.off()
+  p = "hi"
+  
+  return(p)
+}
+
+cellCycle = function(obj, isMzebra = T, isMouse=F) {
+  #' Paint Seurat's Cell Cycle Annotation for each Cell
+  #' 
+  #' @param obj Seurat object
+  #' @param isMzebra is the Seurat object from a cichlid?
+  #' @param isMouse is the Seurat object from a mouse?
+  #' @return p plot of all Cell Cycle stage of all cells
+  
+  library("Seurat")
+  s.genes   <- cc.genes$s.genes
+  g2m.genes <- cc.genes$g2m.genes
+  
+  if (isMzebra) {
+    if (isMouse) {
+      print("Mouse and Mzebra selected. Please choose only one organism (default is Mzebra).")
+    }
+    s.genes   <- hgncGood(s.genes, rownames(obj@assays$RNA@counts))
+    g2m.genes <- hgncGood(g2m.genes, rownames(obj@assays$RNA@counts))
+  } else if (isMouse) {
+    s.genes = str_to_title(s.genes)
+    g2m.genes = str_to_title(g2m.genes)
+  }
+  
+  obj = CellCycleScoring(obj, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+  p = DimPlot(obj, label = T, order = T)
+  
+  return(p)
+}
+
+numCellExpMarker = function(obj, markers, myslot="data", thresh=0) {
+  #' Find the Number of Cells Expressing the Markers in Comparison to A List of Random
+  #' Genes of the Same Length At a Threshold.
+  #' 
+  #' @param obj Seurat Object
+  #' @param markers vector of marker genes
+  #' @param myslot slot to pull data from (either "counts" or "data")
+  #' @return p histogram of cells expressing the markers vs random list
+  
+  # Generate a list of random genes of equal size as the markers
+  ran = sample(rownames(obj), length(markers), replace = F)
+  
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  clusters = sort(unique(as.vector(obj$seurat_clusters)))
+  num_cells = data.frame()
+  for (gene in ran) {
+    num_cells <- rbind(num_cells, t(c("Random", length(which(as.vector(exp[gene,]) != 0)))))
+  }
+  for (gene in markers) {
+    num_cells <- rbind(num_cells, t(c("Real", length(which(as.vector(exp[gene,]) != 0)))))
+  }
+  colnames(num_cells) <- c("type", "num_cells")
+  num_cells$num_cells <- as.numeric(as.vector(num_cells$num_cells)) + 0.1
+  p = ggplot(num_cells, aes(x=num_cells, fill = type, color=type)) + geom_histogram(stat = "bin", alpha=0.5, position="identity") + ggtitle("# of Cells Expressing a Random List of Genes vs List of Markers") + xlab("Number of Cells") + ylab("Number of Genes")
+  
+  return(p)
+}
+
+markerExpPerCell = function(obj, markers, myslot="data", n_markers=F) {
+  #' Paint the average Expression of Markers Per Cell
+  #' 
+  #' @param obj Seurat Object
+  #' @param markers vector of markers
+  #' @param myslot slot to pull data from (either "counts" or "data")
+  #' @param n_markers plot the number of markers expressed per cell instead?
+  #' @return p ggplot of expression in every cell
+  
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  if (n_markers) {
+    exp[which(exp > 0)] = 1
+    obj$value = colSums(exp)
+    title_str = "Number of Markers Expressed per Cell"
+  } else {
+    obj$value = colSums(exp)
+    title_str = "Expression of Markers per Cell"
+  }
+  
+  p = FeaturePlot(obj, features = "value", order = TRUE, label = TRUE, pt.size = 1.5) + labs(title = title_str)
+  return(p)
+}
+
+markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T) {
+  #' Find Marker Expression Per Cell Per Cluster
+  #' 
+  #' @param obj Seurat Object
+  #' @param markers vector of markers
+  #' @param n_markers count the number of markers per cell?
+  #' @param myslot slot to pull data from (either "counts" or "data")
+  
+  title_str = "Average"
+  title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
+  title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
+  
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  if (n_markers) {
+    title_str = "Average Number of Markers Genes Expressed per Cell per Cluster"
+    exp [which(exp > 0)] = 1
+  }
+  
+  Idents(obj) = obj$seurat_clusters
+  per_cluster_df = data.frame()
+  clusters = sort(unique(as.vector(obj$seurat_clusters)))
+  for (cluster in clusters) {
+    cluster_cells <- WhichCells(obj, idents = cluster)
+    avg_cluster_exp = mean(colSums(exp[markers, cluster_cells]))
+    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, avg_cluster_exp))
+  }
+  colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp")
+  p = ggplot(per_cluster_df, aes(cluster, as.numeric(as.vector(avg_cluster_exp)))) + geom_bar(stat = "identity") + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
+  
+  return(p)
+}
+
+numMarkerTransPerCluster = function(obj, markers, myslot="counts") {
+  #' Find the Number of Marker Transcripts Per Cluster.
+  #' 
+  #' @param obj Seurat Object
+  #' @param markers vector of markers
+  #' @param myslot slot to pull data from (either "counts" or "data")
+  #' @return p barchart of expression of marker per cluster. Each marker is a color.
+  
+  title_str = "Number of"
+  title_str = paste(title_str, if_else(myslot=="counts", "Transcripts", "Normalized Transcripts"))
+  title_str = paste(title_str, "of Marker Genes")
+  
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  
+  Idents(obj) = obj$seurat_clusters
+  per_cluster_df = data.frame()
+  clusters = sort(unique(as.vector(obj$seurat_clusters)))
+  for (cluster in clusters) {
+    cluster_cells <- WhichCells(obj, idents = cluster)
+    cluster_sums = rowSums(exp[markers, cluster_cells])
+    per_cluster_df = rbind(per_cluster_df, data.frame(markers, rep(cluster, length(markers)), cluster_sums))
+  } # end cluster for
+  
+  colnames(per_cluster_df) <- c("gene", "cluster", "cluster_sum")
+  p = ggplot(per_cluster_df, aes(cluster, as.numeric(as.vector(cluster_sum)), fill=gene)) + geom_bar(stat = "identity") + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
+  
+  return(p)
+}
+
+findMarkersInDEG = function(deg, markers, gene_column = "gene") {
+  #' Search for markers that are in the DEGs
+  #' 
+  #' @param deg dataframe of DEGs (default output of FindAllMarkers)
+  #' @param markers vector of markers
+  #' @param gene_column name of the column that contains the genes
+  #' @return results dataframe w/ col for marker and col for cluster the marker was found in
+  #' @return p barchart of number of markers in cluster's degs
+  
+  gene_column_n = which(colnames(deg) == gene_column) # this is number
+  results <- data.frame()
+  for (gene in markers) {
+    this_rows = deg[which(deg[,gene_column_n] == gene),]
+    results = rbind(results, data.frame(rep(gene, nrow(this_rows)), this_rows$cluster))
+  } # end for
+  if (nrow(results) > 0) {
+    colnames(results) = c("gene", "cluster")
+    if (! any(is.na(as.numeric(deg$cluster)))) { # is numeric
+      num_clusters <- max(as.vector(deg$cluster))
+      results$cluster = factor(results$cluster, levels = 0:num_clusters)
+    } # end if
+    p = ggplot(results, aes(cluster)) + geom_bar() + scale_x_discrete(drop=FALSE) + xlab("Cluster") + ylab("Number of Markers in Cluster DEGs")
+  } else {
+    p = NULL
+  } # end else
+  
+  return(list(results, p))
+}
+
+paintMarkers = function(obj, markers, filepath, mywidth=1200, myheight=500, myptsize = 1.5) {
+  #' Paint every marker separately and save it in a folder
+  #' 
+  #' @param obj Seurat Object to paint with
+  #' @param markers the vector markers to paint
+  #' @param filepath the filepath to save the paintings
+  
+  obj@active.assay <- "RNA"
+  for (i in 1:length(markers)) {
+    gene = markers[i]
+    png(filename = paste0(filepath, gene, ".png"), width = mywidth, height = myheight, unit="px")
+    p = FeaturePlot(obj, features = c(gene), split.by = "sample", reduction = "umap", pt.size = myptsize, label=TRUE, order = TRUE)
+    print(p)
+    dev.off()
+  } # end for
+}
+
 printVectorAsNewVector <- function(vect) {
   str = "newVect = c("
   for (i in 1:length(vect)) {
@@ -730,11 +994,12 @@ expressionDend = function(objs, my_slot="counts") {
     for (cluster in clusters) {
       cells_cluster = WhichCells(object = obj, idents = cluster)
       cluster_name = paste(obj$project[[1]], cluster)
-      dend_mat[imp_genes,cluster_name] = rowSums(obj@assays$RNA@data[imp_genes, cells_cluster])/length(cells_cluster)
+      dend_mat[imp_genes,cluster_name] = rowMeans(obj@assays$RNA@data[imp_genes, cells_cluster])
     }
   }
   
-  dend_mat[which(dend_mat > 4)] = 4
+  # dend_mat[which(dend_mat > 4)] = 4
+  
   # Create the Plot
   png5_name = "test_dend.png"
   Colors=rev(brewer.pal(11,"Spectral"))
@@ -744,7 +1009,7 @@ expressionDend = function(objs, my_slot="counts") {
   print("Plotting the dendrogram")
   par(mar=c(10, 4.1, 4.1, 2.1))
   png(png5_name, width = 50*length(all_clusters)+50, height = 50*length(all_clusters), unit = "px", res = 120)
-  heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=F, main="Mean Expression")
+  heatmap.2(dend_mat, scale = "row", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=F, main="Mean Expression")
   dev.off()
   print("Finished plotting")
   
