@@ -122,8 +122,12 @@ gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0
 # ###############
 # # Transcripts #
 # ###############
-mat_trans  <- matrix(NA, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
-mat2_trans  <- matrix(NA, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+setToMax = function(dat, x) {
+  dat[which(dat > x)] = x
+  return(dat)
+}
+mat_trans  <- matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+mat2_trans  <- matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 
 for (col in 1:ncol(obj)) {
   # for (col in 1:100) {
@@ -134,7 +138,7 @@ for (col in 1:ncol(obj)) {
   non_zero_genes = names(dat[which(dat > 0)])
   tmp <- mat_trans[non_zero_genes, non_zero_genes]
   dat = obj@assays$RNA@counts[non_zero_genes, col]
-  this_trans_mat = as.matrix(sapply(1:length(non_zero_genes), function(x) dat[x] + dat))
+  this_trans_mat = t(as.matrix(sapply(1:length(non_zero_genes), function(x) setToMax(dat,dat[x]))))
   mat_trans[non_zero_genes, non_zero_genes] = tmp + this_trans_mat
 }
 
@@ -243,3 +247,16 @@ saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA_jaccard_p
 # deg <- degree(ig_obj, mode="all")
 # V(ig_obj)$size <- deg*3
 # plot(ig_obj, vertex.label="")
+
+############
+# Analysis #
+############
+mat_fish = readRDS("C:/Users/miles/Downloads/brain/data/mat_fish.RDS")
+sig_df = data.frame()
+for (row in 1:length(gene_names)) {
+  if (row %% 1000 == 0) { print(row) }
+  q = p.adjust(mat_fish[row, (row+1):ncol(mat_fish)], method = "bonferroni")
+  q_sig = q[which(q < 0.05)]
+  newRow = data.frame(gene = rep(gene_names[row], length(q_sig)), q = q_sig)
+  sig_df = rbind(sig_df, newRow)
+}
