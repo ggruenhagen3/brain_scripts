@@ -7,7 +7,7 @@ library("doParallel")
 print(paste("Num Cors:", detectCores()))
 lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
 obj <- lncRNA
-gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 0.001*ncol(obj))]
 # mat_data_p   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 # mat_data_cor = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 # test = as.matrix(t(obj@assays$RNA@data))
