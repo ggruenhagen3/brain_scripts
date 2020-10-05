@@ -16,6 +16,27 @@ library("data.table")
 ####################
 # Helper Functions #
 ####################
+cellHeatmap = function(obj, markers, myslot="counts", non_zero=F) {
+  #' Make a heamap of all the markers by all the cells
+  #' 
+  #' @param obj Seurat object
+  #' @param markers vector gene markers
+  #' @param myslot slot to pull expression data from
+  #' @return p heatmap
+  
+  markers = markers[which(markers %in% rownames(obj))]
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  
+  if (non_zero)
+    exp = exp[,which(colSums(exp) > 0)]
+  
+  exp_melt = melt(as.matrix(exp))
+  colnames(exp_melt) = c("Gene", "Cell", "value")
+  
+  p = ggplot(exp_melt, aes(Cell, Gene, fill=value)) + geom_tile() + scale_fill_viridis(discrete=F) + guides(color = FALSE) + theme_classic() + theme(axis.text.x = element_blank()) + scale_y_discrete(expand=c(0,0))
+  return(p)
+}
 markerHeatmap = function(obj, markers, myslot="data") {
   #' Make a heatmap of all the markers by all the clusters
   #'
@@ -289,7 +310,7 @@ printVectorAsNewVector <- function(vect) {
     }
   }
   str = paste0(str, "")
-  print(str)
+  cat(str)
   return(str)
 }
 
@@ -999,8 +1020,8 @@ expressionDend = function(objs, my_slot="counts") {
   }
   
   # dend_mat[which(dend_mat > 4)] = 4
-  dend_mat = log2(dend_mat)
-  dend_mat <- dend_mat[is.finite(rowSums(dend_mat)),]
+  # dend_mat = log2(dend_mat)
+  # dend_mat <- dend_mat[is.finite(rowSums(dend_mat)),]
   
   # Create the Plot
   png5_name = "test_dend.png"
