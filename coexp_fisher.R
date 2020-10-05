@@ -272,3 +272,8 @@ print("All Done :)")
 # deg <- degree(ig_obj, mode="all")
 # V(ig_obj)$size <- deg*3
 # plot(ig_obj, vertex.label="")
+
+############
+# Analysis #
+############
+# See coexp analysis
