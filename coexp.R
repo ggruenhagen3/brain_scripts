@@ -127,7 +127,7 @@ setToMax = function(dat, x) {
   return(dat)
 }
 mat_trans  <- matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
-mat2_trans  <- matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+mat2_trans <- matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 
 for (col in 1:ncol(obj)) {
   # for (col in 1:100) {
@@ -138,21 +138,12 @@ for (col in 1:ncol(obj)) {
   non_zero_genes = names(dat[which(dat > 0)])
   tmp <- mat_trans[non_zero_genes, non_zero_genes]
   dat = obj@assays$RNA@counts[non_zero_genes, col]
-  this_trans_mat = t(as.matrix(sapply(1:length(non_zero_genes), function(x) setToMax(dat,dat[x]))))
+  this_trans_mat = t(as.matrix(sapply(1:length(non_zero_genes), function(x) 2*setToMax(dat,dat[x]))))
   mat_trans[non_zero_genes, non_zero_genes] = tmp + this_trans_mat
 }
 
-gene_trans = c()
-for (gene in gene_names) {
-  gene_trans[[gene]] = sum(obj@assays$RNA@counts[gene,])
-}
-gene_trans_vect = unlist(gene_trans)
-for (col in 1:length(gene_names)) {
-  if (col %% 100 == 0) {
-    print(col)
-  }
-  mat2_trans[,col] = gene_trans[[gene_names[col]]] + gene_trans_vect
-}
+gene_trans = rowSums(obj@assays$RNA@counts[gene_names,])
+mat2_trans = t(as.matrix(sapply(1:length(gene_names), function(x) gene_trans + gene_trans[x])))
 
 mat3_trans = mat_trans/mat2_trans
 mat3_trans_p = matrix(jaccard.rahman(as.vector(mat3_trans)), length(gene_names), length(gene_names), dimnames=list(gene_names, gene_names))
@@ -259,4 +250,5 @@ for (row in 1:length(gene_names)) {
   q_sig = q[which(q < 0.05)]
   newRow = data.frame(gene = rep(gene_names[row], length(q_sig)), q = q_sig)
   sig_df = rbind(sig_df, newRow)
+  break
 }
