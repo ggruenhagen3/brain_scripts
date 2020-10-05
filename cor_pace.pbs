@@ -11,6 +11,6 @@ cd $PBS_O_WORKDIR
 module purge
 module load anaconda3
 module load R
-conda activate conda activate ~/data/conda_envs/r4
+conda activate ~/data/conda_envs/r4
 
 Rscript cor_pace.R
