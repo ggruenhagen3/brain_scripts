@@ -9,7 +9,9 @@ lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
 obj <- lncRNA
 # combined <- readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
 # obj <- combined
-gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+# gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 0.001*ncol(obj))]
+print(length(gene_names))
 
 # First try
 # mat  <- matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
