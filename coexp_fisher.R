@@ -11,7 +11,7 @@ obj <- lncRNA
 # obj <- combined
 # gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 0.005*ncol(obj))]
-gene_names = gene_names[1:(length(gene)/2)]
+gene_names = gene_names[1:(length(gene_names)/2)]
 print(length(gene_names))
 
 # First try
