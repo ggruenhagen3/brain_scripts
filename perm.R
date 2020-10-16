@@ -70,7 +70,7 @@ for (run in 1:run_num) {
   set.seed(run)
   combined$shuffled = sample(as.numeric(as.vector(combined$seurat_clusters)))
   Idents(combined) = combined$shuffled
-  for (i in test_clusters) {
+  for (i in 0:num_clusters) {
     this_cells = WhichCells(combined, idents=i)
     # this_cells <- new_cells[[i+1]]
     this_pos <- sum(rowSums(mat[valid_genes,this_cells]))
