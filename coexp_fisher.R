@@ -10,7 +10,8 @@ obj <- lncRNA
 # combined <- readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
 # obj <- combined
 # gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
-gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 0.001*ncol(obj))]
+gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 0.005*ncol(obj))]
+gene_names = gene_names[1:(length(gene)/2)]
 print(length(gene_names))
 
 # First try
@@ -99,26 +100,34 @@ all_cells = colnames(obj)
 for (gene in gene_names) {
   gene_cells[[gene]] = colnames(obj)[which(obj@assays$RNA@counts[gene,] != 0)]
 }
-for (col in 2:length(gene_names)) {
+# for (col in 2:length(gene_names)) {
+for (col in 1:length(gene_names)) {
   if (col %% 100 == 0) {
     print(col)
   }
   gene1 = gene_names[col]
   gene_1_cells = gene_cells[[gene1]]
-  for ( row in 1:(col-1) ) {
+  # for ( row in 1:(col-1) ) {
+  for (row in 1:length(gene_names)) {
     gene2 = gene_names[row]
     gene_2_cells = gene_cells[[gene2]]
     ovlp = gene_1_cells[which(gene_1_cells %in% gene_2_cells)]
-    not_ovlp = gene_1_cells[which(! gene_1_cells %in% gene_2_cells)]
-    not_gene_2_cells = all_cells[which(! all_cells %in% gene_2_cells)]
     
-    # Do a Fisher's Exact Test, where you test the ratio of positive gene1 cells
-    # in gene2 cells compared to the number of positive cell gene1 cells in not gene 2 cells.
-    contig_table <- data.frame(c(length(ovlp), length(gene_2_cells)), c(length(not_ovlp), length(not_gene_2_cells)))
-    mat_fish[row,col] = fisher.test(contig_table)$p.value
+    gene_1_not_ovlp = gene_1_cells[which(! gene_1_cells %in% ovlp)]
+    gene_2_not_ovlp = gene_2_cells[which(! gene_2_cells %in% ovlp)]
+    all_not_ovlp = colnames(obj)[which(! colnames(obj) %in% gene_1_cells &
+                                       ! colnames(obj) %in% gene_2_cells)]
+    # not_ovlp = gene_1_cells[which(! gene_1_cells %in% gene_2_cells)]
+    # not_gene_2_cells = all_cells[which(! all_cells %in% gene_2_cells)]
+    
+    # Question: Is the proportion of Gene 1 in Gene 2 Cells significantly greater than Gene 1 Cells that aren't in Gene 2 Cells?
+    # Test: (Gene 1 and Gene 2 Cells Ovlp) / (Gene 2 Cells not in Ovlp)
+    # vs    (Gene 1 Cells not in Ovlp)     / (All Cells not in Others)
+    contig_table <- data.frame(c(length(ovlp), length(gene_2_not_ovlp)), c(length(gene_1_not_ovlp), length(all_not_ovlp)))
+    mat_fish[row,col] = fisher.test(contig_table, alternative = "greater")$p.value
   }
 }
-saveRDS(mat_fish,   "/nv/hp10/ggruenhagen3/scratch/d_tooth/data/mouse_mes_fisher.RDS")
+saveRDS(mat_fish,   "/nv/hp10/ggruenhagen3/scratch/brain/data/mat_fish_1.RDS")
 print("All Done :)")
 
 ######
