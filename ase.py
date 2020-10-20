@@ -236,15 +236,19 @@ def prune(lines):
     print("\t" + str(gap_iter) + " Iterations Pruned " + str(n_lines - len(output_lines)) + " (" + str((n_lines - len(output_lines))/n_lines * 100) + "%) SNPs")
     return output_lines
 
-def findCounts(lines, trans_to_gene):
+def findCounts(lines, trans_to_gene, is_ncbi):
     counts = {}  # key = gene, value = [mc_count, cv_count]
     for line in lines:
         lineSplit = line.split()
         ref_count = round(float(lineSplit[5]))
         info = lineSplit[7]
         alt_count = int(lineSplit[6])
-        start = info.index("Transcript:") + 11
-        transcript = info[start:start + 18]
+        if is_ncbi:
+            start = info.index("Gene:") + 5
+            transcript = info[start::].split(":")[0]
+        else:
+            start = info.index("Transcript:") + 11
+            transcript = info[start:start + 18]
         gene = trans_to_gene[transcript]
         mc_is_ref = lineSplit[len(lineSplit) - 1]
 
@@ -297,7 +301,7 @@ def main():
     print("Number of SNPs with gap length <= 202: " + str(len([x for x in gaps if x <= 202])))
     print()
     print("Summing MC and CV counts per gene")
-    counts = findCounts(pruned_lines, trans_to_gene)
+    counts = findCounts(pruned_lines, trans_to_gene, is_ncbi)
     if zack:
         print("Writing Informative Sites VCF")
         writeVcf(pruned_lines, zack)
