@@ -41,7 +41,7 @@ def readGtf(gtf):
                     transcript = transcript
                     gene_name_pos = info.find("gene=")
                     if gene_name_pos != -1:
-                        gene = info[gene_name_pos+6::]
+                        gene = info[gene_name_pos+5::]
                         gene = gene.split(';')[0]
                     else:
                         gene = transcript
@@ -67,7 +67,7 @@ def readGtf(gtf):
     return trans_to_gene, is_ncbi
 
 
-def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False, threshold=5, is_ncbi=False):
+def readOutputTable(output_table, trans_to_gene, mc_cv_dict, is_ncbi, zack=False, threshold=5):
     counts = {}  # key = gene, value = [mc_count, cv_count]
     output_lines = []
     i = 0
@@ -289,7 +289,7 @@ def main():
     print("Finding alleles that distinguish MC from CV")
     mc_cv_dict = findMC(mc_cv)
     print("Applying filters and finding sites where MC and CV alleles are distinguishable")
-    output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack, threshold, is_ncbi)
+    output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, is_ncbi, zack, threshold)
     print("Pruning SNPs < 202 bp apart, that may inflate counts")
     pruned_lines = prune(output_lines)
     gaps, na = snpGap.findSnpGap(pruned_lines)
