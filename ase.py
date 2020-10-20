@@ -43,9 +43,10 @@ def readGtf(gtf):
                     if gene_name_pos != -1:
                         gene = info[gene_name_pos+5::]
                         gene = gene.split(';')[0]
+                        trans_to_gene[transcript] = gene
                     else:
                         gene = transcript
-                        print("Gene not found!")
+                        # print("Gene not found!")
                 else:
                     transcript = info[9:27]
                     gene_name_pos = info.find("gene_name")
@@ -59,8 +60,7 @@ def readGtf(gtf):
                     transcript_pos = info.find("transcript_id")
                     if transcript_pos != -1:
                         transcript = info[transcript_pos+15:transcript_pos+33]
-
-                trans_to_gene[transcript] = gene
+                    trans_to_gene[transcript] = gene
     print("\tGenes in GTF: " + str(len(trans_to_gene.keys())))
     print(list(trans_to_gene.keys())[1:5])
     print(list(trans_to_gene.values())[1:5])
