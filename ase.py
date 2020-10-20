@@ -64,10 +64,10 @@ def readGtf(gtf):
     print("\tGenes in GTF: " + str(len(trans_to_gene.keys())))
     print(list(trans_to_gene.keys())[1:5])
     print(list(trans_to_gene.values())[1:5])
-    return trans_to_gene
+    return trans_to_gene, is_ncbi
 
 
-def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False, threshold=5):
+def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False, threshold=5, is_ncbi=False):
     counts = {}  # key = gene, value = [mc_count, cv_count]
     output_lines = []
     i = 0
@@ -285,11 +285,11 @@ def writeVcf(output_lines, zack):
 def main():
     output_table, mc_cv, gtf, output, zack, threshold = parseArgs()
     print("Reading GTF")
-    trans_to_gene = readGtf(gtf)
+    trans_to_gene, is_ncbi = readGtf(gtf)
     print("Finding alleles that distinguish MC from CV")
     mc_cv_dict = findMC(mc_cv)
     print("Applying filters and finding sites where MC and CV alleles are distinguishable")
-    output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack, threshold)
+    output_lines = readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack, threshold, is_ncbi)
     print("Pruning SNPs < 202 bp apart, that may inflate counts")
     pruned_lines = prune(output_lines)
     gaps, na = snpGap.findSnpGap(pruned_lines)
