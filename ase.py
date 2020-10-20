@@ -62,6 +62,8 @@ def readGtf(gtf):
 
                 trans_to_gene[transcript] = gene
     print("\tGenes in GTF: " + str(len(trans_to_gene.keys())))
+    print(trans_to_gene.keys()[1:5])
+    print(trans_to_gene.values()[1:5])
     return trans_to_gene
 
 
