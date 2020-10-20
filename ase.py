@@ -24,21 +24,35 @@ def parseArgs():
     return args.output_table, args.mc_cv, args.gtf, args.output, args.zack, args.threshold
 
 def readGtf(gtf):
+
+    if "%" in gtf:
+        is_ncbi = False
+    else:
+        is_ncbi = True
+
     trans_to_gene = {} # key = transcript, value = gene
     with open(gtf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
                 lineSplit = line.split("\t")
                 info = lineSplit[8]
-                transcript = info[9:27]
-                gene_name_pos = info.find("gene_name")
-                if gene_name_pos != -1:
-                    gene = info[gene_name_pos+11::]
-                    gene = gene.split('";')[0]
-                    gene = gene.replace("%%", " (1 of many)")
+                if is_ncbi:
+                    transcript = info.split(';')[0][3:]
+                    transcript = "id" + transcript
+                    gene_name_pos = info.find("gene=")
+                    if gene_name_pos != -1:
+                        gene = info[gene_name_pos+6::]
+                        gene = gene.split(';')[0]
                 else:
-                    gene = transcript
-                transcript = transcript.replace("G", "T")
+                    transcript = info[9:27]
+                    gene_name_pos = info.find("gene_name")
+                    if gene_name_pos != -1:
+                        gene = info[gene_name_pos+11::]
+                        gene = gene.split('";')[0]
+                        gene = gene.replace("%%", " (1 of many)")
+                    else:
+                        gene = transcript
+                    transcript = transcript.replace("G", "T")
 
                 transcript_pos = info.find("transcript_id")
                 if transcript_pos != -1:
