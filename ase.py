@@ -38,7 +38,7 @@ def readGtf(gtf):
                 info = lineSplit[8]
                 if is_ncbi:
                     transcript = info.split(';')[0][3:]
-                    transcript = "id" + transcript
+                    transcript = transcript
                     gene_name_pos = info.find("gene=")
                     if gene_name_pos != -1:
                         gene = info[gene_name_pos+6::]
@@ -86,8 +86,12 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, zack=False, thresho
                 # alt_count = int(info.split(";")[0])
                 alt_count = int(lineSplit[6])
                 dist = int(info[int(info.index("="))+1:int(info.index("|"))])
-                start = info.index("Transcript:")+11
-                transcript = info[start:start+18]
+                if is_ncbi:
+                    start = info.index("Gene:")+5
+                    transcript = info[start::].split(":")[0]
+                else:
+                    start = info.index("Transcript:")+11
+                    transcript = info[start:start+18]
                 success = False
                 mc_is_ref = True
                 if ref_count > threshold and alt_count > threshold:  # filtering step from Chinar
