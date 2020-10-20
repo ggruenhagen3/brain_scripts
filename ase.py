@@ -93,7 +93,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, is_ncbi, zack=False
                 success = False
                 mc_is_ref = True
                 if ref_count > threshold and alt_count > threshold:  # filtering step from Chinar
-                    if transcript in trans_to_gene.keys() or transcript in trans_to_gene.keys():
+                    if transcript in trans_to_gene.keys() or transcript in trans_to_gene.values():
                         # Determine whether ref is mc or if alt is mc
                         pos = lineSplit[0] + ":" + lineSplit[1]
                         if pos in mc_cv_dict.keys():
