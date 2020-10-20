@@ -62,8 +62,6 @@ def readGtf(gtf):
                         transcript = info[transcript_pos+15:transcript_pos+33]
                     trans_to_gene[transcript] = gene
     print("\tGenes in GTF: " + str(len(trans_to_gene.keys())))
-    print(list(trans_to_gene.keys())[1:5])
-    print(list(trans_to_gene.values())[1:5])
     return trans_to_gene, is_ncbi
 
 
@@ -95,7 +93,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, is_ncbi, zack=False
                 success = False
                 mc_is_ref = True
                 if ref_count > threshold and alt_count > threshold:  # filtering step from Chinar
-                    if transcript in trans_to_gene.keys():
+                    if transcript in trans_to_gene.keys() or transcript in trans_to_gene.keys():
                         # Determine whether ref is mc or if alt is mc
                         pos = lineSplit[0] + ":" + lineSplit[1]
                         if pos in mc_cv_dict.keys():
@@ -247,10 +245,14 @@ def findCounts(lines, trans_to_gene, is_ncbi):
         if is_ncbi:
             start = info.index("Gene:") + 5
             transcript = info[start::].split(":")[0]
+            if transcript in trans_to_gene.keys():
+                gene = trans_to_gene[transcript]
+            else:
+                gene = transcript
         else:
             start = info.index("Transcript:") + 11
             transcript = info[start:start + 18]
-        gene = trans_to_gene[transcript]
+            gene = trans_to_gene[transcript]
         mc_is_ref = lineSplit[len(lineSplit) - 1]
 
         mc_count = ref_count
@@ -291,7 +293,6 @@ def main():
     output_table, mc_cv, gtf, output, zack, threshold = parseArgs()
     print("Reading GTF")
     trans_to_gene, is_ncbi = readGtf(gtf)
-    print(is_ncbi)
     print("Finding alleles that distinguish MC from CV")
     mc_cv_dict = findMC(mc_cv)
     print("Applying filters and finding sites where MC and CV alleles are distinguishable")
