@@ -135,6 +135,7 @@ def readOutputTable(output_table, trans_to_gene, mc_cv_dict, is_ncbi, zack=False
                                 line = line.rstrip() + "\t" + str(mc_is_ref) + "\n"
                                 output_lines.append(line)
                     else:
+                        print(transcript)
                         j += 1
                 else:
                     n_fail_allele += 1
