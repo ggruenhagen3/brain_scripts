@@ -286,6 +286,7 @@ def main():
     output_table, mc_cv, gtf, output, zack, threshold = parseArgs()
     print("Reading GTF")
     trans_to_gene, is_ncbi = readGtf(gtf)
+    print(is_ncbi)
     print("Finding alleles that distinguish MC from CV")
     mc_cv_dict = findMC(mc_cv)
     print("Applying filters and finding sites where MC and CV alleles are distinguishable")
