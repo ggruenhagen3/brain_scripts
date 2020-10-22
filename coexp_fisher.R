@@ -100,15 +100,15 @@ all_cells = colnames(obj)
 for (gene in gene_names) {
   gene_cells[[gene]] = colnames(obj)[which(obj@assays$RNA@counts[gene,] != 0)]
 }
-# for (col in 2:length(gene_names)) {
-for (col in 1:length(gene_names)) {
+for (col in 2:length(gene_names)) {
+# for (col in 1:length(gene_names)) {
   if (col %% 100 == 0) {
     print(col)
   }
   gene1 = gene_names[col]
   gene_1_cells = gene_cells[[gene1]]
-  # for ( row in 1:(col-1) ) {
-  for (row in 1:length(gene_names)) {
+  for ( row in 1:(col-1) ) {
+  # for (row in 1:length(gene_names)) {
     gene2 = gene_names[row]
     gene_2_cells = gene_cells[[gene2]]
     ovlp = gene_1_cells[which(gene_1_cells %in% gene_2_cells)]
