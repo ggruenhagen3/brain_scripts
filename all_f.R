@@ -12,10 +12,163 @@ library("viridis")
 library("reshape2")
 library("edgeR")
 library("data.table")
+library("Cairo")
+library("tidyr")
 
 ####################
 # Helper Functions #
 ####################
+getDescription <- function(genes) {
+  ensembl = useEnsembl(biomart="ensembl", dataset="mzebra_gene_ensembl")
+  
+  ensembl_description_all   <- unique(getBM(attributes=c('ensembl_gene_id', 'description'), filters = 'ensembl_gene_id', values = unique(genes), mart = ensembl))
+  zfin_description_all      <- unique(getBM(attributes=c('zfin_id_symbol', 'description'), filters = 'zfin_id_symbol', values = unique(genes), mart = ensembl))
+  hgnc_description_all      <- unique(getBM(attributes=c('hgnc_symbol', 'description'), filters = 'hgnc_symbol', values = unique(genes), mart = ensembl))
+  
+  colnames(ensembl_description_all)   <- c('all_markers', 'all_markers_description')
+  colnames(zfin_description_all)      <- c('all_markers', 'all_markers_description_2')
+  colnames(hgnc_description_all)      <- c('all_markers', 'all_markers_description_3')
+  
+  ensembl_description_all = ensembl_description_all[!duplicated(ensembl_description_all$all_markers),]
+  zfin_description_all    = zfin_description_all[!duplicated(zfin_description_all$all_markers),]
+  hgnc_description_all    = hgnc_description_all[!duplicated(hgnc_description_all$all_markers),]
+  
+  total <- as.data.frame(genes)
+  colnames(total) <- c("all_markers")
+  try(total <- left_join(total, ensembl_description_all, by = c("all_markers")), silent = TRUE)
+  try(total <- left_join(total, zfin_description_all, by = c("all_markers")), silent = TRUE)
+  try(total <- left_join(total, hgnc_description_all, by = c("all_markers")), silent = TRUE)
+  
+  # Spacing
+  try(total$all_markers_description[! is.na(total$all_markers_description)] <- total$all_markers_description[! is.na(total$all_markers_description)] + " ", silent = TRUE)
+  try(total$all_markers_description_2[! is.na(total$all_markers_description_2)] <- total$all_markers_description_2[! is.na(total$all_markers_description_2)] + " ", silent = TRUE)
+  try(total$all_markers_description_3[! is.na(total$all_markers_description_3)] <- total$all_markers_description_3[! is.na(total$all_markers_description_3)] + " ", silent = TRUE)
+  
+  try(total$all_markers_description[is.na(total$all_markers_description)] <- "", silent = TRUE)
+  try(total$all_markers_description_2[is.na(total$all_markers_description_2)] <- "", silent = TRUE)
+  try(total$all_markers_description_3[is.na(total$all_markers_description_3)] <- "", silent = TRUE)
+  
+  all_markers_description  = paste0(total$all_markers_description,  total$all_markers_description_2,  total$all_markers_description_3)
+  # total$all_markers_description  <- all_markers_description
+  # drops <- c("all_markers_description_2","cons_markers_description_2", "all_markers_description_3","cons_markers_description_3")
+  # total <- total[ , !(names(total) %in% drops)]
+  
+  return(all_markers_description)
+}
+
+degWithHgncAndDescription = function(deg, gene_names) {
+  #' Given a dataframe of degs, add a description and HGNC names for those genes
+  #' 
+  #' @param deg
+  #' @return deg with 2 more columns. One for the description and one for the HGNC name.
+  
+  genes = deg$gene
+  deg$description = getDescription(genes)
+  gene_ind = which(colnames(deg) == "gene")
+  deg$hgnc = deg$gene
+  deg = deg[,c(1:gene_ind, ncol(deg), (gene_ind+1):(ncol(deg)-1))]
+  deg = hgncMzebraInPlace(deg, gene_ind+1, gene_names, rm_na = F)
+  return(deg)
+}
+
+cytoBINdeg = function(obj) {
+  #' Find DEGs in each cytoBIN
+  #' 
+  #' @param obj Seurat object
+  #' @return p1 barplot of Number of Cells in CytoBINs per cluster
+  #' @return p2 barplot of Percent of Cells in CytoBINs per cluster
+  #' @return deg DEGs per CytoBIN
+  
+  # Annotate each cell as eith Low, Medium, or High CytoBIN
+  obj$cytoBIN = obj$cyto
+  obj$cytoBIN[which(obj$cyto >= 0    & obj$cyto <= 0.33)] = "Low"
+  obj$cytoBIN[which(obj$cyto > 0.33 & obj$cyto <= 0.66)] = "Medium"
+  obj$cytoBIN[which(obj$cyto > 0.66 & obj$cyto <= 1   )] = "High"
+  
+  # See if the object identity is numeric
+  clusters = sort(unique(as.vector(Idents(obj))))
+  if (! any(is.na(as.numeric(Idents(obj))))) {
+    clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  }
+  
+  # Find the number of cells in each cytoBIN for each cluster (or object identity)
+  bin_df = data.frame()
+  for (cluster in clusters) {
+    this_cells = WhichCells(obj, idents = cluster)
+    rows = data.frame(rep(cluster, 3), c("Low", "Medium", "High"),
+                      c(length(this_cells[which(obj$cytoBIN[this_cells] == "Low")]),
+                        length(this_cells[which(obj$cytoBIN[this_cells] == "Medium")]),
+                        length(this_cells[which(obj$cytoBIN[this_cells] == "High")])))
+    colnames(rows) = c("Cell_Type", "CytoBIN", "value")
+    rows$pct = c(rows$value[1]/sum(rows$value), rows$value[2]/sum(rows$value), rows$value[3]/sum(rows$value))
+    rows$pct = rows$pct*100
+    bin_df = rbind(bin_df, rows)
+  }
+  
+  # Plot the Number/Percent of Cells in Each CytoBIN for Each Cluster/Identity
+  temp = rev(brewer.pal(11,"Spectral"))
+  temp[6] = "gold" # this is what plotCytoTRACE uses
+  bin_df$CytoBIN = factor(bin_df$CytoBIN, levels = c("High", "Medium", "Low"))
+  bin_df$Cell_Type = factor(bin_df$Cell_Type, levels = clusters)
+  p1 = ggplot(bin_df, aes(x=Cell_Type, y=value, fill=CytoBIN)) + geom_bar(stat="identity", position = "dodge") + scale_fill_manual(values=temp[c(10,6,2)]) + ggtitle("Number of Cells in CytoBINs per Cluster")
+  p2 = ggplot(bin_df, aes(x=Cell_Type, y=pct, fill=CytoBIN)) + geom_bar(stat="identity", position = "dodge")   + scale_fill_manual(values=temp[c(10,6,2)]) + ggtitle("Percent of Cells in CytoBINs per Cluster")
+  
+  # Find DEGs per CytoBIN
+  Idents(obj) = obj$cytoBIN
+  deg = FindAllMarkers(obj, only.pos = T)
+  deg = deg[which(deg$p_val_adj < 0.05),]
+  
+  return(list(p1, p2, deg))
+}
+
+cytoScoreByIdent = function(obj) {
+  #' Make a boxplot of cytoTRACE score by ident/cluster
+  #' 
+  #' @param obj Seurat object
+  #' @return p boxplot of cytoTRACE score by ident/cluster
+  
+  # Color Palette
+  temp = rev(brewer.pal(11,"Spectral"))
+  temp[6] = "gold" # this is what plotCytoTRACE uses
+  pal = colorRampPalette(temp)
+  
+  clusters = sort(unique(as.vector(Idents(obj))))
+  if (! any(is.na(as.numeric(Idents(obj))))) {
+    print("Can sort numerically")
+    clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  }
+  
+  cell_type_df <- as.data.frame(cbind(as.numeric(as.vector(obj$cyto)), as.vector(Idents(obj))))
+  colnames(cell_type_df) <- c("CytoTRACE", "Cell_Type")
+  cell_type_df$CytoTRACE <- as.numeric(as.vector(cell_type_df$CytoTRACE))
+  cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=clusters)
+  rownames(cell_type_df) <- NULL
+  p = ggplot(cell_type_df, aes(x=Cell_Type, y=CytoTRACE, fill = Cell_Type)) + geom_boxplot(alpha=0.8) + ylim(0,1) + geom_jitter(position=position_dodge2(width=0.5), alpha=0.5, aes(color = CytoTRACE)) + coord_flip() + theme_classic() + scale_color_gradientn(colors = pal(50)) + guides(color = F)
+  
+  return(p)
+}
+
+plotCyto = function(obj, cyto_feature = "cyto", png_name = "") {
+  #' Plot CytoTRACE data
+  #' 
+  #' @param obj Seurat object to plot
+  #' @param cyto_feature name of feature that holds CytoTRACE data (optional)
+  #' @param png_name name of output png (optional)
+  #' @return p UMAP of CytoTRACE score per cell
+  temp = rev(brewer.pal(11,"Spectral"))
+  temp[6] = "gold" # this is what plotCytoTRACE uses
+  pal = colorRampPalette(temp)
+  p = FeaturePlot(obj, features = "cyto", reduction = "umap", cols = pal(50), pt.size = 2, label=TRUE, order = TRUE) + guides(color=F)
+  
+  if (png_name != "") {
+    Cairo(width = 600, height = 600, file=png_name)
+    print(p)
+    dev.off()
+  }
+  
+  return(p)
+}
+
 cellHeatmap = function(obj, markers, myslot="counts", non_zero=F) {
   #' Make a heamap of all the markers by all the cells
   #' 
@@ -34,9 +187,43 @@ cellHeatmap = function(obj, markers, myslot="counts", non_zero=F) {
   exp_melt = melt(as.matrix(exp))
   colnames(exp_melt) = c("Gene", "Cell", "value")
   
-  p = ggplot(exp_melt, aes(Cell, Gene, fill=value)) + geom_tile() + scale_fill_viridis(discrete=F) + guides(color = FALSE) + theme_classic() + theme(axis.text.x = element_blank()) + scale_y_discrete(expand=c(0,0))
+  p = ggplot(exp_melt, aes(Cell, Gene, fill=value)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, max(exp_melt$value))) + guides(color = FALSE) + theme_classic() + theme(axis.text.x = element_blank()) + scale_x_discrete(expand=c(0,0)) + scale_y_discrete(expand=c(0,0))
   return(p)
 }
+
+myDotPlot = function(obj, markers) {
+  #' Dotplot of markers using Spectral colors. 
+  #' And a bargraph of many genes are in each color for each cluster
+  #' 
+  #' @param obj Seurat Object
+  #' @param markers vector of markers
+  #' @return p DotPlot of markers
+  temp = rev(brewer.pal(11,"Spectral"))
+  temp[6] = "gold" # this is what plotCytoTRACE uses
+  pal = colorRampPalette(temp)
+  p = DotPlot(obj, features = markers, scale.by = "size", scale.min = 0) + scale_color_gradientn(colors = pal(50)) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+  
+  good_ind = which(complete.cases(p$data$avg.exp.scaled))
+  min_avg = min(p$data$avg.exp.scaled[good_ind])
+  max_avg = max(p$data$avg.exp.scaled[good_ind])
+  third1 = ((max_avg-min_avg)*1/3) + min_avg
+  third2 = ((max_avg-min_avg)*2/3) + min_avg
+  
+  p$data$third = p$data$avg.exp.scaled
+  p$data$third[which(p$data$avg.exp.scaled >= min_avg & p$data$avg.exp.scaled < third1)]   = "Low"
+  p$data$third[which(p$data$avg.exp.scaled >= third1  & p$data$avg.exp.scaled < third2)]   = "Medium"
+  p$data$third[which(p$data$avg.exp.scaled >= third2  & p$data$avg.exp.scaled <= max_avg)] = "High"
+  
+  p$data$third = factor(p$data$third, levels = c("High", "Medium", "Low", "NaN"))
+  # print(nrow(p$data[which(p$data$id == 0 & p$data$third == "High"),]))
+  # print(p$data[which(p$data$id == 0 & p$data$third == "High"),])
+  p1 = ggplot(p$data, aes(id, fill=third, color=third)) + geom_bar(position = position_dodge2(), alpha = 0.7) + scale_color_manual(values=c(temp[10], temp[6], temp[2], "gray")) + scale_fill_manual(values=c(temp[10], temp[6], temp[2], "gray")) + labs(color="Avg Expression", fill = "Avg Expression", x = "Cluster", y = "Number of Genes", title="Number of Genes in Each Avg Expression Bin Per Cluster") 
+  # p2 = ggplot(p$data, aes(id, y=pct.exp, fill=third, color=third, group = third)) + geom_bar(stat="identity", alpha = 0.7) + scale_color_manual(values=c(temp[10], temp[6], temp[2], "gray")) + scale_fill_manual(values=c(temp[10], temp[6], temp[2], "gray")) + labs(color="Avg Expression", fill = "Avg Expression", x = "Cluster", y = "% Expressed", title="% Expressed for Each Gene in Each Avg Expression Bin Per Cluster") + facet_wrap(~ id)
+  p2 = ggplot(p$data, aes(x=third, y=pct.exp, fill=third, color=third, group = third)) + geom_bar(stat="identity", alpha = 0.7) + scale_color_manual(values=c(temp[10], temp[6], temp[2], "gray")) + scale_fill_manual(values=c(temp[10], temp[6], temp[2], "gray")) + labs(color="Avg Expression", fill = "Avg Expression", x = "Cluster", y = "% Expressed", title="% Expressed for Each Gene in Each Avg Expression Bin Per Cluster") + facet_wrap(~ id)
+  
+  return(list(p, p1, p2))
+}
+
 markerHeatmap = function(obj, markers, myslot="data") {
   #' Make a heatmap of all the markers by all the clusters
   #'
@@ -151,7 +338,7 @@ numCellExpMarker = function(obj, markers, myslot="data", thresh=0) {
   ran = sample(rownames(obj), length(markers), replace = F)
   
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
-  clusters = sort(unique(as.vector(obj$seurat_clusters)))
+  clusters = sort(unique(as.numeric(as.vector(obj$seurat_clusters))))
   num_cells = data.frame()
   for (gene in ran) {
     num_cells <- rbind(num_cells, t(c("Random", length(which(as.vector(exp[gene,]) != 0)))))
@@ -167,7 +354,7 @@ numCellExpMarker = function(obj, markers, myslot="data", thresh=0) {
 }
 
 markerExpPerCell = function(obj, markers, myslot="data", n_markers=F) {
-  #' Paint the average Expression of Markers Per Cell
+  #' Paint the average Expression of Markers Per Cell (UMAP)
   #' 
   #' @param obj Seurat Object
   #' @param markers vector of markers
@@ -190,40 +377,119 @@ markerExpPerCell = function(obj, markers, myslot="data", n_markers=F) {
   return(p)
 }
 
-markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T) {
-  #' Find Marker Expression Per Cell Per Cluster
+markerCellPerCluster = function(obj, markers, correct=T) {
+  #' For each marker find the number of positive cells in that cluster.
+  #' Plot the cummulative number and by default correct for cluster size and background expression.
+  #' 
+  #' @param obj Seurat object
+  #' @param markers vector of markers
+  #' @param correct correct for cluster size and background expression?
+  #' @return p barplot of cells
+  
+  exp = GetAssayData(obj, assay = "RNA", slot="counts")
+  exp [which(exp > 0)] = 1
+  
+  title_str = if_else(correct, "Normalized", "")
+  title_str = paste(title_str, "Total Number of Cells per Cluster Expressing a Marker")
+  
+  per_cluster_df = data.frame()
+  clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  for (cluster in clusters) {
+    cluster_cells = WhichCells(obj, idents = cluster)
+    num_cells = sum(colSums(exp[markers, cluster_cells]))
+    if (correct)
+      num_cells = num_cells / sum(colSums(exp[,cluster_cells]))
+    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, num_cells))
+  }
+  colnames(per_cluster_df) = c("cluster", "num_cells")
+  per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = clusters)
+  p = ggplot(per_cluster_df, aes(cluster, num_cells)) + geom_bar(stat = "identity") + ggtitle(title_str)
+  
+  return(p)
+}
+
+markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T, correct=F) {
+  #' Boxplot of Marker Expression Per Cell Per Cluster
   #' 
   #' @param obj Seurat Object
   #' @param markers vector of markers
   #' @param n_markers count the number of markers per cell?
+  #' @param correct correct for background expresssion?
   #' @param myslot slot to pull data from (either "counts" or "data")
+  #' @return p boxplot with jitter points of marker expression per cell per cluster
   
   title_str = "Average"
   title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
   title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
   
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
-  exp = exp[markers,]
   if (n_markers) {
     title_str = "Average Number of Markers Genes Expressed per Cell per Cluster"
     exp [which(exp > 0)] = 1
   }
+  title_str = paste(title_str, if_else(correct, "- Corrected", ""))
   
-  Idents(obj) = obj$seurat_clusters
+  # Idents(obj) = obj$seurat_clusters
   per_cluster_df = data.frame()
-  clusters = sort(unique(as.vector(obj$seurat_clusters)))
+  d_df = data.frame()
+  clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
   for (cluster in clusters) {
     cluster_cells <- WhichCells(obj, idents = cluster)
-    avg_cluster_exp = mean(colSums(exp[markers, cluster_cells]))
-    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, avg_cluster_exp))
+    avg_cluster_exp = colSums(exp[markers, cluster_cells])
+    if (correct)
+      avg_cluster_exp = avg_cluster_exp/colSums(exp[,cluster_cells])
+    
+    # EDIT
+    other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
+    other_avg = colSums(exp[markers, other_cells])
+    if (correct)
+      other_avg = other_avg/colSums(exp[,other_cells])
+    
+    # CHISQ
+    # test = chisq.test(avg_cluster_exp, other_avg)
+    
+    # Z-test
+    p = z.test(avg_cluster_exp, other_avg, sigma.x = sd(avg_cluster_exp), sigma.y = sd(other_avg), alternative = "greater")$p.value
+    
+    # Cohen's d
+    all_exp = c(avg_cluster_exp, other_avg)
+    test= effsize::cohen.d(all_exp, c(rep("cluster", length(avg_cluster_exp)), 
+                                      rep("other",   length(other_avg))))
+    mag=test$magnitude
+    d=test$estimate
+    up=test$conf.int[2]
+    down = test$conf.int[1]
+    
+    # WILCOX
+    # p_val = wilcox.test(avg_cluster_exp, other_avg, alternative = "greater")$p.value
+    
+    d_df = rbind(d_df, data.frame(cluster, mag, d, up, down, p))
+    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, avg_cluster_exp, p))
   }
-  colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp")
-  p = ggplot(per_cluster_df, aes(cluster, as.numeric(as.vector(avg_cluster_exp)))) + geom_bar(stat = "identity") + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
   
-  return(p)
+  d_df$q = p.adjust(d_df$p, method = "bonferroni")
+  d_df$cluster = factor(d_df$cluster, levels = clusters)
+  p1  = ggplot(d_df, aes(cluster, d, color=mag, fill = mag)) + geom_pointrange(aes(ymin = down, ymax = up)) + ylab("Cohen's d") + ggtitle("Effect Size in Clusters")
+  
+  colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp", "p")
+  per_cluster_df$avg_cluster_exp = as.numeric(as.vector(per_cluster_df$avg_cluster_exp))
+  per_cluster_df$q = unlist(sapply(1:length(clusters), function(x) rep(d_df$q[which(d_df$cluster == clusters[x])], length(which(per_cluster_df$cluster == clusters[x]))) ))
+  per_cluster_df$star = ifelse(per_cluster_df$q < 0.001, "***", 
+                               ifelse(per_cluster_df$q < 0.01, "**", 
+                                      ifelse(per_cluster_df$q < 0.05, "*", "")))
+  per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = clusters)
+  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=cluster, color=cluster)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.3) + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
+  
+  # ANOVA
+  # per_cluster_df$cluster[which(per_cluster_df$cluster != 0)] = "all"
+  # test = aov(avg_cluster_exp ~ cluster, data = per_cluster_df)
+  # print(summary(test))
+  # print(TukeyHSD(test))
+  
+  return(list(p, p1, d_df))
 }
 
-numMarkerTransPerCluster = function(obj, markers, myslot="counts") {
+numMarkerTransPerCluster = function(obj, markers, myslot="counts", correct = T) {
   #' Find the Number of Marker Transcripts Per Cluster.
   #' 
   #' @param obj Seurat Object
@@ -236,31 +502,113 @@ numMarkerTransPerCluster = function(obj, markers, myslot="counts") {
   title_str = paste(title_str, "of Marker Genes")
   
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
-  exp = exp[markers,]
+  # exp = exp[markers,]
   
   Idents(obj) = obj$seurat_clusters
   per_cluster_df = data.frame()
+  correct_df = data.frame()
   clusters = sort(unique(as.vector(obj$seurat_clusters)))
   for (cluster in clusters) {
     cluster_cells <- WhichCells(obj, idents = cluster)
     cluster_sums = rowSums(exp[markers, cluster_cells])
     per_cluster_df = rbind(per_cluster_df, data.frame(markers, rep(cluster, length(markers)), cluster_sums))
+    
+    if (correct) {
+      other_genes = rownames(obj)[which(! rownames(obj) %in% valid_genes)]
+      cluster_sums = sum(cluster_sums)/sum(rowSums(exp[other_genes, cluster_cells]))
+      correct_df = rbind(correct_df, data.frame(cluster, cluster_sums))
+    }
   } # end cluster for
   
   colnames(per_cluster_df) <- c("gene", "cluster", "cluster_sum")
   p = ggplot(per_cluster_df, aes(cluster, as.numeric(as.vector(cluster_sum)), fill=gene)) + geom_bar(stat = "identity") + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
   
+  if (correct) {
+    colnames(correct_df) = c("cluster", "cluster_sum")
+    my_mean = mean(correct_df$cluster_sum)
+    print(my_mean)
+    correct_df$cluster = factor(correct_df$cluster, levels = levels(Idents(obj)))
+    p = ggplot(correct_df, aes(cluster, cluster_sum)) + geom_bar(stat = "identity") + xlab("Cluster") + ylab("Proportion of Transcripts Belonging to Markers") + geom_text(aes(y=my_mean, label=paste("Mean =", my_mean)), x = Inf, hjust=1, vjust=0, color = "red") + geom_hline(aes(yintercept = my_mean), color = "red")
+  }
+  
   return(p)
 }
 
-findMarkersInDEG = function(deg, markers, gene_column = "gene") {
-  #' Search for markers that are in the DEGs
+# This function produces the warning about column: 'cluster'
+markersInDEGUpDown = function(deg, markers, gene_column = "gene", pct = F) {
+  #' Search for markers that are in the up and downregulated DEGs
   #' 
   #' @param deg dataframe of DEGs (default output of FindAllMarkers)
   #' @param markers vector of markers
   #' @param gene_column name of the column that contains the genes
+  #' @param pct plot pct of DEGs per cluster?
   #' @return results dataframe w/ col for marker and col for cluster the marker was found in
   #' @return p barchart of number of markers in cluster's degs
+  
+  clusters = unique(deg$cluster)
+  if (! any(is.na(as.numeric(as.vector(clusters))))) {
+    clusters = sort(as.numeric(as.vector(clusters)))
+  }
+  
+  deg$isPos = deg$avg_logFC > 0
+  
+  gene_column_n = which(colnames(deg) == gene_column) # this is number
+  results <- data.frame()
+  for (gene in markers) {
+    this_rows = deg[which(deg[,gene_column_n] == gene),]
+    results = rbind(results, data.frame(rep(gene, nrow(this_rows)), this_rows$cluster, this_rows$avg_logFC, this_rows$isPos))
+  } # end for
+  if (nrow(results) > 0) {
+    colnames(results) = c("gene", "cluster", "avg_logFC", "isPos")
+    results$cluster = factor(results$cluster, levels = clusters)
+    
+    pos_res = table(results[which(results$isPos == T),c("gene", "cluster")])
+    neg_res = table(results[which(results$isPos == F),c("gene", "cluster")])
+    df = data.frame(up = colSums(pos_res), down = -colSums(neg_res), cluster = colnames(pos_res))
+    df$cluster = factor(df$cluster, levels=clusters)
+    colnames(df) = c("Up", "Down", "cluster")
+    df2 = df %>% pivot_longer(c("Up", "Down"), names_to = "Regulation", values_to = "value")
+    df2 = as.data.frame(df2)
+    
+    p = ggplot(df2, aes(x=cluster, y=value, fill=Regulation)) + geom_bar(stat="identity", alpha=0.8) + scale_x_discrete(drop=FALSE) + xlab("Cluster") + ylab("Number of Markers in Cluster DEGs") + geom_hline(yintercept=0)
+    
+    df3 = data.frame(cluster = clusters)
+    df3$avg_logFC = sapply(1:length(clusters), function(x) sum(results$avg_logFC[which(results$cluster == clusters[[x]])]))
+    df3$isPos = df3$avg_logFC > 0
+    # p1 = ggplot(df3, aes(x=cluster, y = avg_logFC, fill = isPos)) + geom_bar(stat="identity") + guides(fill = F) + ylab("Total Sum of avg_logFC of Markers in DEGs") + xlab("Cluster") + geom_hline(yintercept=0)
+    # p1 = ggplot(results, aes(x=cluster, y = avg_logFC, fill = isPos, color = isPos)) + geom_boxplot(alpha=0.6) + geom_jitter(position=position_dodge2(width=0.6), alpha=0.3)
+    results$isPos = plyr::revalue(as.character(results$isPos), replace = c("TRUE" = "Up", "FALSE" = "Down"))
+    colnames(results)[ncol(results)] = "Regulation"
+    results$Regulation = factor(results$Regulation, levels = c("Down", "Up"))
+    p1 = ggplot(results, aes(x=cluster, y = avg_logFC, fill = Regulation, color = Regulation)) + geom_bar(stat="identity", alpha=0.6) + ylab("Average Log Fold Change") + geom_hline(yintercept=0) + ggtitle("Average LogFC for Markers in DEGs") + scale_fill_discrete(drop=FALSE, limits=levels(results$Regulation)) + scale_color_discrete(drop=FALSE, limits=levels(results$Regulation))
+    
+    if (pct) {
+      df2$pct = sapply(1:nrow(df2), function(x) df2$value[x]/nrow(deg[which(deg$cluster == df2$cluster[x]),]) * 100)
+      p = ggplot(df2, aes(x=cluster, y=pct, fill=Regulation)) + geom_bar(stat="identity", alpha=0.8) + scale_x_discrete(drop=FALSE) + xlab("Cluster") + ylab("% of Cluster DEGs in Markers") + geom_hline(yintercept = 0)
+    }
+  } else {
+    p = NULL
+    p1 = NULL
+    print("No Markers Found in the DEGs.")
+  } # end else
+  
+  return(list(results, p, p1))
+}
+
+findMarkersInDEG = function(deg, markers, gene_column = "gene", pct = F) {
+  #' Search for markers that are in the only upregulated DEGs
+  #' 
+  #' @param deg dataframe of DEGs (default output of FindAllMarkers)
+  #' @param markers vector of markers
+  #' @param gene_column name of the column that contains the genes
+  #' @param pct plot pct of DEGs per cluster?
+  #' @return results dataframe w/ col for marker and col for cluster the marker was found in
+  #' @return p barchart of number of markers in cluster's degs
+  
+  clusters = unique(deg$cluster)
+  if (! any(is.na(as.numeric(as.vector(clusters))))) {
+    clusters = sort(as.numeric(as.vector(clusters)))
+  }
   
   gene_column_n = which(colnames(deg) == gene_column) # this is number
   results <- data.frame()
@@ -270,13 +618,18 @@ findMarkersInDEG = function(deg, markers, gene_column = "gene") {
   } # end for
   if (nrow(results) > 0) {
     colnames(results) = c("gene", "cluster")
-    if (! any(is.na(as.numeric(deg$cluster)))) { # is numeric
-      num_clusters <- max(as.vector(deg$cluster))
-      results$cluster = factor(results$cluster, levels = 0:num_clusters)
-    } # end if
+    results$cluster = factor(results$cluster, levels = clusters)
     p = ggplot(results, aes(cluster)) + geom_bar() + scale_x_discrete(drop=FALSE) + xlab("Cluster") + ylab("Number of Markers in Cluster DEGs")
+    
+    if (pct) {
+      res_table = table(results)
+      pct_df = data.frame(counts = colSums(res_table), cluster = colnames(res_table))
+      pct_df$pct = sapply(1:length(clusters), function(x) pct_df$counts[which(pct_df$cluster == clusters[x])]/nrow(deg[which(deg$cluster == clusters[x]),]) * 100)
+      p = ggplot(pct_df, aes(x=cluster, y=pct)) + geom_bar(stat = "identity") + scale_x_discrete(drop=FALSE) + xlab("Cluster") + ylab("% of Cluster DEGs in Markers")
+    }
   } else {
     p = NULL
+    print("No Markers Found in the DEGs.")
   } # end else
   
   return(list(results, p))
@@ -807,8 +1160,10 @@ convertMouseDataFrameToHgnc = function(mouse_df, gene_column) {
 }
 
 convertToHgnc <- function(genes) {
-  human  = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-  mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
+  # human  = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+  # mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
+  mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
+  human =  useEnsembl("ensembl", mirror = "useast", dataset = "hsapiens_gene_ensembl")
   
   ensembl_genes <- getLDS(attributes = c("ensembl_gene_id"), filters = "ensembl_gene_id", values = genes , mart = mzebra, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
   zfin_genes    <- getLDS(attributes = c("zfin_id_symbol"), filters = "zfin_id_symbol", values = genes , mart = mzebra, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
@@ -864,12 +1219,14 @@ hgncMouse <- function(genes) {
   return(ensembl_genes)
 }
 
-hgncMzebraInPlace <- function(df, gene_column, gene_names, onPACE=F) {
+hgncMzebraInPlace <- function(df, gene_column, gene_names, onPACE=F, rm_na = T) {
   bad_genes <- df[,gene_column]
   bad_genes <- unique(bad_genes)
   converter <- hgncMzebra(bad_genes, gene_names, onPACE)
   df[,gene_column] <- converter[match(df[,gene_column], converter[,1]),2]
-  df <- df[which(! is.na(df[,gene_column])),]
+  if (rm_na) {
+    df <- df[which(! is.na(df[,gene_column])),]
+  }
   
   return(df)
 }
@@ -885,7 +1242,7 @@ hgncMouseInPlace <- function(df, gene_column) {
 }
 
 # THIS IS THE UPDATED/GOOD Function 02/21/2020
-hgncGood <- function(genes, gene_names) {
+hgncGood <- function(genes, gene_names, as_df = F) {
   pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
   valid_genes <- validGenes(genes, gene_names)
   all_hgnc <- convertToHgnc(gene_names)
@@ -897,23 +1254,38 @@ hgncGood <- function(genes, gene_names) {
   found_names_hgnc <- found_names_hgnc[!is.na(found_names_hgnc)]
   
   df1 <- setNames(as.data.frame(found_names_hgnc), c("hgnc"))
-  found_names_hgnc <- inner_join(df1, all_hgnc, by = "hgnc")$mzebra
+  found_names_hgnc <- inner_join(df1, all_hgnc, by = "hgnc")
+  if (! as_df) {
+    found_names_hgnc <- found_names_hgnc$mzebra
+  }
   # ind_found_hgnc <- match(found_names_hgnc, all_hgnc$hgnc)
   # ind_found_hgnc <- ind_found_hgnc[! is.na(ind_found_hgnc)]
   # found_names_hgnc <- as.vector(all_hgnc[ind_found_hgnc,1])
   
   pseudo_hgnc <- toupper(genes)
   df1 <- setNames(as.data.frame(pseudo_hgnc), c("hgnc"))
-  found_mzebra <- inner_join(df1, all_hgnc, by = "hgnc")$mzebra
+  found_mzebra <- inner_join(df1, all_hgnc, by = "hgnc")
+  if (! as_df) {
+    found_mzebra = found_mzebra$mzebra
+  }
   # ind_hgnc <- match(pseudo_hgnc, all_hgnc$hgnc)
   # ind_hgnc <- ind_hgnc[! is.na(ind_hgnc)]
   # found_mzebra <- as.vector(all_hgnc[ind_hgnc,1])
   
-  good <- c(valid_genes, found_names, found_names_hgnc, found_mzebra)
-  good <- good[which(good != "")]
-  good <- validGenes(good, gene_names)
-  good <- unique(good)
-  good <- sort(good)
+  if (! as_df) {
+    good <- c(valid_genes, found_names, found_names_hgnc, found_mzebra)
+    good <- good[which(good != "")]
+    good <- validGenes(good, gene_names)
+    good <- unique(good)
+    good <- sort(good)
+  } else {
+    valid_genes_df = data.frame(hgnc = toupper(valid_genes), mzebra = valid_genes)
+    good = rbind(found_names_hgnc, found_mzebra, valid_genes_df)
+    good = good[which(good$mzebra != ""),]
+    good = good[which(good$mzebra %in% validGenes(good$mzebra, gene_names)),]
+    good = good[which(! duplicated(good$mzebra)),]
+  }
+  
   return(good)
 }
 
@@ -955,6 +1327,94 @@ goodInPlace <- function(data, gene_column, gene_names) {
   }
   new_data <- data[keep_rows,]
   return(new_data)
+}
+
+ncAddDescription = function(df, gene_column, rm_na = F) {
+  #' Given a dataframe, add a description to the NCBI mzebra genes
+  #' 
+  #' @param df input dataframe
+  #' @param gene_column the column of the dataframe containing the mzebra genes
+  #' @param rm_na remove rows where no description was found?
+  #' @return df output dataframe with a description as the last column
+  
+  genes = as.vector(df[,gene_column])
+  
+  mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
+  description = unique(getBM(attributes=c('entrezgene_accession', 'description'), filters = 'entrezgene_accession', values = unique(genes), mart = mzebra))
+  
+  df$description = description$description[match(df[,gene_column], description$entrezgene_accession)]
+  if(rm_na)
+    df = df[which(! is.na(df$description)),]
+  
+  return(df)
+}
+
+ncHgncMzebraInPlace = function(df, gene_column, rm_na = T, onPACE = F) {
+  #' Given a datafrme, convert the NCBI mzebra genes in the specified column to NCBI.
+  #' 
+  #' @param df input dataframe
+  #' @param gene_column the column of the dataframe containing the mzebra genes
+  #' @param rm_na remove rows where no HGNC name was found for the mzebra gene?
+  #' @param onPACE is the code being run on PACE?
+  
+  genes = as.vector(df[,gene_column])
+  converter = ncMzToHgncVect(genes)
+  df[,gene_column] = converter$human[match(df[,gene_column], converter$mzebra)]
+  if (rm_na)
+    df = df[which(! is.na(df[,gene_column])),]
+  
+  mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
+  human  = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+  mart_hgnc = getLDS(attributes = c("entrezgene_accession"), filters = "entrezgene_accession", values = genes, mart = mzebra, attributesL = c("external_gene_name"), martL = human, uniqueRows=T)
+  
+  return(df)
+}
+
+ncMzToHgncVect = function(mz, returnDF = T, onPACE=F, rm_na = F) {
+  #' Convert NCBI mzebra genes to HGNC format.
+  #'
+  #' @param mz input vector of genes in NCBI mzebra format
+  #' @param returnDF return the output in the form of a dataframe? Else just a vector HGNC genes are returned
+  #' @param onPACE is the code being run on PACE? The filepath for Patrick's file is different
+  #' @param rm_na remove rows where no HGNC gene was found?
+  #' @return all_hgnc a dataframe by default with 4 columns. First column is the mzebra gene,
+  #' second column is the HGNC gene found in Patrick's file, the third column is the HGNC gene
+  #' found by biomaRt, and the last column is my pick for the final HGNC name. Sometimes Patrick
+  #' and biomaRt disagree, in those cases I keep Patrick's, unless the biomaRt gene is the 
+  #' mzebra gene capitalized.
+  
+  if (onPACE) {
+    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE, stringsAsFactors = F)
+  } else {
+    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE, stringsAsFactors = F)
+  }
+  
+  ind_bool = match(mz,pat$V2)
+  ind = ind_bool[! is.na(ind_bool)]
+  pat_hgnc = data.frame(mzebra=as.vector(pat$V2[ind]), human_pat=as.vector(pat$V8[ind]))
+  
+  mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
+  human  = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+  mart_hgnc = getLDS(attributes = c("entrezgene_accession"), filters = "entrezgene_accession", values = mz, mart = mzebra, attributesL = c("external_gene_name"), martL = human, uniqueRows=T)
+  colnames(mart_hgnc) = c("mzebra", "human_mart")
+  
+  all_hgnc = full_join(pat_hgnc, mart_hgnc, by = "mzebra")
+  all_hgnc$mzebra = as.vector(all_hgnc$mzebra)
+  all_hgnc$human_pat = as.vector(all_hgnc$human_pat)
+  all_hgnc$human_mart = as.vector(all_hgnc$human_mart)
+  if (rm_na)
+    all_hgnc[which(! is.na(all_hgnc$human_pat) | ! is.na(all_hgnc$human_mart)),]
+  all_hgnc$human = all_hgnc$human_pat
+  all_hgnc$human[which(! is.na(all_hgnc$human_mart)
+                       & is.na(all_hgnc$human_pat))] = all_hgnc$human_mart[which(! is.na(all_hgnc$human_mart) & is.na(all_hgnc$human_pat))]
+  disagree_mart_better = which(! is.na(all_hgnc$human_mart) 
+                               & all_hgnc$human_mart != all_hgnc$human_pat
+                               & (all_hgnc$human_mart == toupper(all_hgnc$mzebra) | all_hgnc$human_mart == toupper(substr(all_hgnc$mzebra, 1, nchar(all_hgnc$mzebra)-1))))
+  all_hgnc$human[disagree_mart_better] = all_hgnc$human_mart[disagree_mart_better]
+  if (! returnDF)
+    all_hgnc = all_hgnc$human
+  
+  return(all_hgnc)
 }
 
 expressionDend = function(objs, my_slot="counts") {
