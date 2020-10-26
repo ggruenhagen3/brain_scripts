@@ -12,7 +12,6 @@ library("viridis")
 library("reshape2")
 library("edgeR")
 library("data.table")
-library("Cairo")
 library("tidyr")
 
 ####################
@@ -161,7 +160,7 @@ plotCyto = function(obj, cyto_feature = "cyto", png_name = "") {
   p = FeaturePlot(obj, features = "cyto", reduction = "umap", cols = pal(50), pt.size = 2, label=TRUE, order = TRUE) + guides(color=F)
   
   if (png_name != "") {
-    Cairo(width = 600, height = 600, file=png_name)
+    png(width = 600, height = 600, file=png_name)
     print(p)
     dev.off()
   }
