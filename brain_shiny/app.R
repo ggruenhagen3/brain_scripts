@@ -5,6 +5,11 @@ library("reticulate")
 library("stringr")
 # options(warn=-1)
 combined <- readRDS("data/combined.rds")
+gene_info = read.table("data/gene_info.txt", sep="\t", stringsAsFactors = F, header = T)
+human_genes = unique(gene_info$human)
+human_logic = paste0("input.gene == '", human_genes,"' || ", collapse = '')
+human_logic = substr(human_logic, 1, nchar(human_logic)-3)
+all_genes = unique(c(gene_info$mzebra, gene_info$human))
 gene_names <- rownames(combined@assays$RNA)
 
 # Move some gene names to the front just to present some easy, interesting options
@@ -26,8 +31,24 @@ ui <- fluidPage(
       
       # textInput(inputId = "gene", label = "Gene Name", value = "fosb", width = NULL,
       #           placeholder = "name of gene")
-      selectizeInput(inputId = "gene", label = "Gene Name", choices = NULL, selected = "fosb", multiple = TRUE, options = list(maxOptions = 10))
-
+      selectizeInput(inputId = "gene", label = "Gene Name", choices = NULL, multiple = TRUE, options = list(maxOptions = 10)),
+      # conditionalPanel(condition = "input.gene != null && gene_names.length() > 0",
+      #                  selectizeInput(inputId = "hgnc", label = "HGNC", choices = NULL, selected = "fosb", multiple = TRUE, options = list(maxOptions = 10))
+      # ),
+      # conditionalPanel(condition = paste0("input.gene != null", paste0(" && input.gene != '", gene_names,"'")),
+                       conditionalPanel(condition = paste0("input.gene != null && ", human_logic),
+                       selectizeInput(inputId = "mz", label = "Orthologous MZ Genes", choices = NULL, multiple = TRUE, options = list(maxOptions = 10))
+      ),
+      conditionalPanel(condition = "input.gene != null",
+        strong("Gene Info"),
+        textOutput(outputId = "info", container = pre),
+        tags$head(tags$style('#info{background-color: white;
+                                    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+                                    # border-style: solid;
+                                    # border-wdith: thin;
+                                    border-radius: 3px;
+                                   }')))
+      
     ),
     
     # Main panel for displaying outputs ----
@@ -50,8 +71,20 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram ----
 server <- function(input, output, session) {
   
-  updateSelectizeInput(session, "gene", choices = gene_names, server = TRUE)
+  updateSelectizeInput(session, "gene", choices = all_genes, server = TRUE)
   
+  # hgnc_choices = reactive({
+  #   gene_info$human[which(gene_info$mzebra == input$gene)]
+  # })
+  mz_choices = reactive({
+    gene_info$mzebra[which(gene_info$human == input$gene)]
+  })
+  
+  observe({
+    # updateSelectizeInput(session, "hgnc", choices = hgnc_choices(), server = TRUE)
+    updateSelectizeInput(session, "mz", choices = mz_choices(), server = TRUE, selected = mz_choices()[1])
+  })
+
   createPlot <- function(split) {
     if (split == "cond") {
       FeaturePlot(combined, features = c(input$gene), split.by = "cond", reduction = "umap", pt.size = 2, label=TRUE, order = TRUE)
@@ -130,6 +163,33 @@ server <- function(input, output, session) {
       FeaturePlot(obj, features = c(gene), split.by = split, reduction = "umap", pt.size = 2, label=TRUE, order = TRUE) 
     }
   }
+  
+  output$info = renderText({
+    if (length(input$gene) < 1) { return("") }
+    if (input$gene %in% gene_names) {
+      str = "Gene Species:\nMZ\n"
+      human = gene_info$human[which(gene_info$mzebra == input$gene)]
+      human_description = gene_info$human_description[which(gene_info$mzebra == input$gene)]
+      mzebra_description = gene_info$mzebra_description[which(gene_info$mzebra == input$gene)]
+      str = paste0(str, "\nMZ Description:\n\"", mzebra_description, '"\n')    
+      str = paste0(str, "\nClosest Human Gene:\n", human, "\n")
+      str = paste0(str, "\nHuman Description:\n", human_description, '"\n')
+    
+    } else {
+      str = "Gene Species:\nHuman\n"
+      human_description = gene_info$human_description[which(gene_info$human == input$gene)]
+      str = paste0(str, "\nHuman Description:\n", human_description[1], '"\n')
+      if (length(human_description) > 1) {
+        str = paste0(str, "\n# of Close MZ Genes:\n", length(human_description), "\n")
+      } else {
+        mzebra = gene_info$mzebra[which(gene_info$human == input$gene)]
+        mzebra_description = gene_info$mzebra_description[which(gene_info$human == input$gene)]
+        str = paste0(str, "\nClosest MZ Gene:\n", mzebra, "\n")
+        str = paste0(str, "\nMZ Description:\n\"", mzebra_description, '"\n')    
+      }
+    }
+    return(str)
+  })
   
   # Normal Plot
   output$bcplot <- renderPlot({
