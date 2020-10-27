@@ -8,16 +8,9 @@ library("stringr")
 library("ggplot2")
 library("shinycssloaders")
 library("shinyWidgets")
+library("DT")
 # options(warn=-1)
 bb <- readRDS("data/bb.rds")
-set.seed(1)
-# bb = subset(bb, cells=sample(colnames(bb),  1000))
-# bb$seurat_clusters = sample(1:50, 1000, replace = T)
-# # tmp = read.table("data/tmp.tsv", sep="\t", header = T)
-# tmp = readRDS("data/tmp.rds")
-# bb@reductions$umap = tmp
-# bb@reductions$umap@cell.embeddings = bb@reductions$umap@cell.embeddings[1:1000,]
-# rownames(bb@reductions$umap@cell.embeddings) = colnames(bb)
 obj = bb
 
 gene_info = read.table("data/gene_info.txt", sep="\t", stringsAsFactors = F, header = T)
@@ -33,12 +26,7 @@ inhib_clusters <- c(0, 7, 8, 10, 11, 20, 21, 27, 31, 32, 35)
 excit_clusters <- c(1, 2, 3, 5, 6, 9, 12, 13, 14, 15, 16, 18, 19, 22, 23, 24, 25, 28, 29, 30, 33, 34, 36, 37, 39)
 non_clusters   <- c(17, 26, 38, 40)
 
-# Move some gene names to the front just to present some easy, interesting options
-iegs <- c("egr1", "bdnf", "fosb", "CREB1", "npas4a", "socs2", "dusp10")
-inhib <- c("gad1b", "gad2", "slc32a1")
-gene_names <- c(iegs, inhib, gene_names)
-
-# Define UI for app that draws a histogram ----
+# Define UI for app
 ui <- fluidPage(
   
   # App title ----
@@ -88,20 +76,15 @@ ui <- fluidPage(
     # mainPanel(
     div(
       style = "flex-grow:1; resize:horizontal; overflow: hidden",
-      # mainPanel(
       tabsetPanel(id = "tabs", type = "tabs",
                   tabPanel("BHVE vs CTRL Overlap", value="bc_ovlp_plot", plotOutput("bc_ovlp_plot", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
                   tabPanel("BHVE vs CTRL", value="bcplot", plotOutput("bcplot", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
-                  tabPanel("B1 vs C1 Overlap", value="b1c1_ovlp_plot", plotOutput("b1c1_ovlp_plot", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
-                  tabPanel("B1 vs C1", value="b1c1plot", plotOutput("b1c1plot", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
-                  tabPanel("B1 vs C2", value="b1c2plot", plotOutput("b1c2plot", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
-                  tabPanel("C1 vs C2", value="c1c2plot", plotOutput("c1c2plot", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
                   tabPanel("All Samples", value="allplot", plotOutput("allplot", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
                   tabPanel("Split Cluster", value="splClust", plotOutput("splClust", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
                   tabPanel("Paint Split Cluster", value="pntSplClust", plotOutput("pntSplClust", width = "100%", height="500px") %>% withSpinner(color="#0dc5c1")),
                   tabPanel("BarPlot Summary", value="barplot", plotOutput("barplot", width = "100%", height="500px")  %>% withSpinner(color="#0dc5c1")),
                   tabPanel("BarPlot %", value="barplotAvg", plotOutput("barplotAvg", width = "100%", height="500px")  %>% withSpinner(color="#0dc5c1")),
-                  tabPanel("Summary", value="summary", verbatimTextOutput("summary") %>% withSpinner(color="#0dc5c1")),
+                  tabPanel("Summary", value="summary", DT::dataTableOutput("summary") %>% withSpinner(color="#0dc5c1")),
                   tabPanel("Summary %", value="summaryAvg", verbatimTextOutput("summaryAvg") %>% withSpinner(color="#0dc5c1"))
       ),
       downloadButton(outputId = "down", label = "Download the plot"),
@@ -156,7 +139,7 @@ server <- function(input, output, session) {
     return(obj$ovlp)
   }
   
-  createSpltObj <- function(cluster, resolution, dims, npcs, geneMode) {
+  createSpltObj <- function(gene, cluster, resolution, dims, npcs, geneMode) {
     obj@active.assay <- "RNA"
     Idents(obj) <- "seurat_clusters"
     split_cells <- c()
@@ -179,10 +162,10 @@ server <- function(input, output, session) {
       split_cells <- colnames(obj)
     }
     every_gene_cell <- c()
-    if (length(input$gene) > 0) {
+    if (length(gene) > 0) {
       print("splitting by gene(s)")
-      for (gene in input$gene) {
-        expr <- FetchData(object = obj, vars = gene, slot = "counts")
+      for (g in gene) {
+        expr <- FetchData(object = obj, vars = g, slot = "counts")
         gene_cells <- colnames(obj[, which(x = expr > 0)])
         every_gene_cell <- unique(c(every_gene_cell, gene_cells))
         if (geneMode == "all") {
@@ -205,8 +188,8 @@ server <- function(input, output, session) {
     return(obj)
   }
   
-  createBarPlot <- function(average) {
-    obj$ovlp <- findOvlPCells(input$gene)
+  createBarPlot <- function(gene, average) {
+    obj$ovlp <- findOvlPCells(gene)
     Idents(obj) <- obj$ovlp
     test <- obj[, WhichCells(obj, idents = "overlapping_cells")]
     total_b1 <- c()
@@ -252,10 +235,10 @@ server <- function(input, output, session) {
                      cluster_num <- c(0:num_clusters, 0:num_clusters, 0:num_clusters, 0:num_clusters),
                      value <- c(total_b1, total_b2, total_c1, total_c2))
     colnames(df) <- c("condition", "cluster_num", "value")
-    my_title <- paste("Number of Cells Expressing", paste(input$gene, collapse = ' and '), "per Cluster")
+    my_title <- paste("Number of Cells Expressing", paste(gene, collapse = ' and '), "per Cluster")
     my_ylab <- "Number of Cells"
     if (average == TRUE) {
-      my_title <- paste("% Cells Expressing", paste(input$gene, collapse = ' and '), "per Cluster")
+      my_title <- paste("% Cells Expressing", paste(gene, collapse = ' and '), "per Cluster")
       my_ylab <- "% Cells"
     }
     p <- ggplot(df, aes(fill=condition, x=cluster_num, y=value)) +
@@ -283,27 +266,27 @@ server <- function(input, output, session) {
     }
   }
   
-  createSplFeaturePlot <- function(cluster, resolution, dims, npcs, geneMode) {
+  createSplFeaturePlot <- function(gene, cluster, resolution, dims, npcs, geneMode) {
     obj <- createSpltObj(cluster, resolution, dims, npcs, geneMode)
-    FeaturePlot(obj, features = c(input$gene), split.by = "cond", reduction = "umap", pt.size = 1.5, label=TRUE, order = TRUE)
+    FeaturePlot(obj, features = c(gene), split.by = "cond", reduction = "umap", pt.size = 1.5, label=TRUE, order = TRUE)
   }
   
-  createPlot <- function(split, samples) {
+  createPlot <- function(gene, split, samples) {
     obj@active.assay <- "RNA"
     if (split == "cond") {
-      FeaturePlot(obj, features = c(input$gene), split.by = "cond", reduction = "umap", pt.size = 1.5, label=TRUE, order = TRUE)
+      FeaturePlot(obj, features = c(gene), split.by = "cond", reduction = "umap", pt.size = 1.5, label=TRUE, order = TRUE)
     } else {
       Idents(obj) <- obj$sample
       only_b1_c1 <- obj[,WhichCells(obj,idents = samples)]
       Idents(only_b1_c1) <- only_b1_c1$seurat_clusters
-      FeaturePlot(only_b1_c1, features = c(input$gene), split.by = "sample", reduction = "umap", pt.size = 1.5, label=TRUE, order = TRUE)
+      FeaturePlot(only_b1_c1, features = c(gene), split.by = "sample", reduction = "umap", pt.size = 1.5, label=TRUE, order = TRUE)
     }
   }
   
-  createOvlpPlot <- function(split) {
-    if (length(input$gene) > 1) {
+  createOvlpPlot <- function(gene, split) {
+    if (length(gene) > 1) {
       
-      obj$ovlp <- findOvlPCells(input$gene)
+      obj$ovlp <- findOvlPCells(gene)
       
       Idents(obj) <- obj$ovlp
       obj <- obj
@@ -316,19 +299,7 @@ server <- function(input, output, session) {
       Idents(obj) <- obj$ovlp
       DimPlot(obj, reduction="umap", group.by = "ident", split.by=split, pt.size=2, order=TRUE)
       
-    } else if (length(input$gene) == 1) {
-      gene <- input$gene
-      gene_lower <- tolower(gene)
-      gene_upper <- toupper(gene)
-      gene_title <- str_to_title(gene)
-      if (gene_lower %in% gene_names) {
-        gene <- gene_lower
-      } else if (gene_upper %in% gene_names) {
-        gene <- gene_upper
-      } else if (gene_title %in% gene_names) {
-        gene <- gene_title
-      } 
-      
+    } else if (length(gene) == 1) {
       Idents(obj) <- obj$seurat_clusters
       obj <- obj
       if (split == "sample") {
@@ -342,88 +313,18 @@ server <- function(input, output, session) {
     }
   }
   
-  createSummary <- function(average) {
-    obj$ovlp <- findOvlPCells(input$gene)
+  createSummary <- function(gene, average) {
+    obj$ovlp <- findOvlPCells(gene)
     Idents(obj) <- obj$ovlp
-    
-    obj$sample.ovlp <- paste(Idents(obj), obj$sample, sep = "_")
-    Idents(obj) <- obj$sample.ovlp
-    obj$sample.ovlp.cluster <- paste(Idents(obj), obj$seurat_clusters, sep = "_")
-    
-    Idents(obj) <- obj$sample
-    obj$sample.cluster <- paste(Idents(obj), obj$seurat_clusters, sep = "_")
-    
-    Idents(obj) <- obj$sample.ovlp
-    num_b1_ovlp <- length(WhichCells(obj, idents = "overlapping_cells_b1"))
-    num_b2_ovlp <- length(WhichCells(obj, idents = "overlapping_cells_b2"))
-    num_c1_ovlp <- length(WhichCells(obj, idents = "overlapping_cells_c1"))
-    num_c2_ovlp <- length(WhichCells(obj, idents = "overlapping_cells_c2"))
-    
-    num_b1 <- length(obj$sample[which(obj$sample == "b1")])
-    num_b2 <- length(obj$sample[which(obj$sample == "b2")])
-    num_c1 <- length(obj$sample[which(obj$sample == "c1")])
-    num_c2 <- length(obj$sample[which(obj$sample == "c2")])
-    
-    pct_b1_ovlp <- (num_b1_ovlp/num_b1) * 100
-    pct_b2_ovlp <- (num_b2_ovlp/num_b2) * 100
-    pct_c1_ovlp <- (num_c1_ovlp/num_c1) * 100
-    pct_c2_ovlp <- (num_c2_ovlp/num_c2) * 100
-    pct_b_ovlp <- (num_b1_ovlp+num_b2_ovlp)/(num_b1+num_b2) * 100
-    pct_c_ovlp <- (num_c1_ovlp+num_c2_ovlp)/(num_c1+num_c2) * 100
-    
-    cat(paste("Total Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", num_b1_ovlp+num_b2_ovlp+num_c1_ovlp, "\n", sep=""))
-    cat(paste("BHVE vs CTRL Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", num_b1_ovlp+num_b2_ovlp, " vs ", num_c1_ovlp+num_b2_ovlp, "\n", sep=""))
-    cat(paste("% BHVE vs CTRL Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", format(round(pct_b_ovlp, 2), nsmall = 2), "% vs ", format(round(pct_c_ovlp, 2), nsmall = 2), "% \n\n", sep=""))
-    
-    cat(paste("B1 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", num_b1_ovlp, "\n", sep=""))
-    cat(paste("B2 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", num_b2_ovlp, "\n", sep=""))
-    cat(paste("C1 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", num_c1_ovlp, "\n", sep=""))
-    cat(paste("C2 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", num_c2_ovlp, "\n\n", sep=""))
-    
-    cat(paste("% B1 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", format(round(pct_b1_ovlp, 2), nsmall = 2), "% \n", sep=""))
-    cat(paste("% B2 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", format(round(pct_b2_ovlp, 2), nsmall = 2), "% \n", sep=""))
-    cat(paste("% C1 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", format(round(pct_c1_ovlp, 2), nsmall = 2), "% \n", sep=""))
-    cat(paste("% C2 Cells Expressing ", paste(input$gene, collapse = ' and '), ": ", format(round(pct_c2_ovlp, 2), nsmall = 2), "% \n\n", sep=""))
-    
-    cat(paste("----------------------------------", "\n"))
-    Idents(object = obj) <- obj$seurat_clusters
-    for (i in 0:num_clusters) {
-      num_b1_cells_cluster <- 0
-      num_b2_cells_cluster <- 0
-      num_c1_cells_cluster <- 0
-      num_c2_cells_cluster <- 0
-      
-      Idents(obj) <- obj$sample.ovlp.cluster
-      try(num_b1_cells_cluster <- length(WhichCells(obj, idents = paste("overlapping_cells_b1", i, sep="_"))), silent=TRUE)
-      try(num_b2_cells_cluster <- length(WhichCells(obj, idents = paste("overlapping_cells_b2", i, sep="_"))), silent=TRUE)
-      try(num_c1_cells_cluster <- length(WhichCells(obj, idents = paste("overlapping_cells_c1", i, sep="_"))), silent=TRUE)
-      try(num_c2_cells_cluster <- length(WhichCells(obj, idents = paste("overlapping_cells_c2", i, sep="_"))), silent=TRUE)
-      
-      if (average == TRUE) {
-        Idents(obj) <- obj$sample.cluster
-        
-        try(num_b1_cells_cluster <- (num_b1_cells_cluster/length(WhichCells(obj, idents = paste("b1", i, sep="_")))) * 100, silent = TRUE)
-        try(num_b2_cells_cluster <- (num_b2_cells_cluster/length(WhichCells(obj, idents = paste("b2", i, sep="_")))) * 100, silent = TRUE)
-        try(num_c1_cells_cluster <- (num_c1_cells_cluster/length(WhichCells(obj, idents = paste("c1", i, sep="_")))) * 100, silent = TRUE)
-        try(num_c2_cells_cluster <- (num_c2_cells_cluster/length(WhichCells(obj, idents = paste("c2", i, sep="_")))) * 100, silent = TRUE)
-        
-        cat(paste("% B1 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", format(round(num_b1_cells_cluster, 2), nsmall = 2), "% \n", sep=""))
-        cat(paste("% B2 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", format(round(num_b2_cells_cluster, 2), nsmall = 2), "% \n", sep=""))
-        cat(paste("% C1 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", format(round(num_c1_cells_cluster, 2), nsmall = 2), "% \n", sep=""))
-        cat(paste("% C2 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", format(round(num_c2_cells_cluster, 2), nsmall = 2), "% \n\n", sep=""))
-      } else {
-        Idents(obj) <- obj$sample.cluster
-        cat(paste("B1 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", num_b1_cells_cluster, "\n", sep=""))
-        cat(paste("B2 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", num_b2_cells_cluster, "\n", sep=""))
-        cat(paste("C1 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", num_c1_cells_cluster, "\n", sep=""))
-        cat(paste("C2 Cells Expressing ", paste(input$gene, collapse = ' and '), " in cluster ", i, ": ", num_c2_cells_cluster, "\n\n", sep=""))
-      }
+    ovlp_cells = WhichCells(obj, idents = "overlapping_cells")
+    samples = unique(obj$samples)
+    df = data.frame()
+    for (sample in samples) {
       
     }
   }
   
   geneInfo = function() {
-    if (length(input$gene) < 1) { return("") }
     if (input$gene %in% gene_names) {
       str = "Gene Species:\nMZ\n"
       human = gene_info$human[which(gene_info$mzebra == input$gene)]
@@ -431,12 +332,12 @@ server <- function(input, output, session) {
       mzebra_description = gene_info$mzebra_description[which(gene_info$mzebra == input$gene)]
       str = paste0(str, "\nMZ Description:\n\"", mzebra_description, '"\n')    
       str = paste0(str, "\nClosest Human Gene:\n", human, "\n")
-      str = paste0(str, "\nHuman Description:\n", human_description, '"\n')
+      str = paste0(str, "\nHuman Description:\n\"", human_description, '"\n')
       
     } else {
       str = "Gene Species:\nHuman\n"
       human_description = gene_info$human_description[which(gene_info$human == input$gene)]
-      str = paste0(str, "\nHuman Description:\n", human_description[1], '"\n')
+      str = paste0(str, "\nHuman Description:\n\"", human_description[1], '"\n')
       if (length(human_description) > 1) {
         str = paste0(str, "\n# of Close MZ Genes:\n", length(human_description), "\n")
       } else {
@@ -449,85 +350,93 @@ server <- function(input, output, session) {
     return(str)
   }
   
+  geneParser = function() {
+    if (length(input$gene) < 1) { return(NULL) }
+    mz_gene = input$gene
+    if (! input$gene %in% gene_names)
+      mz_gene = input$mz
+    return(mz_gene)
+  }
+  
   output$info = renderText({
     geneInfo()
   })
   
   # Normal Plot
   output$bcplot <- renderPlot({
-    createPlot("cond", c())
-  })
-  
-  # Normal Plot (B1 vs C1)
-  output$b1c1plot <- renderPlot({
-    createPlot("split", c("b1", "c1"))
-  })
-  
-  # Normal Plot (B1 vs C2)
-  output$b1c2plot <- renderPlot({
-    createPlot("split", c("b1", "c2"))
-  })
-  
-  # Normal Plot (C1 vs C2)
-  output$c1c2plot <- renderPlot({
-    createPlot("split", c("c1", "c2"))
+    gene = geneParser()
+    if (length(gene) > 0) {
+      createPlot(gene, "cond", c())
+    }
   })
   
   # Normal Plot (All Samples)
   output$allplot <- renderPlot({
-    createPlot("split", c("b1", "b2", "c1", "c2"))
+    gene = geneParser()
+    if (length(gene) > 0) {
+      createPlot(gene, "split", c("b1", "b2", "b3", "b4", "b5", "c1", "c2", "c3", "c4", "c5"))
+    }
   })
   
   # Plots cells that are overlapping if >1 genes provided (BHVE vs CTRL)
   output$bc_ovlp_plot <- renderPlot({
-    createOvlpPlot("cond")
-  })
-  
-  # Plots cells that are overlapping if >1 genes provided (B1 vs C1)
-  output$b1c1_ovlp_plot <- renderPlot({
-    createOvlpPlot("sample")
+    gene = geneParser()
+    if (length(gene) > 0) {
+      createOvlpPlot(gene, "cond")
+    }
   })
   
   output$barplot <- renderPlot({
-    createBarPlot(FALSE)
+    gene = geneParser()
+    if (length(gene) > 0) {
+      createBarPlot(gene, FALSE)
+    }
   })
   
   output$barplotAvg <- renderPlot({
-    createBarPlot(TRUE)
+    gene = geneParser()
+    if (length(gene) > 0) {
+      createBarPlot(gene, TRUE)
+    }
   })
   
   output$splClust <- renderPlot({
     if (length(input$cluster) > 0 || length(input$gene) > 0) {
+      gene = geneParser()
       createSplPlot(input$cluster, input$resolution, input$dims, input$npcs, input$geneMode, input$origClust)
     }
   })
   
   output$pntSplClust <- renderPlot({
     if (length(input$cluster) > 0 && length(input$gene) > 0) { 
-      createSplFeaturePlot(input$cluster, input$resolution, input$dims, input$npcs, input$geneMode)
+      gene = geneParser()
+      createSplFeaturePlot(gene, input$cluster, input$resolution, input$dims, input$npcs, input$geneMode)
     }
   })
   
-  output$summary <- renderPrint({
-    if (input$gene != "") {
-      createSummary(FALSE)
+  output$summary <- DT::dataTableOutput("mytable")({
+    gene = geneParser()
+    if (length(gene) > 0) {
+      createSummary(gene, FALSE)
     }
   })
   
   output$summaryAvg <- renderPrint({
-    if (input$gene != "") {
-      createSummary(TRUE)
+    gene = geneParser()
+    if (length(gene) > 0) {
+      createSummary(gene, TRUE)
     }
   })
   
   # Download Functionality
   output$degClustCond <- downloadHandler(
     filename = function() {
-      paste0(paste0(c("degByClustCond", input$cluster, input$gene), collapse = "_"), ".tsv")
+      gene = geneParser()
+      paste0(paste0(c("degByClustCond", input$cluster, gene), collapse = "_"), ".tsv")
     }, 
     content = function(filename) {
       if (input$tabs == "splClust" || input$tabs == "pntSplClust") {
-        obj <- createSpltObj(input$cluster, input$resolution, input$dims, input$npcs, input$geneMode)
+        obj <- createSpltObj(gene, input$cluster, input$resolution, input$dims, input$npcs, input$geneMode)
         deg <- data.frame()
         obj$clust.cond <- paste0(obj$seurat_clusters, obj$cond)
         obj_num_clusters <- as.numeric(tail(levels(obj@meta.data$seurat_clusters), n=1))
@@ -544,11 +453,13 @@ server <- function(input, output, session) {
   )
   output$degClust <- downloadHandler(
     filename = function() {
-      paste0(paste0(c("degByClust", input$cluster, input$gene), collapse = "_"), ".tsv")
+      gene = geneParser()
+      paste0(paste0(c("degByClust", input$cluster, gene), collapse = "_"), ".tsv")
     }, 
     content = function(filename) {
       if (input$tabs == "splClust" || input$tabs == "pntSplClust") {
-        obj <- createSpltObj(input$cluster, input$resolution, input$dims, input$npcs, input$geneMode)
+        gene = geneParser()
+        obj <- createSpltObj(gene, input$cluster, input$resolution, input$dims, input$npcs, input$geneMode)
         deg <- FindAllMarkers(obj)
         deg$gene <- rownames(deg)
         write.table(deg, file = filename, sep = "\t", quote = FALSE, row.names = FALSE)
@@ -558,10 +469,11 @@ server <- function(input, output, session) {
   )
   output$down <- downloadHandler(
     filename = function() {
-      if (length(input$gene) > 1) {
-        paste(paste(input$gene, collapse = '_'), ".png", sep="")
+      gene = geneParser()
+      if (length(gene) > 1) {
+        paste(paste(gene, collapse = '_'), ".png", sep="")
       } else {
-        paste(input$gene, ".png", sep="")
+        paste(gene, ".png", sep="")
       }
     }, 
     content = function(filename) {
@@ -569,36 +481,24 @@ server <- function(input, output, session) {
       print(input$gene)
       if (input$tabs == "bc_ovlp_plot") {
         png(filename = filename, width = 900, height = 500, type="cairo")
-        p <- createOvlpPlot("cond")
+        p <- createOvlpPlot(gene, "cond")
       } else if (input$tabs == "b1c1_ovlp_plot") {
         png(filename = filename, width = 900, height = 500, type="cairo")
-        p <- createOvlpPlot("sample")
-      } else if (input$tabs == "b1c1plot") {
-        height <- 500 * length(input$gene)
-        png(filename = filename, width = 900, height = height, type="cairo")
-        p <- createPlot("sample", c("b1", "c1"))
-      } else if (input$tabs == "b1c2plot") {
-        height <- 500 * length(input$gene)
-        png(filename = filename, width = 900, height = height, type="cairo")
-        p <- createPlot("sample", c("b1", "c2"))
-      } else if (input$tabs == "c1c2plot") {
-        height <- 500 * length(input$gene)
-        png(filename = filename, width = 900, height = height, type="cairo")
-        p <- createPlot("sample", c("c1", "c2"))
+        p <- createOvlpPlot(gene, "sample")
       } else if (input$tabs == "allplot") {
         height <- 500 * length(input$gene)
         png(filename = filename, width = 900, height = height, type="cairo")
-        p <- createPlot("sample", c("b1", "b2", "c1", "c2"))
+        p <- createPlot(gene, "sample", c("b1", "b2", "b3", "b4", "b5", "c1", "c2", "c3", "c4", "c5"))
       } else if (input$tabs == "bcplot")  {
         height <- 500 * length(input$gene)
         png(filename = filename, width = 900, height = height, type="cairo")
-        p <- createPlot("cond", c())
+        p <- createPlot(gene, "cond", c())
       } else if (input$tabs == "barplot") {
         png(filename = filename, width = 900, height = 500, type="cairo")
-        p <- createBarPlot(FALSE)
+        p <- createBarPlot(gene, FALSE)
       } else if (input$tabs == "barplotAvg") {
         png(filename = filename, width = 900, height = 500, type="cairo")
-        p <- createBarPlot(TRUE)
+        p <- createBarPlot(gene, TRUE)
       } else if (intput$tabs == "splClust") {
         png(filename = filename, width = 900, height = 500, type="cairo")
         p <- createSplPlot(input$cluster, input$resolution, input$dims, input$npcs, input$geneMode, input$origClust)
