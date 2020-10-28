@@ -36,7 +36,7 @@ ui <- fluidPage(
       #                  selectizeInput(inputId = "hgnc", label = "HGNC", choices = NULL, selected = "fosb", multiple = TRUE, options = list(maxOptions = 10))
       # ),
       # conditionalPanel(condition = paste0("input.gene != null", paste0(" && input.gene != '", gene_names,"'")),
-                       conditionalPanel(condition = paste0("input.gene != null && ", human_logic),
+      conditionalPanel(condition = paste0("input.gene != null && ", human_logic),
                        selectizeInput(inputId = "mz", label = "Orthologous MZ Genes", choices = NULL, multiple = TRUE, options = list(maxOptions = 10))
       ),
       conditionalPanel(condition = "input.gene != null",
