@@ -27,6 +27,9 @@ inhib_clusters <- c(0, 7, 8, 10, 11, 20, 21, 27, 31, 32, 35)
 excit_clusters <- c(1, 2, 3, 5, 6, 9, 12, 13, 14, 15, 16, 18, 19, 22, 23, 24, 25, 28, 29, 30, 33, 34, 36, 37, 39)
 non_clusters   <- c(17, 26, 38, 40)
 
+bhve_samples = c("b1", "b2", "b3", "b4", "b5")
+ctrl_samples = c("c1", "c2", "c3", "c4", "c5")
+
 # Define UI for app
 ui <- fluidPage(
   
@@ -88,9 +91,15 @@ ui <- fluidPage(
                   tabPanel("Summary", value="summary", DT::dataTableOutput("summary") %>% withSpinner(color="#0dc5c1"))
       ),
       downloadButton(outputId = "down", label = "Download the plot"),
-      downloadButton(outputId = "degClust", label = "Download DEGs by Cluster"),
-      downloadButton(outputId = "degClustCond", label = "Download DEGs by Cluster and Condition")
-      # width = 10
+      
+      conditionalPanel(condition = "input.toSplit",
+        downloadButton(outputId = "degClust", label = "Download DEGs by Cluster"),
+        downloadButton(outputId = "degClustCond", label = "Download DEGs by Cluster and Condition")
+      ),
+      
+      conditionalPanel(condition = 'input.tabs == "summary || input.tabs == "barplot || input.tabs == "barplotAvg',
+                       downloadButton(outputId = "sumDown", label = "Download Summary")
+      )
       
     )
   )
@@ -189,8 +198,30 @@ server <- function(input, output, session) {
   }
   
   createBarPlot <- function(gene, average) {
-    df = createSummary(gene, average)
-    colnames(df) <- c("condition", "cluster_num", "value")
+    summary = createSummary(gene)
+    
+    df = data.frame()
+    print(head(summary))
+    for (cluster in clusters) {
+      df = rbind(df, t(c("bhve", 
+                         cluster, 
+                         sum(summary[which(summary$Sample %in% bhve_samples & summary$Cluster == cluster),4]),
+                         sum(summary[which(summary$Sample %in% bhve_samples & summary$Cluster == cluster),3]))))
+      df = rbind(df, t(c("ctrl", 
+                         cluster, 
+                         sum(summary[which(summary$Sample %in% ctrl_samples & summary$Cluster == cluster),4]),
+                         sum(summary[which(summary$Sample %in% ctrl_samples & summary$Cluster == cluster),3]))))
+    }
+    colnames(df) <- c("condition", "cluster_num", "cells_expr", "cells_in_category")
+    df[,3] = as.numeric(as.vector(df[,3]))
+    df[,4] = as.numeric(as.vector(df[,4]))
+    df$pct = df$cells_expr / df$cells_in_category * 100
+    df$value = df$cells_expr
+    if(average)
+      df$value = df$pct
+    
+    print(head(df))
+    
     my_title <- paste("Number of Cells Expressing", paste(gene, collapse = ' and '), "per Cluster")
     my_ylab <- "Number of Cells"
     if (average == TRUE) {
@@ -203,7 +234,7 @@ server <- function(input, output, session) {
       ggtitle(my_title) +
       xlab("Cluster") +
       ylab(my_ylab) +
-      scale_x_continuous(breaks = clusters) +
+      # scale_x_continuous(breaks = clusters) +
       geom_text(aes(label=value), vjust=1.6, color="black", position = position_dodge(0.9), size=3.5)
     theme_minimal()
     p
@@ -269,29 +300,26 @@ server <- function(input, output, session) {
     }
   }
   
-  createSummary <- function(gene, average) {
+  createSummary <- function(gene) {
     obj$ovlp <- findOvlPCells(gene)
     Idents(obj) <- obj$ovlp
-    ovlp_cells = WhichCells(obj, idents = "overlapping_cells")
-
-    samples = sort(unique(obj$sample))
-    df = data.frame()
-    Idents(obj) = obj$sample
-    for (sample in samples) {
-      print(sample)
-      sample_cells = WhichCells(obj, idents = sample)
-      pos_sample = sample_cells[which(sample_cells %in% ovlp_cells)]
-      Idents(obj) = obj$seurat_clusters
-      for (cluster in clusters) {
-        cluster_cells = WhichCells(obj, idents = cluster)
-        cluster_sample = sample_cells[which(sample_cells %in% cluster_cells)]
-        pos_cluster_sample = pos_sample[which(pos_sample %in% cluster_cells)]
-        df = rbind(df, t(c(sample, cluster, length(cluster_sample), length(pos_cluster_sample), length(pos_cluster_sample)/length(cluster_sample) * 100 )))
-      }
-      Idents(obj) = obj$sample
-    }
-    colnames(df) = c("Sample", "Cluster", "Cells in Sample", "# Cells Expressing", "% Cells Expressing")
-
+    
+    sample_clust = paste("overlapping_cells", obj$sample, obj$seurat_clusters)
+    ovlp_sample_clust = paste(obj$ovlp, obj$sample, obj$seurat_clusters)
+    pos_levels = expand.grid("overlapping_cells", unique(obj$sample), unique(obj$seurat_clusters))
+    pos_levels = paste(pos_levels[,1], pos_levels[,2], pos_levels[,3])
+    
+    ovlp_sample_clust = factor(ovlp_sample_clust, levels = pos_levels)
+    ovlp_sample_clust = ovlp_sample_clust[which(! is.na(ovlp_sample_clust) )]
+    
+    df = as.data.frame(table(ovlp_sample_clust))
+    df_all = as.data.frame(table(sample_clust))
+    df$all = df_all[match(df[,1], df_all[,1]), 2]
+    df$pct = df[,2] / df$all * 100
+    df2 = data.frame(do.call('rbind', strsplit(as.character(df[,1]), ' ', fixed=TRUE)))
+    df = cbind(df2[,2:3], df[,c(3,2,4)])
+    colnames(df) = c("Sample", "Cluster", "# Cells in Category", "# Cells Expressing", "% Cells Expressing")
+    
     return(df)
   }
   
@@ -388,11 +416,23 @@ server <- function(input, output, session) {
   output$summary <- DT::renderDataTable({
     gene = geneParser()
     if (length(gene) > 0) {
-      DT::datatable(createSummary(gene, FALSE))
+      DT::datatable(createSummary(gene))
     }
   })
   
   # Download Functionality
+  output$sumDown <- downloadHandler(
+    filename = function() {
+      gene = geneParser()
+      paste0(paste0(c("summary", input$cluster, gene), collapse = "_"), ".tsv")
+    }, 
+    content = function(filename) {
+      gene = geneParser()
+      summary <- createSummary(gene)
+      write.table(summary, file = filename, sep = "\t", quote = FALSE, row.names = FALSE)
+    }
+  )
+  
   output$degClustCond <- downloadHandler(
     filename = function() {
       gene = geneParser()
