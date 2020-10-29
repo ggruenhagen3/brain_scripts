@@ -72,7 +72,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
 def writeGenes(output, gene_list):
     f = open(output, "w+")
     for gene in gene_list:
-        f.writelines(gene, "\n")
+        f.writelines(gene + "\n")
     f.close()
 
 def main():
