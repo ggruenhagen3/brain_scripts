@@ -37,7 +37,7 @@ def readGFF(gff):
                     id = info.split(';')[0][3::]
                     name = info.split("Name=")[1].split(';')[0]
                     gffDict[id] = name
-
+    print({k: gffDict[k] for k in gffDict.keys()[:5]})
     return gffDict
 
 def readVcf(vcf, closest_column, gffDict, verbose):
