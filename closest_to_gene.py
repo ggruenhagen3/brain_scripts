@@ -15,12 +15,14 @@ def parseArgs():
     parser.add_argument('output', nargs='?', default="closest_out.txt", help='Name of Output File')
     parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)",
                         nargs='?', type=int, default=7, const=7)
+    parser.add_argument("-t", "--threshold", help="Distance threshold: minimum distance for a gene to be from a variant (default: 25kb)",
+                        nargs='?', type=int, default=2500, const=2500)
     parser.add_argument("-g", "--gff", help="Path to the GFF file used to annotate", nargs="?",
                         default="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff",
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff")
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     args = parser.parse_args()
-    return args.vcf, args.output, args.closest_column, args.gff, args.verbose
+    return args.vcf, args.output, args.closest_column, args.threshold, args.gff, args.verbose
 
 def readGFF(gff):
     """
@@ -36,17 +38,14 @@ def readGFF(gff):
                 lineSplit = line.split("\t")
                 if "gene=" in line:
                     info = lineSplit[8]
-                    # print(i)
                     id = info.split(';')[0][3::]
-                    # print(id)
-                    # print(info.split("gene=")[1])
                     name = info.split("gene=")[1].split(';')[0]
                     gffDict[id] = name
             i += 1
     print(dict(itertools.islice(gffDict.items(), 10)) )
     return gffDict
 
-def readVcf(vcf, closest_column, gffDict, verbose):
+def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     gene_list = []
     valid_ids = gffDict.keys()
     non_valid_ids = 0
@@ -59,22 +58,25 @@ def readVcf(vcf, closest_column, gffDict, verbose):
                 id = info.split("Gene:")[1].split(':')[0]
                 if id in valid_ids:
                     name = gffDict[id]
-                    gene_list.append(name)
-                    print(name)
+                    if closest < threshold:
+                        gene_list.append(name)
                 else:
                     non_valid_ids += 1
-                print(closest)
-                print(id)
-                break
-    if verbose: print("# of Ids not in GFF: " + str(non_valid_ids))
-    # make unique
+    if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
+    gene_list = list(set(gene_list))
     return gene_list
+def writeGenes(output, gene_list):
+    f = open(output, "w+")
+    for gene in gene_list:
+        f.writelines(gene, "\n")
+    f.close()
 
 def main():
-    vcf, output, closest_column, gff, verbose = parseArgs()
+    vcf, output, closest_column, threshold, gff, verbose = parseArgs()
     gffDict = readGFF(gff)
     if (verbose): print("# of Genes in GFF: " + str(len(gffDict.keys())))
     gene_list = readVcf(vcf, closest_column, gffDict, verbose)
+    if (verbose): print("# of Unique Genes Within 25kb: " + str(len(gene_list)))
 
 if __name__ == '__main__':
     main()
