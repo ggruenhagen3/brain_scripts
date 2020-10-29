@@ -48,6 +48,7 @@ def readGFF(gff):
 def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     gene_list = []
     valid_ids = gffDict.keys()
+    valid_genes = gffDict.values()
     non_valid_ids = 0
     i = 1
     with open(vcf, 'r') as input:
