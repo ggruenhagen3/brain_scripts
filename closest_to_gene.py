@@ -33,13 +33,13 @@ def readGFF(gff):
     with open(gff, 'r') as input:
         for line in input:
             if not line.startswith("#"):
-                lineSplit = line.split()
+                lineSplit = line.split("\t")
                 if "gene=" in line:
                     info = lineSplit[8]
-                    print(i)
+                    # print(i)
                     id = info.split(';')[0][3::]
-                    print(id)
-                    print(info.split("gene=")[1])
+                    # print(id)
+                    # print(info.split("gene=")[1])
                     name = info.split("gene=")[1].split(';')[0]
                     gffDict[id] = name
             i += 1
