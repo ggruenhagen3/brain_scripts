@@ -63,6 +63,8 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                         if closest < threshold:
                             gene_list.append(name)
                     else:
+                        print(id)
+                        break
                         non_valid_ids += 1
             i += 1
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
