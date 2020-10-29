@@ -76,8 +76,8 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                         if closest < threshold:
                             gene_list.append(id)
                     else:
-                        print(id)
-                        print("ID not found in GFF")
+                        # print(id)
+                        # print("ID not found in GFF")
                         non_valid_ids += 1
 
             this_mark = i // (num_lines / 40)
@@ -105,6 +105,7 @@ def main():
     gene_list = readVcf(vcf, closest_column, gffDict, verbose, threshold)
     if verbose: print("# of Unique Genes Within 25kb: " + str(len(gene_list)))
     writeGenes(output, gene_list)
+    print("Done.")
 
 if __name__ == '__main__':
     main()
