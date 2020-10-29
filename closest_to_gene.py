@@ -60,6 +60,7 @@ def readVcf(vcf, closest_column, gffDict, verbose):
                 print(closest)
                 print(id)
                 break
+    if verbose: print("# of Ids not in GFF: " + str(len(non_valid_ids)))
     # make unique
     return gene_list
 
