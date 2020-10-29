@@ -29,15 +29,18 @@ def readGFF(gff):
     :return gffDict: id is key and name is value
     """
     gffDict = {}  # key is id, value is name
+    i = 0
     with open(gff, 'r') as input:
         for line in input:
             if not line.startswith("#"):
                 lineSplit = line.split()
                 if "gene=" in line:
                     info = lineSplit[8]
+                    print(i)
                     id = info.split(';')[0][3::]
                     name = info.split("gene=")[1].split(';')[0]
                     gffDict[id] = name
+            i += 1
     print(dict(itertools.islice(gffDict.items(), 10)) )
     return gffDict
 
