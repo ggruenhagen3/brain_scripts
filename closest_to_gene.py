@@ -38,9 +38,9 @@ def readGFF(gff):
                     info = lineSplit[8]
                     print(i)
                     id = info.split(';')[0][3::]
-                    name = info.split("gene=")[1].split(';')[0]
                     print(id)
-                    print(name)
+                    print(info.split("gene=")[1])
+                    name = info.split("gene=")[1].split(';')[0]
                     gffDict[id] = name
             i += 1
     print(dict(itertools.islice(gffDict.items(), 10)) )
