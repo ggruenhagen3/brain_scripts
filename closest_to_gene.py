@@ -75,7 +75,7 @@ def main():
     vcf, output, closest_column, threshold, gff, verbose = parseArgs()
     gffDict = readGFF(gff)
     if (verbose): print("# of Genes in GFF: " + str(len(gffDict.keys())))
-    gene_list = readVcf(vcf, closest_column, gffDict, verbose)
+    gene_list = readVcf(vcf, closest_column, gffDict, verbose, threshold)
     if (verbose): print("# of Unique Genes Within 25kb: " + str(len(gene_list)))
 
 if __name__ == '__main__':
