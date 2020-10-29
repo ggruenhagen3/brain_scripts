@@ -1,4 +1,5 @@
 import argparse
+import itertools
 import glob
 import subprocess
 import os
@@ -37,7 +38,7 @@ def readGFF(gff):
                     id = info.split(';')[0][3::]
                     name = info.split("Name=")[1].split(';')[0]
                     gffDict[id] = name
-    print({k: gffDict[k] for k in gffDict.keys()[:5]})
+    print(dict(itertools.islice(gffDict.items(), 10)) )
     return gffDict
 
 def readVcf(vcf, closest_column, gffDict, verbose):
