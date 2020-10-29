@@ -3,6 +3,7 @@ import itertools
 import glob
 import subprocess
 import os
+import sys
 import convert_scaffolds
 import blast_filter
 import numpy as np
@@ -50,7 +51,15 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     valid_ids = gffDict.keys()
     valid_genes = gffDict.values()
     non_valid_ids = 0
-    i = 1
+    i = 0
+    previous_mark = 0
+
+    toolbar_width = 40
+    sys.stdout.write("[%s]" % (" " * toolbar_width))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
+    num_lines = len(open(vcf).readlines())
+
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
@@ -72,6 +81,12 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                         print("ID not found in GFF")
                         non_valid_ids += 1
                         break
+
+            this_mark = i // (num_lines / 40)
+            if this_mark != previous_mark:
+                sys.stdout.write("-")
+                sys.stdout.flush()
+            previous_mark = this_mark
             i += 1
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
