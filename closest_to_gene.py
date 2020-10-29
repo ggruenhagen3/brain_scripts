@@ -65,21 +65,21 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
             if not line.startswith("#"):
                 lineSplit = line.split("\t")
                 info = lineSplit[closest_column]
-                if "CLOSEST=" in info:
-                    closest = int(info.split("CLOSEST=")[1].split('|')[0])
-                    id = info.split("Gene:")[1].split(':')[0]
-                    if id in valid_ids:
-                        name = gffDict[id]
-                        if closest < threshold:
-                            gene_list.append(name)
-                    elif id in valid_genes:
-                        if closest < threshold:
-                            gene_list.append(id)
-                    else:
-                        print(id)
-                        print("ID not found in GFF")
-                        non_valid_ids += 1
-                        break
+                # if "CLOSEST=" in info:
+                closest = int(info.split("CLOSEST=")[1].split('|')[0])
+                id = info.split("Gene:")[1].split(':')[0]
+                if id in valid_ids:
+                    name = gffDict[id]
+                    if closest < threshold:
+                        gene_list.append(name)
+                elif id in valid_genes:
+                    if closest < threshold:
+                        gene_list.append(id)
+                else:
+                    print(id)
+                    print("ID not found in GFF")
+                    non_valid_ids += 1
+                    break
 
             this_mark = i // (num_lines / 40)
             if this_mark != previous_mark:
@@ -99,10 +99,12 @@ def writeGenes(output, gene_list):
 
 def main():
     vcf, output, closest_column, threshold, gff, verbose = parseArgs()
+    if verbose: print("Reading GFF")
     gffDict = readGFF(gff)
-    if (verbose): print("# of Genes in GFF: " + str(len(gffDict.keys())))
+    if verbose: print("# of Genes in GFF: " + str(len(gffDict.keys())))
+    if verbose: print("Reading VCF")
     gene_list = readVcf(vcf, closest_column, gffDict, verbose, threshold)
-    if (verbose): print("# of Unique Genes Within 25kb: " + str(len(gene_list)))
+    if verbose: print("# of Unique Genes Within 25kb: " + str(len(gene_list)))
     writeGenes(output, gene_list)
 
 if __name__ == '__main__':
