@@ -50,7 +50,6 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     gene_list = []
     valid_ids = set(gffDict.keys())
     valid_genes = set(gffDict.values())
-    # print(valid_genes[1:5])
     non_valid_ids = 0
     i = 0
     previous_mark = 0
@@ -66,21 +65,21 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
             if not line.startswith("#"):
                 lineSplit = line.split("\t")
                 info = lineSplit[closest_column]
-                # if "CLOSEST=" in info:
-                closest = int(info.split("CLOSEST=")[1].split('|')[0])
-                id = info.split("Gene:")[1].split(':')[0]
-                if id in valid_ids:
-                    name = gffDict[id]
-                    if closest < threshold:
-                        gene_list.append(name)
-                elif id in valid_genes:
-                    if closest < threshold:
-                        gene_list.append(id)
-                else:
-                    # print(id)
-                    # print("ID not found in GFF")
-                    non_valid_ids += 1
-                    # break
+                if "CLOSEST=" in info:
+                    closest = int(info.split("CLOSEST=")[1].split('|')[0])
+                    id = info.split("Gene:")[1].split(':')[0]
+                    if id in valid_ids:
+                        name = gffDict[id]
+                        if closest < threshold:
+                            gene_list.append(name)
+                    elif id in valid_genes:
+                        if closest < threshold:
+                            gene_list.append(id)
+                    else:
+                        print(id)
+                        print("ID not found in GFF")
+                        non_valid_ids += 1
+                        break
 
             this_mark = i // (num_lines / 40)
             if this_mark != previous_mark:
