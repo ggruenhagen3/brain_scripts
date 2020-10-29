@@ -30,22 +30,23 @@ def readGFF(gff):
     gffDict = {}  # key is id, value is name
     with open(gff, 'r') as input:
         for line in input:
-            lineSplit = line.split()
-            if lineSplit[2] == "gene":
-                info = lineSplit[9]
-                id = info.split(';')[0][2::]
-                name = info.split("Name=")[1].split(';')[0]
-                gffDict[id] = name
-                print(id)
-                print(name)
-                break
+            if not line.startswith("#"):
+                lineSplit = line.split()
+                if lineSplit[2] == "gene":
+                    info = lineSplit[9]
+                    id = info.split(';')[0][2::]
+                    name = info.split("Name=")[1].split(';')[0]
+                    gffDict[id] = name
+                    print(id)
+                    print(name)
+                    break
 
     return gffDict
 
 def main():
     vcf, output, closest_column, gff, verbose = parseArgs()
     gffDict = readGFF(gff)
-    if (verbose): print(len(gffDict.keys()))
+    if (verbose): print("# of Genes in GFF: " + str(len(gffDict.keys())))
 
 if __name__ == '__main__':
     main()
