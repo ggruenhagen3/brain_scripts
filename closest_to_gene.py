@@ -14,7 +14,7 @@ def parseArgs():
     parser.add_argument('output', nargs='?', default="closest_out.txt", help='Name of Output File')
     parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)",
                         nargs='?', type=int, default=7, const=7)
-    parser.add_argument("-g", "--gff_path", help="Path to the GFF file used to annotate", nargs="?",
+    parser.add_argument("-g", "--gff", help="Path to the GFF file used to annotate", nargs="?",
                         default="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff",
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff")
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
@@ -25,9 +25,9 @@ def readGFF(gff):
     """
     Read the GTF file
     :param gff: gtf
-    :return gtfDict: id is key
+    :return gffDict: id is key and name is value
     """
-    gtfDict = {} # key is coord, value is gene
+    gffDict = {}  # key is id, value is name
     with open(gff, 'r') as input:
         for line in input:
             lineSplit = line.split()
@@ -35,15 +35,16 @@ def readGFF(gff):
                 info = lineSplit[9]
                 id = info.split(';')[0][2::]
                 name = info.split("Name=")[1].split(';')[0]
-                gtfDict[id] = name
+                gffDict[id] = name
                 print(id)
                 print(name)
                 break
 
-    return gtfDict
+    return gffDict
 
 def main():
-    vcf, output, closest_column, gff_path, verbose = parseArgs()
+    vcf, output, closest_column, gff, verbose = parseArgs()
+    gffDict = readGFF(gff)
 
 if __name__ == '__main__':
     main()
