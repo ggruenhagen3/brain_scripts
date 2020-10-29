@@ -49,10 +49,11 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     gene_list = []
     valid_ids = gffDict.keys()
     non_valid_ids = 0
+    i = 1
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
-                print(line)
+                print(i)
                 lineSplit = line.split("\t")
                 info = lineSplit[closest_column]
                 closest = int(info.split("CLOSEST=")[1].split('|')[0])
@@ -63,6 +64,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                         gene_list.append(name)
                 else:
                     non_valid_ids += 1
+            i += 1
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
     return gene_list
