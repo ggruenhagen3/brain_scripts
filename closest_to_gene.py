@@ -53,7 +53,6 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
-                print(i)
                 lineSplit = line.split("\t")
                 info = lineSplit[closest_column]
                 if "CLOSEST=" in info:
