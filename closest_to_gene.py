@@ -19,7 +19,7 @@ def parseArgs():
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff")
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     args = parser.parse_args()
-    return args.vcf, args.output, args.closest_column, args.gff_path, args.verbose
+    return args.vcf, args.output, args.closest_column, args.gff, args.verbose
 
 def readGFF(gff):
     """
@@ -45,6 +45,7 @@ def readGFF(gff):
 def main():
     vcf, output, closest_column, gff, verbose = parseArgs()
     gffDict = readGFF(gff)
+    if (verbose): print(len(gffDict.keys()))
 
 if __name__ == '__main__':
     main()
