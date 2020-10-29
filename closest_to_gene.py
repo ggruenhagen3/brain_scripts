@@ -52,6 +52,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     with open(vcf, 'r') as input:
         for line in input:
             if not line.startswith("#"):
+                print(line)
                 lineSplit = line.split("\t")
                 info = lineSplit[closest_column]
                 closest = int(info.split("CLOSEST=")[1].split('|')[0])
@@ -65,6 +66,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
     return gene_list
+
 def writeGenes(output, gene_list):
     f = open(output, "w+")
     for gene in gene_list:
@@ -77,6 +79,7 @@ def main():
     if (verbose): print("# of Genes in GFF: " + str(len(gffDict.keys())))
     gene_list = readVcf(vcf, closest_column, gffDict, verbose, threshold)
     if (verbose): print("# of Unique Genes Within 25kb: " + str(len(gene_list)))
+    writeGenes(output, gene_list)
 
 if __name__ == '__main__':
     main()
