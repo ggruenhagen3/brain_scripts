@@ -86,6 +86,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                 sys.stdout.flush()
             previous_mark = this_mark
             i += 1
+    sys.stdout.write("]\n")  # end toolbar
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
     return gene_list
