@@ -50,7 +50,7 @@ def readVcf(vcf, closest_column, gffDict, verbose):
                 lineSplit = line.split("\t")
                 info = lineSplit[closest_column]
                 closest = int(info.split("CLOSEST=")[1].split('|')[0])
-                id = info.split("Gene:")[1].split(';')[0]
+                id = info.split("Gene:")[1].split(':')[0]
                 if id in valid_ids:
                     name = gffDict[id]
                     gene_list.append(name)
