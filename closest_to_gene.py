@@ -40,10 +40,34 @@ def readGFF(gff):
 
     return gffDict
 
+def readVcf(vcf, closest_column, gffDict, verbose):
+    gene_list = []
+    valid_ids = gffDict.keys()
+    non_valid_ids = 0
+    with open(vcf, 'r') as input:
+        for line in input:
+            if not line.startswith("#"):
+                lineSplit = line.split("\t")
+                info = lineSplit[closest_column]
+                closest = int(info.split("CLOSEST=")[1].split(';')[0])
+                id = info.split("Gene:")[1].split(';')[0]
+                if id in valid_ids:
+                    name = gffDict[id]
+                    gene_list.append(name)
+                    print(name)
+                else:
+                    non_valid_ids += 1
+                print(closest)
+                print(id)
+                break
+    # make unique
+    return gene_list
+
 def main():
     vcf, output, closest_column, gff, verbose = parseArgs()
     gffDict = readGFF(gff)
     if (verbose): print("# of Genes in GFF: " + str(len(gffDict.keys())))
+    gene_list = readVcf(vcf, closest_column, gffDict, verbose)
 
 if __name__ == '__main__':
     main()
