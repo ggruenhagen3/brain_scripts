@@ -54,6 +54,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     i = 0
     previous_mark = 0
     n_passed = 0
+    passed_closest = []
 
     toolbar_width = 40
     sys.stdout.write("[%s]" % (" " * toolbar_width))
@@ -74,6 +75,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                         if closest < threshold:
                             gene_list.append(name)
                             n_passed += 1
+                            passed_closest.append(closest)
                             # print(line)
                             # print(closest)
                             # print(threshold)
@@ -95,6 +97,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
             previous_mark = this_mark
             i += 1
     sys.stdout.write("]\n")  # end toolbar
+    if verbose: print("Average Distance from Gene: " + str(sum(passed_closest)/len(passed_closest)))
     if verbose: print("Number of VCF Rows Passing Threshold: " + str(n_passed))
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
