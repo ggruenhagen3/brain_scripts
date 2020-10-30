@@ -53,6 +53,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     non_valid_ids = 0
     i = 0
     previous_mark = 0
+    n_passed = 0
 
     toolbar_width = 40
     sys.stdout.write("[%s]" % (" " * toolbar_width))
@@ -72,10 +73,11 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                         name = gffDict[id]
                         if closest < threshold:
                             gene_list.append(name)
-                            print(closest)
-                            print(threshold)
-                            print("PASSED")
-                            break
+                            n_passed += 1
+                            # print(closest)
+                            # print(threshold)
+                            # print("PASSED")
+                            # break
                     elif id in valid_genes:
                         if closest < threshold:
                             gene_list.append(id)
@@ -91,6 +93,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
             previous_mark = this_mark
             i += 1
     sys.stdout.write("]\n")  # end toolbar
+    if verbose: print("Number of VCF Rows Passing Threshold:" + str(n_passed))
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
     return gene_list
