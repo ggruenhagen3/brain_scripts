@@ -72,9 +72,10 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                         name = gffDict[id]
                         print(closest)
                         print(threshold)
-                        break
                         if closest < threshold:
                             gene_list.append(name)
+                            print("PASSED")
+                            break
                     elif id in valid_genes:
                         if closest < threshold:
                             gene_list.append(id)
