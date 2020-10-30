@@ -17,7 +17,7 @@ def parseArgs():
     parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)",
                         nargs='?', type=int, default=7, const=7)
     parser.add_argument("-t", "--threshold", help="Distance threshold: minimum distance for a gene to be from a variant (default: 25kb)",
-                        nargs='?', type=int, default=2500, const=2500)
+                        nargs='?', type=int, default=25000, const=25000)
     parser.add_argument("-g", "--gff", help="Path to the GFF file used to annotate", nargs="?",
                         default="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff",
                         const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff")
@@ -70,6 +70,9 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                     id = info.split("Gene:")[1].split(':')[0]
                     if id in valid_ids:
                         name = gffDict[id]
+                        print(closest)
+                        print(threshold)
+                        break
                         if closest < threshold:
                             gene_list.append(name)
                     elif id in valid_genes:
