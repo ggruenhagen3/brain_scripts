@@ -69,6 +69,9 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                 if "CLOSEST=" in info:
                     closest = int(info.split("CLOSEST=")[1].split('|')[0])
                     id = info.split("Gene:")[1].split(':')[0]
+                    print(id)
+                    print(closest)
+                    break
                     if id in valid_ids:
                         name = gffDict[id]
                         if closest < threshold:
@@ -93,7 +96,7 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
             previous_mark = this_mark
             i += 1
     sys.stdout.write("]\n")  # end toolbar
-    if verbose: print("Number of VCF Rows Passing Threshold:" + str(n_passed))
+    if verbose: print("Number of VCF Rows Passing Threshold: " + str(n_passed))
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
     return gene_list
