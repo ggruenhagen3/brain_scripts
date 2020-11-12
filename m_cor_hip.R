@@ -40,23 +40,23 @@ keepCommonGenesObj <- function(obj_a, obj_b) {
   new_data_matrix   <- new_data_matrix[-all_ind_remove,]
   
   print("Creating New Seurat Object (for the First Seurat Object)...")
-  obj_a_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj@project.name)
+  obj_a_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj_a@project.name)
   obj_a_2 <- SetAssayData(object = obj_a_2, slot = 'data', new.data = new_data_matrix)
   obj_a_2$seurat_clusters <- obj_a$seurat_clusters
   
   # Add the metadata
-  for (col in colnames(obj@meta.data)) {
+  for (col in colnames(obj_a@meta.data)) {
     obj_a_2@meta.data[col] <- obj_a@meta.data[col]
   }
   
   ## Second Seurat Object
   # Initialize New Matricies
-  print("Creating New Matrices (for First Seurat Object)...")
+  print("Creating New Matrices (for Second Seurat Object)...")
   new_counts_matrix <- as(obj_b@assays$RNA@counts, "sparseMatrix") 
   new_data_matrix   <- as(obj_b@assays$RNA@data, "sparseMatrix")
   
   # Removing Non-Overlapping Genes
-  print("Removing Non-Overlapping Genes (for the First Seurat Object)...")
+  print("Removing Non-Overlapping Genes (for the Second Seurat Object)...")
   all_ind_keep <- c()
   all_ind <- 1:length(new_counts_matrix)
   for (gene in common) {
@@ -67,13 +67,13 @@ keepCommonGenesObj <- function(obj_a, obj_b) {
   new_counts_matrix <- new_counts_matrix[-all_ind_remove,]
   new_data_matrix   <- new_data_matrix[-all_ind_remove,]
   
-  print("Creating New Seurat Object (for the First Seurat Object)...")
-  obj_b_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj@project.name)
+  print("Creating New Seurat Object (for the Second Seurat Object)...")
+  obj_b_2 <- CreateSeuratObject(counts = new_counts_matrix, project = obj_b@project.name)
   obj_b_2 <- SetAssayData(object = obj_b_2, slot = 'data', new.data = new_data_matrix)
   obj_b_2$seurat_clusters <- obj_b$seurat_clusters
   
   # Add the metadata
-  for (col in colnames(obj@meta.data)) {
+  for (col in colnames(obj_b@meta.data)) {
     obj_b_2@meta.data[col] <- obj_b@meta.data[col]
   }
   

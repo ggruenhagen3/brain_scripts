@@ -243,12 +243,15 @@ saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA_jaccard_p
 # Analysis #
 ############
 mat_fish = readRDS("C:/Users/miles/Downloads/brain/data/mat_fish.RDS")
+
+mat = mat_fish
 sig_df = data.frame()
 for (row in 1:length(gene_names)) {
   if (row %% 1000 == 0) { print(row) }
-  q = p.adjust(mat_fish[row, (row+1):ncol(mat_fish)], method = "bonferroni")
+  q = p.adjust(mat[row, (row+1):ncol(mat)], method = "bonferroni")
   q_sig = q[which(q < 0.05)]
-  newRow = data.frame(gene = rep(gene_names[row], length(q_sig)), q = q_sig)
-  sig_df = rbind(sig_df, newRow)
-  break
+  if (length(q_sig) > 0) {
+    newRow = data.frame(gene = rep(gene_names[row], length(q_sig)), q = q_sig, close_gene = names(q_sig))
+    sig_df = rbind(sig_df, newRow)
+  }
 }

@@ -2,6 +2,7 @@ library("dplyr")
 library("Matrix")
 library("Seurat")
 library("stringr")
+library("ggplot2")
 
 # rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"
@@ -99,15 +100,15 @@ for (run in 1:run_num) {
 cat("\n")
 write.table(perm_df, "~/scratch/brain/results/perm_raw.tsv", sep="\t", quote = F)
 
-# res_df = data.frame()
-# for (i in test_clusters) {
-#   this_df = perm_df[which(perm_df$isReal == "Boot" & perm_df$Cluster == i),]
-#   real_value = perm_df$this_ratio[which(perm_df$isReal == "Real" & perm_df$Cluster == i)]
-# 
-#   this_df$above = this_df$this_ratio >= real_value
-#   print(ggplot(this_df, aes(this_ratio, alpha=.7, fill=above)) + geom_histogram(alpha=0.5, color = "purple") + geom_vline(aes(xintercept = real_value)) + geom_text(aes(x=real_value, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + guides(color=F, alpha=F, fill=F) + ggtitle(paste("Cluster", i)))
-#   res_df = rbind(res_df, t(c(i, length(which(this_df$above)), length(which(this_df$above))/run_num )))
-# }
+res_df = data.frame()
+for (i in 0:num_clusters) {
+  this_df = perm_df[which(perm_df$isReal == "Boot" & perm_df$Cluster == i),]
+  real_value = perm_df$test_ratio[which(perm_df$isReal == "Real" & perm_df$Cluster == i)]
+
+  this_df$above = this_df$test_ratio >= real_value
+  print(ggplot(this_df, aes(test_ratio, alpha=.7, fill=above)) + geom_histogram(alpha=0.5, color = "purple") + geom_vline(aes(xintercept = real_value)) + geom_text(aes(x=real_value, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + guides(color=F, alpha=F, fill=F) + ggtitle(paste("Cluster", i)))
+  res_df = rbind(res_df, t(c(i, length(which(this_df$above)), length(which(this_df$above))/run_num )))
+}
 
 # Idents(combined) = combined$seurat_clusters
 # markerExpPerCellPerCluster(combined, valid_genes, n_markers = F, correct = T)

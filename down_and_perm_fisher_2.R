@@ -102,23 +102,21 @@ shuffleClusters <- function(combined) {
 ## END FUNCTIONS ##
 # rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"
-combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
+# combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
+combined <- readRDS(paste(rna_path, "/data/B1C1C2MZ_combined_031020.rds", sep=""))
 marker_path <- paste(rna_path, "data/markers/", sep="")
 marker_files <- dir(marker_path, pattern =paste("*.txt", sep=""))
 
 markers <- data.frame(gene <- c(), bio <- c())
 for (i in 1:length(marker_files)) {
   file <- read.table(paste(marker_path, marker_files[i], sep=""), header=FALSE, sep="\t", stringsAsFactors=FALSE)
-  file[,1] <- toupper(file[,1])
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
 bio <- "RAN"
 markers <- markers[which(markers$bio == bio),]
-print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
-print("After gene_names")
-marker_genes <- unique(validGenes(markers$gene, gene_names))
+marker_genes <- markers$gene
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
@@ -175,9 +173,19 @@ for (i in 0:num_clusters) {
   down <- c(down_avg_avg_gene[i+1],    cells_per_cluster[i+1])
   perm <- c(mean(perm_down_avg_gene[[i+1]]), cells_per_cluster[i+1])
   contig_table <- data.frame(down <- down, perm <- perm)
-  fisher_p <- fisher.test(contig_table)$p.value
+  fisher_p <- fisher.test(contig_table, alternative = "greater")$p.value
   df <- rbind(df, t(c(i, down, perm, fisher_p)) )
 }
 df$fisher_q <- p.adjust(df[,6], method = "hochberg")
 df$q_sig <- df$fisher_q < 0.05
+
+colnames(df) <- c("cluster", "down_avg_gene", "down_num_cells", "down")
+df <- as.data.frame(df)
+df$avg_gene_per_cell_per_cluster <- as.numeric(as.vector(df$avg_gene_per_cell_per_cluster))
+df$cluster <- factor(df$cluster, levels = 1:(num_clusters+1))
+png(paste0(rna_path, "/results/down_and_perm_2_", bio, ".png"), width = 1800, height = 1000, res = 150)
+p <- ggplot(df, aes(x = cluster, y = avg_gene_per_cell_per_cluster, fill = cond)) + geom_boxplot(alpha = 0.6) + geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.3, aes(colour = cond)) + scale_colour_manual(values=c("#999999", "#56B4E9", "#3ac9bb")) + scale_fill_manual(values=c("#999999", "#3ac9bb", "#56B4E9")) + ggtitle(paste(bio, "- Average Genes per Cell per Cluster"))
+print(p)
+dev.off()
+
 write.table(df, file = paste(rna_path, "/results/down_and_perm_fisher_2_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)

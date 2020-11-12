@@ -9,7 +9,7 @@ library("pSI")
 rna_path <- "~/scratch/brain/"
 source(paste0(rna_path, "/brain_scripts/all_f.R"))
 
-combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
+combined <- readRDS(paste(rna_path, "/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds", sep = ""))
 marker_path <- paste(rna_path, "data/markers/", sep="")
 marker_files <- dir(marker_path, pattern =paste("*.txt", sep=""))
 
@@ -26,7 +26,7 @@ marker_genes <- markers$gene
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
-run_num <- 3
+run_num <- 50
 big_mat  <- matrix(0L, nrow=length(marker_genes), ncol = ncol(combined@assays$RNA@counts), dimnames = list(marker_genes, colnames(combined@assays$RNA@counts)))
 
 # No Perm, Bootstrap
@@ -40,7 +40,7 @@ new_obj <- CreateSeuratObject(counts = big_mat)
 new_obj$seurat_clusters <- combined$seurat_clusters
 Idents(new_obj) <- new_obj$seurat_clusters
 cluster_df <- myAverageExpression(new_obj, slot = "counts")
-results <- specificity.index(cluster_df, e_min = 0.01)
+results <- specificity.index(cluster_df, e_min = .0001)
 colnames(results) <- 0:num_clusters
 fisher_results <- fisher.iteration(results, valid_genes, p.adjust = FALSE)
 fisher_results$q <- p.adjust(fisher_results$`0.05 - nominal`)

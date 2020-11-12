@@ -103,7 +103,8 @@ shuffleClusters <- function(combined) {
 ## END FUNCTIONS ##
 # rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"
-combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
+# combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
+combined <- readRDS(paste(rna_path, "/data/B1C1C2MZ_combined_031020.rds", sep=""))
 marker_path <- paste(rna_path, "data/markers/", sep="")
 marker_files <- dir(marker_path, pattern =paste("*.txt", sep=""))
 
@@ -113,7 +114,7 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-bio <- "RAN"
+bio <- "ROCK_SAND"
 markers <- markers[which(markers$bio == bio),]
 gene_names <- rownames(combined@assays$RNA)
 marker_genes <- markers$gene
@@ -196,7 +197,7 @@ df <- as.data.frame(df)
 df$avg_gene_per_cell_per_cluster <- as.numeric(as.vector(df$avg_gene_per_cell_per_cluster))
 df$cluster <- factor(df$cluster, levels = 1:(num_clusters+1))
 png(paste0(rna_path, "/results/down_and_perm_2_", bio, ".png"), width = 1800, height = 1000, res = 150)
-p <- ggplot(df, aes(x = cluster, y = avg_gene_per_cell_per_cluster, fill = cond)) + geom_boxplot(alpha = 0.6) + geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.3, aes(colour = cond)) + scale_colour_manual(values=c("#999999", "#56B4E9", "#3ac9bb")) + scale_fill_manual(values=c("#999999", "#3ac9bb", "#56B4E9")) + ggtitle("Mouse Mesenchyme: CytoTRACE Rank for Cells Expressing a Gene")
+p <- ggplot(df, aes(x = cluster, y = avg_gene_per_cell_per_cluster, fill = cond)) + geom_boxplot(alpha = 0.6) + geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.3, aes(colour = cond)) + scale_colour_manual(values=c("#999999", "#56B4E9", "#3ac9bb")) + scale_fill_manual(values=c("#999999", "#3ac9bb", "#56B4E9")) + ggtitle(paste(bio, "- Average Genes per Cell per Cluster"))
 print(p)
 dev.off()
 

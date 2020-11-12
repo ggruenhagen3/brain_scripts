@@ -13,10 +13,32 @@ library("reshape2")
 library("edgeR")
 library("data.table")
 library("tidyr")
+library("BSDA")
 
 ####################
 # Helper Functions #
 ####################
+
+gtfParser = function() {
+  #' Junk script, just useful to have as a reference for iterating through a gtf.
+  names = c()
+  ids = c()
+  for (i in 1:nrow(gtf)) {
+    info = gtf[i,9]
+    id_start = str_locate(pattern="gene_id", info)[2]
+    id_stop = str_locate(pattern = ";", substr(info, id_start, 1000L))[1]
+    name_start = str_locate(pattern = "gene_name", info)[2]
+    name_stop = str_locate(pattern = ";", substr(info, name_start, 1000L))[1]
+    
+    id = substr(info, id_start+2, id_start+id_stop-2)
+    name = substr(info, name_start+2, name_start+name_stop-2)
+    names = c(names, name)
+    ids = c(ids, id)
+  }
+  gtf$name = names
+  gtf$id = ids
+}
+
 getDescription <- function(genes) {
   ensembl = useEnsembl(biomart="ensembl", dataset="mzebra_gene_ensembl")
   
@@ -142,7 +164,7 @@ cytoScoreByIdent = function(obj) {
   cell_type_df$CytoTRACE <- as.numeric(as.vector(cell_type_df$CytoTRACE))
   cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=clusters)
   rownames(cell_type_df) <- NULL
-  p = ggplot(cell_type_df, aes(x=Cell_Type, y=CytoTRACE, fill = Cell_Type)) + geom_boxplot(alpha=0.8) + ylim(0,1) + geom_jitter(position=position_dodge2(width=0.5), alpha=0.5, aes(color = CytoTRACE)) + coord_flip() + theme_classic() + scale_color_gradientn(colors = pal(50)) + guides(color = F)
+  p = ggplot(cell_type_df, aes(x=Cell_Type, y=CytoTRACE)) + geom_boxplot(alpha=0.8, aes(fill=as.character(as.numeric(as.vector(Cell_Type))%%2))) + ylim(0,1) + geom_jitter(position=position_dodge2(width=0.5), alpha=0.1, aes(color = CytoTRACE)) + coord_flip() + theme_classic() + scale_color_gradientn(colors = pal(50)) + scale_fill_manual(values = c("white", "gray47")) + guides(color = F) + NoLegend()
   
   return(p)
 }
@@ -386,7 +408,7 @@ markerCellPerCluster = function(obj, markers, correct=T) {
   #' @return p barplot of cells
   
   exp = GetAssayData(obj, assay = "RNA", slot="counts")
-  exp [which(exp > 0)] = 1
+  exp[which(exp > 0)] = 1
   
   title_str = if_else(correct, "Normalized", "")
   title_str = paste(title_str, "Total Number of Cells per Cluster Expressing a Marker")
@@ -415,7 +437,10 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
   #' @param n_markers count the number of markers per cell?
   #' @param correct correct for background expresssion?
   #' @param myslot slot to pull data from (either "counts" or "data")
-  #' @return p boxplot with jitter points of marker expression per cell per cluster
+  #' @return list of 3:
+  #' 1) boxplot with jitter points of marker expression per cell per cluster
+  #' 2) effect size
+  #' 3) dataframe
   
   title_str = "Average"
   title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
@@ -424,7 +449,7 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
   if (n_markers) {
     title_str = "Average Number of Markers Genes Expressed per Cell per Cluster"
-    exp [which(exp > 0)] = 1
+    exp[which(exp > 0)] = 1
   }
   title_str = paste(title_str, if_else(correct, "- Corrected", ""))
   
@@ -443,9 +468,6 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
     other_avg = colSums(exp[markers, other_cells])
     if (correct)
       other_avg = other_avg/colSums(exp[,other_cells])
-    
-    # CHISQ
-    # test = chisq.test(avg_cluster_exp, other_avg)
     
     # Z-test
     p = z.test(avg_cluster_exp, other_avg, sigma.x = sd(avg_cluster_exp), sigma.y = sd(other_avg), alternative = "greater")$p.value
@@ -477,7 +499,7 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
                                ifelse(per_cluster_df$q < 0.01, "**", 
                                       ifelse(per_cluster_df$q < 0.05, "*", "")))
   per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = clusters)
-  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=cluster, color=cluster)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.3) + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
+  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=cluster, color=cluster)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.05) + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
   
   # ANOVA
   # per_cluster_df$cluster[which(per_cluster_df$cluster != 0)] = "all"
@@ -506,7 +528,7 @@ numMarkerTransPerCluster = function(obj, markers, myslot="counts", correct = T) 
   Idents(obj) = obj$seurat_clusters
   per_cluster_df = data.frame()
   correct_df = data.frame()
-  clusters = sort(unique(as.vector(obj$seurat_clusters)))
+  clusters = sort(unique(as.numeric(as.vector(obj$seurat_clusters))))
   for (cluster in clusters) {
     cluster_cells <- WhichCells(obj, idents = cluster)
     cluster_sums = rowSums(exp[markers, cluster_cells])
@@ -1086,6 +1108,9 @@ convertToHgncObj <- function(obj, organism) {
   new_counts_matrix <- rbind(new_counts_matrix, keep_dup_matrix_counts)
   new_data_matrix   <- rbind(new_data_matrix, keep_dup_matrix_data)
   print(paste("-Number of rows after merging:", nrow(new_counts_matrix)))
+  tot_before = sum(rowSums(obj@assays$RNA@counts))
+  tot_after = sum(rowSums(new_counts_matrix))
+  print(paste0("-Number of counts lost: ", tot_before-tot_after, " (", format(round( (tot_before-tot_after)/tot_before * 100 , 2), nsmall = 2), "%)"))
   proc.time() - ptm
   # new_counts_matrix[keep_dup_ind,] <- keep_dup_matrix_counts
   # new_data_matrix[keep_dup_ind,]   <- keep_dup_matrix_data
@@ -1181,9 +1206,9 @@ hgncMzebra <- function(genes, gene_names, onPACE=F) {
   # gene_names: list of ALL mzebra gene names
   # onPACE: is the script being run on PACE (default = FALSE)
   if (onPACE) {
-    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
   } else {
-    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
   }
   valid_genes <- validGenes(genes, gene_names)
   all_hgnc <- convertToHgnc(gene_names)
@@ -1242,7 +1267,7 @@ hgncMouseInPlace <- function(df, gene_column) {
 
 # THIS IS THE UPDATED/GOOD Function 02/21/2020
 hgncGood <- function(genes, gene_names, as_df = F) {
-  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
   valid_genes <- validGenes(genes, gene_names)
   all_hgnc <- convertToHgnc(gene_names)
   ind <- match(genes,pat$V2)
@@ -1290,7 +1315,7 @@ hgncGood <- function(genes, gene_names, as_df = F) {
 
 # This function is outdated
 onlyGood <- function(genes, gene_names) {
-  pat <- read.table("C:/Users/miles/Downloads/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  pat <- read.table("C:/Users/miles/Downloads/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
   valid_genes <- validGenes(genes, gene_names)
   ind <- match(genes,pat$V2)
   ind <- ind[! is.na(ind)]
@@ -1307,7 +1332,7 @@ onlyGood <- function(genes, gene_names) {
 
 goodInPlace <- function(data, gene_column, gene_names) {
   # Only keep the rows in the dataframe that have gene names that are in our data
-  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
   keep_rows <- c()
   for (i in 1:nrow(data)) {
     gene <- as.character(data[i,gene_column])
@@ -1328,6 +1353,59 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
+ncAddAllGeneInfo = function(df, gene_column, onPACE = F) {
+  #' Adds all the gene info for a gene to the dataframe, including:
+  #' Ensembl name, human ortholog, biotype, description, human ortholog description
+  #' 
+  #' @param df input dataframe with a column with MZ NCBI genes
+  #' @param gene_column column number that contains MZ NCBI genes
+  #' @param onPACE is the code being run on PACE?
+  
+  if (onPACE) {
+    gene_info = read.table("~/scratch/m_zebra_ref/gene_info.txt", sep="\t", header = T, stringsAsFactors = F)
+  } else {
+    gene_info = read.table("C:/Users/miles/Downloads/all_research/gene_info.txt", sep="\t", header = T, stringsAsFactors = F) 
+  }
+  
+  genes = df[,gene_column]
+  df$ens = gene_info$ens[match(genes, gene_info$mzebra)]
+  df$human = gene_info$human[match(genes, gene_info$mzebra)]
+  df$biotype = gene_info$biotype[match(genes, gene_info$mzebra)]
+  df$mz_description = gene_info$mzebra_description[match(genes, gene_info$mzebra)]
+  df$human_description = gene_info$human_description[match(genes, gene_info$mzebra)]
+  
+  return(df)
+}
+
+ncEnsGeneConverter = function(genes, isNc = T, onPACE = F, rm_na = T) {
+  #' Converts from NCBI mzebra genes to ENS mzebra genes and vice versa.
+  #' 
+  #' @param genes input vector of genes
+  #' @param isNc is the input list of genes in NCBI format?
+  #' @param onPACE is the code being run on PACE?
+  #' @param rm_na remove genes that weren't converted?
+  #' @return convereted a vector of converted genes
+  
+  if (onPACE) {
+    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
+  } else {
+    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
+  }
+  
+  if (isNc) {
+    converted = pat[match(genes, pat[,2]),7]
+    converted[which( is.na(converted) & genes %in% pat[,7] )] = genes[which( is.na(converted) & genes %in% pat[,7] )]
+  } else {
+    converted = pat[match(genes, pat[,7]),2]
+    converted[which( is.na(converted) & genes %in% pat[,2] )] = genes[which( is.na(converted) & genes %in% pat[,2] )]
+  }
+  
+  if (rm_na)
+    converted = converted[which( ! is.na(converted) )]
+  
+  return(converted)
+}
+
 ncAddDescription = function(df, gene_column, rm_na = F) {
   #' Given a dataframe, add a description to the NCBI mzebra genes
   #' 
@@ -1336,12 +1414,15 @@ ncAddDescription = function(df, gene_column, rm_na = F) {
   #' @param rm_na remove rows where no description was found?
   #' @return df output dataframe with a description as the last column
   
+  if (onPACE) {
+    gene_info = read.table("~/scratch/m_zebra_ref/gene_info.txt", sep="\t", header = T, stringsAsFactors = F)
+  } else {
+    gene_info = read.table("C:/Users/miles/Downloads/all_research/gene_info.txt", sep="\t", header = T, stringsAsFactors = F) 
+  }
+  
   genes = as.vector(df[,gene_column])
   
-  mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
-  description = unique(getBM(attributes=c('entrezgene_accession', 'description'), filters = 'entrezgene_accession', values = unique(genes), mart = mzebra))
-  
-  df$description = description$description[match(df[,gene_column], description$entrezgene_accession)]
+  df$description = gene_info$mzebra_description[match(genes, gene_info$mzebra)]
   if(rm_na)
     df = df[which(! is.na(df$description)),]
   
@@ -1362,12 +1443,14 @@ ncHgncMzebraInPlace = function(df, gene_column, rm_na = T, onPACE = F) {
   if (rm_na)
     df = df[which(! is.na(df[,gene_column])),]
   
-  mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
-  human  = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-  mart_hgnc = getLDS(attributes = c("entrezgene_accession"), filters = "entrezgene_accession", values = genes, mart = mzebra, attributesL = c("external_gene_name"), martL = human, uniqueRows=T)
-  
   return(df)
 }
+
+# ncMzToHgncVectShortcut(mz, returnDF = T, onPACE=F, rm_na=F) {
+  #' Convert NCBI mzebra gens to HGNC format. 
+  #' But use file that I've already curated to save time.
+  #' 
+# }
 
 ncMzToHgncVect = function(mz, returnDF = T, onPACE=F, rm_na = F) {
   #' Convert NCBI mzebra genes to HGNC format.
@@ -1383,9 +1466,9 @@ ncMzToHgncVect = function(mz, returnDF = T, onPACE=F, rm_na = F) {
   #' mzebra gene capitalized.
   
   if (onPACE) {
-    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE, stringsAsFactors = F)
+    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
   } else {
-    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE, stringsAsFactors = F)
+    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
   }
   
   ind_bool = match(mz,pat$V2)
@@ -1798,9 +1881,13 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       ovlp_genes = unique(df2_cluster$gene[which(df2_cluster$gene %in% df1_cluster$gene)])
       ovlp_genes = ovlp_genes[which(! is.na(ovlp_genes))]
       ovlp = length(unique(ovlp_genes))
-      df2_sign = sign(df2_cluster$avg_logFC[which(df2_cluster$gene %in% ovlp_genes)])
       df1_sign = sign(df1_cluster$avg_logFC[which(df1_cluster$gene %in% ovlp_genes)])
-      ovlp_same_dir_genes = unique(ovlp_genes[which(df1_sign == df2_sign)])
+      df2_sign = sign(df2_cluster$avg_logFC[which(df2_cluster$gene %in% ovlp_genes)])
+      names(df1_sign) = df1_cluster$gene[which(df1_cluster$gene %in% ovlp_genes)]
+      names(df2_sign) = df2_cluster$gene[which(df2_cluster$gene %in% ovlp_genes)]
+      if (length(df1_sign) != length(df2_sign)) { print("Error in signs."); return(); }
+      df2_sign = df2_sign[names(df1_sign)]
+      ovlp_same_dir_genes = unique(names(df1_sign[which(df1_sign == df2_sign)]))
       ovlp_same_dir = length(ovlp_same_dir_genes)
       
       total_ovlp = 2*ovlp
@@ -1830,8 +1917,8 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
       
       df <- rbind(df, t(c(df1_clusters[i], df2_clusters[j], ovlp, pct, ovlp_same_dir, pct_same_dir)))
       
-      new_gene_df_rows = data.frame(rep(paste(df1_clusters[i]), ovlp_same_dir), rep(paste(df2_clusters[j]), ovlp_same_dir), sort(ovlp_same_dir_genes))
-      colnames(new_gene_df_rows) = c(paste(df1_sample, "Cluster"), paste(df2_sample, "Cluster"), "Genes In Common")
+      new_gene_df_rows = data.frame(rep(paste(df1_clusters[i]), ovlp_same_dir), rep(paste(df2_clusters[j]), ovlp_same_dir), sort(ovlp_same_dir_genes), df1_sign[sort(ovlp_same_dir_genes)])
+      colnames(new_gene_df_rows) = c(paste(df1_sample, "Cluster"), paste(df2_sample, "Cluster"), "Genes In Common", "Direction of Regulation")
       gene_df = rbind(gene_df, new_gene_df_rows)
     }
   }
@@ -1927,6 +2014,20 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   return(list(df, gene_df))
 }
 
+downsampleObj = function(obj, run = 1) {
+  #' Downsample the counts of the Seurat Object to the cell with the lowest number of counts.
+  #' 
+  #' @param obj Seurat object to downsample
+  #' @param run the run number, also used as the seed for random sampling
+  #' @return the downsampled object
+  
+  new_mat = downsample(obj, rownames(obj), run)
+  obj = SetAssayData(obj, slot = "counts", new.data = new_mat)
+  obj = NormalizeData(obj)
+  obj = ScaleData(obj)
+  
+  return(obj)
+}
 
 downsample <- function(combined, marker_genes, run) {
   set.seed(run)

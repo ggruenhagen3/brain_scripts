@@ -73,6 +73,33 @@ downsample <- function(combined, marker_genes, run) {
   
   return(marker_matrix)
 }
+
+
+pickNewCells <- function(combined, num_clusters, num_cells) {
+  new_cells <- c()
+  for (i in 1:num_cells) {
+    ran_cluster <- sample(0:num_clusters, 1)
+    this_cells <- names(combined$seurat_clusters[which(combined$seurat_clusters == ran_cluster)])
+    new_cells <- c(new_cells, sample(this_cells,1))
+  }
+  
+  return(new_cells)
+}
+
+shuffleClusters <- function(combined) {
+  # The selection process for a new cluster should be as follows:
+  # 1. Pick a random cluster 0-40
+  # 2. Pick a random cell from that cluster to be a part of the new cluster
+  # This means that the new data set would likely have duplicate cells
+  new_cells <- lapply(0:num_clusters, function(x) c())
+  num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
+  for (i in 0:num_clusters) {
+    num_cells <- length(combined$seurat_clusters[which(combined$seurat_clusters == i)])
+    new_cells[[i+1]] <- pickNewCells(combined, num_clusters, num_cells)
+  }
+  
+  return(new_cells)
+}
 ## END FUNCTIONS ##
 # rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"

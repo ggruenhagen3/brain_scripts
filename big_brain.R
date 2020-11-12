@@ -8,6 +8,7 @@ library("stringr")
 library("dplyr")
 library("ggplot2")
 rna_path = "C:/Users/miles/Downloads/brain/"
+# rna_path = "~/scratch/brain/"
 
 #==========================================================================================
 # Initial Clustering ======================================================================
@@ -72,6 +73,7 @@ rm(c4.data); rm(c4)
 rm(c5.data); rm(c5)
 
 # Quality Control: Mitochondrial DNA, Dead Cells, and Doublets
+# mt_genes = scan("~/scratch/m_zebra_ref/mt.txt", what = "character")
 mt_genes = scan("C:/Users/miles/Downloads/all_research/mt.txt", what = "character")
 mt_genes = str_replace(mt_genes, "_", "-")
 mt_genes = mt_genes[which(mt_genes %in% rownames(bb))]
@@ -82,43 +84,58 @@ print(paste("Number of Cells in BB Before Filterning:", ncol(bb)))
 
 bb = subset(bb, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & pct_mt < 5)
 print(paste("Number of Cells in BB After Filterning:", ncol(bb)))
-bb = NormalizeData(bb, normalization.method = "LogNormalize", scale.factor = 100000)
+bb = NormalizeData(bb, normalization.method = "LogNormalize", scale.factor = 10000)
 bb = FindVariableFeatures(bb, selection.method = "vst", nfeatures = 2000)
 bb = ScaleData(bb, features = rownames(bb))
 bb = RunPCA(bb, features = VariableFeatures(bb))
-bb = RunUMAP(bb, reduction = "pca", dims = 1:20)
+bb = RunUMAP(bb, reduction = "pca", dims = 1:50)
 bb = FindNeighbors(bb, reduction="umap", dims = 1:2)
-bb = FindClusters(bb, resolution = .15)
-DimPlot(bb, reduction = "umap", split.by = "cond", label = TRUE)
+bb = FindClusters(bb, resolution = .30)
+# DimPlot(bb, reduction = "umap", split.by = "cond", label = TRUE)
 
-Cairo(file = paste0(rna_path, "/results/bb/umap.png"), width = 2000, height = 1500, res = 200)
-print(DimPlot(bb, reduction = "umap", split.by = "cond", label = TRUE, pt.size = 0.7))
+png_name = paste0(rna_path, "/results/bb/umap_10k_50_30.png")
+png(file = png_name, width = 2000, height = 1500, res = 200)
+print(DimPlot(bb, reduction = "umap", label = TRUE, pt.size = 0.7))
+dev.off()
+system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/tmp/"))
+
+#==========================================================================================
+# Final Object ============================================================================
+#==========================================================================================
+rna_path = "C:/Users/miles/Downloads/brain/"
+bb = readRDS(paste0(rna_path, "data/bb_clustered_102820.rds"))
+
+png_name = "C:/Users/miles/Downloads/bb_pc_fst_90_umap.png"
+png(file = png_name, width = 1000, height = 1000, res = 120)
+print(p)
 dev.off()
 
-# bb = JackStraw(bb, num.replicate = 100)
-# bb = ScoreJackStraw(bb, dims = 1:20)
+png_name = "C:/Users/miles/Downloads/90_15.png"
+png(file = png_name, width = 1500, height = 1000, res = 200)
+print(res[[1]])
+dev.off()
 
 #==========================================================================================
 # Markers =================================================================================
 #==========================================================================================
 bri = list()
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "Glia", skip=1, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "Glia", skip=1, col_types = "text"))
 bri[["glia"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp[,2])),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "Vc, Vd", skip=6, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "Vc, Vd", skip=6, col_types = "text"))
 bri[["vc_vd"]] = gsub("[\r\n;]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "Vs-Vp, Vv-Vl", skip=5, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "Vs-Vp, Vv-Vl", skip=5, col_types = "text"))
 bri[["vs_vp_vv_vl"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "OB (gcl)", skip=5, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "OB (gcl)", skip=5, col_types = "text"))
 bri[["ob_gcl"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "OB (mcl, gl)", skip=9, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "OB (mcl, gl)", skip=9, col_types = "text"))
 bri[["ob_mcl_gl"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "BNSM", skip=0, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "BNSM", skip=0, col_types = "text"))
 bri[["bnsm"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "Dp", skip=11, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "Dp", skip=11, col_types = "text"))
 bri[["dp"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "Dm", skip=9, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "Dm", skip=9, col_types = "text"))
 bri[["dm"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
-tmp = data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/brain/data/MC,MZ Merged Gene, Cluster Info.xlsx", sheet = "Dl", skip=9, col_types = "text"))
+tmp = data.frame(readxl::read_xlsx(paste0(rna_path, "data/MC,MZ Merged Gene, Cluster Info.xlsx"), sheet = "Dl", skip=9, col_types = "text"))
 bri[["dl"]] = gsub("[\r\n]", "", unlist(strsplit(as.character(as.vector(tmp$Gene)),"\\s")))
 
 bri_clean = sapply(1:length(bri), function(x) unique(bri[[x]][which(bri[[x]] %in% rownames(bb))]))
@@ -128,13 +145,13 @@ for (i in 1:length(bri_clean)) {
   name = names(bri_clean)[i]
   
   # UMAP Expression
-  Cairo(file=paste0(rna_path, "/results/bb/paintings/", name, ".png"), width = 750, height = 500)
+  png(file=paste0(rna_path, "/results/bb/paintings/", name, ".png"), width = 750, height = 500)
   print(markerExpPerCell(bb, markers) + ggtitle(paste0("Expression of ", str_to_title(name))))
   dev.off()
   
   # DotPlot
   dot_res = myDotPlot(bb, markers)
-  Cairo(file=paste0(rna_path, "/results/bb/paintings/", name, "_dot.png"), width = 750, height = 500)
+  png(file=paste0(rna_path, "/results/bb/paintings/", name, "_dot.png"), width = 750, height = 750)
   print(dot_res[[1]] + ggtitle(paste0("Expression of ", str_to_title(name))))
   dev.off()
 }
@@ -146,75 +163,25 @@ for (i in 1:length(bri_clean)) {
 #          comparing the real BHVE vs CTRL to simulated ones.
 
 # Load object called obj
-tj = readRDS("~/scratch/d_tooth/data/tj.rds") # for now load tj
-tj$sample = rep(1:10, ncol(tj))[1:ncol(tj)]
-obj = tj
+obj = bb
 
 # Constants
-n_boot = 100 # number of bootstraps
+n_boot = 50 # number of bootstraps
 do_replace = F # sample with replacement?
-bhve_samples = c(1, 2, 3, 4, 5)
-ctrl_sampels = c(6, 7, 8, 9, 10)
-
-# Find the sizes of the samples
-print("Finding the sizes of the samples")
-samples = unique(as.vector(obj$sample))
-sample_cells = list()
-sizes = list()
-for (sample in samples) {
-  sample_cells[[sample]] = obj$sample[which(obj$sample == sample)]
-  sizes[[sample]] = length(sample_cells[[sample]])
-}
-
-# # Testing a non-complicated sampling without replacement
-# ind = match(boot_samples$cell[which(boot_samples$boot == 1)], colnames(obj))
-# obj$test_sample = boot_samples$sample[ind]
-# obj$cond = obj$test_sample %in% bhve_samples
-# obj$cond = factor(obj$cond, levels = c(TRUE, FALSE))
-# obj$cond = plyr::revalue(obj$cond, replace = c("TRUE" = "bhve", "FALSE" = "ctrl"))
-# Idents(obj) = obj$cond
-# test = FindAllMarkers(obj_2, assay = "RNA", only.pos = F, verbose = F)
+bhve_samples = c("b1", "b2", "b3", "b4", "b5")
+ctrl_samples = c("c1", "c2", "c3", "c4", "c5")
+clusters = sort(unique(obj$seurat_clusters))
+all_samples = c(bhve_samples, ctrl_samples)
+bhve_cells = colnames(obj)[which(obj$sample %in% bhve_samples)]
+ctrl_cells = colnames(obj)[which(obj$sample %in% ctrl_samples)]
+obj$seurat_clusters_vect = as.vector(obj$seurat_clusters)
+names(obj$seurat_clusters_vect) = colnames(obj)
 
 # Generate random samples
-print("Generating random samples")
-boot_samples = data.frame()
-for (i in 1:n_boot) {
-  # Some Useful Print Statements
-  if(i == n_boot) {
-    cat(paste(i, "\n"))
-  } else if (i %% (n_boot/10) == 0 || i == 1) {
-    cat(i)
-  } else {
-    cat(".")
-  }
-  
-  # ran_samples_cells = list() # keys: sim samples 1-10 , values: cells in that sim sample
-  cells_left = colnames(obj) # cells left to sample
-  
-  for (sample in samples) {
-    ran_samples_cells = sample(cells_left, sizes[[sample]], replace = do_replace)
-    
-    # if sample w/o replacement, take the used cells out
-    if (! do_replace) { 
-      cells_left = cells_left[which(! cells_left %in% ran_samples_cells)]
-    } # end replacement if
-    
-    new_rows = data.frame(rep(i, sizes[[sample]]), rep(sample, sizes[[sample]]), ran_samples_cells)
-    boot_samples = rbind(boot_samples, new_rows)
-  } # end sample for
-  
-  # Error check for sampling without replacement
-  if (length(cells_left > 0) && do_replace == F) {
-    print(paste("Error: cells left after sampling without replacement.",
-                "There should be 0 cells left, but there are", length(cells_left), "left."))
-  } # end error check for
-} # end boot for
-cat("\n")
-colnames(boot_samples) = c("boot", "sample", "cell")
-
-# Find DEGs in between sim BHVE and CTRL
+print("Generating random samples and Finding DEGs")
 sim_degs = data.frame()
 for (i in 1:n_boot) {
+  set.seed(i+100)
   # Some Useful Print Statements
   if(i == n_boot) {
     cat(paste(i, "\n"))
@@ -223,29 +190,64 @@ for (i in 1:n_boot) {
   } else {
     cat(".")
   }
-  
-  all_cells = boot_samples$cell[which(boot_samples$boot == i)]
-  
-  # Create a new Seurat object 
-  obj_2 = CreateSeuratObject(counts = obj@assays$RNA@counts[,all_cells], project = obj@project.name)
-  data_matrix = obj@assays$RNA@data[,all_cells]
-  data_matrix@Dimnames[[2]] = colnames(obj_2)
-  obj_2 = SetAssayData(object = obj_2, slot = 'data', assay = "RNA", new.data = data_matrix)
-  
-  # Add metadata
-  obj_2$sim_sample = boot_samples$sample[which(boot_samples$boot ==i)]
-  obj_2$cond = obj_2$sim_sample %in% bhve_samples
-  obj_2$cond = factor(obj_2$cond, levels = c(TRUE, FALSE))
-  obj_2$cond = plyr::revalue(obj_2$cond, replace = c("TRUE" = "bhve", "FALSE" = "ctrl"))
+
+  # Shuffle Clusters while keeping the # cells per sample per cluster the same
+  obj$sim = obj$seurat_clusters_vect
+  Idents(obj) = obj$seurat_clusters
+  for (cluster in clusters) {
+    this_cells = WhichCells(obj, idents = cluster, seed = NULL)
+    sim = sample(obj$cond[this_cells], length(this_cells))
+    obj$sim[this_cells] = unname(sim)
+  }
   
   # Find DEGs
-  Idents(obj_2) = obj_2$cond
-  obj_2_deg = FindAllMarkers(obj_2, assay = "RNA", only.pos = F, verbose = F)
-  obj_2_deg = obj_2_deg[which(obj_2_deg$p_val_adj < 0.05),]
-  if (nrow(obj_2_deg) > 0) obj_2_deg$boot = i
-  
-  rbind(sim_degs, obj_2_deg)
+  obj$sim_cond = paste0(obj$seurat_clusters, obj$sim)
+  Idents(obj) = obj$sim_cond
+  for (cluster in clusters) {
+    degs = FindMarkers(obj, ident.1 = paste0(cluster, "BHVE"), ident.2 = paste0(cluster, "CTRL"), only.pos=F, verbose = F, min.pct = 0.01, logfc.threshold = 0.1)
+    if ( ! is.null(degs) && nrow(degs) > 0 ) {
+      degs$boot = i
+      degs$cluster = cluster
+      sim_degs = rbind(sim_degs, degs)
+    }
+  }
 } # end boot for
+# sim_degs = sim_degs[which(sim_degs$boot <= 50),]
+write.table(sim_degs, paste0(rna_path, "results/bb/sim_bhve_v_ctrl.tsv"), sep = "\t", quote = F, row.names = F)
+
+perm_df2 = data.frame()
+for (i in 1:n_boot) {
+  degs = sim_degs[which(sim_degs$boot == i),]
+  qobj = qvalue(degs$p_val)
+  degs$q = qobj$qvalues
+  degs$bh = p.adjust(degs$p_val, method = "BH")
+  
+  n_p = length(which(degs$p_val < 0.05))
+  n_q = length(which(degs$q < 0.05))
+  n_bh = length(which(degs$bh < 0.05))
+  n_bon = length(which(degs$p_val_adj < 0.05))
+  
+  perm_df2 = rbind(perm_df2, t(c(i, n_p, n_q, n_bh, n_bon)))
+}
+
+real_value_p = length(which(zack$p_val < 0.05))
+real_value_q = length(which(zack$q < 0.05))
+real_value_bh = length(which(zack$bh < 0.05))
+real_value_bon = length(which(zack$p_val_adj < 0.05))
+colnames(perm_df2) = c("Boot", "n_p", "n_q", "n_bh", "n_bon")
+
+perm_df2$above = perm_df2$n_bon > real_value_bon
+ggplot(perm_df2, aes(n_bon, alpha=.7, fill=above)) + geom_histogram(alpha=0.5) + geom_vline(aes(xintercept = real_value_bon)) + geom_text(aes(x=real_value_bon, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + xlab("# of Gene w/ adjusted p-value < 0.05 (Bonferroni)") + ggtitle("Comparison Between Bootstrap Values and Real Value") + guides(color=F, alpha=F, fill=F)
+
+perm_df2$above = perm_df2$n_bh > real_value_bh
+ggplot(perm_df2, aes(n_bh, alpha=.7, fill=above)) + geom_histogram(alpha=0.5) + geom_vline(aes(xintercept = real_value_bh)) + geom_text(aes(x=real_value_bh, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + xlab("# of Gene w/ adjusted FDR adjusted pvalue < 0.05 (BH)") + ggtitle("Comparison Between Bootstrap Values and Real Value") + guides(color=F, alpha=F, fill=F)
+
+perm_df2$above = perm_df2$n_q > real_value_q
+ggplot(perm_df2, aes(n_q, alpha=.7, fill=above)) + geom_histogram(alpha=0.5) + geom_vline(aes(xintercept = real_value_q)) + geom_text(aes(x=real_value_q, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + xlab("# of Gene w/ qvalue < 0.05") + ggtitle("Comparison Between Bootstrap Values and Real Value") + guides(color=F, alpha=F, fill=F)
+
+
+perm_df2$above = perm_df2$n_p > real_value_p
+ggplot(perm_df2, aes(n_p, alpha=.7, fill=above)) + geom_histogram(alpha=0.5) + geom_vline(aes(xintercept = real_value_p)) + geom_text(aes(x=real_value_p, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + xlab("# of Gene w/ pvalue < 0.05") + ggtitle("Comparison Between Bootstrap Values and Real Value") + guides(color=F, alpha=F, fill=F)
 
 
 # Test Cluster DEG vs Bulk DEG for bhve v ctrl
@@ -255,16 +257,11 @@ Idents(obj) = obj$seurat_clusters_cond
 cluster_deg = data.frame()
 for (cluster in sort(unique(obj$seurat_clusters))) {
   print(cluster)
-  # this_cluster = names(obj$seurat_clusters[which(obj$seurat_clusters == cluster)])
-  # this_cluster_bhve = this_cluster[which(this_cluster %in% bhve_cells)]
-  # this_cluster_ctrl = this_cluster[which(! this_cluster %in% bhve_cells)]
-  
-  # this_deg = FindMarkers(obj, cells.1 = this_cluster_bhve, cells.2 = this_cluster_ctrl, ident.1 = NULL, ident.2 = NULL)
-  # cells_1 = WhichCells(obj, idents = paste0(cluster, "_BHVE"))
-  # cells_2 = WhichCells(obj, idents = paste0(cluster, "_CTRL"))
   tryCatch ({
-    this_deg = FindMarkers(obj, paste0(cluster, "_BHVE"), paste0(cluster, "_CTRL"), only.pos = F)
-    this_deg = this_deg[which(this_deg$p_val_adj < 0.05),]
+    this_deg = FindMarkers(obj, paste0(cluster, "_BHVE"), paste0(cluster, "_CTRL"), min.pct = 0.01, logfc.threshold = 0.1)
+    this_deg$cluster = cluster
+    this_deg$gene = rownames(this_deg)
+    # this_deg = this_deg[which(this_deg$p_val_adj < 0.05),]
     cluster_deg = rbind(cluster_deg, this_deg)
   }, error = function(err) {
     print("Failed on this cluster")
@@ -277,9 +274,12 @@ length(unique(rownames(cluster_deg)))
 
 Idents(obj) = obj$cond
 bulk_deg = FindAllMarkers(obj, only.pos = F)
-bulk_deg = bulk_deg[which(bulk_deg$p_val_adj < 0.05),]
+# bulk_deg = bulk_deg[which(bulk_deg$p_val_adj < 0.05),]
 nrow(bulk_deg)/2
 length(unique(bulk_deg$gene))
 
-cluster_deg$q = p.adjust(cluster_deg$p_val, method="bonferroni")
+cluster_deg$bonferroni = p.adjust(cluster_deg$p_val, method="bonferroni")
+cluster_deg$bh = p.adjust(cluster_deg$p_val, method="BH")
+qobj = qvalue(cluster_deg$p_val)
+cluster_deg$qvalue = qobj$qvalues
 nrow(cluster_deg[which(cluster_deg$q < 0.05),])

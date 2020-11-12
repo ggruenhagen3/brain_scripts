@@ -73,34 +73,7 @@ downsample <- function(combined, marker_genes, run) {
   
   return(marker_matrix)
 }
-
-pickNewCells <- function(combined, num_clusters, num_cells) {
-  new_cells <- c()
-  for (i in 1:num_cells) {
-    ran_cluster <- sample(0:num_clusters, 1)
-    this_cells <- names(combined$seurat_clusters[which(combined$seurat_clusters == ran_cluster)])
-    new_cells <- c(new_cells, sample(this_cells,1))
-  }
-  
-  return(new_cells)
-}
-
-shuffleClusters <- function(combined) {
-  # The selection process for a new cluster should be as follows:
-  # 1. Pick a random cluster 0-40
-  # 2. Pick a random cell from that cluster to be a part of the new cluster
-  # This means that the new data set would likely have duplicate cells
-  new_cells <- lapply(0:num_clusters, function(x) c())
-  num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
-  for (i in 0:num_clusters) {
-    num_cells <- length(combined$seurat_clusters[which(combined$seurat_clusters == i)])
-    new_cells[[i+1]] <- pickNewCells(combined, num_clusters, num_cells)
-  }
-  
-  return(new_cells)
-}
 ## END FUNCTIONS ##
-# rna_path <- "C:/Users/miles/Downloads/brain/"
 rna_path <- "~/scratch/brain/"
 combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
 marker_path <- paste(rna_path, "data/markers/", sep="")
@@ -113,65 +86,19 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-bio <- "ROCK_SAND"
-markers <- markers[which(markers$bio == bio),]
+markers <- markers[which(markers$bio == "DISC_ASE"),]
 gene_names <- rownames(combined@assays$RNA)
-marker_genes <- markers$gene
-valid_genes <- marker_genes
+marker_genes <- validGenes(markers$gene, gene_names)
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
-down_avg_avg_gene <- rep(0, num_clusters+1)
-run_num <- 50
 
-# No Perm, Bootstrap
-down_genes_per_cell <- lapply(0:num_clusters, function(x) c())
-for (run in 1:run_num) {
-  cat(paste("no_perm", run, "\n"))
+# Bootstrap
+run_cluster_gene <- data.frame()
+for (run in 1:3) {
+  print(run)
   mat <- downsample(combined, marker_genes, run)
-  mat[which(mat[,] > 1)] <- 1
   
-  cells_per_cluster <- c()
-  genes_per_cluster <- c()
   for (i in 0:num_clusters) {
-    this_cells <- WhichCells(combined, idents = i)
-    # genes_per_cluster <- c(genes_per_cluster, length(which(as.vector(combined@assays$RNA@counts[ran_markers,this_cells]) != 0))) # genes
-    down_genes_per_cell[[i+1]] <- c(down_genes_per_cell[[i+1]], colSums(mat[,this_cells])) # genes
-    cells_per_cluster <- c(cells_per_cluster, length(this_cells))
-  }
-  
-}
-
-
-# Perm, Bootstrap
-backup_ids <- combined@meta.data$seurat_clusters
-perm_down_avg_gene <- lapply(0:num_clusters, function(x) c())
-for (run in (run_num+1):(run_num+run_num)) {
-  cat(paste("perm", run, "\n"))
-  set.seed(run)
-  mat <- downsample(combined, marker_genes, run)
-  mat[which(mat[,] > 1)] <- 1
-  
-  new_cells <- shuffleClusters(combined)
-  num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
-  gene_names <- rownames(combined@assays$RNA)
-  cells_per_cluster <- c()
-  genes_per_cluster <- c()
-  for (i in 0:num_clusters) {
-    this_cells <- new_cells[[i+1]]
-    perm_down_avg_gene[[i+1]] <- c(perm_down_avg_gene[[i+1]], colSums(mat[,this_cells]))
+    gene_sums <- rowSums(as.matrix(combined@assays$RNA@counts[marker_genes,this_cells]) != 0)
+    run_cluster_gene <- rbind(run_cluster_gene, t(c( rep(run, length(gene_sums)), rep(i, length(gene_sums)), gene_sums )))
   }
 }
-
-# Compare empirical data to 97.5th percentile of the permutated data on a PER CLUSTER basis
-df <- data.frame()
-for (i in 0:num_clusters) {
-  mean_down <- mean(down_genes_per_cell[[i+1]])
-  mean_perm <- mean(perm_down_avg_gene[[i+1]])
-  p <- t.test(down_genes_per_cell[[i+1]], perm_down_avg_gene[[i+1]])$p.value
-  p_sig_enrich <- p < 0.05 & mean_down > mean_perm
-  df <- rbind(df, t(c(i, mean_down, mean_perm, p, p_sig_enrich)))
-}
-colnames(df) <- c("cluster", "mean_down", "mean_down_perm", "p", "p_sig_enrich")
-df$q <- p.adjust(df$p)
-df$q_sig_enrich <- df$q < 0.05 & df$mean_down > df$mean_down_perm
-df$q_sig_unenrich <- df$q < 0.05 & df$mean_down < df$mean_down_perm
-write.table(df, file = paste(rna_path, "/results/down_and_perm_ttest_2_", bio, ".tsv", sep=""), sep = "\t", row.names = FALSE, quote=FALSE)

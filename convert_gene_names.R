@@ -53,9 +53,62 @@ convertToHgnc <- function(genes) {
   return(all_hgnc)
 }
 
+hgncMzebra <- function(genes, gene_names) {
+  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  valid_genes <- validGenes(genes, gene_names)
+  all_hgnc <- convertToHgnc(gene_names)
+  ind <- match(genes,pat$V2)
+  ind <- ind[! is.na(ind)]
+  found_names <- as.vector(pat$V7[ind])
+  found_names <- found_names[!is.na(found_names)]
+  found_names_hgnc <- as.vector(pat$V8[ind])
+  found_names_hgnc <- found_names_hgnc[!is.na(found_names_hgnc)]
+  
+  df1 <- setNames(as.data.frame(found_names_hgnc), c("hgnc"))
+  found_names_hgnc <- inner_join(df1, all_hgnc, by = "hgnc")
+  
+  pseudo_hgnc <- toupper(genes)
+  df1 <- setNames(as.data.frame(pseudo_hgnc), c("hgnc"))
+  found_mzebra <- inner_join(df1, all_hgnc, by = "hgnc")
+  
+  found_mzebra <- found_mzebra[,2:1]
+  found_names_hgnc <- found_names_hgnc[,2:1]
+  good_df <- rbind(all_hgnc, setNames(found_names, names(all_hgnc)), setNames(found_mzebra, names(all_hgnc)), setNames(found_names_hgnc, names(all_hgnc)))
+  good_df <- unique(good_df)
+  return(good_df)
+}
+
+hgncMouse <- function(genes) {
+  human  = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+  mouse  = useMart(biomart="ensembl", dataset="mmusculus_gene_ensembl")
+  
+  ensembl_genes <- getLDS(attributes = c("external_gene_name"), filters = "external_gene_name", values = genes , mart = mouse, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
+  return(ensembl_genes)
+}
+
+hgncMzebraInPlace <- function(df, gene_column, gene_names) {
+  bad_genes <- df[,gene_column]
+  bad_genes <- unique(bad_genes)
+  converter <- hgncMzebra(bad_genes, gene_names)
+  df[,gene_column] <- converter[match(df[,gene_column], converter[,1]),2]
+  df <- df[which(! is.na(df[,gene_column])),]
+  
+  return(df)
+}
+
+hgncMouseInPlace <- function(df, gene_column) {
+  bad_genes <- df[,gene_column]
+  bad_genes <- unique(bad_genes)
+  converter <- hgncMouse(bad_genes)
+  df[,gene_column] <- converter[match(df[,gene_column], converter[,1]),2]
+  df <- df[which(! is.na(df[,gene_column])),]
+  
+  return(df)
+}
+
 # THIS IS THE UPDATED/GOOD Function 02/21/2020
 hgncGood <- function(genes, gene_names) {
-  pat <- read.table("C:/Users/miles/Downloads/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
   valid_genes <- validGenes(genes, gene_names)
   all_hgnc <- convertToHgnc(gene_names)
   ind <- match(genes,pat$V2)
@@ -105,7 +158,7 @@ onlyGood <- function(genes, gene_names) {
 
 goodInPlace <- function(data, gene_column, gene_names) {
   # Only keep the rows in the dataframe that have gene names that are in our data
-  pat <- read.table("C:/Users/miles/Downloads/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+  pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
   keep_rows <- c()
   for (i in 1:nrow(data)) {
     gene <- as.character(data[i,gene_column])
@@ -126,11 +179,68 @@ goodInPlace <- function(data, gene_column, gene_names) {
   return(new_data)
 }
 
+heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename) {
+  df1_num_clusters <- max(df1$cluster)
+  mes_num_clusters <- max(df2$cluster)
+  df <- data.frame()
+  for (i in 0:df1_num_clusters) {
+    for (j in 0:mes_num_clusters) {
+      jpool_cluster <- df1[which(df1$cluster == i),]
+      mes_cluster <- df2[which(df2$cluster == j),]
+      ovlp <- nrow(mes_cluster[which(mes_cluster$gene %in% jpool_cluster$gene),])
+      pct <- ovlp / (nrow(jpool_cluster) + nrow(mes_cluster))
+      df <- rbind(df, t(c(i, j, ovlp, pct)))
+    }
+  }
+  colnames(df) <- c("jpool_cluster", "mes_cluster", "ovlp", "pct")
+  mat <- matrix(df$ovlp,ncol=mes_num_clusters+1,byrow=T)
+  rownames(mat) <- 0:df1_num_clusters
+  colnames(mat) <- 0:mes_num_clusters
+  mat <- t(mat)
+  png(paste(rna_path, "/results/", filename, "_ovlp.png", sep=""),  width = 500, height = 750, unit = "px")
+  heatmap(mat, Rowv=NA, Colv=NA, revC = TRUE, xlab = paste(df1_sample, "Cluster"), ylab = paste(df2_sample, "Cluster"), main = paste("DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters"), scale = "none")
+  dev.off()
+  for (i in 1:ncol(mat)) {
+    max_row <- max(mat[,i])
+    mat[which(mat[,i] != max_row),i] <- 0
+  }
+  png(paste(rna_path, "/results/", filename, "_best_guess.png", sep=""),  width = 500, height = 750, unit = "px")
+  heatmap(mat, Rowv=NA, Colv=NA, revC = TRUE, xlab = paste(df1_sample, "Cluster"), ylab = paste(df2_sample, "Cluster"), main = paste("Best Guess b/w", df1_sample, "&", df2_sample), scale = "none")
+  dev.off()
+  # legend(x="topleft", legend=c("min", "ave", "max"), fill=colorRampPalette(brewer.pal(8, "Oranges"))(3))
+  
+  pct_mat <- matrix(df$pct,ncol=mes_num_clusters+1,byrow=T)
+  rownames(pct_mat) <- 0:df1_num_clusters
+  colnames(pct_mat) <- 0:mes_num_clusters
+  pct_mat <- t(pct_mat)
+  png(paste(rna_path, "/results/", filename, "_pct.png", sep=""),  width = 500, height = 750, unit = "px")
+  heatmap(pct_mat, Rowv=NA, Colv=NA, revC = TRUE, xlab = paste(df1_sample, "Cluster"), ylab = paste(df2_sample, "Cluster"), main = paste("% DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters"), scale = "none")
+  dev.off()
+  for (i in 1:ncol(pct_mat)) {
+    max_row <- max(pct_mat[,i])
+    pct_mat[which(pct_mat[,i] != max_row),i] <- 0
+  }
+  png(paste(rna_path, "/results/", filename, "_pct_best_guess.png", sep=""),  width = 500, height = 750, unit = "px")
+  heatmap(pct_mat, Rowv=NA, Colv=NA, revC = TRUE, xlab = paste(df1_sample, "Cluster"), ylab = paste(df2_sample, "Cluster"), main = paste("% Best Guess b/w", df1_sample, "&", df2_sample), scale = "none")
+  dev.off()
+  return(mat)
+}
+
+########################
+# END HELPER FUNCTIONS #
+########################
 # data <- read.table("C:/Users/miles/Downloads/pnas.1810140115.sd02.txt", sep=",", header = FALSE)
 # data <- read.table("C:/Users/miles/Downloads/brain/data/markers/mc_up.txt", sep="\t", header = FALSE)
 # data <- readClipboard()
+
+# For Zack
+data <- read.table("C:/Users/miles/Downloads/all_markers_B1C1C2MZ_031020.csv", sep=",", header = TRUE, stringsAsFactors = FALSE)
+good <- hgncGood(data$gene, rownames(combined@assays$RNA@counts))
+new_data <- hgncMzebraInPlace(data, 8, rownames(combined@assays$RNA@counts))
+write.table(new_data, file = "C:/Users/miles/Downloads/all_markers_B1C1C2MZ_031020_hgnc.txt", sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+
 data <- read.table("C:/Users/miles/Downloads/d_tooth/results/jpool_deg.tsv", sep="\t", header = TRUE, stringsAsFactors = FALSE)
-good <- hgncGood(data, rownames(combined))
+good <- hgncGood(data, rownames(combined@assays$RNA@counts))
 new_data <- goodInPlace(data, 1, rownames(tj))
 
 all_hgnc <- convertToHgnc(rownames(brain_combined@assays$RNA@counts))
@@ -146,26 +256,52 @@ for (i in 1:(data[nrow(data),1]+1)) {
   hgnc_clust_genes[[i]] <- convertToHgnc(clust_genes[[i]])
   write.table(hgnc_clust_genes[[i]], paste("C:/Users/miles/Downloads/d_tooth/results/jpool_toppgene/", i-1, ".txt"), sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
 }
-
-df <- data.frame(genes <- good, bio <- rep("DISC_ASE_MC_UP_BOTH", length(good)))
-write.table(df, file = "C:/Users/miles/Downloads/brain/data/markers/disc_ase_mc_up_both.txt", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+# good <- c("myrf", "mpz", "stxbp6l", "mbpa", "adamts14", "ENSMZEG00005026266", "ENSMZEG00005026264", "erbb3b", "ENSMZEG00005014976", "cd59")
+df <- data.frame(genes <- good, bio <- rep("ALL_ASE", length(good)))
+write.table(df, file = "C:/Users/miles/Downloads/brain/data/markers/rock_up.txt", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
 
 new_data <- new_data[,colnames(new_data)[which(! colnames(new_data) %in% c("X", "X.1"))]]
 write.table(good, file = "C:/Users/miles/Downloads/tbud_deg_good_list.txt", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
 write.table(new_data, file = "C:/Users/miles/Downloads/tbud_deg_good.txt", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
 
+# Convert DEGs in Place
+rna_path <- "C:/Users/miles/Downloads/rna/"
+mes_deg <- read.table(paste(rna_path, "/results/clusters/mes_deg_1_5.tsv", sep=""), sep="\t", stringsAsFactors = FALSE, header = TRUE)
+hgnc_mes_deg <- hgncMouseInPlace(mes_deg, 7)
+
+epi_deg <- read.table(paste(rna_path, "/results/clusters/epi_deg_1_5.tsv", sep=""), sep="\t", stringsAsFactors = FALSE, header = TRUE)
+hgnc_epi_deg <- hgncMouseInPlace(epi_deg, 7)
+
+rna_path <- "C:/Users/miles/Downloads/d_tooth/"
+jpool_deg <- read.table(paste(rna_path, "/results/jpool_deg.tsv", sep=""), sep="\t", stringsAsFactors = FALSE, header = TRUE)
+hgnc_jpool_deg <- hgncMzebraInPlace(jpool_deg, 2, rownames(jpool))
+
+tj_deg <- read.table(paste(rna_path, "/results/tj_deg.tsv", sep=""), sep="\t", stringsAsFactors = FALSE, header = TRUE)
+hgnc_tj_deg <- hgncMzebraInPlace(tj_deg, 2, rownames(jpool))
+
+# JPOOL vs MES Comparison
+mat <- heatmapComparison(hgnc_jpool_deg, hgnc_mes_deg, "Jaw", "Mes", "jpool_mes_deg")
+
+# JPOOL vs EPI Comparison
+mat <- heatmapComparison(hgnc_jpool_deg, hgnc_epi_deg, "Jaw", "Epi", "jpool_epi_deg")
+
+# TJ vs MES Comparison
+mat <- heatmapComparison(hgnc_tj_deg, hgnc_mes_deg, "RT", "Mes", "tj_mes_deg")
+
+# TJ vs EPI Comparison
+mat <- heatmapComparison(hgnc_tj_deg, hgnc_epi_deg, "RT", "Epi", "tj_epi_deg")
 
 # OLD #
 # data <- as.vector(unique(data[,1]))
-pat <- read.table("C:/Users/miles/Downloads/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
-found_names <- as.vector(pat$V7[which(data %in% pat$V2)])
-found_names <- found_names[!is.na(found_names)]
-data <- c(data, found_names)
-data <- unique(data)
-data <- sort(data)
-data <- data[which(data != "")]
-df <- data.frame(data <- data, bio <- rep("DISC_ASE_MC_UP_BOTH", length(data)))
-write.table(df, file = "C:/Users/miles/Downloads/brain/data/markers/disc_ase_mc_up_both.txt", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+# pat <- read.table("C:/Users/miles/Downloads/MZ_treefam_annot_umd2a_ENS_2.bash", header = FALSE, fill = TRUE)
+# found_names <- as.vector(pat$V7[which(data %in% pat$V2)])
+# found_names <- found_names[!is.na(found_names)]
+# data <- c(data, found_names)
+# data <- unique(data)
+# data <- sort(data)
+# data <- data[which(data != "")]
+# df <- data.frame(data <- data, bio <- rep("DISC_ASE_MC_UP_BOTH", length(data)))
+# write.table(df, file = "C:/Users/miles/Downloads/brain/data/markers/disc_ase_mc_up_both.txt", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
 
 # 
 # gtf <- read.table("C:/Users/miles/Downloads/brain/data/Maylandia_zebra.M_zebra_UMD2a.98.gtf", sep="\t", header = FALSE)

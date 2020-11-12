@@ -109,16 +109,13 @@ marker_files <- dir(marker_path, pattern =paste("*.txt", sep=""))
 markers <- data.frame(gene <- c(), bio <- c())
 for (i in 1:length(marker_files)) {
   file <- read.table(paste(marker_path, marker_files[i], sep=""), header=FALSE, sep="\t", stringsAsFactors=FALSE)
-  file[,1] <- toupper(file[,1])
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
 bio <- "RAN"
 markers <- markers[which(markers$bio == bio),]
-print("Before gene_names")
 gene_names <- rownames(combined@assays$RNA)
-print("After gene_names")
-marker_genes <- unique(validGenes(markers$gene, gene_names))
+marker_genes <- markers$gene
 valid_genes <- marker_genes
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 down_avg_avg_gene <- rep(0, num_clusters+1)
