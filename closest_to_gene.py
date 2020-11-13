@@ -19,8 +19,8 @@ def parseArgs():
     parser.add_argument("-t", "--threshold", help="Distance threshold: minimum distance for a gene to be from a variant (default: 25kb)",
                         nargs='?', type=int, default=25000, const=25000)
     parser.add_argument("-g", "--gff", help="Path to the GFF file used to annotate", nargs="?",
-                        default="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff",
-                        const="/nv/hp10/cpatil6/genomics-shared/snpEff/Mzebra/genes.gff")
+                        default="/storage/home/hcoda1/6/ggruenhagen3/p-js585-0/George/rich_project_pb1/bin/snpEff/Mzebra/genes.gff",
+                        const="/storage/home/hcoda1/6/ggruenhagen3/p-js585-0/George/rich_project_pb1/bin/snpEff/Mzebra/genes.gff")
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     args = parser.parse_args()
     return args.vcf, args.output, args.closest_column, args.threshold, args.gff, args.verbose
