@@ -5,7 +5,7 @@ library("qvalue")
 library("jaccard")
 # iegs <- read.csv("C:/Users/miles/Downloads/zack_IEG_list_061720.csv", header = FALSE, stringsAsFactors = F)
 # iegs <- iegs$V1
-lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA.RDS")
+lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/bb.RDS")
 obj <- lncRNA
 # combined <- readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
 # obj <- combined
@@ -149,8 +149,8 @@ mat3_trans = mat_trans/mat2_trans
 mat3_trans_p = matrix(jaccard.rahman(as.vector(mat3_trans)), length(gene_names), length(gene_names), dimnames=list(gene_names, gene_names))
 print("Done Filling Matrices")
 
-saveRDS(mat3_trans, "/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA_jaccard.RDS")
-saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/brain/data/lncRNA_jaccard_p.RDS")
+saveRDS(mat3_trans, "/nv/hp10/ggruenhagen3/scratch/brain/data/bb_j.RDS")
+saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/brain/data/bb_j_p.RDS")
 # egr1_top = sort(mat3_trans_p["egr1",])
 # 
 # non_zero_lncRNA = lncRNA_genes[which(lncRNA_genes %in% gene_names)]
