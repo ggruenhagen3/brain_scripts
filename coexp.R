@@ -5,8 +5,8 @@ library("qvalue")
 library("jaccard")
 # iegs <- read.csv("C:/Users/miles/Downloads/zack_IEG_list_061720.csv", header = FALSE, stringsAsFactors = F)
 # iegs <- iegs$V1
-lncRNA <- readRDS("/nv/hp10/ggruenhagen3/scratch/brain/data/bb.RDS")
-obj <- lncRNA
+bb <- readRDS("~/scratch/brain/data/bb.RDS")
+obj <- bb
 # combined <- readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
 # obj <- combined
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
@@ -149,8 +149,8 @@ mat3_trans = mat_trans/mat2_trans
 mat3_trans_p = matrix(jaccard.rahman(as.vector(mat3_trans)), length(gene_names), length(gene_names), dimnames=list(gene_names, gene_names))
 print("Done Filling Matrices")
 
-saveRDS(mat3_trans, "/nv/hp10/ggruenhagen3/scratch/brain/data/bb_j.RDS")
-saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/brain/data/bb_j_p.RDS")
+saveRDS(mat3_trans, "~/scratch/brain/data/bb_j.RDS")
+saveRDS(mat3_trans_p, "~/scratch/brain/data/bb_j_p.RDS")
 # egr1_top = sort(mat3_trans_p["egr1",])
 # 
 # non_zero_lncRNA = lncRNA_genes[which(lncRNA_genes %in% gene_names)]
@@ -242,16 +242,16 @@ saveRDS(mat3_trans_p, "/nv/hp10/ggruenhagen3/scratch/brain/data/bb_j_p.RDS")
 ############
 # Analysis #
 ############
-mat_fish = readRDS("C:/Users/miles/Downloads/brain/data/mat_fish.RDS")
-
-mat = mat_fish
-sig_df = data.frame()
-for (row in 1:length(gene_names)) {
-  if (row %% 1000 == 0) { print(row) }
-  q = p.adjust(mat[row, (row+1):ncol(mat)], method = "bonferroni")
-  q_sig = q[which(q < 0.05)]
-  if (length(q_sig) > 0) {
-    newRow = data.frame(gene = rep(gene_names[row], length(q_sig)), q = q_sig, close_gene = names(q_sig))
-    sig_df = rbind(sig_df, newRow)
-  }
-}
+# mat_fish = readRDS("C:/Users/miles/Downloads/brain/data/mat_fish.RDS")
+# 
+# mat = mat_fish
+# sig_df = data.frame()
+# for (row in 1:length(gene_names)) {
+#   if (row %% 1000 == 0) { print(row) }
+#   q = p.adjust(mat[row, (row+1):ncol(mat)], method = "bonferroni")
+#   q_sig = q[which(q < 0.05)]
+#   if (length(q_sig) > 0) {
+#     newRow = data.frame(gene = rep(gene_names[row], length(q_sig)), q = q_sig, close_gene = names(q_sig))
+#     sig_df = rbind(sig_df, newRow)
+#   }
+# }
