@@ -5,7 +5,7 @@ library("qvalue")
 library("jaccard")
 # iegs <- read.csv("C:/Users/miles/Downloads/zack_IEG_list_061720.csv", header = FALSE, stringsAsFactors = F)
 # iegs <- iegs$V1
-bb <- readRDS("~/scratch/brain/data/bb.RDS")
+bb <- readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
 obj <- bb
 # combined <- readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
 # obj <- combined
