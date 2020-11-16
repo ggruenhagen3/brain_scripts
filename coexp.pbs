@@ -1,7 +1,8 @@
+#PBS -A GT-js585
+#PBS -N coexp
 #PBS -l mem=128gb
 #PBS -l nodes=2:ppn=4
-#PBS -l walltime=48:00:00
-#PBS -q biocluster-6
+#PBS -l walltime=72:00:00
 #PBS -j oe
 #PBS -o coexp.out
 #PBS -m abe
