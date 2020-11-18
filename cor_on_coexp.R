@@ -14,6 +14,7 @@ sig_df = read.csv("~/scratch/brain/results/bb_j_sig.csv", stringsAsFactors = F)
 sig_genes = unique(sig_df$gene)
 
 print("Finding Cells per Gene")
+gene_cells = lapply(sig_genes, function(x) c())
 for (gene in sig_genes) {
   gene_cells[[gene]] = colnames(obj)[which(obj@assays$RNA@counts[gene,] != 0)]
 }
