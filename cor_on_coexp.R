@@ -11,6 +11,7 @@ gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0
 
 
 sig_df = read.csv("~/scratch/brain/results/bb_j_sig.csv", stringsAsFactors = F)
+sig_genes = unique(sig_df$gene)
 
 print("Finding Cells per Gene")
 for (gene in sig_genes) {
