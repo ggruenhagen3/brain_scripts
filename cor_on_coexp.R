@@ -24,7 +24,7 @@ int = c()
 my_cor = c()
 my_cor_p = c()
 for (i in 1:nrow(sig_df)) {
-  if (row %% 10000 == 0) { print(row) }
+  if (i %% 10000 == 0) { print(i) }
   gene1 = sig_df$gene[i]
   gene2 = sig_df$close_gene[i]
   
