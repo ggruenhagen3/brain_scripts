@@ -1819,8 +1819,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   }
   
   df$df1_cluster = factor(df$df1_cluster, levels = rev(unique(df$df1_cluster)))
+  df$df2_cluster = factor(df$df2_cluster, levels = rev(unique(df$df2_cluster)))
   print("Right before plotting")
-  print(head(df))
   
   # Plot 1 - Ovlp
   png(png1_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
