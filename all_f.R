@@ -1818,7 +1818,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png4_title = paste("% Best Guess", with_correction)
   }
   
-  df$df1_cluster = factor(df$df1_cluster, levels = rev(levels(df$df1_cluster)))
+  df$df1_cluster = factor(df$df1_cluster, levels = rev(unique(df$df1_cluster)))
   print("Right before plotting")
   print(head(df))
   
