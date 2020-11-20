@@ -1729,7 +1729,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   df$pct = as.numeric(as.vector(df$pct))
   df$ovlp_same_dir = as.numeric(as.vector(df$ovlp_same_dir))
   df$pct_same_dir = as.numeric(as.vector(df$pct_same_dir))
-  print(head(df))
   
   # Extract lower triangle
   if (tri) {
@@ -1749,8 +1748,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     df = new_df
   }
   
-  print("New df")
-  print(head(new_df))
   # Color for text label in heatmap
   df$id = rownames(df)
   df$ovlp_col = df$ovlp > mean(df$ovlp)
@@ -1822,6 +1819,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   }
   
   df$df1_cluster = factor(df$df1_cluster, levels = rev(levels(df$df1_cluster)))
+  print("Right before plotting")
+  print(head(df))
   
   # Plot 1 - Ovlp
   png(png1_name, width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
