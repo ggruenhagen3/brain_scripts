@@ -323,7 +323,7 @@ cellCycle = function(obj, isMzebra = T, isMouse=F) {
   #' @param obj Seurat object
   #' @param isMzebra is the Seurat object from a cichlid?
   #' @param isMouse is the Seurat object from a mouse?
-  #' @return p plot of all Cell Cycle stage of all cells
+  #' @return cc_fact factor of cell cycle state for each cell (you can make this into metadata)
   
   library("Seurat")
   s.genes   <- cc.genes$s.genes
@@ -341,9 +341,9 @@ cellCycle = function(obj, isMzebra = T, isMouse=F) {
   }
   
   obj = CellCycleScoring(obj, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
-  p = DimPlot(obj, label = T, order = T)
+  # p = DimPlot(obj, label = T, order = T)
   
-  return(p)
+  return(obj$Phase)
 }
 
 numCellExpMarker = function(obj, markers, myslot="data", thresh=0) {
@@ -440,15 +440,16 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
   #' @return list of 3:
   #' 1) boxplot with jitter points of marker expression per cell per cluster
   #' 2) effect size
-  #' 3) dataframe
+  #' 3) dataframe with columns: 
+  #'    cluster, magnitude of Cohen's d, Cohen's d, Upper bound on Cohen's confidence interval, Lower bound on Cohen's confidence interval, p-value from ztest, bonferroni corrected p-value
   
-  title_str = "Average"
+  title_str = "Avreage"
   title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
   title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
   
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
   if (n_markers) {
-    title_str = "Average Number of Markers Genes Expressed per Cell per Cluster"
+    title_str = "Number of Markers Genes Expressed per Cell per Cluster"
     exp[which(exp > 0)] = 1
   }
   title_str = paste(title_str, if_else(correct, "- Corrected", ""))
@@ -459,10 +460,18 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
   clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
   for (cluster in clusters) {
     cluster_cells <- WhichCells(obj, idents = cluster)
+    
+    # all_cluster_exp = colSums(exp[markers,]) / obj$nCount_RNA
+    # all_cluster_exp_scale = scale(all_cluster_exp)
+    # names(all_cluster_exp_scale) = colnames(obj)
+    # avg_cluster_exp = all_cluster_exp_scale[which(names(all_cluster_exp_scale) %in% cluster_cells)]
+    # other_avg = all_cluster_exp_scale[which(! names(all_cluster_exp_scale) %in% cluster_cells)]
+    
+    
     avg_cluster_exp = colSums(exp[markers, cluster_cells])
     if (correct)
       avg_cluster_exp = avg_cluster_exp/colSums(exp[,cluster_cells])
-    
+
     # EDIT
     other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
     other_avg = colSums(exp[markers, other_cells])
@@ -476,31 +485,37 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
     all_exp = c(avg_cluster_exp, other_avg)
     test= effsize::cohen.d(all_exp, c(rep("cluster", length(avg_cluster_exp)), 
                                       rep("other",   length(other_avg))))
-    mag=test$magnitude
+    
     d=test$estimate
     up=test$conf.int[2]
     down = test$conf.int[1]
-    
+    mag=test$magnitude
+    mag_pos=mag
+    mag_pos[which(d < 0)] = "negligible"
     # WILCOX
     # p_val = wilcox.test(avg_cluster_exp, other_avg, alternative = "greater")$p.value
     
-    d_df = rbind(d_df, data.frame(cluster, mag, d, up, down, p))
-    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, avg_cluster_exp, p))
+    d_df = rbind(d_df, data.frame(cluster, mag, mag_pos, d, up, down, p))
+    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, avg_cluster_exp, p, mag_pos))
   }
   
-  d_df$q = p.adjust(d_df$p, method = "bonferroni")
+  # mycols = c("#01c5c4", "#b8de6f", "#f1e189", "#f39233")
+  
+  d_df$p_val_adj = p.adjust(d_df$p, method = "bonferroni")
   d_df$cluster = factor(d_df$cluster, levels = clusters)
   p1  = ggplot(d_df, aes(cluster, d, color=mag, fill = mag)) + geom_pointrange(aes(ymin = down, ymax = up)) + ylab("Cohen's d") + ggtitle("Effect Size in Clusters")
   
-  colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp", "p")
+  colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp", "p", "mag_pos")
   per_cluster_df$avg_cluster_exp = as.numeric(as.vector(per_cluster_df$avg_cluster_exp))
-  per_cluster_df$q = unlist(sapply(1:length(clusters), function(x) rep(d_df$q[which(d_df$cluster == clusters[x])], length(which(per_cluster_df$cluster == clusters[x]))) ))
-  per_cluster_df$star = ifelse(per_cluster_df$q < 0.001, "***", 
-                               ifelse(per_cluster_df$q < 0.01, "**", 
-                                      ifelse(per_cluster_df$q < 0.05, "*", "")))
+  per_cluster_df$p_val_adj = unlist(sapply(1:length(clusters), function(x) rep(d_df$p_val_adj[which(d_df$cluster == clusters[x])], length(which(per_cluster_df$cluster == clusters[x]))) ))
+  per_cluster_df$star = ifelse(per_cluster_df$p_val_adj < 0.001, "***", 
+                               ifelse(per_cluster_df$p_val_adj < 0.01, "**", 
+                                      ifelse(per_cluster_df$p_val_adj < 0.05, "*", "")))
   per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = clusters)
-  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=cluster, color=cluster)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.05) + NoLegend() + xlab("Cluster") + ylab("") + ggtitle(title_str)
+  per_cluster_df$mag_pos = factor(per_cluster_df$mag_pos, levels = c("negligible", "small", "medium", "large"))
+  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=mag_pos, color=mag_pos)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.05) + xlab("Cluster") + ylab("") + ggtitle(title_str) + scale_color_viridis(discrete = T,drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size") + scale_fill_viridis(discrete = T, drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size")
   
+  print(head(per_cluster_df[which(per_cluster_df$cluster == 0),]))
   # ANOVA
   # per_cluster_df$cluster[which(per_cluster_df$cluster != 0)] = "all"
   # test = aov(avg_cluster_exp ~ cluster, data = per_cluster_df)
@@ -1499,6 +1514,39 @@ ncMzToHgncVect = function(mz, returnDF = T, onPACE=F, rm_na = F) {
   return(all_hgnc)
 }
 
+umd1To2a = function(genes, onPACE = F, as_df = F, rm_na = T) {
+  #' Find the UMD2a list of genes from the UMD1 list
+  #' 
+  #' @param genes input UMD1 genes that will be converted
+  #' @param onPACE is the code being run on PACE?
+  #' @param as_df return the output as dataframe? With one column for UMD1 genes and one for the gene converted to UMD2a.
+  #' @param rm_na remove UMD1 genes not converted
+  #' @return umd2a vector of UMD2a genes
+  
+  if (onPACE) {
+    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
+  } else {
+    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
+  }
+  
+  genes = as.vector(genes)
+  df = data.frame(umd1=genes, umd2a = NA)
+  df$umd1 = as.vector(df$umd1)
+  df$umd2a = as.vector(df$umd2a)
+  
+  df$umd2a[which(df$umd1 %in% pat$V2)] = df$umd1[which(df$umd1 %in% pat$V2)]
+  df$umd2a[which(is.na(df$umd2a))] = pat$V2[match(df$umd1[which(is.na(df$umd2a))], pat$V1)]
+  df$umd2a[which(is.na(df$umd2a))] = pat$V2[match(df$umd1[which(is.na(df$umd2a))], pat$V30)]
+  df$umd2a = unlist(df$umd2a)
+  
+  pct = format(round(length(which(!is.na(df$umd2a)))/length(genes) * 100, 2), nsmall = 2)
+  print(paste0( length(which(!is.na(df$umd2a))), " out of ", length(genes), " UMD1 genes were converted to UMD2a genes (", pct, "%)" ))
+  if (rm_na) { df = df[which(!is.na(df$umd2a)),] }
+  if (as_df) { return(df) }
+  
+  return(df$umd2a)
+}
+
 expressionDend = function(objs, my_slot="counts") {
   # Purpose: Create dendrograms of expression of genes in clusters of mulitple objects
   # Input:
@@ -1621,11 +1669,13 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   df = data.frame() # big df of all pairwise comparisons
   for (i in 1:length(dfs)) {
     for (i_clust in 1:num_clusters[[i]]) {
+      print(paste0("SAMPLE 1:", clusters[[i]][[i_clust]]))
       i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
       i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
       
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
+          print(paste0("SAMPLE 2:", clusters[[j]][[j_clust]]))
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
           j_clust_df = j_clust_df[!duplicated(j_clust_df$gene),]
           
