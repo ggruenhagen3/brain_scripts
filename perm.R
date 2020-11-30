@@ -9,7 +9,7 @@ rna_path <- "~/scratch/brain/"
 source(paste0(rna_path, "/brain_scripts/all_f.R"))
 
 # combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
-combined <- readRDS(paste(rna_path, "/data/B1C1C2MZ_combined_031020.rds", sep=""))
+combined <- readRDS(paste(rna_path, "/data/bb_clustered_102820.rds", sep=""))
 marker_path <- paste(rna_path, "data/markers/", sep="")
 marker_files <- dir(marker_path, pattern =paste("*.txt", sep=""))
 
@@ -19,7 +19,7 @@ for (i in 1:length(marker_files)) {
   markers <- rbind(markers, file[,1:2])
 }
 colnames(markers) <- c("gene", "bio")
-bio <- "ROCK_SAND"
+bio <- "DISC_ASE"
 markers <- markers[which(markers$bio == bio),]
 gene_names <- rownames(combined@assays$RNA)
 marker_genes <- markers$gene
@@ -27,8 +27,8 @@ valid_genes <- marker_genes
 other_genes = rownames(combined)[which(! rownames(combined) %in% valid_genes)]
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 total_genes_per_cluster <- rep(0, num_clusters+1)
-run_num <- 1000
-test_clusters = c(1,5,12)
+run_num <- 100
+test_clusters = c(0, 2, 9, 10)
 
 mat = combined@assays$RNA@counts
 perm_df = data.frame()
@@ -106,7 +106,9 @@ for (i in 0:num_clusters) {
   real_value = perm_df$test_ratio[which(perm_df$isReal == "Real" & perm_df$Cluster == i)]
 
   this_df$above = this_df$test_ratio >= real_value
+  png(paste0(rna_path, "/results/hist_", i, ".png"), width = 750, height = 500, res=72)
   print(ggplot(this_df, aes(test_ratio, alpha=.7, fill=above)) + geom_histogram(alpha=0.5, color = "purple") + geom_vline(aes(xintercept = real_value)) + geom_text(aes(x=real_value, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + guides(color=F, alpha=F, fill=F) + ggtitle(paste("Cluster", i)))
+  dev.off()
   res_df = rbind(res_df, t(c(i, length(which(this_df$above)), length(which(this_df$above))/run_num )))
 }
 
