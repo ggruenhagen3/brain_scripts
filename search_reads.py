@@ -322,7 +322,7 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
 def myTest(snp_file, dir):
     # snp_file is cells and dir is bam file
     f = open(snp_file, "r")
-    cells = f.readlines()
+    cells = f.read().splitlines()
     print(cells[1:5])
     i = 0
     with open(dir, 'r') as input:
