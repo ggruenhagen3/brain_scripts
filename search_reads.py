@@ -323,12 +323,14 @@ def myTest(snp_file, dir):
     # snp_file is cells and dir is bam file
     f = open(snp_file, "r")
     cells = f.readlines()
+    i = 0
     with open(dir, 'r') as input:
         for line in input:
-            print(line)
             if "CB:Z:" in line:          
                 barcode = line.split("CB:Z:")[1].split()[0]
-                print(barcode)
+                if barcode in cells:
+                    i += 1
+    print("Number of good reads in b1: " + str(i))       
             
             
 
