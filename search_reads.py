@@ -322,7 +322,7 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
 def myTest(snp_file, dir):
     # snp_file is cells and dir is bam file
     f = open(snp_file, "r")
-    cells = readlines(f)
+    cells = f.readlines()
     with open(dir, 'r') as input:
         for line in input:
             barcode = line.split("CB:Z:")[1].split()[0]
