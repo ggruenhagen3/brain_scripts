@@ -27,10 +27,11 @@ valid_genes <- marker_genes
 other_genes = rownames(combined)[which(! rownames(combined) %in% valid_genes)]
 num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 total_genes_per_cluster <- rep(0, num_clusters+1)
-run_num <- 100
+run_num <- 1000
 test_clusters = c(0, 2, 9, 10)
 
 mat = combined@assays$RNA@counts
+mat[which(mat > 0)] = 1
 perm_df = data.frame()
 
 # Real Data
@@ -106,11 +107,22 @@ for (i in 0:num_clusters) {
   real_value = perm_df$test_ratio[which(perm_df$isReal == "Real" & perm_df$Cluster == i)]
 
   this_df$above = this_df$test_ratio >= real_value
-  png(paste0(rna_path, "/results/hist_", i, ".png"), width = 750, height = 500, res=72)
+  png(paste0(rna_path, "/results/hists/hist_", i, ".png"), width = 750, height = 500, res=72)
   print(ggplot(this_df, aes(test_ratio, alpha=.7, fill=above)) + geom_histogram(alpha=0.5, color = "purple") + geom_vline(aes(xintercept = real_value)) + geom_text(aes(x=real_value, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + guides(color=F, alpha=F, fill=F) + ggtitle(paste("Cluster", i)))
   dev.off()
   res_df = rbind(res_df, t(c(i, length(which(this_df$above)), length(which(this_df$above))/run_num )))
 }
+
+sig_df = data.frame()
+for (i in 0:num_clusters) {
+  boot = perm_df$test_ratio[which(perm_df$Cluster == i & perm_df$isReal == "Boot")]
+  real = perm_df$test_ratio[which(perm_df$Cluster == i & perm_df$isReal == "Real")]
+  n_greater = length(which(boot > real))
+  sig_df = rbind(sig_df, t(c(i, n_greater, n_greater/length(boot))))
+}
+colnames(sig_df) = c("Cluster", "n_greater", "p")
+sig_df$p_val_adj = p.adjust(sig_df$p, method = "bonferroni")
+write.table(sig_df, "~/scratch/brain/results/perm_raw.tsv", sep="\t", quote = F)
 
 # Idents(combined) = combined$seurat_clusters
 # markerExpPerCellPerCluster(combined, valid_genes, n_markers = F, correct = T)
