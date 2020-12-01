@@ -319,7 +319,7 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
         lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
     writeFile("~/scratch/brain/results/ase_SNPs.bed", lines)
 
-def myTest(dir):
+def myTest(snp_file, dir):
     # snp_file is cells and dir is bam file
     f = open(snp_file, "r")
     cells = readlines(f)
@@ -333,7 +333,7 @@ def myTest(dir):
 def main():
     snp_file, dir, verbose, count, outputFile = parseArgs()
         
-    myTest()
+    myTest(snp_file, dir)
 
     # Original Script
     # if verbose: print("Reading SNPs")
