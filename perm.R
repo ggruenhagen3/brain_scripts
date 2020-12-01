@@ -122,7 +122,7 @@ for (i in 0:num_clusters) {
 }
 colnames(sig_df) = c("Cluster", "n_greater", "p")
 sig_df$p_val_adj = p.adjust(sig_df$p, method = "bonferroni")
-write.table(sig_df, "~/scratch/brain/results/perm_raw.tsv", sep="\t", quote = F)
+write.table(sig_df, "~/scratch/brain/results/perm_sig.tsv", sep="\t", quote = F)
 
 # Idents(combined) = combined$seurat_clusters
 # markerExpPerCellPerCluster(combined, valid_genes, n_markers = F, correct = T)
