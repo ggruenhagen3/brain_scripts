@@ -329,10 +329,10 @@ def myTest(snp_file, dir):
     with open(dir, 'r') as input:
         for line in input:
             lineSplit = line.split()
-            umi = lineSplit[9]
+            # umi = lineSplit[9]
             if "CB:Z:" in line and "xf:i:25" in line:
                 barcode = line.split("CB:Z:")[1].split()[0]
-                umis.append(umi)
+                # umis.append(umi)
                 if barcode in cells:
                     i += 1
     # print("Total UMIs: " + str(len(umis)))
