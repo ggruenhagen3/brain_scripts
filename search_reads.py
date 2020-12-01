@@ -325,9 +325,10 @@ def myTest(snp_file, dir):
     cells = f.readlines()
     with open(dir, 'r') as input:
         for line in input:
-            print(line)            
-            barcode = line.split("CB:Z:")[1].split()[0]
-            print(barcode)
+            print(line)
+            if "CB:Z:" in line:          
+                barcode = line.split("CB:Z:")[1].split()[0]
+                print(barcode)
             
             
 
