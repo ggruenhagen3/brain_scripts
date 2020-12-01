@@ -324,22 +324,21 @@ def myTest(snp_file, dir):
     f = open(snp_file, "r")
     cells = f.read().splitlines()
 
-    umis = []
+    # umis = []
     i = 0
     with open(dir, 'r') as input:
         for line in input:
-            if "CB:Z:" in line:          
+            lineSplit = line.split()
+            umi = lineSplit[9]
+            if "CB:Z:" in line and "xf:i:25" in line:
                 barcode = line.split("CB:Z:")[1].split()[0]
-                lineSplit = line.split()
-                umi = lineSplit[9]
                 umis.append(umi)
                 if barcode in cells:
                     i += 1
-    print("Total UMIs: " + str(len(umis)))
-    umis = list(set(umis))
-    print("Total Unique UMIs: " + str(len(umis)))
+    # print("Total UMIs: " + str(len(umis)))
+    # umis = list(set(umis))
+    # print("Total Unique UMIs: " + str(len(umis)))
     print("Number of good reads in b1: " + str(i))
-
             
 
 def main():
