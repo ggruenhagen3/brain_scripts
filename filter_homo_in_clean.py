@@ -68,7 +68,7 @@ def keepLines(snp, dir, outputFile):
                 # output_lines = []
                 output.extend(output_lines[:-1])
         # output = filterCIGAR(output)
-        output = filter25(output)
+        # output = filter25(output)
         if len(output) < 1:
             print("SNP NOT FOUND")
         else:
