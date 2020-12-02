@@ -62,7 +62,6 @@ def filterCellranger(lines, barcodes):
             barcode = line.split("CB:Z:")[1].split()[0]
             genes = line.split("GN:Z:")[1].split()[0]
             if barcode in barcodes and ";" not in genes:
-                print(line)
                 good_lines.append(line)
     return good_lines
 
@@ -78,7 +77,6 @@ def keepLines(snp, dir, outputFile, barcodes):
         # coord = str(scaffold) + ":" + pos + "-" + pos
         coord = snp[i]
         output = []
-        # os.chdir(dir)
         for file in os.listdir(dir):
             if file.endswith("b1.bam"):  # TODO all bams
                 print(file)
@@ -86,9 +84,6 @@ def keepLines(snp, dir, outputFile, barcodes):
                 this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
-                print(len_output_lines)
-                # print(output_lines[1:5])
-                # output_lines = []
                 output.extend(output_lines[:-1])
         # output = filterCIGAR(output)
         output = filterCellranger(output, barcodes)
@@ -99,7 +94,6 @@ def keepLines(snp, dir, outputFile, barcodes):
 
 def readBarcodes(barcodes_dir):
     barcodes = []
-    # os.chdir(barcodes_dir)
     for file in os.listdir(barcodes_dir):
         f = open( str(barcodes_dir) + str(file) , "r")
         barcodes.extend(f.read().splitlines())
@@ -108,7 +102,7 @@ def readBarcodes(barcodes_dir):
 def main():
     snp_file, dir, verbose, outputFile, barcodes = parseArgs()
     snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
-    snp = ["NC_036780.1:272743-279989"]
+    # snp = ["NC_036780.1:272743-279989"]
     barcodes = readBarcodes(barcodes)
     keepLines(snp, dir, outputFile, barcodes)
 
