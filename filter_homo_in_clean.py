@@ -47,17 +47,17 @@ def filterCellranger(lines, barcodes):
     good_lines = []
     test = 0
     for line in lines:
-        if "xf:i:25" in line:
-            barcode = line.split("CB:Z:")[1].split()[0]
-            genes = line.split("GN:Z:")[1].split()[0]
-            print(line)
-            print(barcode)
-            print(barcode in barcodes)
-            print(genes)
-            print(";" not in genes)
-            test += 1
-            if test > 6:
-                break
+        # if "xf:i:25" in line:
+        #     barcode = line.split("CB:Z:")[1].split()[0]
+        #     genes = line.split("GN:Z:")[1].split()[0]
+        #     print(line)
+        #     print(barcode)
+        #     print(barcode in barcodes)
+        #     print(genes)
+        #     print(";" not in genes)
+        #     test += 1
+        #     if test > 6:
+        #         break
         if "xf:i:25" in line and "CB:Z:" in line and "GN:Z:" in line:
             barcode = line.split("CB:Z:")[1].split()[0]
             genes = line.split("GN:Z:")[1].split()[0]
