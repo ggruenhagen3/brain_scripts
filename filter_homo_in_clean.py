@@ -65,8 +65,8 @@ def keepLines(snp, dir, outputFile, barcodes):
         output = []
         os.chdir(dir)
         for file in os.listdir(dir):
-            print(file)
             if file.endswith(".bam"):
+                print(file)
                 # this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
                 this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
