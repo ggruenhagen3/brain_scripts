@@ -101,7 +101,7 @@ def readBarcodes(barcodes_dir):
     # os.chdir(barcodes_dir)
     for file in os.listdir(barcodes_dir):
         f = open( str(barcodes_dir) + str(file) , "r")
-        barcodes.append(f.read().splitlines())
+        barcodes.extend(f.read().splitlines())
     return barcodes
 
 def main():
