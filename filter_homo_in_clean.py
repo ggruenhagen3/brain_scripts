@@ -6,13 +6,14 @@ import os
 # Arg Parser
 def parseArgs():
     parser = argparse.ArgumentParser(description='Filter out SNPs that are homozygous in the clean reads')
-    parser.add_argument('snp', metavar='s', help='Query SNPs')
-    parser.add_argument('dir', metavar='d', help='Directory of SAM files')
-    parser.add_argument('output', metavar='o', help='Name of Output File')
+    parser.add_argument('snp', metavar='snp', help='Query SNPs')
+    parser.add_argument('dir', metavar='dir', help='Directory of SAM files')
+    parser.add_argument('barcodes', metavar='barcodes', help='File that contains valid barcodes (aka cell ids)')
+    parser.add_argument('output', metavar='output', help='Name of Output File')
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
 
     args = parser.parse_args()
-    return args.snp, args.dir, args.verbose, args.output
+    return args.snp, args.dir, args.verbose, args.output, args.barcodes
 
 def readSNP(snp_file):
     """
@@ -42,15 +43,18 @@ def readSNP(snp_file):
 #             good_lines.append(line)
 #     return good_lines
 
-def filter25(lines):
+def filterCellranger(lines, barcodes):
     good_lines = []
     for line in lines:
-        if "xf:i:25" in line:
-            good_lines.append(line)
+        if "xf:i:25" in line and "CB:Z:" in line and "GN:Z:" in line:
+            barcode = line.split("CB:Z:")[1].split()[0]
+            genes = line.split("GN:Z:")[1].split()[0]
+            if barcode in barcodes and "," in genes:
+                good_lines.append(line)
     return good_lines
 
 
-def keepLines(snp, dir, outputFile):
+def keepLines(snp, dir, outputFile, barcodes):
 
     for i in range(0, len(snp)):
         if i % 5000 == 0:
@@ -68,16 +72,23 @@ def keepLines(snp, dir, outputFile):
                 # output_lines = []
                 output.extend(output_lines[:-1])
         # output = filterCIGAR(output)
-        # output = filter25(output)
+        output = filterCellranger(output, barcodes)
         if len(output) < 1:
             print("SNP NOT FOUND")
         else:
             print(len(output))
 
+def readBarcodes(file):
+    f = open(file, "r")
+    barcodes = f.read().splitlines()
+    return barcodes
+
 def main():
-    snp_file, dir, verbose, outputFile = parseArgs()
+    snp_file, dir, verbose, outputFile, barcodes = parseArgs()
     snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
-    keepLines(snp, dir, outputFile)
+    snp = ["NC_036780.1:272743-279989"]
+    barcodes = readBarcodes(barcodes)
+    keepLines(snp, dir, outputFile, barcodes)
 
 
 if __name__ == '__main__':
