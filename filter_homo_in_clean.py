@@ -48,14 +48,16 @@ def filterCellranger(lines, barcodes):
     test = 0
     for line in lines:
         if "xf:i:25" in line:
+            barcode = line.split("CB:Z:")[1].split()[0]
             print(line)
+
             test += 1
             if test > 6:
                 break
         if "xf:i:25" in line and "CB:Z:" in line and "GN:Z:" in line:
             barcode = line.split("CB:Z:")[1].split()[0]
             genes = line.split("GN:Z:")[1].split()[0]
-            if barcode in barcodes and "," in genes:
+            if barcode in barcodes and "," not in genes:
                 good_lines.append(line)
     return good_lines
 
