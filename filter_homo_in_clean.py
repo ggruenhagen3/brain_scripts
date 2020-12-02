@@ -83,6 +83,7 @@ def keepLines(snp, dir, outputFile, barcodes):
 def readBarcodes(barcodes_dir):
     barcodes = []
     for file in os.listdir(barcodes_dir):
+        print(file)
         f = open(file, "r")
         barcodes.append(f.read().splitlines())
     return barcodes
