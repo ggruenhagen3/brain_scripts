@@ -86,7 +86,7 @@ def readBarcodes(barcodes_dir):
     barcodes = []
     # os.chdir(barcodes_dir)
     for file in os.listdir(barcodes_dir):
-        f = open( str(dir) + str(file) , "r")
+        f = open( str(barcodes_dir) + str(file) , "r")
         barcodes.append(f.read().splitlines())
     return barcodes
 
