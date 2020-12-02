@@ -63,7 +63,7 @@ def keepLines(snp, dir, outputFile, barcodes):
         pos = snp[i].split("-")[1]
         coord = str(scaffold) + ":" + pos + "-" + pos
         output = []
-        os.chdir(dir)
+        # os.chdir(dir)
         for file in os.listdir(dir):
             if file.endswith(".bam"):
                 print(file)
@@ -84,9 +84,9 @@ def keepLines(snp, dir, outputFile, barcodes):
 
 def readBarcodes(barcodes_dir):
     barcodes = []
-    os.chdir(barcodes_dir)
+    # os.chdir(barcodes_dir)
     for file in os.listdir(barcodes_dir):
-        f = open(file, "r")
+        f = open( str(dir) + str(file) , "r")
         barcodes.append(f.read().splitlines())
     return barcodes
 
