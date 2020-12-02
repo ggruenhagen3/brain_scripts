@@ -71,6 +71,7 @@ def keepLines(snp, dir, outputFile, barcodes):
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
                 print(len_output_lines)
+                print(output_lines[1:5])
                 # output_lines = []
                 output.extend(output_lines[:-1])
         # output = filterCIGAR(output)
