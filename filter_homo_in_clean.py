@@ -64,9 +64,11 @@ def keepLines(snp, dir, outputFile, barcodes):
         coord = str(scaffold) + ":" + pos + "-" + pos
         output = []
         for file in os.listdir(dir):
-            if file.endswith(".bam"):
+            # if file.endswith(".bam"):
+            if file.endswith("b1.bam"):
                 # this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
                 this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
+                print(this_output)
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
                 # output_lines = []
