@@ -8,7 +8,7 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Filter out SNPs that are homozygous in the clean reads')
     parser.add_argument('snp', metavar='snp', help='Query SNPs')
     parser.add_argument('dir', metavar='dir', help='Directory of SAM files')
-    parser.add_argument('barcodes', metavar='barcodes', help='File that contains valid barcodes (aka cell ids)')
+    parser.add_argument('barcodes', metavar='barcodes', help='Directory of valid barcodes (aka cell ids)')
     parser.add_argument('output', metavar='output', help='Name of Output File')
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
 
@@ -64,8 +64,7 @@ def keepLines(snp, dir, outputFile, barcodes):
         coord = str(scaffold) + ":" + pos + "-" + pos
         output = []
         for file in os.listdir(dir):
-            # if file.endswith(".bam"):
-            if file.endswith("b1.bam"):
+            if file.endswith(".bam"):
                 # this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
                 this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
@@ -81,9 +80,11 @@ def keepLines(snp, dir, outputFile, barcodes):
         else:
             print(len(output))
 
-def readBarcodes(file):
-    f = open(file, "r")
-    barcodes = f.read().splitlines()
+def readBarcodes(barcodes_dir):
+    barcodes = []
+    for file in os.listdir(barcodes_dir):
+        f = open(file, "r")
+        barcodes.append(f.read().splitlines())
     return barcodes
 
 def main():
