@@ -75,10 +75,10 @@ def keepLines(snp, dir, outputFile):
             print(len(output))
 
 def main():
-    snp_file, dir, verbose, count, outputFile = parseArgs()
+    snp_file, dir, verbose, outputFile = parseArgs()
     snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
     keepLines(snp, dir, outputFile)
-    
+
 
 if __name__ == '__main__':
     main()
