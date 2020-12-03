@@ -46,7 +46,9 @@ def readSNP(snp_file):
 
 def filterCellrangerRead(line, barcodes):
     lineSplit = line.split("\t")
-    if "('xf', 25)" in line and "'CB'" in line and "'GN'" in line and line.split()[4] == "255":
+    info = lineSplit[10]
+    print(info)
+    if "('xf', 25)" in info and "'CB'" in info and "'GN'" in info and lineSplit[4] == "255":
         barcode = line.split("'CB'")[1].split("'")[1]
         genes = line.split("'GN'")[1].split(")")[0]
         print(genes)
