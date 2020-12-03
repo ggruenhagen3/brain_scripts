@@ -81,12 +81,14 @@ def isHomo(lines, snp_coord):
     pos = int(snp_coord.split("-")[1])
     snp_is_homo = True
     samfile = pysam.AlignmentFile("tmp.sam", "r", check_sq=False)
-    for pileupcolumn in samfile.pileup(scaffold, pos, pos):
-        for pileupread in pileupcolumn.pileups:
-            if not pileupread.is_del and not pileupread.is_refskip:
-                print('\tbase in read %s = %s' %
-                      (pileupread.alignment.query_name,
-                       pileupread.alignment.query_sequence[pileupread.query_position]))
+    for read in samfile.fetch():
+        
+    # for pileupcolumn in samfile.pileup(scaffold, pos, pos):
+    #     for pileupread in pileupcolumn.pileups:
+    #         if not pileupread.is_del and not pileupread.is_refskip:
+    #             print('\tbase in read %s = %s' %
+    #                   (pileupread.alignment.query_name,
+    #                    pileupread.alignment.query_sequence[pileupread.query_position]))
     samfile.close()
     # alleles_found = []
     # snp_is_homo = True
