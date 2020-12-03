@@ -126,6 +126,7 @@ def keepLinesPysam(snp, dir, barcodes):
     samfiles_keys = list(samfiles.keys())
     for file in os.listdir(dir):
         if file.endswith(".bam"):
+            print(str(dir) + "/" + file)
             samfiles[file.split(".")[0]] = pysam.AlignmentFile(str(dir) + "/" + file, "rb")
             # for read in samfiles[file.split(".")[0]].fetch("NC_036780.1", int("332868"), int("332868")):
             #     print(read)
