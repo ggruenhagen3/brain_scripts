@@ -147,20 +147,24 @@ def keepLinesPysam(snp, dir, barcodes):
         for sample, samfile in samfiles.items():
             print(sample)
             print(samfile.count(scaffold, pos-1, pos))
-            for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
-                for pileupread in pileupcolumn.pileups:
-                    if not pileupread.is_del and not pileupread.is_refskip:
-                        readGood = filterCellrangerRead(str(pileupread), barcodes[sample])
-                        # if readGood:
-                        # print(str(pileupread))
-                        # print('\tbase in read %s = %s' %
-                              # (pileupread.alignment.query_name,
-                               # pileupread.alignment.query_sequence[pileupread.query_position]))
-                        # print(readGood)
-                        i += 1
-                        if i == 100:
-                            return good_snp
-                        # return good_snp
+            for read in samfile.fetch(scaffold, pos-1, pos):
+                print(read)
+                print(read.query_alignment_sequence)
+                return good_snp
+            # for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
+            #     for pileupread in pileupcolumn.pileups:
+            #         if not pileupread.is_del and not pileupread.is_refskip:
+            #             readGood = filterCellrangerRead(str(pileupread), barcodes[sample])
+            #             # if readGood:
+            #             # print(str(pileupread))
+            #             # print('\tbase in read %s = %s' %
+            #                   # (pileupread.alignment.query_name,
+            #                    # pileupread.alignment.query_sequence[pileupread.query_position]))
+            #             # print(readGood)
+            #             i += 1
+            #             if i == 100:
+            #                 return good_snp
+            #             # return good_snp
             samfile.close()
             # filterCellrangerRead()
     print("Done pysam")
