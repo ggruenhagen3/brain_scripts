@@ -149,7 +149,7 @@ def keepLinesPysam(snp, dir, barcodes):
             print(samfile.count(scaffold, pos-1, pos))
             for read in samfile.fetch(scaffold, pos-1, pos):
                 print(read)
-                print(read.get_aligned_pairs())
+                print(read.get_aligned_pairs(matches_only=True))
                 return good_snp
             # for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
             #     for pileupread in pileupcolumn.pileups:
