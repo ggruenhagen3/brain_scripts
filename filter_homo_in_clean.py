@@ -81,6 +81,10 @@ def isHomo(lines, snp_coord):
         lineSplit = line.split()
         bam_seq = lineSplit[9]
         bam_pos = int(lineSplit[3])
+        if snp_pos - bam_pos < 0:
+            print(line)
+            print(snp_pos)
+            print(bam_pos)
         bam_base = bam_seq[snp_pos - bam_pos]
         if bam_base not in alleles_found:
             alleles_found.append(bam_base)
@@ -130,10 +134,19 @@ def main():
     snp_file, dir, verbose, outputFile, barcodes = parseArgs()
     # snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
     # snp = ["NC_036780.1:272743-279989"]
+    if verbose: print("Reading SNPs")
     snp = readSNP(snp_file)
+
+    if verbose: print("Reading Barcodes")
     barcodes = readBarcodes(barcodes)
+
+    if verbose: print("Searching to see if the SNP is heterozygous in the good reads")
     good_snp = keepLines(snp, dir, barcodes)
+    if verbose: print(str(len(good_snp)) + " SNPs were heterozygous out of " + str(len(snp)))
+
+    if verbose: print("Writing Good SNPs to File")
     writeFile(outputFile, good_snp)
+    if verbose: print("Done")
 
     cwd = os.getcwd()
 
