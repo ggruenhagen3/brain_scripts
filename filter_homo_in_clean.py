@@ -96,10 +96,11 @@ def isHomo(lines, snp_coord):
 def keepLines(snp, dir, barcodes):
     good_snp = []
     snp_coords = list(snp.keys())
-    snp_coords = [snp_coords[15]]
+    # snp_coords = [snp_coords[15]]
     for i in range(0, len(snp_coords)):
-        if i % 5000 == 0:
-            print(i)
+        # if i % 5000 == 0:
+        #     print(i)
+        print(i)
         coord = snp_coords[i]
         # coord = snp[i]
         output = []
