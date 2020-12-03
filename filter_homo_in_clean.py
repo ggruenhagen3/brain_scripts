@@ -132,9 +132,11 @@ def keepLinesPysam(snp, dir, barcodes):
     samfiles = {}  # key is sample and value is samfile object
     samfiles_keys = list(samfiles.keys())
     for file in os.listdir(dir):
-        if file.endswith(".bam"):
+        if file.endswith("dhcr7_counts25.bam"):
+            # sample = file.split(".")[0]
+            sample = "b1"
             print(str(dir) + "/" + file)
-            samfiles[file.split(".")[0]] = pysam.AlignmentFile(str(dir) + "/" + file, "rb")
+            samfiles[sample] = pysam.AlignmentFile(str(dir) + "/" + file, "rb")
             # for read in samfiles[file.split(".")[0]].fetch("NC_036780.1", int("332868"), int("332868")):
             #     print(read)
             #     break
@@ -149,7 +151,8 @@ def keepLinesPysam(snp, dir, barcodes):
             print(samfile.count(scaffold, pos-1, pos))
             for read in samfile.fetch(scaffold, pos-1, pos):
                 print(read)
-                print(read.get_aligned_pairs(matches_only=True))
+                test = read.get_aligned_pairs(matches_only=True)
+                print([x if x[1] == pos for x in test])
                 return good_snp
             # for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
             #     for pileupread in pileupcolumn.pileups:
