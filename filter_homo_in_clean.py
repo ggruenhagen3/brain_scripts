@@ -154,6 +154,7 @@ def keepLinesPysam(snp, dir, barcodes):
                 test2 = [x for x in test if x[1] == pos]
                 if len(test2) > 0:
                     print(read)
+                    print(test)
                     print(test2)
                     base = test2[0][0]
                     print(str(read).split("\t")[9][0])
