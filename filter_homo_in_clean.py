@@ -133,8 +133,7 @@ def keepLinesPysam(snp, dir, barcodes):
     samfiles_keys = list(samfiles.keys())
     for file in os.listdir(dir):
         if file.endswith(".bam"):
-            # sample = file.split(".")[0]
-            sample = "b1"
+            sample = file.split(".")[0]
             print(str(dir) + "/" + file)
             samfiles[sample] = pysam.AlignmentFile(str(dir) + "/" + file, "rb")
             # for read in samfiles[file.split(".")[0]].fetch("NC_036780.1", int("332868"), int("332868")):
@@ -150,19 +149,21 @@ def keepLinesPysam(snp, dir, barcodes):
             print(sample)
             print(samfile.count(scaffold, pos-1, pos))
             for read in samfile.fetch(scaffold, pos-1, pos):
-                test = read.get_aligned_pairs(matches_only=True)
-                test2 = [x for x in test if x[1] == pos]
-                if len(test2) > 0:
-                    print(read)
-                    print(test)
-                    print(test2)
-                    base = test2[0][0]
-                    print(str(read).split("\t")[9][0])
-                    print(str(read).split("\t")[9][1])
-                    print(str(read).split("\t")[9][base])
-                    print(str(read).split("\t")[9][149])
-                    print(str(read).split("\t")[9][150])
-                    return good_snp
+                readGood = filterCellrangerRead(str(read), barcodes[sample])
+                if readGood:
+                    test = read.get_aligned_pairs(matches_only=True)
+                    test2 = [x for x in test if x[1] == pos]
+                    if len(test2) > 0:
+                        print(read)
+                        print(test)
+                        print(test2)
+                        base = test2[0][0]
+                        print(str(read).split("\t")[9][0])
+                        print(str(read).split("\t")[9][1])
+                        print(str(read).split("\t")[9][base])
+                        print(str(read).split("\t")[9][149])
+                        print(str(read).split("\t")[9][150])
+                        return good_snp
             # for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
             #     for pileupread in pileupcolumn.pileups:
             #         if not pileupread.is_del and not pileupread.is_refskip:
@@ -178,7 +179,6 @@ def keepLinesPysam(snp, dir, barcodes):
             #                 return good_snp
             #             # return good_snp
             samfile.close()
-            # filterCellrangerRead()
     print("Done pysam")
     return good_snp
 
