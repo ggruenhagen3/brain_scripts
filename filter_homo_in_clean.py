@@ -80,8 +80,8 @@ def keepLines(snp, dir, outputFile, barcodes):
         for file in os.listdir(dir):
             if file.endswith(".bam"):  # TODO all bams
                 print(file)
-                # this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
-                this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
+                this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", str(dir) + "/" + file, coord])
+                # this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
                 len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
                 output.extend(output_lines[:-1])
@@ -101,8 +101,8 @@ def readBarcodes(barcodes_dir):
 
 def main():
     snp_file, dir, verbose, outputFile, barcodes = parseArgs()
-    snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
-    # snp = ["NC_036780.1:272743-279989"]
+    # snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
+    snp = ["NC_036780.1:272743-279989"]
     barcodes = readBarcodes(barcodes)
     keepLines(snp, dir, outputFile, barcodes)
 
