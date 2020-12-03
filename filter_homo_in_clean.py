@@ -3,6 +3,7 @@ import glob
 import subprocess
 import os
 import pysam
+from itertools import islice
 
 # Arg Parser
 def parseArgs():
@@ -47,14 +48,9 @@ def readSNP(snp_file):
 def filterCellrangerRead(line, barcodes):
     lineSplit = line.split("\t")
     info = lineSplit[11]
-    print(line)
-    print(info)
-    # if lineSplit[10] == "TTTTTTTTTTTGTCTAGTCCCACGCAGGGTTGAAGGTTTTTTTTTTTCTGTTTGTTTTTTTTTTTCTTTCTTTTTTTCAGAAAATCACTGAAACATTACTCCGGCAGTAATGAAAAGAGATGCTGTGAGATGCCATGGTTCATTATCGATG":
-    #     print(info)
     if "('xf', 25)" in info and "CB" in info and "GN" in info and lineSplit[4] == "255":
         barcode = line.split("'CB'")[1].split("'")[1]
         genes = line.split("'GN'")[1].split(")")[0]
-        print(genes)
         if barcode in barcodes and ";" not in genes:
             return True
     return False
@@ -89,42 +85,28 @@ def writeFile(file, lines):
         f.write(line)
     f.close()
 
-def isHomo(lines, snp_coord):
-    snp_pos = int(snp_coord.split("-")[1])
-    writeFile("tmp.sam", lines)
-    scaffold = snp_coord.split(":")[0]
-    pos = int(snp_coord.split("-")[1])
-    snp_is_homo = True
-    samfile = pysam.AlignmentFile("tmp.sam", "r", check_sq=False, check_header=False)
-    for read in samfile.fetch():
-        print(read)
-    # for pileupcolumn in samfile.pileup(scaffold, pos, pos):
-    #     for pileupread in pileupcolumn.pileups:
-    #         if not pileupread.is_del and not pileupread.is_refskip:
-    #             print('\tbase in read %s = %s' %
-    #                   (pileupread.alignment.query_name,
-    #                    pileupread.alignment.query_sequence[pileupread.query_position]))
-    samfile.close()
-    # alleles_found = []
-    # snp_is_homo = True
-    # for line in lines:
-    #     lineSplit = line.split()
-    #     bam_seq = lineSplit[9]
-    #     bam_pos = int(lineSplit[3])
-    #     print(line)
-    #     print(snp_pos)
-    #     print(bam_pos)
-    #     # if snp_pos - bam_pos <= 0:
-    #     #     print(line)
-    #     #     print(snp_pos)
-    #     #     print(bam_pos)
-    #     bam_base = bam_seq[snp_pos - bam_pos]
-    #     if bam_base not in alleles_found:
-    #         alleles_found.append(bam_base)
-    #         if len(alleles_found) == 2:
-    #             snp_is_homo = False
-    #             break
-    return snp_is_homo
+def isHet(snp, samfiles, barcodes):
+    snp_pos = int(snp.split("-")[1])
+    scaffold = snp.split(":")[0]
+    pos = int(snp.split("-")[1])
+    snp_is_het = False
+    alleles_found = []
+    for sample, samfile in samfiles.items():
+            print(sample)
+            for read in samfile.fetch(scaffold, pos-1, pos):
+                readGood = filterCellrangerRead(str(read), barcodes[sample])
+                if readGood:
+                    test = read.get_aligned_pairs(matches_only=True)
+                    test2 = [x for x in test if x[1] == pos]
+                    if len(test2) > 0:
+                        base = test2[0][0]
+                        if base not in alleles_found:
+                            alleles_found.append(base)
+                            if len(alleles_found) > 1:
+                                snp_is_het = True
+                                break
+                samfile.close()
+    return snp_is_het
 
 def keepLinesPysam(snp, dir, barcodes):
     good_snp = []
@@ -136,49 +118,10 @@ def keepLinesPysam(snp, dir, barcodes):
             sample = file.split(".")[0]
             print(str(dir) + "/" + file)
             samfiles[sample] = pysam.AlignmentFile(str(dir) + "/" + file, "rb")
-            # for read in samfiles[file.split(".")[0]].fetch("NC_036780.1", int("332868"), int("332868")):
-            #     print(read)
-            #     break
-    i = 105
+
     for i in range(0, len(snp_coords)):
-        scaffold = snp_coords[i].split(":")[0]
-        pos = int(snp_coords[i].split("-")[1])
-        print(scaffold)
-        print(pos)
-        for sample, samfile in samfiles.items():
-            print(sample)
-            print(samfile.count(scaffold, pos-1, pos))
-            for read in samfile.fetch(scaffold, pos-1, pos):
-                readGood = filterCellrangerRead(str(read), barcodes[sample])
-                if readGood:
-                    test = read.get_aligned_pairs(matches_only=True)
-                    test2 = [x for x in test if x[1] == pos]
-                    if len(test2) > 0:
-                        print(read)
-                        print(test)
-                        print(test2)
-                        base = test2[0][0]
-                        print(str(read).split("\t")[9][0])
-                        print(str(read).split("\t")[9][1])
-                        print(str(read).split("\t")[9][base])
-                        print(str(read).split("\t")[9][149])
-                        print(str(read).split("\t")[9][150])
-                        return good_snp
-            # for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
-            #     for pileupread in pileupcolumn.pileups:
-            #         if not pileupread.is_del and not pileupread.is_refskip:
-            #             readGood = filterCellrangerRead(str(pileupread), barcodes[sample])
-            #             # if readGood:
-            #             # print(str(pileupread))
-            #             # print('\tbase in read %s = %s' %
-            #                   # (pileupread.alignment.query_name,
-            #                    # pileupread.alignment.query_sequence[pileupread.query_position]))
-            #             # print(readGood)
-            #             i += 1
-            #             if i == 100:
-            #                 return good_snp
-            #             # return good_snp
-            samfile.close()
+        if isHet(snp_coords[i], samfiles, barcodes):
+            good_snp.append(i)
     print("Done pysam")
     return good_snp
 
@@ -228,7 +171,7 @@ def main():
     # snp = ["NC_036780.1:272743-279989"]
     if verbose: print("Reading SNPs")
     snp = readSNP(snp_file)
-
+    snp = list(islice(snp.items(), 5))
     if verbose: print("Reading Barcodes")
     barcodes = readBarcodes(barcodes)
 
