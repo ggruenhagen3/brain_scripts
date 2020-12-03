@@ -139,8 +139,9 @@ def keepLinesPysam(snp, dir, barcodes):
         for sample, samfile in samfiles.items():
             print(sample)
             print(samfile.count(scaffold, pos, pos))
-            for read in samfile.fetch(scaffold, pos, pos):
+            for read in samfile.fetch(scaffold, pos, pos+1):
                 print(read)
+                print("\tbase in read: " + read.alignment.query_sequence[read.query_position])
             samfile.close()
         break
             # for pileupcolumn in samfile.pileup(scaffold, pos, pos):
