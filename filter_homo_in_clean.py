@@ -3,7 +3,6 @@ import glob
 import subprocess
 import os
 import pysam
-from itertools import islice
 
 # Arg Parser
 def parseArgs():
