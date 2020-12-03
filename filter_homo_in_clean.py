@@ -96,7 +96,7 @@ def isHomo(lines, snp_coord):
 def keepLines(snp, dir, barcodes):
     good_snp = []
     snp_coords = list(snp.keys())
-    snp_coords = snp_coords[14]
+    snp_coords = snp_coords[15]
     for i in range(0, len(snp_coords)):
         if i % 5000 == 0:
             print(i)
@@ -104,7 +104,7 @@ def keepLines(snp, dir, barcodes):
         # coord = snp[i]
         output = []
         for file in os.listdir(dir):
-            if file.endswith(".bam"):  # TODO all bams
+            if file.endswith(".bam"):
                 this_output = subprocess.check_output(["samtools", "view", "-F", "4", "-q", "30", str(dir) + "/" + file, coord])
                 # this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
