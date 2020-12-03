@@ -138,7 +138,7 @@ def keepLinesPysam(snp, dir, barcodes):
         print(pos)
         for sample, samfile in samfiles.items():
             print(sample)
-            print(samfile.count(scaffold, pos, pos))
+            print(samfile.count(scaffold, pos, pos+1))
             # for read in samfile.fetch(scaffold, pos, pos+1):
             #     print(read)
             #     print("\tbase in read: " + read.alignment.query_sequence[read.query_position])
@@ -151,7 +151,7 @@ def keepLinesPysam(snp, dir, barcodes):
                               (pileupread.alignment.query_name,
                                pileupread.alignment.query_sequence[pileupread.query_position]))
                         return good_snp
-                samfile.close()
+            samfile.close()
             # filterCellrangerRead()
     print("Done pysam")
     return good_snp
