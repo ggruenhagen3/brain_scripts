@@ -2,6 +2,7 @@ import argparse
 import glob
 import subprocess
 import os
+import pysam
 
 # Arg Parser
 def parseArgs():
@@ -75,25 +76,37 @@ def writeFile(file, lines):
 
 def isHomo(lines, snp_coord):
     snp_pos = int(snp_coord.split("-")[1])
-    alleles_found = []
+    writeFile("tmp.sam", lines)
+    scaffold = snp_coord.split(":")[0]
+    pos = snp_coord.split("-")[1]
     snp_is_homo = True
-    for line in lines:
-        lineSplit = line.split()
-        bam_seq = lineSplit[9]
-        bam_pos = int(lineSplit[3])
-        print(line)
-        print(snp_pos)
-        print(bam_pos)
-        # if snp_pos - bam_pos <= 0:
-        #     print(line)
-        #     print(snp_pos)
-        #     print(bam_pos)
-        bam_base = bam_seq[snp_pos - bam_pos]
-        if bam_base not in alleles_found:
-            alleles_found.append(bam_base)
-            if len(alleles_found) == 2:
-                snp_is_homo = False
-                break
+    samfile = pysam.AlignmentFile("tmp.sam", "rb")
+    for pileupcolumn in samfile.pileup(scaffold, pos, pos):
+        for pileupread in pileupcolumn.pileups:
+            if not pileupread.is_del and not pileupread.is_refskip:
+                print('\tbase in read %s = %s' %
+                      (pileupread.alignment.query_name,
+                       pileupread.alignment.query_sequence[pileupread.query_position]))
+    samfile.close()
+    # alleles_found = []
+    # snp_is_homo = True
+    # for line in lines:
+    #     lineSplit = line.split()
+    #     bam_seq = lineSplit[9]
+    #     bam_pos = int(lineSplit[3])
+    #     print(line)
+    #     print(snp_pos)
+    #     print(bam_pos)
+    #     # if snp_pos - bam_pos <= 0:
+    #     #     print(line)
+    #     #     print(snp_pos)
+    #     #     print(bam_pos)
+    #     bam_base = bam_seq[snp_pos - bam_pos]
+    #     if bam_base not in alleles_found:
+    #         alleles_found.append(bam_base)
+    #         if len(alleles_found) == 2:
+    #             snp_is_homo = False
+    #             break
     return snp_is_homo
 
 def keepLines(snp, dir, barcodes):
