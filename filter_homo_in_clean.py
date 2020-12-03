@@ -80,7 +80,7 @@ def keepLines(snp, dir, outputFile, barcodes):
         coord = snp[i]
         output = []
         for file in os.listdir(dir):
-            if file.endswith(".bam"):  # TODO all bams
+            if file.endswith("b1.bam"):  # TODO all bams
                 print(file)
                 this_output = subprocess.check_output(["samtools", "view", "-F", "4", "-q", "30", str(dir) + "/" + file, coord])
                 # this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
@@ -97,8 +97,9 @@ def keepLines(snp, dir, outputFile, barcodes):
 def readBarcodes(barcodes_dir):
     barcodes = []
     for file in os.listdir(barcodes_dir):
-        f = open( str(barcodes_dir) + str(file) , "r")
-        barcodes.extend(f.read().splitlines())
+        if file.endswith("b1.txt"):  # TODO all bams
+            f = open( str(barcodes_dir) + str(file) , "r")
+            barcodes.extend(f.read().splitlines())
     return barcodes
 
 def main():
