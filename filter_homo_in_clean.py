@@ -63,7 +63,7 @@ def filterCellranger(lines, barcodes):
             genes = line.split("GN:Z:")[1].split()[0]
             # if barcode in barcodes and ";" not in genes:
             if barcode in barcodes and "GN:Z:dhcr7" in line:
-                print(line)
+                # print(line)
                 good_lines.append(line)
 
     return good_lines
