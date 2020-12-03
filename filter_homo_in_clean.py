@@ -78,7 +78,7 @@ def isHomo(lines, snp_coord):
     snp_pos = int(snp_coord.split("-")[1])
     writeFile("tmp.sam", lines)
     scaffold = snp_coord.split(":")[0]
-    pos = snp_coord.split("-")[1]
+    pos = int(snp_coord.split("-")[1])
     snp_is_homo = True
     samfile = pysam.AlignmentFile("tmp.sam", "r", check_sq=False)
     for pileupcolumn in samfile.pileup(scaffold, pos, pos):
