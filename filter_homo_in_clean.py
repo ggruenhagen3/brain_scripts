@@ -136,7 +136,7 @@ def keepLinesPysam(snp, dir, barcodes):
             samfile = samfiles[sample]
             for read in samfile.fetch(scaffold, pos, pos):
                 print(read)
-                break
+        break
             # for pileupcolumn in samfile.pileup(scaffold, pos, pos):
             #     for pileupread in pileupcolumn.pileups:
             #         print(pileupread)
