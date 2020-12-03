@@ -61,8 +61,8 @@ def filterCellranger(lines, barcodes):
         if "xf:i:25" in line and "CB:Z:" in line and "GN:Z:" in line and line.split()[4] == "255":
             barcode = line.split("CB:Z:")[1].split()[0]
             genes = line.split("GN:Z:")[1].split()[0]
-            # if barcode in barcodes and ";" not in genes:
-            if barcode in barcodes and "GN:Z:dhcr7" in line:
+            if barcode in barcodes and ";" not in genes:
+            # if barcode in barcodes and "GN:Z:dhcr7" in line:
                 good_lines.append(line)
 
     return good_lines
