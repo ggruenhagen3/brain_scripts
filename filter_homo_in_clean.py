@@ -88,7 +88,6 @@ def isHet(snp, samfiles, barcodes):
     snp_is_het = False
     alleles_found = []
     for sample, samfile in samfiles.items():
-        print(sample)
         for read in samfile.fetch(scaffold, pos-1, pos):
             readGood = filterCellrangerRead(str(read), barcodes[sample])
             if readGood:
@@ -124,8 +123,12 @@ def keepLinesPysam(snp, dir, barcodes):
             samfiles[sample] = pysam.AlignmentFile(str(dir) + "/" + file, "rb")
 
     for i in range(0, len(snp_coords)):
+        print(snp_coords[i])
         if isHet(snp_coords[i], samfiles, barcodes):
+            print("Good")
             good_snp.append(i)
+        else:
+            print("Homo")
     print("Done pysam")
     return good_snp
 
