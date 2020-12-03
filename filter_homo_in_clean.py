@@ -86,6 +86,7 @@ def keepLines(snp, dir, outputFile, barcodes):
                 # this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
                 filtered_output_lines = filterCellranger(output_lines, barcodes[file.split(".")[0]])
+                print(file.split(".")[0])
                 print(len(filtered_output_lines))
                 output.extend(filtered_output_lines)
                 # len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
