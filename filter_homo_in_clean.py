@@ -130,6 +130,8 @@ def keepLinesPysam(snp, dir, barcodes):
     for i in range(0, len(snp_coords)):
         scaffold = snp_coords[i].split(":")[0]
         pos = int(snp_coords[i].split("-")[1])
+        print(scaffold)
+        print(pos)
         for sample in samfiles_keys:
             samfile = samfiles[sample]
             for pileupcolumn in samfile.pileup(scaffold, pos, pos):
@@ -139,7 +141,7 @@ def keepLinesPysam(snp, dir, barcodes):
                         print('\tbase in read %s = %s' %
                               (pileupread.alignment.query_name,
                                pileupread.alignment.query_sequence[pileupread.query_position]))
-                        break
+                        # break
             # filterCellrangerRead()
     print("Done pysam")
 
