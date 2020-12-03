@@ -138,12 +138,12 @@ def keepLinesPysam(snp, dir, barcodes):
         print(pos)
         for sample, samfile in samfiles.items():
             print(sample)
-            print(samfile.count(scaffold, pos, pos+1))
+            print(samfile.count(scaffold, pos-1, pos))
             # for read in samfile.fetch(scaffold, pos, pos+1):
             #     print(read)
             #     print("\tbase in read: " + read.alignment.query_sequence[read.query_position])
             # samfile.close()
-            for pileupcolumn in samfile.pileup(scaffold, pos, pos+1):
+            for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
                 for pileupread in pileupcolumn.pileups:
                     if not pileupread.is_del and not pileupread.is_refskip:
                         print(pileupread)
