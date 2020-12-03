@@ -44,7 +44,7 @@ def readSNP(snp_file):
 #             good_lines.append(line)
 #     return good_lines
 
-def filterCellrangerRead(lines, barcodes):
+def filterCellrangerRead(line, barcodes):
     if "xf:i:25" in line and "CB:Z:" in line and "GN:Z:" in line and line.split()[4] == "255":
         barcode = line.split("CB:Z:")[1].split()[0]
         genes = line.split("GN:Z:")[1].split()[0]
@@ -139,10 +139,6 @@ def keepLinesPysam(snp, dir, barcodes):
         for sample, samfile in samfiles.items():
             print(sample)
             print(samfile.count(scaffold, pos-1, pos))
-            # for read in samfile.fetch(scaffold, pos, pos+1):
-            #     print(read)
-            #     print("\tbase in read: " + read.alignment.query_sequence[read.query_position])
-            # samfile.close()
             for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
                 for pileupread in pileupcolumn.pileups:
                     if not pileupread.is_del and not pileupread.is_refskip:
@@ -150,6 +146,8 @@ def keepLinesPysam(snp, dir, barcodes):
                         print('\tbase in read %s = %s' %
                               (pileupread.alignment.query_name,
                                pileupread.alignment.query_sequence[pileupread.query_position]))
+                        readGood = filterCellrangerRead(str(pileupread), barcodes[sample])
+                        print(readGood)
                         return good_snp
             samfile.close()
             # filterCellrangerRead()
