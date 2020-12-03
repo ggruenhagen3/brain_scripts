@@ -81,10 +81,11 @@ def isHomo(lines, snp_coord):
         lineSplit = line.split()
         bam_seq = lineSplit[9]
         bam_pos = int(lineSplit[3])
-        if snp_pos - bam_pos <= 0:
-            print(line)
-            print(snp_pos)
-            print(bam_pos)
+        print(line)
+        # if snp_pos - bam_pos <= 0:
+        #     print(line)
+        #     print(snp_pos)
+        #     print(bam_pos)
         bam_base = bam_seq[snp_pos - bam_pos]
         if bam_base not in alleles_found:
             alleles_found.append(bam_base)
