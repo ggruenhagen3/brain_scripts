@@ -132,11 +132,11 @@ def keepLinesPysam(snp, dir, barcodes):
     samfiles = {}  # key is sample and value is samfile object
     samfiles_keys = list(samfiles.keys())
     for file in os.listdir(dir):
-        if file.endswith("dhcr7_counts25.bam"): #TODO
+        if file.endswith(".bam"):
             # sample = file.split(".")[0]
             sample = "b1"
             print(str(dir) + "/" + file)
-            samfiles[sample] = pysam.AlignmentFile(str(dir) + "/" + file, "r") # TODO
+            samfiles[sample] = pysam.AlignmentFile(str(dir) + "/" + file, "rb")
             # for read in samfiles[file.split(".")[0]].fetch("NC_036780.1", int("332868"), int("332868")):
             #     print(read)
             #     break
