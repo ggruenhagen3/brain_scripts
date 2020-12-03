@@ -48,6 +48,8 @@ def filterCellrangerRead(line, barcodes):
     lineSplit = line.split("\t")
     info = lineSplit[11]
     # print(info)
+    if lineSplit[10] == "TTTTTTTTTTTGTCTAGTCCCACGCAGGGTTGAAGGTTTTTTTTTTTCTGTTTGTTTTTTTTTTTCTTTCTTTTTTTCAGAAAATCACTGAAACATTACTCCGGCAGTAATGAAAAGAGATGCTGTGAGATGCCATGGTTCATTATCGATG"
+        print(info)
     if "('xf', 25)" in info and "CB" in info and "GN" in info and lineSplit[4] == "255":
         barcode = line.split("'CB'")[1].split("'")[1]
         genes = line.split("'GN'")[1].split(")")[0]
