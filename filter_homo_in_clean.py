@@ -153,8 +153,10 @@ def keepLinesPysam(snp, dir, barcodes):
                 print(read)
                 test = read.get_aligned_pairs(matches_only=True)
                 test2 = [x for x in test if x[1] == pos]
+                print(test2)
                 if len(test2) > 0:
                     base = test2[0][0]
+                    print(str(read).split("\t")[9][base])
                     return good_snp
             # for pileupcolumn in samfile.pileup(scaffold, pos-1, pos):
             #     for pileupread in pileupcolumn.pileups:
