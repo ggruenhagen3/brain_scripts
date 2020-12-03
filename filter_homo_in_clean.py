@@ -171,7 +171,7 @@ def main():
     # snp = ["NC_036780.1:272743-279989"]
     if verbose: print("Reading SNPs")
     snp = readSNP(snp_file)
-    snp = list(islice(snp.items(), 5))
+    snp = dict(islice(snp.items(), 5))
     if verbose: print("Reading Barcodes")
     barcodes = readBarcodes(barcodes)
 
