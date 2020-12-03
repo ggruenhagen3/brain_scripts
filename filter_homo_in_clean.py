@@ -102,7 +102,7 @@ def isHet(snp, samfiles, barcodes):
                             snp_is_het = True
                             samfile.close()
                             break
-        samfile.close()
+        # samfile.close()
     return snp_is_het
 
 def keepLinesPysam(snp, dir, barcodes):
