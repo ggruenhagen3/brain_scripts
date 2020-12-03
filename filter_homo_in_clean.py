@@ -24,14 +24,14 @@ def readSNP(snp_file):
     :return start: list of snp starts
     :return stop: list of snp stops
     """
-    snp = []
+    snp = {}  # key is coord and value is line
     with open(snp_file, 'r') as input:
         for line in input:
             lineSplit = line.split()
             scaffold = lineSplit[0]
             pos = lineSplit[1]
             coord = scaffold + ":" + str(pos) + "-" + str(pos)
-            snp.append(coord)
+            snp[coord] = line
     return snp
 
 # def filterCIGAR(lines):
@@ -67,17 +67,36 @@ def filterCellranger(lines, barcodes):
 
     return good_lines
 
+def writeFile(file, lines):
+    f = open(file, "w+")
+    for line in lines:
+        f.write(line)
+    f.close()
 
-def keepLines(snp, dir, outputFile, barcodes):
+def isHomo(lines, snp_coord):
+    snp_pos = int(snp_coord.split("-")[1])
+    alleles_found = []
+    snp_is_homo = True
+    for line in lines:
+        lineSplit = line.split()
+        bam_seq = lineSplit[9]
+        bam_pos = int(lineSplit[3])
+        bam_base = bam_seq[snp_pos - bam_pos]
+        if bam_base not in alleles_found:
+            alleles_found.append(bam_base)
+            if len(alleles_found) == 2:
+                snp_is_homo = False
+                break
+    return snp_is_homo
 
-    for i in range(0, len(snp)):
+def keepLines(snp, dir, barcodes):
+    good_snp = []
+    snp_coords = snp.keys()
+    for i in range(0, len(snp_coords)):
         if i % 5000 == 0:
             print(i)
-        # TODO restore these commented code below
-        # scaffold = snp[i].split(":")[0]
-        # pos = snp[i].split("-")[1]
-        # coord = str(scaffold) + ":" + pos + "-" + pos
-        coord = snp[i]
+        coord = snp_coords[i]
+        # coord = snp[i]
         output = []
         for file in os.listdir(dir):
             if file.endswith(".bam"):  # TODO all bams
@@ -95,7 +114,9 @@ def keepLines(snp, dir, outputFile, barcodes):
         if len(output) < 1:
             print("SNP NOT FOUND")
         else:
-            print(len(output))
+            if not isHomo(output, snp_coords[i]):
+                good_snp.append(snp[snp_coords[i]])
+    return good_snp
 
 def readBarcodes(barcodes_dir):
     barcodes = {}  # key is sample and value is barcodes
@@ -107,10 +128,12 @@ def readBarcodes(barcodes_dir):
 
 def main():
     snp_file, dir, verbose, outputFile, barcodes = parseArgs()
-    snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
+    # snp = ["NC_036780.1:118274-118845", "NC_036780.1:166532-244697", "NC_036780.1:272743-279989", "NC_036780.1:332525-366704", "NC_027944.1:14412-15552"]
     # snp = ["NC_036780.1:272743-279989"]
+    snp = readSNP(snp_file)
     barcodes = readBarcodes(barcodes)
-    keepLines(snp, dir, outputFile, barcodes)
+    good_snp = keepLines(snp, dir, barcodes)
+    writeFile(outputFile, good_snp)
 
     cwd = os.getcwd()
 
