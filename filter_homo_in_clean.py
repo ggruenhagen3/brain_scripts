@@ -132,9 +132,8 @@ def keepLinesPysam(snp, dir, barcodes):
         pos = int(snp_coords[i].split("-")[1])
         print(scaffold)
         print(pos)
-        for sample in samfiles_keys:
+        for sample, samfile in samfiles.items():
             print(sample)
-            samfile = samfiles[sample]
             for read in samfile.fetch(scaffold, pos, pos):
                 print(read)
             samfile.close()
