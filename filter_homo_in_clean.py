@@ -81,7 +81,7 @@ def isHomo(lines, snp_coord):
         lineSplit = line.split()
         bam_seq = lineSplit[9]
         bam_pos = int(lineSplit[3])
-        if snp_pos - bam_pos < 0:
+        if snp_pos - bam_pos <= 0:
             print(line)
             print(snp_pos)
             print(bam_pos)
