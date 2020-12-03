@@ -81,25 +81,27 @@ def keepLines(snp, dir, outputFile, barcodes):
         output = []
         for file in os.listdir(dir):
             if file.endswith("b1.bam"):  # TODO all bams
-                print(file)
                 this_output = subprocess.check_output(["samtools", "view", "-F", "4", "-q", "30", str(dir) + "/" + file, coord])
                 # this_output = subprocess.check_output(["samtools", "view", "-F", "4", str(dir) + "/" + file, coord])
                 output_lines = this_output.decode().split("\n")
-                len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
-                output.extend(output_lines[:-1])
+                filtered_output_lines = filterCellranger(output_lines, barcodes[file.split(".")[0]])
+                print(len(filtered_output_lines))
+                output.extend(filtered_output_lines)
+                # len_output_lines = len(output_lines) - 1  # -1 because the last one is empty string
+                # output.extend(output_lines[:-1])
         # output = filterCIGAR(output)
-        output = filterCellranger(output, barcodes)
+        # output = filterCellranger(output, barcodes)
         if len(output) < 1:
             print("SNP NOT FOUND")
         else:
             print(len(output))
 
 def readBarcodes(barcodes_dir):
-    barcodes = []
+    barcodes = {}  # key is sample and value is barcodes
     for file in os.listdir(barcodes_dir):
-        if file.endswith("b1.txt"):  # TODO all bams
-            f = open( str(barcodes_dir) + str(file) , "r")
-            barcodes.extend(f.read().splitlines())
+        # if file.endswith("b1.txt"):  # TODO all bams
+        f = open( str(barcodes_dir) + str(file) , "r")
+        barcodes[file.split(".txt")[0]] = f.read().splitlines()
     return barcodes
 
 def main():
