@@ -150,7 +150,7 @@ def keepLinesPysam(snp, dir, barcodes):
                         print('\tbase in read %s = %s' %
                               (pileupread.alignment.query_name,
                                pileupread.alignment.query_sequence[pileupread.query_position]))
-                        break
+                        return good_snp
                 samfile.close()
             # filterCellrangerRead()
     print("Done pysam")
