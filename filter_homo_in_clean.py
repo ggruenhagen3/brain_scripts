@@ -47,9 +47,10 @@ def readSNP(snp_file):
 def filterCellrangerRead(line, barcodes):
     lineSplit = line.split("\t")
     info = lineSplit[11]
-    # print(info)
-    if lineSplit[10] == "TTTTTTTTTTTGTCTAGTCCCACGCAGGGTTGAAGGTTTTTTTTTTTCTGTTTGTTTTTTTTTTTCTTTCTTTTTTTCAGAAAATCACTGAAACATTACTCCGGCAGTAATGAAAAGAGATGCTGTGAGATGCCATGGTTCATTATCGATG":
-        print(info)
+    print(line)
+    print(info)
+    # if lineSplit[10] == "TTTTTTTTTTTGTCTAGTCCCACGCAGGGTTGAAGGTTTTTTTTTTTCTGTTTGTTTTTTTTTTTCTTTCTTTTTTTCAGAAAATCACTGAAACATTACTCCGGCAGTAATGAAAAGAGATGCTGTGAGATGCCATGGTTCATTATCGATG":
+    #     print(info)
     if "('xf', 25)" in info and "CB" in info and "GN" in info and lineSplit[4] == "255":
         barcode = line.split("'CB'")[1].split("'")[1]
         genes = line.split("'GN'")[1].split(")")[0]
@@ -137,7 +138,7 @@ def keepLinesPysam(snp, dir, barcodes):
             # for read in samfiles[file.split(".")[0]].fetch("NC_036780.1", int("332868"), int("332868")):
             #     print(read)
             #     break
-    i = 1000
+    i = 105
     for i in range(0, len(snp_coords)):
         scaffold = snp_coords[i].split(":")[0]
         pos = int(snp_coords[i].split("-")[1])
