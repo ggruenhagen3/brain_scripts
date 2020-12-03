@@ -44,6 +44,14 @@ def readSNP(snp_file):
 #             good_lines.append(line)
 #     return good_lines
 
+def filterCellrangerRead(lines, barcodes):
+    if "xf:i:25" in line and "CB:Z:" in line and "GN:Z:" in line and line.split()[4] == "255":
+        barcode = line.split("CB:Z:")[1].split()[0]
+        genes = line.split("GN:Z:")[1].split()[0]
+        if barcode in barcodes and ";" not in genes:
+            return True
+    return False
+
 def filterCellranger(lines, barcodes):
     good_lines = []
     test = 0
@@ -111,6 +119,30 @@ def isHomo(lines, snp_coord):
     #             break
     return snp_is_homo
 
+def keepLinesPysam(snp, dir, barcodes):
+    good_snp = []
+    snp_coords = list(snp.keys())
+    samfiles = {}  # key is sample and value is samfile object
+    samfiles_keys = list(samfiles.keys())
+    for file in os.listdir(dir):
+        if file.endswith(".bam"):
+            samfiles[file.split(".")[0]] = pysam.AlignmentFile("tmp.sam", "rb")
+    for i in range(0, len(snp_coords)):
+        scaffold = snp_coords[i].split(":")[0]
+        pos = int(snp_coords[i].split("-")[1])
+        for sample in samfiles_keys:
+            samfile = samfiles[sample]
+            for pileupcolumn in samfile.pileup(scaffold, pos, pos):
+                for pileupread in pileupcolumn.pileups:
+                    print(pileupread)
+                    if not pileupread.is_del and not pileupread.is_refskip:
+                        print('\tbase in read %s = %s' %
+                              (pileupread.alignment.query_name,
+                               pileupread.alignment.query_sequence[pileupread.query_position]))
+                        break
+            # filterCellrangerRead()
+
+
 def keepLines(snp, dir, barcodes):
     good_snp = []
     snp_coords = list(snp.keys())
@@ -161,7 +193,8 @@ def main():
     barcodes = readBarcodes(barcodes)
 
     if verbose: print("Searching to see if the SNP is heterozygous in the good reads")
-    good_snp = keepLines(snp, dir, barcodes)
+    # good_snp = keepLines(snp, dir, barcodes)
+    good_snp = keepLinesPysam(snp, dir, barcodes)
     if verbose: print(str(len(good_snp)) + " SNPs were heterozygous out of " + str(len(snp)))
 
     if verbose: print("Writing Good SNPs to File")
