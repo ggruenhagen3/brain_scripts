@@ -147,11 +147,11 @@ def keepLinesPysam(snp, dir, barcodes):
                     if not pileupread.is_del and not pileupread.is_refskip:
                         readGood = filterCellrangerRead(str(pileupread), barcodes[sample])
                         # if readGood:
-                        print(str(pileupread))
-                        print('\tbase in read %s = %s' %
-                              (pileupread.alignment.query_name,
-                               pileupread.alignment.query_sequence[pileupread.query_position]))
-                        print(readGood)
+                        # print(str(pileupread))
+                        # print('\tbase in read %s = %s' %
+                              # (pileupread.alignment.query_name,
+                               # pileupread.alignment.query_sequence[pileupread.query_position]))
+                        # print(readGood)
                         i += 1
                         if i == 100:
                             return good_snp
