@@ -69,7 +69,7 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
     """
     scaffold = snp_coord.split(":")[0]
     pos = int(snp_coord.split("-")[1])
-    allele_count = [0, 0]  # number of good reads for ref and alt respectively
+    allele_count = [0, 0, 0]  # number of good reads for ref and alt respectively
     for sample, samfile in samfiles.items():
         for read in samfile.fetch(scaffold, pos-1, pos):
             readGood = filterCellrangerRead(str(read), barcodes[sample])
@@ -84,15 +84,16 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
                     elif base == alt:
                         allele_count[1] += 1
                     else:
-                        print("-----------------")
-                        print("MY ERROR: base found that isn't ref/alt in the input SNP vcf. Base found: " + base +
-                              ", ref allele: " + ref + ", alt allele: " + alt + ". This occured at " + snp_coord)
-                        print(str(read))
-                        print(test)
-                        print(test2)
-                        print(base_pos)
-                        print(base)
-                        print("-----------------")
+                        allele_count[2] += 1
+                        # print("-----------------")
+                        # print("MY ERROR: base found that isn't ref/alt in the input SNP vcf. Base found: " + base +
+                        #       ", ref allele: " + ref + ", alt allele: " + alt + ". This occured at " + snp_coord)
+                        # print(str(read))
+                        # print(test)
+                        # print(test2)
+                        # print(base_pos)
+                        # print(base)
+                        # print("-----------------")
         # samfile.close()
     print(snp_coord + "\t" + str(allele_count[0]) + "\t" + str(allele_count[1]))
     return allele_count
@@ -137,19 +138,23 @@ def sumStats(snp_allele_count):
     ref_count = []
     alt_count = []
     all_count = []
+    bad_count = []
     i = 0
     for snp_coord, snp_counts in snp_allele_count.items():
         i += 1
         ref_count.append(snp_counts[0])
         alt_count.append(snp_counts[1])
+        bad_count.append(snp_counts[2])
         all_count.append(snp_counts[0] + snp_counts[1])
 
     print("Average Ref Counts per SNP: " + str(statistics.mean(ref_count)))
     print("Average Alt Counts per SNP: " + str(statistics.mean(alt_count)))
+    print("Average Bad Counts per SNP: " + str(statistics.mean(bad_count)))
     print("Average Counts per SNP: " + str(statistics.mean(all_count)))
 
     print("Median Ref Counts per SNP: " + str(statistics.median(ref_count)))
     print("Median Alt Counts per SNP: " + str(statistics.median(alt_count)))
+    print("Median Bad Counts per SNP: " + str(statistics.mean(bad_count)))
     print("Median Counts per SNP: " + str(statistics.median(all_count)))
 
 def main():
