@@ -87,6 +87,7 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
                         print("MY ERROR: base found that isn't ref/alt in the input SNP vcf. Base found: " + base +
                               ", ref allele: " + ref + ", alt allele: " + alt + ". This occured at " + snp_coord)
         # samfile.close()
+    print(snp_coord + "\t" + allele_count[0] + "\t" + allele_count[1])
     return allele_count
 
 def countAllSNP(snp, dir, barcodes):
@@ -134,7 +135,7 @@ def sumStats(snp_allele_count):
         i += 1
         ref_count.append(snp_counts[0])
         alt_count.append(snp_counts[1])
-        alt_count.append(snp_counts[0] + snp_counts[1])
+        all_count.append(snp_counts[0] + snp_counts[1])
 
     print("Average Ref Counts per SNP: " + str(statistics.mean(ref_count)))
     print("Average Alt Counts per SNP: " + str(statistics.mean(alt_count)))
