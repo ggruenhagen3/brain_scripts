@@ -99,6 +99,7 @@ def isHet(snp, samfiles, barcodes):
                         alleles_found.append(base)
                         if len(alleles_found) > 1:
                             snp_is_het = True
+                            print(alleles_found)
                             # samfile.close()
                             break
         # samfile.close()
@@ -126,7 +127,7 @@ def keepLinesPysam(snp, dir, barcodes):
         print(snp_coords[i])
         if isHet(snp_coords[i], samfiles, barcodes):
             print("Good")
-            good_snp.append(i)
+            good_snp.append(snp[snp_coords[i]])
         else:
             print("Homo")
     print("Done pysam")
