@@ -85,7 +85,7 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
                         allele_count[0] += 1
                     else:
                         print("MY ERROR: base found that isn't ref/alt in the input SNP vcf. Base found: " + base +
-                              ", ref allele: " + ref + ", alt allele: " + alt + ". This occured at " + snp)
+                              ", ref allele: " + ref + ", alt allele: " + alt + ". This occured at " + snp_coord)
         # samfile.close()
     return allele_count
 
