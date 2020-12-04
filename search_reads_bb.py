@@ -78,7 +78,7 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
                 test2 = [x for x in test if x[1] == pos]
                 if len(test2) > 0:
                     base_pos = test2[0][0]
-                    base = str(read).split("\t")[9][base_pos-1]
+                    base = str(read).split("\t")[9][base_pos]
                     if base == ref:
                         allele_count[0] += 1
                     elif base == alt:
