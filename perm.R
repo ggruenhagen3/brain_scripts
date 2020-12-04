@@ -27,7 +27,7 @@ gene_names <- rownames(combined@assays$RNA)
 marker_genes <- markers$gene
 valid_genes <- marker_genes
 other_genes = rownames(combined)[which(! rownames(combined) %in% valid_genes)]
-clusters = sort(unique(as.numeric(as.vector(obj))))
+clusters = sort(unique(as.numeric(as.vector(Idents(combined)))))
 # num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
 # total_genes_per_cluster <- rep(0, num_clusters+1)
 run_num <- 1000
