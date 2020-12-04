@@ -154,7 +154,7 @@ def sumStats(snp_allele_count):
 
     print("Median Ref Counts per SNP: " + str(statistics.median(ref_count)))
     print("Median Alt Counts per SNP: " + str(statistics.median(alt_count)))
-    print("Median Bad Counts per SNP: " + str(statistics.mean(bad_count)))
+    print("Median Bad Counts per SNP: " + str(statistics.median(bad_count)))
     print("Median Counts per SNP: " + str(statistics.median(all_count)))
 
 def main():
