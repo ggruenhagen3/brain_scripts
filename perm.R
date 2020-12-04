@@ -10,7 +10,8 @@ source(paste0(rna_path, "/brain_scripts/all_f.R"))
 
 # combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
 combined <- readRDS(paste(rna_path, "/data/bb_clustered_102820.rds", sep=""))
-bb53_neuronal = subset(bb, idents = c(5, 20, 31, 45, 46, 50), invert = TRUE)
+bb53_neuronal = subset(combined, idents = c(5, 20, 31, 45, 46, 50), invert = TRUE)
+combined = bb53_neuronal
 marker_path <- paste(rna_path, "data/markers/", sep="")
 marker_files <- dir(marker_path, pattern =paste("*.txt", sep=""))
 
