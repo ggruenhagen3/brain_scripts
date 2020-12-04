@@ -10,6 +10,7 @@ source(paste0(rna_path, "/brain_scripts/all_f.R"))
 
 # combined <- readRDS(paste(rna_path, "/brain_scripts/brain_shiny/data/combined.rds", sep = ""))
 combined <- readRDS(paste(rna_path, "/data/bb_clustered_102820.rds", sep=""))
+bb53_neuronal = subset(bb, idents = c(5, 20, 31, 45, 46, 50), invert = TRUE)
 marker_path <- paste(rna_path, "data/markers/", sep="")
 marker_files <- dir(marker_path, pattern =paste("*.txt", sep=""))
 
@@ -99,7 +100,7 @@ for (run in 1:run_num) {
   }
 }
 cat("\n")
-write.table(perm_df, "~/scratch/brain/results/perm_raw.tsv", sep="\t", quote = F)
+write.table(perm_df, "~/scratch/brain/results/perm_raw_53_neuronal.tsv", sep="\t", quote = F)
 
 res_df = data.frame()
 for (i in 0:num_clusters) {
@@ -107,9 +108,10 @@ for (i in 0:num_clusters) {
   real_value = perm_df$test_ratio[which(perm_df$isReal == "Real" & perm_df$Cluster == i)]
 
   this_df$above = this_df$test_ratio >= real_value
-  png(paste0(rna_path, "/results/hists/hist_", i, ".png"), width = 750, height = 500, res=72)
-  print(ggplot(this_df, aes(test_ratio, alpha=.7, fill=above)) + geom_histogram(alpha=0.5, color = "purple") + geom_vline(aes(xintercept = real_value)) + geom_text(aes(x=real_value, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + guides(color=F, alpha=F, fill=F) + ggtitle(paste("Cluster", i)))
+  png(paste0(rna_path, "/results/hists_neuronal/hist_", i, ".png"), width = 750, height = 500, res=72)
+  print(ggplot(this_df, aes(test_ratio, alpha=.7, fill=above)) + geom_histogram(alpha=0.5, color = "purple") + geom_vline(aes(xintercept = real_value)) + geom_text(aes(x=real_value, label="Real Value"), y = Inf, hjust=0, vjust=1, color = "black") + xlab("Normalized Number of Markers") + scale_color_discrete(drop=FALSE, limits=c(T, F)) + scale_fill_discrete(drop=FALSE, limits=c(T,F)) + guides(color=F, alpha=F, fill=F) + ggtitle(paste("Cluster", i)))
   dev.off()
+  system(paste0("rclone copy ", paste0(rna_path, "/results/hists_neurona/hist_", i, ".png"), " dropbox:BioSci-Streelman/George/Brain/bb/results/enrichment/all/perm/hists/"))
   res_df = rbind(res_df, t(c(i, length(which(this_df$above)), length(which(this_df$above))/run_num )))
 }
 
@@ -122,7 +124,7 @@ for (i in 0:num_clusters) {
 }
 colnames(sig_df) = c("Cluster", "n_greater", "p")
 sig_df$p_val_adj = p.adjust(sig_df$p, method = "bonferroni")
-write.table(sig_df, "~/scratch/brain/results/perm_sig.tsv", sep="\t", quote = F)
+write.table(sig_df, "~/scratch/brain/results/perm_sig_53_neuronal.tsv", sep="\t", quote = F)
 
 # Idents(combined) = combined$seurat_clusters
 # markerExpPerCellPerCluster(combined, valid_genes, n_markers = F, correct = T)
