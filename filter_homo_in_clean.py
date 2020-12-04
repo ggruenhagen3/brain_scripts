@@ -94,7 +94,8 @@ def isHet(snp, samfiles, barcodes):
                 test = read.get_aligned_pairs(matches_only=True)
                 test2 = [x for x in test if x[1] == pos]
                 if len(test2) > 0:
-                    base = test2[0][0]
+                    base_pos = test2[0][0]
+                    base = str(read).split("\t")[9][base_pos]
                     if base not in alleles_found:
                         alleles_found.append(base)
                         if len(alleles_found) > 1:
