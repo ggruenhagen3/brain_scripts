@@ -27,8 +27,9 @@ gene_names <- rownames(combined@assays$RNA)
 marker_genes <- markers$gene
 valid_genes <- marker_genes
 other_genes = rownames(combined)[which(! rownames(combined) %in% valid_genes)]
-num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
-total_genes_per_cluster <- rep(0, num_clusters+1)
+clusters = sort(unique(as.numeric(as.vector(obj))))
+# num_clusters <- as.numeric(tail(levels(combined@meta.data$seurat_clusters), n=1))
+# total_genes_per_cluster <- rep(0, num_clusters+1)
 run_num <- 1000
 test_clusters = c(0, 2, 9, 10)
 
@@ -39,7 +40,7 @@ perm_df = data.frame()
 # Real Data
 run = 1
 Idents(combined) = combined$seurat_clusters
-for (i in 0:num_clusters) {
+for (i in clusters) {
   this_cells <- WhichCells(combined, idents = i)
   this_pos <- sum(rowSums(mat[valid_genes,this_cells]))
   this_neg <- sum(rowSums(mat[other_genes,this_cells]))
@@ -74,7 +75,7 @@ for (run in 1:run_num) {
   set.seed(run)
   combined$shuffled = sample(as.numeric(as.vector(combined$seurat_clusters)))
   Idents(combined) = combined$shuffled
-  for (i in 0:num_clusters) {
+  for (i in clusters) {
     this_cells = WhichCells(combined, idents=i)
     # this_cells <- new_cells[[i+1]]
     this_pos <- sum(rowSums(mat[valid_genes,this_cells]))
@@ -104,7 +105,7 @@ cat("\n")
 write.table(perm_df, "~/scratch/brain/results/perm_raw_53_neuronal.tsv", sep="\t", quote = F)
 
 res_df = data.frame()
-for (i in 0:num_clusters) {
+for (i in clusters) {
   this_df = perm_df[which(perm_df$isReal == "Boot" & perm_df$Cluster == i),]
   real_value = perm_df$test_ratio[which(perm_df$isReal == "Real" & perm_df$Cluster == i)]
 
@@ -117,7 +118,7 @@ for (i in 0:num_clusters) {
 }
 
 sig_df = data.frame()
-for (i in 0:num_clusters) {
+for (i in clusters) {
   boot = perm_df$test_ratio[which(perm_df$Cluster == i & perm_df$isReal == "Boot")]
   real = perm_df$test_ratio[which(perm_df$Cluster == i & perm_df$isReal == "Real")]
   n_greater = length(which(boot > real))
