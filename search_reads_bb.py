@@ -90,6 +90,8 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
                         print(str(read))
                         print(test)
                         print(test2)
+                        print(base_pos)
+                        print(base)
                         print("-----------------")
         # samfile.close()
     print(snp_coord + "\t" + str(allele_count[0]) + "\t" + str(allele_count[1]))
