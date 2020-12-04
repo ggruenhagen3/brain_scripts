@@ -56,7 +56,7 @@ def writeFile(file, snp_allele_count):
     f = open(file, "w+")
     f.write("SNP_COORD" + "\t" + "REF_COUNT" + "\t" + "ALT_COUNT\n")
     for snp_coord, snp_counts in snp_allele_count.items():
-        f.write(snp_coord + "\t" + snp_counts[0] + "\t" + snp_counts[1] + "\n")
+        f.write(snp_coord + "\t" + str(snp_counts[0]) + "\t" + str(snp_counts[1]) + "\n")
     f.close()
 
 def countSNP(snp_coord, ref, alt, samfiles, barcodes):
