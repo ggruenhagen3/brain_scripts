@@ -48,7 +48,7 @@ def filterCellrangerRead(readSplit, barcodes):
     if "('xf', 25)" in info and "CB" in info and "GN" in info and readSplit[4] == "255":
         barcode = info.split("'CB'")[1].split("'")[1]
         genes = info.split("'GN'")[1].split(")")[0]
-        if any(this_barcodes in barcode for this_barcodes in barcodes) and ";" not in genes:
+        if any(barcode in this_barcodes for this_barcodes in barcodes) and ";" not in genes:
             return True
     return False
 
@@ -146,7 +146,7 @@ def countAllSNP(snp, dir, barcodes):
                     if len(test2) > 0:
                         info = readSplit[11]
                         barcode = info.split("'CB'")[1].split("'")[1]
-                        barcode_modified = [this_barcodes in barcode for this_barcodes in barcodes][0]
+                        barcode_modified = [barcode in this_barcodes for this_barcodes in barcodes][0]
                         base_pos = test2[0][0]
                         base = readSplit[9][base_pos - 1]  # only works with the -1, idk why, I think bc pysam
                         if base == ref:
