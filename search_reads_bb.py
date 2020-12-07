@@ -139,14 +139,15 @@ def countAllSNP(snp, dir, barcodes):
         for sample, samfile in samfiles.items():
             for read in samfile.fetch(scaffold, pos - 1, pos):
                 readSplit = str(read).split("\t")
-                readGood = filterCellrangerRead(readSplit, barcodes[sample])
+                this_barcodes = barcodes[sample]
+                readGood = filterCellrangerRead(readSplit, this_barcodes)
                 if readGood:
                     test = read.get_aligned_pairs(matches_only=True)
                     test2 = [x for x in test if x[1] == pos]
                     if len(test2) > 0:
                         info = readSplit[11]
                         barcode = info.split("'CB'")[1].split("'")[1]
-                        barcode_modified = [barcode in this_barcodes for this_barcodes in barcodes][0]
+                        barcode_modified = [barcode in x for x in this_barcodes][0]
                         base_pos = test2[0][0]
                         base = readSplit[9][base_pos - 1]  # only works with the -1, idk why, I think bc pysam
                         if base == ref:
