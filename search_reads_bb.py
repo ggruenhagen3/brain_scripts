@@ -146,18 +146,18 @@ def countAllSNP(snp, dir, barcodes):
                     test2 = [x for x in test if x[1] == pos]
                     if len(test2) > 0:
                         info = readSplit[11]
-                        barcode = info.split("'CB'")[1].split("'")[1]
-                        barcode_modified = [x for x in this_barcodes if barcode in x][0]
+                        barcode = info.split("'CB'")[1].split("'")[1]  # raw barcode
+                        barcode_modified = [x for x in this_barcodes if barcode in x][0]  # barcode after R modifications
                         base_pos = test2[0][0]
                         base = readSplit[9][base_pos - 1]  # only works with the -1, idk why, I think bc pysam
                         if base == ref:
-                            cell_gene_count[barcode_modified][gene][0] += 1
+                            cell_gene_count[barcode_modified][gene][0] = cell_gene_count.get(barcode_modified, {}).get(gene, [0,0])[0] + 1
                             allele_count[0] += 1  # used just for summary stats
                         elif base == alt:
-                            cell_gene_count[barcode_modified][gene][1] += 1
+                            cell_gene_count[barcode_modified][gene][0] = cell_gene_count.get(barcode_modified, {}).get(gene, [0, 0])[1] + 1
                             allele_count[1] += 1  # used just for summary stats
                         else:
-                            cell_gene_count[barcode_modified][gene][1] += 1  # this is a bad count, but I'm calling it alt
+                            cell_gene_count[barcode_modified][gene][0] = cell_gene_count.get(barcode_modified, {}).get(gene, [0, 0])[1] + 1  # this is a bad count, but I'm calling it alt
                             allele_count[2] += 1  # used just for summary stat
 
         # For the Summary Stats
