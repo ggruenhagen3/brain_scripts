@@ -102,7 +102,7 @@ def isHet(snp, samfiles, barcodes):
                             snp_is_het = True
                             print(alleles_found)
                             # samfile.close()
-                            break
+                            # break
         # samfile.close()
     return snp_is_het
 
