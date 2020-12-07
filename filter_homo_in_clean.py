@@ -95,17 +95,17 @@ def isHet(snp, samfiles, barcodes):
                 test2 = [x for x in test if x[1] == pos]
                 if len(test2) > 0:
                     base_pos = test2[0][0]
-                    base = str(read).split("\t")[9][base_pos]  # aligned bases can go from 0 to 150 (aka it's 0-based)
-                    print(str(read))
-                    print(str(test))
-                    print(str(test2))
-                    print(base_pos)
-                    print(base)
+                    base = str(read).split("\t")[9][base_pos-1]  # aligned bases can go from 0 to 150 (aka it's 0-based)
+                    # print(str(read))
+                    # print(str(test))
+                    # print(str(test2))
+                    # print(base_pos)
+                    # print(base)
                     if base not in alleles_found:
                         alleles_found.append(base)
                         if len(alleles_found) > 1:
                             snp_is_het = True
-                            print(alleles_found)
+                            print("Alleles Found: " + str(alleles_found))
                             # samfile.close()
                             break
         # samfile.close()
