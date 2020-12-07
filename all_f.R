@@ -1601,32 +1601,33 @@ expressionDend = function(objs, my_slot="counts", imp_genes = NA) {
   # Output: dendrograms
   
   # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
+  non_zero_genes = c()
+  all_clusters = c()
+  for (obj in objs) {
+    gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+    non_zero_genes = c(non_zero_genes, gene_names)
+    all_clusters = c(all_clusters, paste(obj$project[[1]], sort(unique(as.vector((obj$seurat_clusters))))))
+  }
+  non_zero_table = table(non_zero_genes)
+  non_zero_genes = names(non_zero_table)[which(non_zero_table == length(objs))]
+  
+  # imp_genes = c()
+  # min_pct = 0.1
+  # for (obj in objs) {
+  #   print(obj$project[[1]])
+  #   Idents(obj) = obj$seurat_clusters
+  #   mat = obj@assays$RNA@counts
+  #   mat[which(mat > 1)] = 1
+  #   for (cluster in levels(obj$seurat_clusters)) {
+  #     cells_cluster = WhichCells(object = obj, idents = cluster)
+  #     n_cells_min = min_pct * length(cells_cluster)
+  #     genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[non_zero_genes,cells_cluster])) >= n_cells_min)]
+  #     imp_genes = c(imp_genes, genes_pass)
+  #   } # end cluster for
+  # } # end obj for
+  
   if (is.na(imp_genes)) {
-    print("Genes Not Supplied. Finding Non-Zero Genes to Use in Dendrogram.")
-    non_zero_genes = c()
-    all_clusters = c()
-    for (obj in objs) {
-      gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
-      non_zero_genes = c(non_zero_genes, gene_names)
-      all_clusters = c(all_clusters, paste(obj$project[[1]], sort(unique(as.vector((obj$seurat_clusters))))))
-    }
-    non_zero_table = table(non_zero_genes)
-    non_zero_genes = names(non_zero_table)[which(non_zero_table == length(objs))]
-    
-    # imp_genes = c()
-    # min_pct = 0.1
-    # for (obj in objs) {
-    #   print(obj$project[[1]])
-    #   Idents(obj) = obj$seurat_clusters
-    #   mat = obj@assays$RNA@counts
-    #   mat[which(mat > 1)] = 1
-    #   for (cluster in levels(obj$seurat_clusters)) {
-    #     cells_cluster = WhichCells(object = obj, idents = cluster)
-    #     n_cells_min = min_pct * length(cells_cluster)
-    #     genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[non_zero_genes,cells_cluster])) >= n_cells_min)]
-    #     imp_genes = c(imp_genes, genes_pass)
-    #   } # end cluster for
-    # } # end obj for
+    print("Genes Not Supplied. Using Non-Zero Genes to Use in Dendrogram.")
     imp_genes = non_zero_genes
   }
   imp_genes = unique(imp_genes)
