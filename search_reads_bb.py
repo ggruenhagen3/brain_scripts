@@ -77,14 +77,8 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
                 test = read.get_aligned_pairs(matches_only=True)
                 test2 = [x for x in test if x[1] == pos]
                 if len(test2) > 0:
-                    print(str(read))
-                    print(str(test))
-                    print(str(test2))
                     base_pos = test2[0][0]
-                    base = str(read).split("\t")[9][base_pos]
-                    print(base_pos)
-                    print(base_pos)
-                    return [0,0]
+                    base = str(read).split("\t")[9][base_pos]  # aligned bases can go from 0 to 150 (aka it's 0-based)
                     if base == ref:
                         allele_count[0] += 1
                     elif base == alt:
