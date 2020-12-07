@@ -60,8 +60,7 @@ def writeFile(file, cell_gene_count):
     f.write("CELL" + "\t" + "GENE" + "\t" + "REF_COUNT" + "\t" + "ALT_COUNT\n")
     for cell, cell_dict in cell_gene_count.items():
         for gene, allele_counts in cell_dict.items():
-            print(allele_counts[0])
-            f.write(cell + "\t" + gene + str(allele_counts[0]) + str(allele_counts[1]) + "\n")
+            f.write(cell + "\t" + gene + "\t" + str(allele_counts[0]) + "\t" + str(allele_counts[1]) + "\n")
     f.close()
 
 # def countSNP(snp_coord, ref, alt, samfiles, barcodes):
