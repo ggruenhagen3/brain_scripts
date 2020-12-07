@@ -147,7 +147,7 @@ def countAllSNP(snp, dir, barcodes):
                     if len(test2) > 0:
                         info = readSplit[11]
                         barcode = info.split("'CB'")[1].split("'")[1]
-                        barcode_modified = [barcode in x for x in this_barcodes][0]
+                        barcode_modified = [x for x in this_barcodes if barcode in x][0]
                         base_pos = test2[0][0]
                         base = readSplit[9][base_pos - 1]  # only works with the -1, idk why, I think bc pysam
                         if base == ref:
