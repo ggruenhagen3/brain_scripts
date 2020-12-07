@@ -14,6 +14,8 @@ library("edgeR")
 library("data.table")
 library("tidyr")
 library("BSDA")
+library("httr")
+httr::set_config(config(ssl_verifypeer = FALSE))
 
 ####################
 # Helper Functions #
@@ -243,6 +245,51 @@ myDotPlot = function(obj, markers) {
   p2 = ggplot(p$data, aes(x=third, y=pct.exp, fill=third, color=third, group = third)) + geom_bar(stat="identity", alpha = 0.7) + scale_color_manual(values=c(temp[10], temp[6], temp[2], "gray")) + scale_fill_manual(values=c(temp[10], temp[6], temp[2], "gray")) + labs(color="Avg Expression", fill = "Avg Expression", x = "Cluster", y = "% Expressed", title="% Expressed for Each Gene in Each Avg Expression Bin Per Cluster") + facet_wrap(~ id)
   
   return(list(p, p1, p2))
+}
+
+markerLogFC = function(obj, markers, myslot="data") {
+  #' Stacked barchart of the logFC of each marker for each cluster.
+  #' Calculation for avg_logFC came from Seurat here:
+  #' https://github.com/satijalab/seurat/issues/741
+  #' 
+  #' @param obj Seurat object
+  #' @param markers vector of marker genes
+  #' @param myslot slot of Seurat Object to pull expression data from
+  #' @return list of 2
+  #' 1) ggplot of a stacked barchart
+  #' 2) dataframe used to build the barchart
+  
+  markers = markers[which(markers %in% rownames(obj))]
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  
+  clusters = sort(unique(as.vector(Idents(obj))))
+  if (! any(is.na(as.numeric(Idents(obj))))) {
+    print("Can sort numerically")
+    clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  }
+  exp_df = data.frame()
+  for (i in 1:length(clusters)) {
+    cluster = clusters[i]
+    cluster_cells <- WhichCells(obj, idents = cluster)
+    cluster_mean_exp = rowMeans(expm1(exp[markers, cluster_cells]))
+    
+    other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
+    other_mean_exp = rowMeans(expm1(exp[markers, other_cells]))
+    
+    avg_logFC = log(cluster_mean_exp + 1) - log(other_mean_exp + 1)
+    exp_df = rbind(exp_df, cbind(rep(cluster, length(markers)), markers, avg_logFC))
+  }
+  print(head(exp_df))
+  colnames(exp_df)[1] = "cluster"
+  exp_df$avg_logFC = as.vector(as.numeric(exp_df$avg_logFC))
+  exp_df$Regulation = exp_df$avg_logFC > 0
+  exp_df$Regulation = plyr::revalue(as.character(exp_df$Regulation), replace = c("TRUE" = "Up", "FALSE" = "Down"))
+  exp_df$cluster = factor(exp_df$cluster, levels=clusters)
+  
+  p = ggplot(exp_df, aes(x=cluster, y = avg_logFC, fill = Regulation, color = Regulation)) + geom_bar(stat="identity", alpha=0.6) + ylab("Average Log Fold Change") + geom_hline(yintercept=0) + ggtitle("Average LogFC for All Markers") + scale_fill_discrete(drop=FALSE, limits=levels(exp_df$Regulation)) + scale_color_discrete(drop=FALSE, limits=levels(exp_df$Regulation))
+  
+  return(list(p, exp_df))
 }
 
 markerHeatmap = function(obj, markers, myslot="data") {
@@ -1547,44 +1594,41 @@ umd1To2a = function(genes, onPACE = F, as_df = F, rm_na = T) {
   return(df$umd2a)
 }
 
-expressionDend = function(objs, my_slot="counts") {
+expressionDend = function(objs, my_slot="counts", imp_genes = NA) {
   # Purpose: Create dendrograms of expression of genes in clusters of mulitple objects
   # Input:
   #       obj: list of Seurat objects
   # Output: dendrograms
   
   # 1. Find Genes to Use in Dendrogam (using all genes would be too many).
-  print("Finding Genes to Use in Dendrogram")
-  non_zero_genes = c()
-  all_clusters = c()
-  for (obj in objs) {
-    gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
-    non_zero_genes = c(non_zero_genes, gene_names)
-    # if ("annot" %in% colnames(obj@meta.data)) {
-    #   all_clusters = c(all_clusters, paste(obj$project[[1]], unique(obj$annot)))
-    # } else {
-    #   all_clusters = c(all_clusters, paste(obj$project[[1]], levels(obj$seurat_clusters)))
-    # }
-    all_clusters = c(all_clusters, paste(obj$project[[1]], sort(unique(as.vector((obj$seurat_clusters))))))
+  if (is.na(imp_genes)) {
+    print("Genes Not Supplied. Finding Non-Zero Genes to Use in Dendrogram.")
+    non_zero_genes = c()
+    all_clusters = c()
+    for (obj in objs) {
+      gene_names = rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) != 0)]
+      non_zero_genes = c(non_zero_genes, gene_names)
+      all_clusters = c(all_clusters, paste(obj$project[[1]], sort(unique(as.vector((obj$seurat_clusters))))))
+    }
+    non_zero_table = table(non_zero_genes)
+    non_zero_genes = names(non_zero_table)[which(non_zero_table == length(objs))]
+    
+    # imp_genes = c()
+    # min_pct = 0.1
+    # for (obj in objs) {
+    #   print(obj$project[[1]])
+    #   Idents(obj) = obj$seurat_clusters
+    #   mat = obj@assays$RNA@counts
+    #   mat[which(mat > 1)] = 1
+    #   for (cluster in levels(obj$seurat_clusters)) {
+    #     cells_cluster = WhichCells(object = obj, idents = cluster)
+    #     n_cells_min = min_pct * length(cells_cluster)
+    #     genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[non_zero_genes,cells_cluster])) >= n_cells_min)]
+    #     imp_genes = c(imp_genes, genes_pass)
+    #   } # end cluster for
+    # } # end obj for
+    imp_genes = non_zero_genes
   }
-  non_zero_table = table(non_zero_genes)
-  non_zero_genes = names(non_zero_table)[which(non_zero_table == length(objs))]
-  
-  # imp_genes = c()
-  # min_pct = 0.1
-  # for (obj in objs) {
-  #   print(obj$project[[1]])
-  #   Idents(obj) = obj$seurat_clusters
-  #   mat = obj@assays$RNA@counts
-  #   mat[which(mat > 1)] = 1
-  #   for (cluster in levels(obj$seurat_clusters)) {
-  #     cells_cluster = WhichCells(object = obj, idents = cluster)
-  #     n_cells_min = min_pct * length(cells_cluster)
-  #     genes_pass = rownames(obj)[which(rowSums(as.matrix(mat[non_zero_genes,cells_cluster])) >= n_cells_min)]
-  #     imp_genes = c(imp_genes, genes_pass)
-  #   } # end cluster for
-  # } # end obj for
-  imp_genes = non_zero_genes
   imp_genes = unique(imp_genes)
   print(paste("Using", length(imp_genes), "in dendrogram"))
   
