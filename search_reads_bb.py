@@ -78,7 +78,7 @@ def countSNP(snp_coord, ref, alt, samfiles, barcodes):
                 test2 = [x for x in test if x[1] == pos]
                 if len(test2) > 0:
                     base_pos = test2[0][0]
-                    base = str(read).split("\t")[9][base_pos-1]  # aligned bases can go from 0 to 150 (aka it's 0-based)
+                    base = str(read).split("\t")[9][base_pos-1]  # only works with the -1, idk why, I think bc pysam
                     if base == ref:
                         allele_count[0] += 1
                     elif base == alt:
