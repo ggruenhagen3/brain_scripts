@@ -291,7 +291,8 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
         else:
             for file in os.listdir(dir):
                 if file.endswith(".bam"):
-                    this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", "-c", str(dir) + "/" + file, coord])
+                    this_output = subprocess.check_output(["samtools", "view", "-F", "0x04", "-q", "30", "-c",
+                                                           str(dir) + "/" + file, coord])
                     output += int(this_output)
             if output > 0:
                 snps_found[i] = output
