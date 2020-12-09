@@ -761,12 +761,136 @@ df <- data.frame(gene <- mc_up, bio <- rep("MC_UP", length(mc_up)))
 write.table(df, paste(rna_path, "/data/mc_up.txt", sep=""), sep="\t", quote = FALSE, col.names = FALSE, row.names = FALSE)
 
 data = read.csv("C:/Users/miles/Downloads/cichlid_ase_common_genes_all_conditions_filtered_030920.csv", header = T)
-test = as.vector(data[which( sign(data$Digging_Mean_ASE) != sign(data$Building_Mean_ASE) & sign(data$Building_1) == -1 ),1])
-test = as.vector(data[which( sign(data$Digging_Mean_ASE) == sign(data$Building_Mean_ASE) & sign(data$Building_Mean_ASE) != sign(data$Iso_Mean_ASE) ),1])
-test = as.vector(data[which( sign(data$Digging_Mean_ASE) == sign(data$Building_Mean_ASE) & sign(data$Building_Mean_ASE) == sign(data$Iso_Mean_ASE) & sign(data$Building_Mean_ASE) == -1 ),1])
+test = data[which( sign(data$Digging_Mean_ASE-1) != sign(data$Building_Mean_ASE-1) ),1]
 
-ase_down_all = data.frame(umd1To2a(test), "ASE_DOWN_ALL")
-write.table(ase_down_all, "C:/Users/miles/Downloads/brain/data/markers/ase_down_all_111820.txt", sep="\t", col.names = F, row.names = F, quote = F)
 
-disc_ase_pc_castle_up_in_build = data.frame(umd1To2a(test), "DISC_ASE")
-write.table(disc_ase_pc_pit_up_in_dig, "C:/Users/miles/Downloads/brain/data/markers/disc_ase_dig_v_build_pit_up_in_dig_111820.txt", sep="\t", col.names = F, row.names = F, quote = F)
+#==============================================================================================
+# Single Nuc ASE ==============================================================================
+#==============================================================================================
+bb = readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
+counts = read.table("~/scratch/brain/ase/counts.txt", sep = "\t", header = T, stringsAsFactors=F)
+
+bb_backup = bb
+
+mat_ref = matrix(0L, nrow=nrow(bb_backup), ncol=ncol(bb_backup), dimnames = list(rownames(bb_backup), colnames(bb_backup)))
+mat_alt = matrix(0L, nrow=nrow(bb_backup), ncol=ncol(bb_backup), dimnames = list(rownames(bb_backup), colnames(bb_backup)))
+
+for (i in 1:nrow(counts)) {
+  if (i%%nrow(counts)/10 == 0) { print(i) }
+  gene = counts$GENE[i]
+  cell = counts$CELL[i]
+  mat_ref[gene, cell] = mat_ref[gene, cell] + counts$REF_COUNT[i]
+  mat_alt[gene, cell] = mat_alt[gene, cell] + counts$ALT_COUNT[i]
+}
+saveRDS(mat_ref, "~/scratch/brain/ase/R/ref_mat.rds")
+saveRDS(mat_alt, "~/scratch/brain/ase/R/alt_mat.rds")
+
+# Find the average ASE for the cluster and set the numbers to be the same for every cell in the cluster
+mat_clust_ref_alt_15 = matrix(0L, nrow=nrow(bb_backup), ncol=ncol(bb_backup), dimnames = list(rownames(bb_backup), colnames(bb_backup)))
+mat_clust_log_ref_alt_15 = matrix(0L, nrow=nrow(bb_backup), ncol=ncol(bb_backup), dimnames = list(rownames(bb_backup), colnames(bb_backup)))
+Idents(bb) = bb$seuratclusters15
+for (cluster in 0:14) {
+  cat(paste0(cluster, "."))
+  clust_cells = WhichCells(bb, idents = cluster)
+  bhve_cells = colnames(bb)[which(bb$cond == "BHVE")]
+  ctrl_cells = colnames(bb)[which(bb$cond == "CTRL")]
+  clust_b = clust_cells[which(clust_cells %in% bhve_cells)]
+  clust_c = clust_cells[which(clust_cells %in% ctrl_cells)]
+  # ase_ref_means = rowMeans(mat_ref[,clust_cells])
+  # ase_alt_means = rowMeans(mat_alt[,clust_cells])
+  ase_ref_sums_b = rowSums(mat_ref[,clust_b])
+  ase_ref_sums_c = rowSums(mat_ref[,clust_c])
+  ase_alt_sums_b = rowSums(mat_alt[,clust_b])
+  ase_alt_sums_c = rowSums(mat_alt[,clust_c])
+  # mat_clust_ref_alt_15[,clust_cells] = matrix( rep(ase_ref_means/ase_alt_means, length(clust_cells)), ncol = length(clust_cells) )
+  # mat_clust_ref_alt_15[,clust_cells] = matrix( rep(ase_ref_means/ase_alt_means, length(clust_cells)), ncol = length(clust_cells) )
+  mat_clust_log_ref_alt_15[,clust_b] = matrix( rep(log2(ase_ref_sums_b/ase_alt_sums_b), length(clust_b)), ncol = length(clust_b) )
+  mat_clust_log_ref_alt_15[,clust_c] = matrix( rep(log2(ase_ref_sums_c/ase_alt_sums_c), length(clust_c)), ncol = length(clust_c) )
+}
+
+# bb@assays$RNA@data = mat_clust_log_ref_alt
+
+png_name = "~/scratch/brain/ase/R/log_drd2.png"
+png(file = png_name, width = 1000, height = 1000, res = 150)
+print(FeaturePlot(bb, "drd2", order = T, pt.size = 1, label =T))
+dev.off()
+system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/results/sn_ase/"))
+
+bb@assays$RNA@data = bb_backup@assays$RNA@data
+png_name = "~/scratch/brain/ase/R/drd2_exp.png"
+png(file = png_name, width = 1000, height = 1000, res = 150)
+print(FeaturePlot(bb, "drd2", order = T, pt.size = 1, label =T))
+dev.off()
+system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/results/sn_ase/"))
+
+
+pos = which(rowSums(mat_ref) > 0 & rowSums(mat_alt) > 0)
+d = density(log2( rowSums(mat_ref[pos,]) / rowSums(mat_alt[pos,]) ))
+png_name = "~/scratch/brain/ase/R/all_pos.png"
+png(file = png_name, width = 1000, height = 1000, res = 150)
+print(plot(d, main="All"))
+dev.off()
+system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/results/sn_ase/"))
+
+for (i in 0:14) {
+  clust_cells = WhichCells(bb, idents = cluster)
+  pos = which(rowSums(mat_ref[,clust_cells]) > 0 & rowSums(mat_alt[,clust_cells]) > 0)
+  d = density(log2( rowSums(mat_ref[pos,clust_cells]) / rowSums(mat_alt[pos,clust_cells]) ))
+  png_name = paste0("~/scratch/brain/ase/R/", i, "_pos.png")
+  png(file = png_name, width = 1000, height = 1000, res = 150)
+  print(plot(d, main=i))
+  dev.off()
+  system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/results/sn_ase/"))
+}
+
+# good_genes = rownames(bb)
+# for (i in 0:14) {
+#   clust_cells = WhichCells(bb, idents = cluster)
+#   ase_ref_sums = rowSums(mat_ref[good_genes, clust_cells])
+#   ase_alt_sums = rowSums(mat_alt[good_genes, clust_cells])
+#   good_genes = good_genes[which(ase_ref_sums > 5 & ase_alt_sums > 5)]
+# }
+# length(good_genes)
+
+Idents(bb) = bb$cond
+good_genes = rownames(bb)[which(rowSums(mat_ref) > 200 & rowSums(mat_alt) > 200)]
+n_boot = 100
+# sig_df = data.frame()
+# sig_genes = list()
+# for (i in 0:14) {
+#   for (j in i:14) {
+i_cells = WhichCells(bb, idents = "BHVE")
+i_ref = rowSums(mat_ref[good_genes, i_cells])
+i_alt = rowSums(mat_alt[good_genes, i_cells])
+j_cells = WhichCells(bb, idents = "CTRL")
+j_ref = rowSums(mat_ref[good_genes, j_cells])
+j_alt = rowSums(mat_alt[good_genes, j_cells])
+
+i_j_res = my_MBASED(i_ref, i_alt, j_ref, j_alt, i, j, good_genes, n_boot)
+i_j_genes = i_j_res[[2]]
+j_i_res = my_MBASED(j_ref, j_alt, i_ref, i_alt, j, i, good_genes, n_boot)
+j_i_genes = j_i_res[[2]]
+sig_genes = i_j_genes[which(i_j_genes %in% j_i_genes)]
+# sig_genes[[paste0(i, "_", j)]] = i_j_genes[which(i_j_genes %in% j_i_genes)]
+# sig_df = rbind(sig_df, t(c(i, j, length(i_j_genes), length(j_i_genes), length(sig_genes[[paste0(i, "_", j)]]))))
+# colnames(sig_df) = c("cluster_A", "cluster_B", "A_B_genes", "B_A_gnes", "ovlp")
+# sig_df = sig_df[which(sig_df$cluster_A != sig_df$cluster_B),]
+
+all_sig_genes = unique(sig_genes)
+Idents(bb) = bb$seuratclusters15
+for (gene in all_sig_genes) {
+  sig_in = unlist(sapply(1:length(sig_genes), function(x) if(gene %in% sig_genes[[x]]) {names(sig_genes)[x]}))
+  bb@assays$RNA@data = mat_clust_log_ref_alt_15
+  png_name = paste0("~/scratch/brain/ase/R/log_", gene, ".png")
+  png(file = png_name, width = 2000, height = 1000, res = 150)
+  print(FeaturePlot(bb, gene, order = T, pt.size = 1, label =T, split.by = "cond") + labs(caption = paste0("ASE Ratio in BHVE: ", log2(sum(mat_ref[gene, bhve_cells])/sum(mat_alt[gene, bhve_cells])), ". ASE Ratio in CTRL: ", log2(sum(mat_ref[gene, ctrl_cells])/sum(mat_alt[gene, ctrl_cells])) )))
+  dev.off()
+  system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/results/sn_ase/genes_bvc/"))
+  
+  bb@assays$RNA@data = bb_backup@assays$RNA@data
+  png_name = paste0("~/scratch/brain/ase/R/exp_", gene, ".png")
+  png(file = png_name, width = 1000, height = 1000, res = 150)
+  print(FeaturePlot(bb, gene, order = T, pt.size = 1, label =T))
+  dev.off()
+  system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/results/sn_ase/genes_bvc/"))
+}

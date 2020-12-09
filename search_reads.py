@@ -320,24 +320,49 @@ def justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile):
         lines.append(str(snp_scaffold[i]) + "\t" + str(snp_pos[i]) + "\t" + str(int(snp_pos[i])+1) + "\n")
     writeFile("~/scratch/brain/results/ase_SNPs.bed", lines)
 
+def myTest(snp_file, dir):
+    # snp_file is cells and dir is bam file
+    f = open(snp_file, "r")
+    cells = f.read().splitlines()
+
+    # umis = []
+    i = 0
+    with open(dir, 'r') as input:
+        for line in input:
+            lineSplit = line.split()
+            # umi = lineSplit[9]
+            if "CB:Z:" in line and "xf:i:25" in line:
+                barcode = line.split("CB:Z:")[1].split()[0]
+                # umis.append(umi)
+                if barcode in cells:
+                    i += 1
+    # print("Total UMIs: " + str(len(umis)))
+    # umis = list(set(umis))
+    # print("Total Unique UMIs: " + str(len(umis)))
+    print("Number of good reads in b1: " + str(i))
+            
+
 def main():
     snp_file, dir, verbose, count, outputFile = parseArgs()
+        
+    myTest(snp_file, dir)
 
-    if verbose: print("Reading SNPs")
-    snp = readSNP(snp_file)
-    if verbose: print("Done")
-
-    # if verbose: print("Reading SAMs in Dir")
-    # all_scaffold, all_start, all_stop, all_seq = readDir(dir)
+    # Original Script
+    # if verbose: print("Reading SNPs")
+    # snp = readSNP(snp_file)
     # if verbose: print("Done")
-
-    if verbose: print("Searching for SNPs")
-    if count:
-        # justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
-        pass
-    else:
-        keepLines(snp, dir, outputFile)
-    if verbose: print("Done")
+    # 
+    # # if verbose: print("Reading SAMs in Dir")
+    # # all_scaffold, all_start, all_stop, all_seq = readDir(dir)
+    # # if verbose: print("Done")
+    # 
+    # if verbose: print("Searching for SNPs")
+    # if count:
+    #   # justCount(snp_scaffold, snp_pos, snp_alt, dir, outputFile)
+    #   pass
+    # else:
+    #   keepLines(snp, dir, outputFile)
+    # if verbose: print("Done")
 
 
 if __name__ == '__main__':

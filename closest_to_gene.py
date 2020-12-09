@@ -11,7 +11,10 @@ from matplotlib import pyplot as plt
 
 # Arg Parser
 def parseArgs():
-    parser = argparse.ArgumentParser(description='Convert the closest id to gene names and restrict by those within a certain number of bp from the gene')
+    parser = argparse.ArgumentParser(description='Convert the closest id to gene names and restrict by those within a '
+                                                 'certain number of bp from the gene.\nOutputs a list of genes. If '
+                                                 'the -i flag is used, then outputs vcf with ids converted to genes '
+                                                 'in place.')
     parser.add_argument('vcf', help="Input vcf with scaffold in the first column and position in the second column")
     parser.add_argument('output', nargs='?', default="closest_out.txt", help='Name of Output File')
     parser.add_argument("-c", "--closest_column", help="Column number with the closest gene info from snpEff (0-based)",
@@ -21,9 +24,10 @@ def parseArgs():
     parser.add_argument("-g", "--gff", help="Path to the GFF file used to annotate", nargs="?",
                         default="/storage/home/hcoda1/6/ggruenhagen3/p-js585-0/George/rich_project_pb1/bin/snpEff/Mzebra/genes.gff",
                         const="/storage/home/hcoda1/6/ggruenhagen3/p-js585-0/George/rich_project_pb1/bin/snpEff/Mzebra/genes.gff")
+    parser.add_argument("-i", "--in_place", help="Convert closest id to gene names in place?", action="store_true")
     parser.add_argument("-v", "--verbose", help="Verbose mode: include print statements step-by-step", action="store_true")
     args = parser.parse_args()
-    return args.vcf, args.output, args.closest_column, args.threshold, args.gff, args.verbose
+    return args.vcf, args.output, args.closest_column, args.threshold, args.gff, args.in_place, args.verbose
 
 def readGFF(gff):
     """
@@ -46,8 +50,9 @@ def readGFF(gff):
     print(dict(itertools.islice(gffDict.items(), 10)) )
     return gffDict
 
-def readVcf(vcf, closest_column, gffDict, verbose, threshold):
+def readVcf(vcf, closest_column, gffDict, verbose, threshold, in_place):
     gene_list = []
+    vcf_list = []
     valid_ids = set(gffDict.keys())
     valid_genes = set(gffDict.values())
     non_valid_ids = 0
@@ -72,6 +77,8 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                     id = info.split("Gene:")[1].split(':')[0]
                     if id in valid_ids:
                         name = gffDict[id]
+                        if in_place:
+                            vcf_list.append(line.rstrip() + "\t" + name)
                         if closest < threshold:
                             gene_list.append(name)
                             n_passed += 1
@@ -83,6 +90,8 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
                             # if n_passed > 5:
                             #     break
                     elif id in valid_genes:
+                        if in_place:
+                            vcf_list.append(line.rstrip() + "\t" + id)
                         if closest < threshold:
                             gene_list.append(id)
                     else:
@@ -101,23 +110,26 @@ def readVcf(vcf, closest_column, gffDict, verbose, threshold):
     if verbose: print("Number of VCF Rows Passing Threshold: " + str(n_passed))
     if verbose: print("# of Non-Unique Ids not in GFF: " + str(non_valid_ids))
     gene_list = list(set(gene_list))
-    return gene_list
+    return gene_list, vcf_list
 
-def writeGenes(output, gene_list):
+def writeOut(output, out_list):
     f = open(output, "w+")
-    for gene in gene_list:
-        f.writelines(gene + "\n")
+    for i in out_list:
+        f.writelines(i + "\n")
     f.close()
 
 def main():
-    vcf, output, closest_column, threshold, gff, verbose = parseArgs()
+    vcf, output, closest_column, threshold, gff, in_place, verbose = parseArgs()
     if verbose: print("Reading GFF")
     gffDict = readGFF(gff)
     if verbose: print("# of Genes in GFF: " + str(len(gffDict.keys())))
     if verbose: print("Reading VCF")
-    gene_list = readVcf(vcf, closest_column, gffDict, verbose, threshold)
+    gene_list, vcf_list = readVcf(vcf, closest_column, gffDict, verbose, threshold, in_place)
     if verbose: print("# of Unique Genes Within 25kb: " + str(len(gene_list)))
-    writeGenes(output, gene_list)
+    if in_place:
+        writeOut(output, vcf_list)
+    else:
+        writeOut(output, gene_list)
     print("Done.")
 
 if __name__ == '__main__':
