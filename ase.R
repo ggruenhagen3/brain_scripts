@@ -761,4 +761,12 @@ df <- data.frame(gene <- mc_up, bio <- rep("MC_UP", length(mc_up)))
 write.table(df, paste(rna_path, "/data/mc_up.txt", sep=""), sep="\t", quote = FALSE, col.names = FALSE, row.names = FALSE)
 
 data = read.csv("C:/Users/miles/Downloads/cichlid_ase_common_genes_all_conditions_filtered_030920.csv", header = T)
-test = data[which( sign(data$Digging_Mean_ASE-1) != sign(data$Building_Mean_ASE-1) ),1]
+test = as.vector(data[which( sign(data$Digging_Mean_ASE) != sign(data$Building_Mean_ASE) & sign(data$Building_1) == -1 ),1])
+test = as.vector(data[which( sign(data$Digging_Mean_ASE) == sign(data$Building_Mean_ASE) & sign(data$Building_Mean_ASE) != sign(data$Iso_Mean_ASE) ),1])
+test = as.vector(data[which( sign(data$Digging_Mean_ASE) == sign(data$Building_Mean_ASE) & sign(data$Building_Mean_ASE) == sign(data$Iso_Mean_ASE) & sign(data$Building_Mean_ASE) == -1 ),1])
+
+ase_down_all = data.frame(umd1To2a(test), "ASE_DOWN_ALL")
+write.table(ase_down_all, "C:/Users/miles/Downloads/brain/data/markers/ase_down_all_111820.txt", sep="\t", col.names = F, row.names = F, quote = F)
+
+disc_ase_pc_castle_up_in_build = data.frame(umd1To2a(test), "DISC_ASE")
+write.table(disc_ase_pc_pit_up_in_dig, "C:/Users/miles/Downloads/brain/data/markers/disc_ase_dig_v_build_pit_up_in_dig_111820.txt", sep="\t", col.names = F, row.names = F, quote = F)
