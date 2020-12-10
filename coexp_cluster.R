@@ -21,6 +21,7 @@ for (cluster in 0:14) {
   mat_trans  <- matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
   mat2_trans <- matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
   
+  col = 0
   for (cell in this_cells) {
     # for (col in 1:100) {
     if (col %% 100 == 0) {
@@ -29,9 +30,10 @@ for (cluster in 0:14) {
     dat = obj@assays$RNA@counts[,cell]
     non_zero_genes = names(dat[which(dat > 0)])
     tmp <- mat_trans[non_zero_genes, non_zero_genes]
-    dat = obj@assays$RNA@counts[non_zero_genes, col]
+    dat = obj@assays$RNA@counts[non_zero_genes, cell]
     this_trans_mat = t(as.matrix(sapply(1:length(non_zero_genes), function(x) 2*setToMax(dat,dat[x]))))
     mat_trans[non_zero_genes, non_zero_genes] = tmp + this_trans_mat
+    col = col + 1
   }
   
   gene_trans = rowSums(obj@assays$RNA@counts[gene_names,])
