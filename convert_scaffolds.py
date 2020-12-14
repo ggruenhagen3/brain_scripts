@@ -13,8 +13,8 @@ def parseArgs():
     parser.add_argument("-v", "--verbose", help="Print every line?", action="store_true")
     parser.add_argument("-s", "--sed", help="Use sed to convert the scaffolds", action="store_true")
     parser.add_argument("-a", "--assembly_report_path", help="Path to the assembly report from NCBI", nargs="?",
-                        default="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt",
-                        const="/mnt/c/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt")
+                        default="/storage/home/hcoda1/6/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt",
+                        const="/storage/home/hcoda1/6/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
     parser.add_argument("-p", "--pace", help="Running the script on pace: use pace location of the assembly report", action="store_true")
 
     args = parser.parse_args()
