@@ -54,15 +54,17 @@ def filterCellrangerRead(readSplit, barcodes):
             return True
     return False
 
-def writeFile(file, cell_gene_count):
+def writeFile(file, cell_id, valid_barcodes):
     """
-    Write ref/alt counts to file
+    Write score for sample
     """
     f = open(file, "w+")
-    f.write("CELL" + "\t" + "GENE" + "\t" + "REF_COUNT" + "\t" + "ALT_COUNT\n")
-    for cell, cell_dict in cell_gene_count.items():
-        for gene, allele_counts in cell_dict.items():
-            f.write(cell + "\t" + gene + "\t" + str(allele_counts[0]) + "\t" + str(allele_counts[1]) + "\n")
+    f.write("CELL" + "\tSAMPLE" + "\tSCORE\n")
+    for barcode in valid_barcodes:
+        score = 0
+        if barcode in cell_id:
+            score = len(cell_id[barcode])
+        f.write(barcode + "\t" + str(score) + "\n")
     f.close()
 
 def readBarcodes(barcodes_file):
@@ -104,8 +106,8 @@ def identifyCell(dir, snp, valid_barcodes, verbose):
             if verbose:
                 cur_snp_i += 1
                 print(cur_snp_i)
-                # if cur_snp_i % (len(sample_snps)/20) == 0:
-                #     print(str(cur_snp_i / (len(sample_snps)/20)) + "/20 of " + snp_sample + " SNPs done")
+                if cur_snp_i % 1000 == 0:
+                    print(cur_snp_i)
             scaffold = sample_snp.split(":")[0]
             pos = int(sample_snp.split(":")[1].split("-")[0])
             alt = sample_snp.split(":")[1].split("-")[1]
@@ -122,7 +124,6 @@ def identifyCell(dir, snp, valid_barcodes, verbose):
                             barcode_modified = [x for x in valid_barcodes if barcode in x][0]  # barcode after R modifications
                             base_pos = test2[0][0]
                             base = readSplit[9][base_pos - 1]  # only works with the -1, idk why, I think bc pysam
-                            # TODO check to see if the base is the alt that we're looking for?
                             if base == alt:
                                 if barcode_modified not in cell_id.keys():
                                     cell_id[barcode_modified] =[]
