@@ -29,15 +29,16 @@ def readSNP(snp_file, sample_column):
     snp = {}  # key is sample, value is list of strings. Where the strings are the coordinate and alt allele
     with open(snp_file, 'r') as input:
         for line in input:
-            lineSplit = line.split()
-            scaffold = lineSplit[0]
-            pos = lineSplit[1]
-            sample = lineSplit[sample_column]
-            alt = lineSplit[4]
-            coord_alt = scaffold + ":" + str(pos) + "-" + str(alt)
-            if sample not in snp.keys():
-                snp[sample] = []
-            snp[sample].append(coord_alt)
+            if not line.startswith("#"):
+                lineSplit = line.split()
+                scaffold = lineSplit[0]
+                pos = lineSplit[1]
+                sample = lineSplit[sample_column]
+                alt = lineSplit[4]
+                coord_alt = scaffold + ":" + str(pos) + "-" + str(alt)
+                if sample not in snp.keys():
+                    snp[sample] = []
+                snp[sample].append(coord_alt)
     return snp
 
 def filterCellrangerRead(readSplit, barcodes):
