@@ -98,7 +98,13 @@ def identifyCell(dir, snp, valid_barcodes, verbose):
 
     for snp_sample, sample_snps in snp.items():
         if verbose: print("Identifying " + snp_sample + " samples.")
+        sample_snp_len = len(sample_snps)
+        cur_snp_i = 0
         for sample_snp in sample_snps:
+            if verbose:
+                cur_snp_i += 1
+                if cur_snp_i % (len(sample_snps)/20) == 0:
+                    print(str(cur_snp_i / (len(sample_snps)/20)) + "/20 of " + snp_sample + " SNPs done")
             scaffold = sample_snp.split(":")[0]
             pos = int(sample_snp.split(":")[1].split("-")[0])
             alt = sample_snp.split(":")[1].split("-")[1]
