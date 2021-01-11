@@ -76,11 +76,12 @@ def readBarcodes(barcodes_file):
     valid_barcodes = f.read().splitlines()
     return valid_barcodes
 
-def identifyCell(snp, valid_barcodes, verbose):
+def identifyCell(dir, snp, valid_barcodes, verbose):
     """
     Identify the sample a cell belongs to based on the unique SNPs of that sample.
     :param snp: dictionary of snps (key is sample, value is list of strings.
     Where the strings are the coordinate and alt allele)
+    :param dir: directory of bam files for bb
     :param valid_barcodes: list of barcodes that are not filtered out in bb
     :param verbose:
     :return: dictionary of the sample of each cell (key is cell barcode,
@@ -136,7 +137,7 @@ def main():
     if verbose: print("Done")
 
     if verbose: print("Searching Reads at Unique SNPs...")
-    cell_id = identifyCell(snp, valid_barcodes, verbose)
+    cell_id = identifyCell(snp, dir, valid_barcodes, verbose)
     if verbose: print("Done")
 
     if verbose: print("Writing Cell IDs")
