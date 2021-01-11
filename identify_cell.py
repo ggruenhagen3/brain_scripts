@@ -137,7 +137,7 @@ def main():
     if verbose: print("Done")
 
     if verbose: print("Searching Reads at Unique SNPs...")
-    cell_id = identifyCell(snp, dir, valid_barcodes, verbose)
+    cell_id = identifyCell(dir, snp, valid_barcodes, verbose)
     if verbose: print("Done")
 
     if verbose: print("Writing Cell IDs")
