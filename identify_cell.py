@@ -150,7 +150,7 @@ def main():
     if verbose: print("Done")
 
     if verbose: print("Writing Cell IDs")
-    writeFile(output, cell_id) # TODO fix this function
+    writeFile(output, cell_id, valid_barcodes) # TODO fix this function
     if verbose: print("Done")
 
 if __name__ == '__main__':
