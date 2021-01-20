@@ -17,18 +17,20 @@ for (gene in gene_names) {
   gene_cells[[gene]] = colnames(obj)[which(obj@assays$RNA@counts[gene,] != 0)]
 }
 
-#
+# Find the Expression of Genes in Gene1+ cells
+# Find the Expression of Genes in Gene1- cells
+# Find the Difference in expression between those two
 mat_pos = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_neg = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_dif = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 for (i in c(2)) {
   gene1 = gene_names[i]
   gene1_cells = gene_cells[[gene1]]
-  pos = rowMeans(exp[,which(  colnames(obj) %in% gene1_cells )])
-  neg = rowMeans(exp[,which(! colnames(obj) %in% gene1_cells )])
+  pos = rowMeans(exp[gene_names, which(  colnames(obj) %in% gene1_cells )]) # expression of all genes in gene1 positive cells
+  neg = rowMeans(exp[gene_names, which(! colnames(obj) %in% gene1_cells )]) # expression of all genes in gene1 negative cells
   mat_pos[i,] = pos
   mat_neg[i,] = neg
-  mat_dif[i,] = pos - neg
+  mat_dif[i,] = pos - neg # difference in expression of all genes in gene1 positive vs negative cells
 }
 
 saveRDS(mat_pos, "~/scratch/brain/data/bb_co_pos.RDS")
