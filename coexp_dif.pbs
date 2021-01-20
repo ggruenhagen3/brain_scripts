@@ -11,7 +11,7 @@
 cd $PBS_O_WORKDIR
 module purge
 module load anaconda3
-module load R
-conda activate
+module load r
+conda activate /storage/home/hcoda1/6/ggruenhagen3/p-js585-0/George/rich_project_pb1/conda_envs/r4
 
 Rscript coexp_dif.R
