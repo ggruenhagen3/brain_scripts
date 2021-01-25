@@ -1,6 +1,7 @@
 # Read Packages
 library("Seurat")
 library("Matrix")
+library("matrixTests")
 
 # Read in Seurat Object
 bb <- readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
@@ -23,7 +24,9 @@ for (gene in gene_names) {
 mat_pos = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_neg = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_dif = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
-for (i in c(2)) {
+mat_p   = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
+
+for (i in 1:length(gene_names)) {
   gene1 = gene_names[i]
   gene1_cells = gene_cells[[gene1]]
   pos = rowMeans(exp[gene_names, which(  colnames(obj) %in% gene1_cells )]) # expression of all genes in gene1 positive cells
@@ -31,6 +34,7 @@ for (i in c(2)) {
   mat_pos[i,] = pos
   mat_neg[i,] = neg
   mat_dif[i,] = pos - neg # difference in expression of all genes in gene1 positive vs negative cells
+  # mat_p[i,] = 
 }
 
 saveRDS(mat_pos, "~/scratch/brain/data/bb_co_pos.RDS")
