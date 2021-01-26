@@ -27,10 +27,11 @@ mat_dif = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimname
 mat_p   = matrix(0L, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 
 for (i in 1:length(gene_names)) {
+  print(i)
   gene1 = gene_names[i]
   gene1_cells = gene_cells[[gene1]]
-  pos = rowMeans(exp[gene_names, which(  colnames(obj) %in% gene1_cells )]) # expression of all genes in gene1 positive cells
-  neg = rowMeans(exp[gene_names, which(! colnames(obj) %in% gene1_cells )]) # expression of all genes in gene1 negative cells
+  pos = rowMeans(exp[gene_names, colnames(obj)[which(  colnames(obj) %in% gene1_cells )]]) # expression of all genes in gene1 positive cells
+  neg = rowMeans(exp[gene_names, colnames(obj)[which(! colnames(obj) %in% gene1_cells )]]) # expression of all genes in gene1 negative cells
   mat_pos[i,] = pos
   mat_neg[i,] = neg
   mat_dif[i,] = pos - neg # difference in expression of all genes in gene1 positive vs negative cells
