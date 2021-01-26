@@ -30,14 +30,15 @@ for (i in 1:length(gene_names)) {
   print(i)
   gene1 = gene_names[i]
   gene1_cells = gene_cells[[gene1]]
-  pos = rowMeans(exp[gene_names, colnames(obj)[which(  colnames(obj) %in% gene1_cells )]]) # expression of all genes in gene1 positive cells
-  neg = rowMeans(exp[gene_names, colnames(obj)[which(! colnames(obj) %in% gene1_cells )]]) # expression of all genes in gene1 negative cells
-  mat_pos[i,] = pos
-  mat_neg[i,] = neg
-  mat_dif[i,] = pos - neg # difference in expression of all genes in gene1 positive vs negative cells
-  # mat_p[i,] = 
+  # pos = rowMeans(exp[gene_names, colnames(obj)[which(  colnames(obj) %in% gene1_cells )]]) # expression of all genes in gene1 positive cells
+  # neg = rowMeans(exp[gene_names, colnames(obj)[which(! colnames(obj) %in% gene1_cells )]]) # expression of all genes in gene1 negative cells
+  # mat_pos[i,] = pos
+  # mat_neg[i,] = neg
+  # mat_dif[i,] = pos - neg # difference in expression of all genes in gene1 positive vs negative cells
+  mat_p[i,] = row_kruskalwallis(exp[gene_names,], g = colnames(obj) %in% gene1_cells)
 }
 
-saveRDS(mat_pos, "~/scratch/brain/data/bb_co_pos.RDS")
-saveRDS(mat_neg, "~/scratch/brain/data/bb_co_neg.RDS")
-saveRDS(mat_dif, "~/scratch/brain/data/bb_co_dif.RDS")
+# saveRDS(mat_pos, "~/scratch/brain/data/bb_co_pos.RDS")
+# saveRDS(mat_neg, "~/scratch/brain/data/bb_co_neg.RDS")
+# saveRDS(mat_dif, "~/scratch/brain/data/bb_co_dif.RDS")
+saveRDS(mat_p, "~/scratch/brain/data/bb_co_dif_p.RDS")
