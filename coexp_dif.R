@@ -36,7 +36,7 @@ for (i in 1:length(gene_names)) {
   mat_pos[i,] = pos
   mat_neg[i,] = neg
   mat_dif[i,] = pos - neg # difference in expression of all genes in gene1 positive vs negative cells
-  mat_p[i,] = row_kruskalwallis(exp[gene_names,], g = colnames(obj) %in% gene1_cells)$pvalue
+  # mat_p[i,] = row_kruskalwallis(exp[gene_names,], g = colnames(obj) %in% gene1_cells)$pvalue
 }
 
 saveRDS(mat_pos, "~/scratch/brain/data/bb_co_pos.RDS")
