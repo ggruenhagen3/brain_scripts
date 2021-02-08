@@ -6,7 +6,7 @@ library("matrixTests")
 # Read in Seurat Object
 bb <- readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
 obj <- bb
-gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 1)]
+gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 2)]
 exp = GetAssayData(obj, assay = "RNA", slot="data")
 exp = as.matrix(exp)
 
