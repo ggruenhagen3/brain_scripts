@@ -5,7 +5,8 @@ library("jaccard")
 library("parallel")
 print(paste("Num Cors:", detectCores()))
 bb <- readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
-obj <- bb
+jaw = readRDS("~/scratch/d_tooth/data/jpool.rds")
+obj <- jaw
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 2)]
 mat_data_p   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_data_cor = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
@@ -75,8 +76,8 @@ r_mat = cor(t(as.matrix(obj@assays$RNA@data[,])), y = NULL)
 t_mat = my_cor_t(r_mat, ncol(obj))
 p_mat = my_cor_p(t_mat, ncol(obj))
 
-saveRDS(r_mat, "~/scratch/brain/data/mat_data_cor.RDS")
-saveRDS(p_mat,   "~/scratch/brain/data/mat_data_cor_p.RDS")
+saveRDS(r_mat, "~/scratch/d_tooth/data/jaw_data_cor.RDS")
+saveRDS(p_mat,   "~/scratch/d_tooth/data/jaw_data_cor_p.RDS")
 
 # gene_names <- rownames(bb)[which(rowSums(bb@assays$RNA@counts) > 2)]
 # fx <- function(gene1) cor.test(bb@assays$RNA@data[gene1, ], bb@assays$RNA@data["egr1", ])$p.value
