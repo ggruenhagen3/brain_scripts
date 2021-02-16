@@ -5,7 +5,7 @@ library("jaccard")
 library("parallel")
 print(paste("Num Cors:", detectCores()))
 # bb <- readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
-im = readRDS("~/scratch/d_tooth/data/im.rds")
+im = readRDS("~/scratch/d_tooth/data/igor_incsr_molar.rds")
 obj <- im
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 2)]
 mat_data_p   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
