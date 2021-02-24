@@ -15,7 +15,7 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
   fileConn <- file(pbs_file_name)
   writeLines(c("#PBS -A GT-js585",
                paste0("#PBS -N cor_pr_perm_", x),
-               "#PBS -l mem=128gb",
+               "#PBS -l mem=256gb",
                "#PBS -l nodes=2:ppn=4",
                "#PBS -l walltime=24:00:00",
                "#PBS -j oe",
