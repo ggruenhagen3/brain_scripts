@@ -32,7 +32,7 @@ set.seed(perm_num)
 
 # Permute BHVE and CTRL. Split into 2 matrices.
 print(paste("Permuting Data", num_perm, "times."))
-perm_labels = lapply(1:num_perm, function(x) sample(c("BHVE", "CTRL"), nrow(bb), replace = T))
+perm_labels = lapply(1:num_perm, function(x) sample(bb$sample))
 b_mats = lapply(1:num_perm, function(x) as.matrix(bb@assays$RNA@data[,which(perm_labels[[x]] == "BHVE")]))
 c_mats = lapply(1:num_perm, function(x) as.matrix(bb@assays$RNA@data[,which(perm_labels[[x]] == "CTRL")]))
 all_mats = append(b_mats, c_mats)
@@ -59,6 +59,7 @@ pageranks = mclapply(graph_objs, function(g) page.rank(g)$vector, mc.cores = num
 
 # Write the PageRank for all the permutated matrices to file
 print("Writing to File.")
-pr_df = setNames(as.data.frame(pageranks), c(paste0("b", perm_num, ".", 1:10), paste0("c", perm_num, ".", 1:10)))
+pr_df = t(plyr::ldply(pageranks, rbind))
+colnames(pr_df) = c(paste0("b", perm_num, ".", 1:10), paste0("c", perm_num, ".", 1:10))
 write.csv(pr_df, paste0("~/scratch/brain/results/cor_pr_perm/perm_", perm_num, ".csv"))
 print("Done.")
