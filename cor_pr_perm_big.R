@@ -30,5 +30,5 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
                paste("Rscript cor_pr_perm.R", x, n_perm_per_job)),
              fileConn)
   close(fileConn)
-  system(paste("qsub", pbs_file_name))
+  # system(paste("qsub", pbs_file_name))
 })
