@@ -33,8 +33,8 @@ set.seed(perm_num)
 # Permute BHVE and CTRL. Split into 2 matrices.
 print(paste("Permuting Data", num_perm, "times."))
 perm_labels = lapply(1:num_perm, function(x) sample(bb$cond))
-b_mats = lapply(1:num_perm, function(x) as.matrix(bb@assays$RNA@data[,which(perm_labels[[x]] == "BHVE")]))
-c_mats = lapply(1:num_perm, function(x) as.matrix(bb@assays$RNA@data[,which(perm_labels[[x]] == "CTRL")]))
+b_mats = lapply(1:num_perm, function(x) t(as.matrix(bb@assays$RNA@data[,which(perm_labels[[x]] == "BHVE")])))
+c_mats = lapply(1:num_perm, function(x) t(as.matrix(bb@assays$RNA@data[,which(perm_labels[[x]] == "CTRL")])))
 all_mats = append(b_mats, c_mats)
 b_mats = NULL # clear memory
 c_mats = NULL # clear memory
@@ -45,7 +45,8 @@ numCores = detectCores()
 cor_mats <- mclapply(all_mats, function(mat) cor(mat, y = NULL), mc.cores = numCores)
 
 # Prepare the Data for Graph Creation and Pagerank
-cor_mats <- mclapply(cor_mats, function(mat) mat[which( ! is.na(mat[1,]) ), which( ! is.na(mat[1,]) )], mc.cores = numCores)  # removes NAs
+cor_mats <- mclapply(cor_mats, function(mat) mat[which( ! is.na(mat[2,]) ), which( ! is.na(mat[2,]) )], mc.cores = numCores)  # removes NAs
+print("Dimensions of Clean Correlation Matrices:")
 junk = sapply(cor_mats, function(mat) print(dim(mat)))
 melt_mats <-  mclapply(cor_mats, function(mat) setNames(melt(mat), c("Node1", "Node2", "weight")), mc.cores = numCores)
 
