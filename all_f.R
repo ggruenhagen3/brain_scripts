@@ -15,14 +15,262 @@ library("data.table")
 library("tidyr")
 library("BSDA")
 library("httr")
+# library("ggforce")
 httr::set_config(config(ssl_verifypeer = FALSE))
 
 ####################
 # Helper Functions #
 ####################
 
+changeClusterID = function(clust_vect, clust_level = NULL) {
+  #' Convert old cluster labels to the new labels
+  #' @param clust_vect vector of old cluster labels
+  #' @param clut_level 15 or 53 cluster level? If NA, detect automatically
+  #' @return new_vect a vector of new cluster labels
+  
+  # If not supplied, determine the cluster level of the input
+  clust_vect = as.numeric(as.vector(clust_vect))
+  if (is.null(clust_level)) {
+    max_clust = max(clust_vect)
+    clust_level = 15
+    if (max_clust > 14)
+      clust_level = 53
+    print(paste0("No cluster level input. Assuming ", clust_level, " level because the maximum cluster number found in the input was ", max_clust, "."))
+  }
+  
+  # Build Both 15 and 53 level converters
+  convert15 = data.frame(old = 0:14, new = c("8_Ex", "9_Ex", "4_In", "15_InEx", "1_Astro/MG", "10_Ex", "5_In", "11_Ex", "6_In", "2_OPC/Oligo", "12_Ex", "13_Ex", "14_Ex", "3_Peri", "7_In"))
+  convert53 = data.frame(old = 0:52, new = c("4.1_In", "10.1_Ex", "15.1_InEx", "9.1_Ex", "8.1_Ex", "1.1_Astro", "6_In", "5.1_In", "9.2_Ex", "8.2_Ex", "15.2_In", "11.1_Ex", "8.3_Ex", "8.4_Ex", "9.3_Ex", "4.2_In", "8.5_Ex", "5.2_In", "8.6_Ex", "8.7_Ex", "1.2_Astro", "4.3_In", "4.4_In", "9.4_Ex", "9.5_Ex", "8.8_Ex", "9.6_Ex", "4.5_In", "12_Ex", "8.9_Ex", "10.2_Ex", "2.1_OPC", "15.3_In", "11.2_Ex", "15.4_In", "4.6_In", "9.7_Ex", "13_Ex", "14_Ex", "4.7_In", "11.3_Ex", "9.8_Ex", "8-9_Ex", "15.5_InEx", "4.8_In", "1.3_MG", "2.2_Oligo", "15.6_Ex", "8.10_Ex", "8.11_Ex", "3_Peri", "15.7_Ex", "7_In"))
+  
+  # Select correct converter
+  converter = convert53
+  if (clust_level == 15)
+    converter = convert15
+  
+  # Convert Data
+  new_vect = as.vector(converter$new[match(clust_vect, converter$old)])
+  
+  print("Conversion Successful.")
+  return(new_vect)
+}
+
+GeomSplitViolin <- ggproto("GeomSplitViolin", GeomViolin, 
+                          draw_group = function(self, data, ..., draw_quantiles = NULL) {
+                            data <- transform(data, xminv = x - violinwidth * (x - xmin), xmaxv = x + violinwidth * (xmax - x))
+                            grp <- data[1, "group"]
+                            newdata <- plyr::arrange(transform(data, x = if (grp %% 2 == 1) xminv else xmaxv), if (grp %% 2 == 1) y else -y)
+                            newdata <- rbind(newdata[1, ], newdata, newdata[nrow(newdata), ], newdata[1, ])
+                            newdata[c(1, nrow(newdata) - 1, nrow(newdata)), "x"] <- round(newdata[1, "x"])
+                            
+                            if (length(draw_quantiles) > 0 & !scales::zero_range(range(data$y))) {
+                              stopifnot(all(draw_quantiles >= 0), all(draw_quantiles <=
+                                                                        1))
+                              quantiles <- ggplot2:::create_quantile_segment_frame(data, draw_quantiles)
+                              aesthetics <- data[rep(1, nrow(quantiles)), setdiff(names(data), c("x", "y")), drop = FALSE]
+                              aesthetics$alpha <- rep(1, nrow(quantiles))
+                              both <- cbind(quantiles, aesthetics)
+                              quantile_grob <- GeomPath$draw_panel(both, ...)
+                              ggplot2:::ggname("geom_split_violin", grid::grobTree(GeomPolygon$draw_panel(newdata, ...), quantile_grob))
+                            }
+                            else {
+                              ggplot2:::ggname("geom_split_violin", GeomPolygon$draw_panel(newdata, ...))
+                            }
+                          })
+
+geom_split_violin <- function(mapping = NULL, data = NULL, stat = "ydensity", position = "identity", ..., 
+                              draw_quantiles = NULL, trim = TRUE, scale = "area", na.rm = FALSE, 
+                              show.legend = NA, inherit.aes = TRUE) {
+  layer(data = data, mapping = mapping, stat = stat, geom = GeomSplitViolin, 
+        position = position, show.legend = show.legend, inherit.aes = inherit.aes, 
+        params = list(trim = trim, scale = scale, draw_quantiles = draw_quantiles, na.rm = na.rm, ...))
+}
+
+bvcVis = function(obj, feature, myslot = "data", mode = "box", meta = "sample", only.pos = F, cells.use = NULL, cell.alpha = 0.08, add_title = "") {
+  #' Behave vs Control Replicate Boxplot Visualization
+  #' 
+  #' @param obj Seurat object
+  #' @param cell.alpha alpha value for the cells (the geom jitter points)
+  #' @param feature feature to visualize
+  #' @param myslot slot to pull data from
+  #' @param mode mode of visualization ("box" for boxlpot, "violin" for violinplot, "violin_split" for violin plot split by meta)
+  #' @param meta meta variable to split data by
+  #' @param only.pos plot only the positive cells
+  #' @param cells.use the cells to plot
+  #' @param add_title input string to add to the title
+  
+  if (feature %in% rownames(obj)) {
+    exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+    values = exp[feature,]
+  } else {
+    values = as.numeric(as.vector(obj@meta.data[c(feature)][,c(feature)]))
+  }
+  df = data.frame(values, sample = obj@meta.data[c(meta)][,c(meta)]) 
+  rownames(df) = colnames(obj)
+  
+  if (! is.null(cells.use))
+    df = df[cells.use,]
+  if (only.pos)
+    df = df[which(df$values > 0),]
+  
+  if (length(unique(obj@meta.data[c(meta)][,c(meta)])) == 2)
+    col_pal = c("#F2444A","#0077b6")
+  else
+    col_pal = c("#9d0208", "#d00000", "#dc2f02", "#e85d04", "#f48c06", "#03045e", "#023e8a", "#0077b6", "#0096c7", "#00b4d8")
+  # col_pal = c("#9d0208", "#d00000", "#dc2f02", "#e85d04", "#f48c06", "#7400b8", "#6930c3", "#5e60ce", "#5390d9", "#4ea8de")
+  # col_pal = c("#F2444A","#F25C44", "#F27A44", "#F2B644", "#F2D444", "#023e8a", "#0077b6", "#0096c7", "#00b4d8", "#48cae4")
+  # col_pal = c("#F2444A","#F25C44", "#F27A44", "#F2B644", "#F2D444", "#023e8a", "#0077b6", "#0096c7", "#00b4d8", "#48cae4")
+  # col_pal = c("#F2444A","#F25C44", "#F27A44", "#F2B644", "#F2D444", "#22577a", "#38a3a5", "#57cc99", "#80ed99", "#918ef4")
+  # col_pal = c("#F2444A","#F25C44", "#F27A44", "#F2B644", "#F2D444", "#7400b8", "#6930c3", "#5e60ce", "#5390d9", "#4ea8de")
+  my_title = paste(feature, add_title)
+  
+  if (mode == "box")
+    p = ggplot(df, aes(x=sample, y = values, fill=sample, color=sample)) + geom_boxplot(alpha=0.6) + geom_jitter(position=position_dodge2(width = 0.7), alpha = cell.alpha) + scale_color_manual(values=col_pal) + scale_fill_manual(values=col_pal) + ylab("Normalized Expression") + xlab("") + ggtitle(my_title) + theme(plot.title = element_text(hjust = 0.5)) + NoLegend()
+  if (mode == "violin")
+    p = ggplot(df, aes(x=sample, y = values, fill=sample, color=sample)) + geom_violin(alpha=0.6) + geom_jitter(position=position_dodge2(width = 0.6), alpha = cell.alpha) + scale_color_manual(values=col_pal) + scale_fill_manual(values=col_pal) + ylab("Normalized Expression") + xlab("") + ggtitle(my_title) + theme(plot.title = element_text(hjust = 0.5)) + stat_summary(fun.data=mean_sdl, geom="pointrange", color="#495057", fun.args = list(mult = 1)) + NoLegend()
+  if (mode == "violin_split") {
+    df$pair = substr(as.character(as.vector(df$sample)), 2, 2)
+    if (meta == "cond")
+      p = ggplot(df, aes(x=1, y = values, fill=sample, color=sample)) + geom_split_violin(alpha=0.6) + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.25, position = position_dodge(width = .25)) + scale_color_manual(values=col_pal, name = "Condition") + scale_fill_manual(values=col_pal, name = "Condition") + ylab("Normalized Expression") + xlab("") + ggtitle(my_title) + theme(plot.title = element_text(hjust = 0.5), axis.text.x=element_blank(), axis.ticks=element_blank())
+    else
+      p = ggplot(df, aes(x=pair, y = values, fill=sample, color=sample)) + geom_split_violin(alpha=0.6) + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.25, position = position_dodge(width = .25)) + scale_color_manual(values=col_pal, name = "Sample") + scale_fill_manual(values=col_pal, name = "Sample") + ylab("Normalized Expression") + xlab("Sample Pair") + ggtitle(my_title) + theme(plot.title = element_text(hjust = 0.5))
+  }
+  
+  return(p)
+}
+
+myDensityPlot = function(obj, feature1, feature2, cells.use = NULL, myslot = "data", alpha_vect = NULL, my.split.by = NULL, my.pt.size = 1) {
+  #' Make a FeaturePlot using ggplot. Having this gives me more control over the plot.
+  #' 
+  #' @param obj Seurat object
+  #' @param feature feature to plot
+  #' @param myslot slot to pull data from
+  #' @param alpha_vect vector of values to use as an alpha parameter (values in same order as cells)
+  #' @return ggplot object
+  exp = GetAssayData(obj, assay = "RNA", slot="counts")
+  values = exp[feature1,] > 0
+  values2 = exp[feature2,] > 0
+  
+  df = as.data.frame(obj@reductions$umap@cell.embeddings)
+  df$pos = 0
+  df$pos[which(values)] = 1
+  df$pos[which(values2)] = 2
+  df$pos[which(values & values2)] = 3
+  df$ident = Idents(obj)
+  df$alpha = 0.5
+  df$alpha[which(df$pos == feature1)] = 0.8
+  
+  hull <- df %>% group_by(pos) %>%
+    slice(c(chull(UMAP_1,UMAP_2),
+            chull(UMAP_1,UMAP_2)[1]))
+  
+  df = df[order(df$pos),]
+  df$pos = plyr::revalue(as.character(df$pos), replace = c("1" = feature1, "2" = feature2, "3" = paste(feature1, "+", feature2), "0" = "none"))
+  # p = ggplot(df, aes(UMAP_1, UMAP_2, col = pos)) + geom_point(size = my.pt.size) + stat_ellipse(level = 0.95) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+  p = ggplot(data=df, mapping = aes(UMAP_1, UMAP_2, col = pos)) + geom_point(size = my.pt.size, alpha = 1)  + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + scale_color_manual(values = c("#2a9d8f", "#e76f51", "#264653", "lightgray"))
+  # p = p + geom_density_2d(data=df[which( df$pos == paste(feature1, "+", feature2) ),], mapping=aes(UMAP_1, UMAP_2, col = pos), size = 1, contour_var = "density", position = "identity", bins = 5, alpha = 0.8)
+  # p = p + geom_density_2d_filled(data=df[which( df$pos == paste(feature1, "+", feature2) ),], mapping=aes(UMAP_1, UMAP_2, col = pos), contour_var = "ndensity", position="identity", bins = 5, alpha = 0.4)
+  
+  # I haven't gotten this to work, but this will let me use two different color scales
+  # for the two different genes
+  # https://stackoverflow.com/questions/20474465/using-different-scales-as-fill-based-on-factor
+  # # plot with red fill
+  # p = ggplot(data=df, mapping = aes(UMAP_1, UMAP_2, col = pos)) + geom_point(size = my.pt.size, alpha = 1)  + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+  # p1 <- p + stat_density2d(data = df[which(df$pos == feature1 | df$pos == feature2),], aes(UMAP_1, UMAP_2, color = as.factor(pos), fill = ..level..), alpha = 0.3, geom = "polygon") +
+  #   scale_fill_continuous(low = "grey", high = "red", space = "Lab", name = "g = 0") +
+  #   scale_colour_discrete(guide = FALSE) +
+  #   theme_classic() + ggtitle("p1")
+  # 
+  # # plot with blue fill
+  # p2 <- p + stat_density2d(data = df[which(df$pos == feature1 | df$pos == feature2),], aes(UMAP_1, UMAP_2, color = as.factor(pos), fill = ..level..), alpha = 0.3, geom = "polygon") +
+  #   scale_fill_continuous(low = "grey", high = "blue", space = "Lab", name = "g = 0") +
+  #   scale_colour_discrete(guide = FALSE) +
+  #   theme_classic() + ggtitle("p2")
+  # 
+  # # grab plot data
+  # pp1 <- ggplot_build(p1)
+  # pp2 <- ggplot_build(p2)$data[[1]]
+  # 
+  # # replace red fill colours in pp1 with blue colours from pp2 when group is 2
+  # pp1$data[[1]]$fill[grep(pattern = "^2", pp2$group)] <- pp2$fill[grep(pattern = "^2", pp2$group)]
+  # 
+  # # build plot grobs
+  # grob1 <- ggplot_gtable(pp1)
+  # grob2 <- ggplotGrob(p2)
+  # 
+  # # build legend grobs
+  # leg1 <- gtable_filter(grob1, "guide-box")
+  # leg2 <- gtable_filter(grob2, "guide-box")
+  # leg <- gtable:::rbind_gtable(leg1[["grobs"]][[1]],  leg2[["grobs"]][[1]], "first")
+  # 
+  # # replace legend in 'red' plot
+  # grob1$grobs[grob1$layout$name == "guide-box"][[1]] <- leg
+  # 
+  # grid.newpage()
+  # grid.draw(grob1)
+  # print(hist(c(1,2,3)))
+  # print(p1)
+  # print(p2)
+  # p = "hi"
+  
+  return(p)
+}
+
+myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_vect = NULL, my.split.by = NULL, my.pt.size = 1) {
+  #' Make a FeaturePlot using ggplot. Having this gives me more control over the plot.
+  #' 
+  #' @param obj Seurat object
+  #' @param feature feature to plot
+  #' @param myslot slot to pull data from
+  #' @param alpha_vect vector of values to use as an alpha parameter (values in same order as cells)
+  #' @return ggplot object
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  values = exp[feature,]
+  
+  df = as.data.frame(obj@reductions$umap@cell.embeddings)
+  df$value = values
+  df$ident = Idents(obj)
+  
+  onePlot = function(df, mymin, mymax) {
+    if ( is.null(alpha_vect) ) {
+      df = df[order(df$value),]
+      # p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradient2(midpoint=(mymax-mymin)/2 + mymin, low = "blue", mid = "gold", high = "red", space = "Lab", limits=c(mymin, mymax)) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+      p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradientn(limits = c(mymin, mymax), colors = c("lightgrey", "blue")) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+    } else {
+      rescale <- function(x, newMin, newMax) { (x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin }
+      df$total_counts = rescale(alpha_vect, 0.05, 0.6)[rownames(df)]
+      df = df[order(df$value),]
+      print(head(df))
+      p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(aes(size = total_counts, alpha = total_counts)) + scale_color_gradient2(midpoint=(mymax-mymin)/2 + mymin, low = "blue", mid = "gold", high = "red", space = "Lab", limits=c(mymin, mymax)) + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + scale_size(range=c(0.2, 2)) + scale_alpha(range=c(0.2, 1))
+    }
+    p = LabelClusters(p, "ident", unique(df$ident), repel = F, colour = "black")
+    return(p)
+  }
+  
+  if (! is.null(cells.use) )
+    df = df[cells.use,]
+  mymax = max(df$value[is.finite(df$value)])
+  mymin = min(df$value[is.finite(df$value)])
+  
+  if ( is.null(my.split.by) )
+    p = onePlot(df, mymin, mymax)
+  else {
+    p_list = list()
+    # split_unique = unique(obj@meta.data[c(my.split.by)][,c(my.split.by)])
+    split_unique = levels(bb@meta.data[c("sample")][,c("sample")])
+    for (one_split in split_unique) {
+      this_cells = rownames(df)[which( rownames(df) %in% colnames(bb)[which(obj@meta.data[c(my.split.by)] == one_split)] )]
+      print(one_split)
+      print(head(this_cells))
+      p_list[[one_split]] = onePlot(df[this_cells,], mymin, mymax) + ggtitle(one_split)
+    }
+    p = plot_grid(plotlist=p_list, ncol = 2)
+  }
+  
+  return(p)
+}
+
 gtfParser = function() {
-  #' Junk script, just useful to have as a reference for iterating through a gtf.
+  #' Junk function, just useful to have as a reference for iterating through a gtf.
   names = c()
   ids = c()
   for (i in 1:nrow(gtf)) {
@@ -144,7 +392,7 @@ cytoBINdeg = function(obj) {
   return(list(p1, p2, deg))
 }
 
-cytoScoreByIdent = function(obj) {
+cytoScoreByIdent = function(obj, my_idents = NULL) {
   #' Make a boxplot of cytoTRACE score by ident/cluster
   #' 
   #' @param obj Seurat object
@@ -161,10 +409,17 @@ cytoScoreByIdent = function(obj) {
     clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
   }
   
+
+  
   cell_type_df <- as.data.frame(cbind(as.numeric(as.vector(obj$cyto)), as.vector(Idents(obj))))
   colnames(cell_type_df) <- c("CytoTRACE", "Cell_Type")
   cell_type_df$CytoTRACE <- as.numeric(as.vector(cell_type_df$CytoTRACE))
-  cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=clusters)
+  if (! is.null(my_idents) ) {
+    cell_type_df = cell_type_df[which(cell_type_df$Cell_Type %in% my_idents),]
+    cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=my_idents)
+  } else {
+    cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=clusters)
+  }
   rownames(cell_type_df) <- NULL
   p = ggplot(cell_type_df, aes(x=Cell_Type, y=CytoTRACE)) + geom_boxplot(alpha=0.8, aes(fill=as.character(as.numeric(as.vector(Cell_Type))%%2))) + ylim(0,1) + geom_jitter(position=position_dodge2(width=0.5), alpha=0.1, aes(color = CytoTRACE)) + coord_flip() + theme_classic() + scale_color_gradientn(colors = pal(50)) + scale_fill_manual(values = c("white", "gray47")) + guides(color = F) + NoLegend()
   
@@ -221,10 +476,14 @@ myDotPlot = function(obj, markers) {
   #' @param obj Seurat Object
   #' @param markers vector of markers
   #' @return p DotPlot of markers
-  temp = rev(brewer.pal(11,"Spectral"))
-  temp[6] = "gold" # this is what plotCytoTRACE uses
+  # temp = rev(brewer.pal(11,"Spectral"))[c(rep(2,10), rep(10,10))]
+  # temp = c("#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51")
+  temp = rev(c("#f94144", "#f3722c", "#f8961e", "#f9c74f", "#79bf43", "#43aa8b", "#577590"))
+  # temp = rev(brewer.pal(11,"Spectral"))
+  # temp[6] = "gold" # this is what plotCytoTRACE uses
   pal = colorRampPalette(temp)
   p = DotPlot(obj, features = markers, scale.by = "size", scale.min = 0) + scale_color_gradientn(colors = pal(50)) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+  # p = DotPlot(obj, features = markers, scale.by = "size", scale.min = 0) + scale_color_gradientn(colors = pal(3), values = c(1,0,-1)) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   
   good_ind = which(complete.cases(p$data$avg.exp.scaled))
   min_avg = min(p$data$avg.exp.scaled[good_ind])
@@ -476,7 +735,8 @@ markerCellPerCluster = function(obj, markers, correct=T) {
   return(p)
 }
 
-markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T, correct=F) {
+markerExpPerCellPerClusterBVC = function(obj, markers, myslot="counts", n_markers=T, correct=F) {
+  #' *This is the new function that tests behave vs control.*
   #' Boxplot of Marker Expression Per Cell Per Cluster
   #' 
   #' @param obj Seurat Object
@@ -491,6 +751,131 @@ markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T
   #'    cluster, magnitude of Cohen's d, Cohen's d, Upper bound on Cohen's confidence interval, Lower bound on Cohen's confidence interval, p-value from ztest, bonferroni corrected p-value
   
   title_str = "Avreage"
+  title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
+  title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
+  
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  if (n_markers) {
+    title_str = "Number of Markers Genes Expressed per Cell per Cluster"
+    exp[which(exp > 0)] = 1
+  }
+  title_str = paste(title_str, if_else(correct, "- Corrected", ""))
+  
+  # Idents(obj) = obj$seurat_clusters
+  per_cluster_df = data.frame()
+  d_df = data.frame()
+  clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  conds = unique(obj$cond)
+  for (cluster in clusters) {
+    cluster_cells <- WhichCells(obj, idents = cluster)
+    for (cond in conds) {
+      cond_cells = colnames(obj)[which(obj$cond == cond)]
+      cond_cluster_cells = cluster_cells[which(cluster_cells %in% cond_cells)]
+      avg_cluster_exp = colSums(exp[markers, cond_cluster_cells])
+      if (correct)
+        avg_cluster_exp = avg_cluster_exp/colSums(exp[, cond_cluster_cells])
+      
+      # EDIT
+      other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
+      other_avg = colSums(exp[markers, other_cells])
+      if (correct)
+        other_avg = other_avg/colSums(exp[,other_cells])
+      
+      # Z-test
+      p = z.test(avg_cluster_exp, other_avg, sigma.x = sd(avg_cluster_exp), sigma.y = sd(other_avg), alternative = "greater")$p.value
+      
+      # Cohen's d
+      all_exp = c(avg_cluster_exp, other_avg)
+      test= effsize::cohen.d(all_exp, c(rep("cluster", length(avg_cluster_exp)), 
+                                        rep("other",   length(other_avg))))
+      
+      d=test$estimate
+      up=test$conf.int[2]
+      down = test$conf.int[1]
+      mag=test$magnitude
+      mag_pos=mag
+      mag_pos[which(d < 0)] = "negligible"
+      # WILCOX
+      # p_val = wilcox.test(avg_cluster_exp, other_avg, alternative = "greater")$p.value
+      
+      d_df = rbind(d_df, data.frame(cluster, cond, mag, mag_pos, d, up, down, p))
+      per_cluster_df = rbind(per_cluster_df, data.frame(cluster, cond, avg_cluster_exp, p, mag_pos))
+    } # end condition for
+    
+  } # end clusters for
+  
+  # mycols = c("#01c5c4", "#b8de6f", "#f1e189", "#f39233")
+  my_levels = apply(rev(expand.grid(unique(obj$cond), clusters)), 1, paste, collapse=" ")
+  my_levels = trimws(my_levels)
+  xtext_cols = rep(c("red", "blue"), length(clusters))
+  d_df$cluster_cond = paste(d_df$cluster, d_df$cond)
+  d_df$p_val_adj = p.adjust(d_df$p, method = "bonferroni")
+  d_df$cluster_cond = factor(d_df$cluster_cond, levels = my_levels)
+  p1  = ggplot(d_df, aes(cluster_cond, d, color=mag, fill = mag)) + geom_pointrange(aes(ymin = down, ymax = up)) + ylab("Cohen's d") + ggtitle("Effect Size in Clusters") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, colour = xtext_cols))
+  
+  colnames(per_cluster_df) <- c("cluster", "cond", "avg_cluster_exp", "p", "mag_pos")
+  per_cluster_df$avg_cluster_exp = as.numeric(as.vector(per_cluster_df$avg_cluster_exp))
+  per_cluster_df$cluster_cond = paste(per_cluster_df$cluster, per_cluster_df$cond)
+  per_cluster_df$p_val_adj = d_df$p_val_adj[match(per_cluster_df$cluster_cond, d_df$cluster_cond)]
+  per_cluster_df$star = ifelse(per_cluster_df$p_val_adj < 0.001, "***", 
+                               ifelse(per_cluster_df$p_val_adj < 0.01, "**", 
+                                      ifelse(per_cluster_df$p_val_adj < 0.05, "*", "")))
+  per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = clusters)
+  per_cluster_df$cluster_cond = factor(per_cluster_df$cluster_cond, levels = my_levels)
+  per_cluster_df$mag_pos = factor(per_cluster_df$mag_pos, levels = c("negligible", "small", "medium", "large"))
+  p = ggplot(per_cluster_df, aes(cluster_cond, avg_cluster_exp, fill=mag_pos, color=mag_pos)) + geom_text(aes(x= cluster_cond, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.05) + xlab("Cluster") + ylab("") + ggtitle(title_str) + scale_color_viridis(discrete = T,drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size") + scale_fill_viridis(discrete = T, drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, colour = xtext_cols))
+  
+  print(head(per_cluster_df[which(per_cluster_df$cluster == 0),]))
+  
+  return(list(p, p1, d_df))
+}
+
+separateEnrichTest = function(obj, markers) {
+  exp = GetAssayData(obj, assay = "RNA", slot="counts")
+  exp = exp[markers,]
+  exp[which(exp > 0)] = 1
+  
+  per_cluster_df = data.frame()
+  per_gene_per_cluster_df = data.frame()
+  clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  for (cluster in clusters) {
+    cluster_cells <- WhichCells(obj, idents = cluster)
+    other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells )]
+    cluster_ps = c()
+    for (gene in markers) {
+      this_exp = exp[gene,]
+      this_exp_correct = exp[gene,] / obj$nFeature_RNA
+      c_exp_cor = this_exp_correct[cluster_cells]  # cluster expression corrected
+      o_exp_cor = this_exp_correct[other_cells]  # other expression corrected
+      p = z.test(c_exp_cor, o_exp_cor, sigma.x = sd(c_exp_cor), sigma.y = sd(o_exp_cor), alternative = "greater")$p.value
+      cluster_ps = c(cluster_ps, p)
+      per_gene_per_cluster_df = rbind(per_gene_per_cluster_df, t(c(cluster, gene, p)))
+    }
+    composite_p = sumz(cluster_ps)$p[1,1]
+    per_cluster_df = rbind(per_cluster_df, t(c(cluster, cluster_ps, composite_p)))
+  }
+  colnames(per_cluster_df) = c("cluster", markers, "composite_p")
+  colnames(per_gene_per_cluster_df) = c("cluster", "gene", "p")
+  per_cluster_df$p_adj = p.adjust(per_cluster_df$composite_p, method = "bonferroni")
+  
+  return(list(per_gene_per_cluster_df, per_cluster_df))
+}
+
+markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T, correct=T) {
+  #' Boxplot of Marker Expression Per Cell Per Cluster
+  #' 
+  #' @param obj Seurat Object
+  #' @param markers vector of markers
+  #' @param n_markers count the number of markers per cell?
+  #' @param correct correct for background expresssion?
+  #' @param myslot slot to pull data from (either "counts" or "data")
+  #' @return list of 3:
+  #' 1) boxplot with jitter points of marker expression per cell per cluster
+  #' 2) effect size
+  #' 3) dataframe with columns: 
+  #'    cluster, magnitude of Cohen's d, Cohen's d, Upper bound on Cohen's confidence interval, Lower bound on Cohen's confidence interval, p-value from ztest, bonferroni corrected p-value
+  
+  title_str = "Average"
   title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
   title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
   
@@ -850,8 +1235,14 @@ myAverageExpression <- function(obj, slot="data", assay="RNA", features = NULL, 
       newRow <- setNames(as.data.frame(sum(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells])/length(this_cells)), features)
       names(newRow) <- features
       result <- rbind(result, newRow)
+    } else if (length(this_cells) == 1) {
+      newRow <- setNames(t(as.data.frame(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells])), features)
+      names(newRow) <- features
+      result = rbind(result, newRow)
     } else {
-      result <- rbind(result, setNames(t(as.data.frame(rowSums(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells]))/length(this_cells)), features)) 
+      newRow = setNames(t(as.data.frame(rowSums(GetAssayData(obj, slot=slot, assay=assay)[features,this_cells]))/length(this_cells)), features)
+      names(newRow) = features
+      result <- rbind(result, newRow) 
     }
     rownames(result)[length(rownames(result))] <- ident
   }
@@ -1498,6 +1889,7 @@ ncHgncMzebraInPlace = function(df, gene_column, rm_na = T, onPACE = F) {
   #' @param gene_column the column of the dataframe containing the mzebra genes
   #' @param rm_na remove rows where no HGNC name was found for the mzebra gene?
   #' @param onPACE is the code being run on PACE?
+  #' @return df a datafram with a hgnc column
   
   genes = as.vector(df[,gene_column])
   converter = ncMzToHgncVect(genes)
