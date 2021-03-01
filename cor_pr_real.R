@@ -18,7 +18,7 @@ c_mat = NULL # clear memory
 
 # Slightly Parallelized BHVE vs CTRL Permutation Pageranks
 print(paste0("Finding Correlations in Pair."))
-cor_mats <- mclapply(all_mats[c(1,2)], function(mat) cor(mat, y = NULL), mc.cores = numCores)
+cor_mats <- mclapply(all_mats[c(1,2)], function(mat) cor(mat, y = NULL), mc.cores = numCores, mc.preschedule = TRUE)
 
 # Save Data
 saveRDS(cor_mats[[1]], "~/scratch/brain/data/bb_b_cor.RDS")
@@ -33,7 +33,7 @@ b_melt = setNames(melt(cor_mats[[1]]), c("Node1", "Node2", "weight"))
 # C Prep
 print(paste("Cleaning C in Pair"))
 cor_mats[[2]] = cor_mats[[2]][which( ! is.na(cor_mats[[2]][2,]) ), which( ! is.na(cor_mats[[2]][2,]) )]
-print(paste0("Dimensions of Clean Matrix B in Pair ", i, ": ", dim(cor_mats[[2]])))
+print(paste0("Dimensions of Clean Matrix B in Pair: ", dim(cor_mats[[2]])))
 c_melt = setNames(melt(cor_mats[[2]]), c("Node1", "Node2", "weight"))
 
 # B Graph + Pagerank

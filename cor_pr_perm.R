@@ -44,7 +44,7 @@ c_mats = NULL # clear memory
 pagerank_dif = list() # differences between behave and control in all pairs
 for (i in 1:num_perm) {
   print(paste0("Finding Correlations in Pair ", i, "."))
-  cor_mats <- mclapply(all_mats[c(i, (num_perm/2)+i)], function(mat) cor(mat, y = NULL), mc.cores = numCores)
+  cor_mats <- mclapply(all_mats[c(i, (num_perm/2)+i)], function(mat) cor(mat, y = NULL), mc.cores = numCores, mc.preschedule = TRUE)
   
   # B Prep
   print(paste("Cleaning B in Pair", i))
