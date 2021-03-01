@@ -17,7 +17,7 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
                paste0("#PBS -N cor_pr_perm_", x),
                "#PBS -l mem=256gb",
                "#PBS -l nodes=2:ppn=4",
-               "#PBS -l walltime=24:00:00",
+               "#PBS -l walltime=60:00:00",
                "#PBS -j oe",
                paste0("#PBS -o cor_pr_perm_", x, ".out"),
                "#PBS -m abe",
