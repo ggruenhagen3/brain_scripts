@@ -19,6 +19,10 @@ c_mat = NULL # clear memory
 print(paste0("Finding Correlations in Pair."))
 cor_mats <- mclapply(all_mats[c(1,2)], function(mat) cor(mat, y = NULL), mc.cores = numCores)
 
+# Save Data
+saveRDS(cor_mats[[1]], "~/scratch/brain/data/bb_b_cor.RDS")
+saveRDS(cor_mats[[2]], "~/scratch/brain/data/bb_c_cor.RDS")
+
 # B Prep
 print(paste("Cleaning B in Pair"))
 cor_mats[[1]] = cor_mats[[1]][which( ! is.na(cor_mats[[1]][2,]) ), which( ! is.na(cor_mats[[1]][2,]) )]
