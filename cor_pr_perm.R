@@ -23,6 +23,7 @@ library("Matrix")
 library("reshape2")
 library("igraph")
 library("parallel")
+numCores = detectCores()
 
 # Load Data
 bb = readRDS("~/scratch/brain/data/bb_subsample_02222021.RDS")
