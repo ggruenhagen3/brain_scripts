@@ -12,8 +12,8 @@ if (length(args)==0) {
 }
 
 # Read Inputs
-perm_num = args[1] # The current permutation number. This is used for the seed.
-num_perm = args[2] # The number of permutations to complete.
+perm_num = as.numeric(args[1]) # The current permutation number. This is used for the seed.
+num_perm = as.numeric(args[2]) # The number of permutations to complete.
 print(paste("Permutation Number:", perm_num))
 output_folder = "~/scratch/brain/results/cor_pr_perm/"
 
