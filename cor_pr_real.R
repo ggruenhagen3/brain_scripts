@@ -51,7 +51,8 @@ pr_c = page.rank(graph_obj)$vector
 pr_df = t(plyr::ldply(list(pr_b, pr_c), rbind))
 pr_df = as.data.frame(pr_df)
 pr_df[is.na(pr_df)] = 0
-b_c_dif = pr_df$V1 - pr_df$V2
+pr_df$Dif = pr_df$V1 - pr_df$V2
+b_c_dif = pr_df$Dif
 names(b_c_dif) = rownames(pr_df)
 
 print(paste0("Finished Hard Part."))
