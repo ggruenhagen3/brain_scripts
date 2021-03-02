@@ -55,7 +55,7 @@ for (i in 1:num_perm) {
   # C Prep
   print(paste("Cleaning C in Pair", i))
   cor_mats[[2]] = cor_mats[[2]][which( ! is.na(cor_mats[[2]][2,]) ), which( ! is.na(cor_mats[[2]][2,]) )]
-  print(paste0("Dimensions of Clean Matrix B in Pair ", i, ": ", dim(cor_mats[[2]])))
+  print(paste0("Dimensions of Clean Matrix C in Pair ", i, ": ", dim(cor_mats[[2]])))
   c_melt = setNames(melt(cor_mats[[2]]), c("Node1", "Node2", "weight"))
   
   # B Graph + Pagerank

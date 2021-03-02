@@ -27,13 +27,13 @@ saveRDS(cor_mats[[2]], "~/scratch/brain/data/bb_c_cor.RDS")
 # B Prep
 print(paste("Cleaning B in Pair"))
 cor_mats[[1]] = cor_mats[[1]][which( ! is.na(cor_mats[[1]][2,]) ), which( ! is.na(cor_mats[[1]][2,]) )]
-print(paste0("Dimensions of Clean Matrix B in Pair ", i, ": ", dim(cor_mats[[1]])))
+print(paste0("Dimensions of Clean Matrix B in Pair: ", dim(cor_mats[[1]])))
 b_melt = setNames(melt(cor_mats[[1]]), c("Node1", "Node2", "weight"))
 
 # C Prep
 print(paste("Cleaning C in Pair"))
 cor_mats[[2]] = cor_mats[[2]][which( ! is.na(cor_mats[[2]][2,]) ), which( ! is.na(cor_mats[[2]][2,]) )]
-print(paste0("Dimensions of Clean Matrix B in Pair: ", dim(cor_mats[[2]])))
+print(paste0("Dimensions of Clean Matrix C in Pair: ", dim(cor_mats[[2]])))
 c_melt = setNames(melt(cor_mats[[2]]), c("Node1", "Node2", "weight"))
 
 # B Graph + Pagerank
