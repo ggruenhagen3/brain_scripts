@@ -11,7 +11,8 @@ pbs_file_name = "~/scratch/brain/brain_scripts/cor_pr_perm.pbs"
 
 # Generate pbs script and submit jobs
 system(paste0("mkdir -p ", output_folder))
-sapply(1:(n_perm/n_perm_per_job), function(x) {
+sapply(1:1, function(x) {
+# sapply(1:(n_perm/n_perm_per_job), function(x) {
   fileConn <- file(pbs_file_name)
   writeLines(c("#PBS -A GT-js585",
                paste0("#PBS -N cor_pr_perm_", x),
