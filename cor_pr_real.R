@@ -19,6 +19,7 @@ c_mat = NULL # clear memory
 # Slightly Parallelized BHVE vs CTRL Permutation Pageranks
 print(paste0("Finding Correlations in Pair."))
 cor_mats <- mclapply(all_mats[c(1,2)], function(mat) cor(mat, y = NULL), mc.cores = numCores, mc.preschedule = TRUE)
+all_mats = NULL # clear memory
 
 # Save Data
 saveRDS(cor_mats[[1]], "~/scratch/brain/data/bb_b_cor.RDS")
@@ -36,17 +37,23 @@ cor_mats[[2]] = cor_mats[[2]][which( ! is.na(cor_mats[[2]][2,]) ), which( ! is.n
 print(paste0("Dimensions of Clean Matrix C in Pair: ", dim(cor_mats[[2]])))
 c_melt = setNames(melt(cor_mats[[2]]), c("Node1", "Node2", "weight"))
 
+cor_mats = NULL # clear Memory
+
 # B Graph + Pagerank
 print(paste("Creating graph B in Pair"))
 graph_obj = graph_from_data_frame(b_melt)
 print("Finding pagerank of each node in graph B.")
 pr_b = page.rank(graph_obj)$vector
+b_melt = NULL # clear memory
+graph_obj = NULL # clear memory
 
 # C Graph + Pagerank
 print(paste("Creating graph C in Pair"))
 graph_obj = graph_from_data_frame(c_melt)
 print("Finding pagerank of each node in graph C.")
 pr_c = page.rank(graph_obj)$vector
+c_melt = NULL # clear memory
+graph_obj = NULL # clear memory
 
 pr_df = t(plyr::ldply(list(pr_b, pr_c), rbind))
 pr_df = as.data.frame(pr_df)
