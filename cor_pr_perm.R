@@ -47,6 +47,7 @@ for (i in 1:num_perm) {
   all_mats = list(t(as.matrix(bb@assays$RNA@data[,which(perm_labels[[i]] == "BHVE")])),
                   t(as.matrix(bb@assays$RNA@data[,which(perm_labels[[i]] == "CTRL")])))
   cor_mats <- mclapply(all_mats[c(1,2)], function(mat) cor(mat, y = NULL), mc.cores = numCores, mc.preschedule = TRUE)
+  all_mats = NULL # clear memory
   
   # B Prep
   print(paste("Cleaning B in Pair", i))
@@ -60,17 +61,23 @@ for (i in 1:num_perm) {
   print(paste0("Dimensions of Clean Matrix C in Pair ", i, ": ", dim(cor_mats[[2]])))
   c_melt = setNames(melt(cor_mats[[2]]), c("Node1", "Node2", "weight"))
   
+  cor_mats = NULL # clear Memory
+  
   # B Graph + Pagerank
   print(paste("Creating graph B in Pair", i))
   graph_obj = graph_from_data_frame(b_melt)
   print("Finding pagerank of each node in graph B.")
   pr_b = page.rank(graph_obj)$vector
+  b_melt = NULL # clear memory
+  graph_obj = NULL # clear memory
   
   # C Graph + Pagerank
   print(paste("Creating graph C in Pair", i))
   graph_obj = graph_from_data_frame(c_melt)
   print("Finding pagerank of each node in graph C.")
   pr_c = page.rank(graph_obj)$vector
+  c_melt = NULL # clear memory
+  graph_obj = NULL #clear memory
   
   pr_df = t(plyr::ldply(list(pr_b, pr_c), rbind))
   pr_df = as.data.frame(pr_df)
