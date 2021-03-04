@@ -45,6 +45,7 @@ bb = NULL #clear memory
 
 # Slightly Parallelized BHVE vs CTRL Permutation Pageranks
 pagerank_dif = list() # differences between behave and control in all pairs
+pageranks = list() 
 for (i in 1:num_perm) {
   print(paste0("Finding Correlations in Pair ", i, "."))
   all_mats = list(t(as.matrix(mat[,which(perm_labels[[i]] == "BHVE")])),
