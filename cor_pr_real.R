@@ -24,36 +24,52 @@ all_mats = NULL # clear memory
 # Save Data
 saveRDS(cor_mats[[1]], "~/scratch/brain/data/bb_b_cor.RDS")
 saveRDS(cor_mats[[2]], "~/scratch/brain/data/bb_c_cor.RDS")
+# Find p values
+my_cor_t = function(r, n) (r * sqrt(n - 2))/sqrt(1 - r**2)
+my_cor_p = function(t, n) 2*pt(-abs(t), df=n-2)
+b_t_mat = my_cor_t(cor_mats[[1]], ncol(cor_mats[[1]]))
+b_p_mat = my_cor_p(b_t_mat, ncol(cor_mats[[1]]))
+c_t_mat = my_cor_t(cor_mats[[2]], ncol(cor_mats[[2]]))
+c_p_mat = my_cor_p(c_t_mat, ncol(cor_mats[[2]]))
+saveRDS(b_p_mat,   "~/scratch/brain/data/bb_b_cor_p.RDS")
+saveRDS(c_p_mat,   "~/scratch/brain/data/bb_c_cor_p.RDS")
+b_t_mat = b_p_mat = c_t_mat = c_p_mat = NULL
 
 # B Prep
 print(paste("Cleaning B in Pair"))
 cor_mats[[1]] = cor_mats[[1]][which( ! is.na(cor_mats[[1]][2,]) ), which( ! is.na(cor_mats[[1]][2,]) )]
 print(paste0("Dimensions of Clean Matrix B in Pair: ", dim(cor_mats[[1]])))
-b_melt = setNames(melt(cor_mats[[1]]), c("Node1", "Node2", "weight"))
+# b_melt = setNames(melt(cor_mats[[1]]), c("Node1", "Node2", "weight"))
 
 # C Prep
 print(paste("Cleaning C in Pair"))
 cor_mats[[2]] = cor_mats[[2]][which( ! is.na(cor_mats[[2]][2,]) ), which( ! is.na(cor_mats[[2]][2,]) )]
 print(paste0("Dimensions of Clean Matrix C in Pair: ", dim(cor_mats[[2]])))
-c_melt = setNames(melt(cor_mats[[2]]), c("Node1", "Node2", "weight"))
+# c_melt = setNames(melt(cor_mats[[2]]), c("Node1", "Node2", "weight"))
 
-cor_mats = NULL # clear Memory
+# cor_mats = NULL # clear Memory
 
-# B Graph + Pagerank
-print(paste("Creating graph B in Pair"))
-graph_obj = graph_from_data_frame(b_melt)
-print("Finding pagerank of each node in graph B.")
-pr_b = page.rank(graph_obj)$vector
-b_melt = NULL # clear memory
-graph_obj = NULL # clear memory
+# # B Graph + Pagerank
+# print(paste("Creating graph B in Pair"))
+# graph_obj = graph_from_data_frame(b_melt)
+# print("Finding pagerank of each node in graph B.")
+# pr_b = page.rank(graph_obj)$vector
+# b_melt = NULL # clear memory
+# graph_obj = NULL # clear memory
+# 
+# # C Graph + Pagerank
+# print(paste("Creating graph C in Pair"))
+# graph_obj = graph_from_data_frame(c_melt)
+# print("Finding pagerank of each node in graph C.")
+# pr_c = page.rank(graph_obj)$vector
+# c_melt = NULL # clear memory
+# graph_obj = NULL # clear memory
 
-# C Graph + Pagerank
-print(paste("Creating graph C in Pair"))
-graph_obj = graph_from_data_frame(c_melt)
-print("Finding pagerank of each node in graph C.")
-pr_c = page.rank(graph_obj)$vector
-c_melt = NULL # clear memory
-graph_obj = NULL # clear memory
+# Node Strength
+print(paste("Finding Node Strength of B"))
+pr_b = colSums(abs(cor_mats[[1]]))
+print(paste("Finding Node Strength of C"))
+pr_c = colSums(abs(cor_mats[[2]]))
 
 pr_df = t(plyr::ldply(list(pr_b, pr_c), rbind))
 pr_df = as.data.frame(pr_df)
@@ -67,7 +83,7 @@ print(paste0("Finished Hard Part."))
 # Write the PageRank for all the permutated matrices to file
 print("Writing to File.")
 colnames(pr_df) = c("B", "C", "Dif")
-write.csv(pr_df, paste0("~/scratch/brain/results/cor_pr_real.csv"))
+write.csv(pr_df, paste0("~/scratch/brain/results/cor_pr_real_strength.csv"))
 print("Done.")
 
 
