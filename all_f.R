@@ -22,6 +22,19 @@ httr::set_config(config(ssl_verifypeer = FALSE))
 # Helper Functions #
 ####################
 
+r_to_p = function(r1, r2, n1, n2) {
+  # Compare Two Correlation Values using Fisher's Z Transformation Method.
+  #' @param r1 correlation 1
+  #' @param r2 correlation 2
+  #' @param n1 number of samples used for correlation 1
+  #' @param n2 number of samples used for correlation 2
+  z1 = .5 * (log(1+r1) - log(1-r1))
+  z2 = .5 * (log(1+r2) - log(1-r2))
+  z3 =(z1 - z2) / sqrt( (1 / (n1 - 3)) + (1 / (n2 - 3)) )
+  p = 2*pnorm(-abs(z3))
+  return(p)
+}
+
 changeClusterID = function(clust_vect, clust_level = NULL) {
   #' Convert old cluster labels to the new labels
   #' @param clust_vect vector of old cluster labels
@@ -224,7 +237,13 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
   #' @param alpha_vect vector of values to use as an alpha parameter (values in same order as cells)
   #' @return ggplot object
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
-  values = exp[feature,]
+  if (feature %in% rownames(obj)) {
+    values = exp[feature,]
+  } else if (feature %in% colnames(obj@meta.data)) {
+    values = obj@meta.data[, feature]
+  } else {
+    print("Feature not found in rownames of object nor meta data.")
+  }
   
   df = as.data.frame(obj@reductions$umap@cell.embeddings)
   df$value = values
@@ -255,10 +274,10 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
     p = onePlot(df, mymin, mymax)
   else {
     p_list = list()
-    # split_unique = unique(obj@meta.data[c(my.split.by)][,c(my.split.by)])
-    split_unique = levels(bb@meta.data[c("sample")][,c("sample")])
+    split_unique = unique(obj@meta.data[c(my.split.by)][,c(my.split.by)])
+    # split_unique = levels(bb@meta.data[c("sample")][,c("sample")])
     for (one_split in split_unique) {
-      this_cells = rownames(df)[which( rownames(df) %in% colnames(bb)[which(obj@meta.data[c(my.split.by)] == one_split)] )]
+      this_cells = rownames(df)[which( rownames(df) %in% colnames(obj)[which(obj@meta.data[c(my.split.by)] == one_split)] )]
       print(one_split)
       print(head(this_cells))
       p_list[[one_split]] = onePlot(df[this_cells,], mymin, mymax) + ggtitle(one_split)
@@ -551,7 +570,7 @@ markerLogFC = function(obj, markers, myslot="data") {
   return(list(p, exp_df))
 }
 
-markerHeatmap = function(obj, markers, myslot="data") {
+markerHeatmap = function(obj, markers, myslot="scale.data") {
   #' Make a heatmap of all the markers by all the clusters
   #'
   #' @param obj Seurat object
@@ -563,8 +582,9 @@ markerHeatmap = function(obj, markers, myslot="data") {
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
   exp = exp[markers,]
   
-  clusters = sort(unique(as.vector(Idents(obj))))
-  if (! any(is.na(as.numeric(Idents(obj))))) {
+  # clusters = sort(unique(as.vector(Idents(obj))))
+  clusters = levels(Idents(bb))
+  if (! any(is.na(as.numeric(as.vector(Idents(obj)))))) {
     print("Can sort numerically")
     clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
   }
@@ -577,15 +597,18 @@ markerHeatmap = function(obj, markers, myslot="data") {
   }
   colnames(exp_df) = c("Cluster", "Gene", "Mean_Expression")
   
-  exp_df = as.data.table(exp_df)
-  exp_df[, fillScaled := scale(Mean_Expression), Gene] # scales value per gene
+  # exp_df = as.data.table(exp_df)
+  exp_df$Mean_Expression = as.numeric(as.vector(exp_df$Mean_Expression))
+  exp_df$Gene = factor(exp_df$Gene, levels=markers)
+  # exp_df[, fillScaled := scale(Mean_Expression), Gene] # scales value per gene
   
-  p = ggplot(exp_df, aes(Cluster, Gene)) + geom_tile(aes(fill=fillScaled)) + scale_fill_viridis(discrete=FALSE, breaks = c(min(exp_df$fillScaled), max(exp_df$fillScaled)), labels=c("Low", "High")) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + labs(fill = "Relative Expression") + scale_x_continuous(expand=c(0,0))
+  # p = ggplot(exp_df, aes(Cluster, Gene)) + geom_tile(aes(fill=Mean_Expression)) + scale_fill_viridis(discrete=FALSE, breaks = c(min(exp_df$Mean_Expression), max(exp_df$Mean_Expression)), labels=c("Low", "High")) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + labs(fill = "Relative Expression") + scale_x_continuous(expand=c(0,0))
+  p = ggplot(exp_df, aes(Gene, Cluster)) + geom_tile(aes(fill=Mean_Expression)) + scale_fill_viridis(discrete=FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + labs(fill = "Scaled Expression")
   
   # Increase number of ticks
   x_labs = clusters
   x_labs[c(FALSE, TRUE)] = "" # R trickery -> selects every other element
-  if (! any(is.na(as.numeric(Idents(obj)))))
+  if (! any(is.na(as.numeric(as.vector(Idents(obj))))))
     p = p + scale_x_continuous(breaks=clusters, labels =x_labs, expand=c(0,0))
   
   return(p)
