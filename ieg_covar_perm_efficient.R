@@ -78,7 +78,7 @@ for (cluster2 in 0:(num_clusters-1)) {
 }
 
 # Reformat Data
-perm_bvc_mat = matrix(unlist(all_combos), nrow = nrow(combos), ncol = 1:n_perm, dimnames = list(1:nrow(combos), 1:n_perm))
+perm_bvc_mat = matrix(unlist(all_combos), nrow = nrow(combos), dimnames = list(1:nrow(combos), 1:n_perm))
 perm_bvc_df = data.frame(perm_bvc_mat)
 perm_bvc_df = cbind(combos, perm_bvc_df)
 
