@@ -8,9 +8,9 @@ combosRes = function(perm, cluster_level) {
   
   # Find the mean ieg_like_score in each cluster
   # ptm <- proc.time()
-  df = bb@meta.data[, c("ieg_like_score", "seuratclusters53", "subsample")]
-  ieg_long = aggregate(ieg_like_score ~ seuratclusters53 + subsample, df, mean)  # finds mean per groups
-  ieg_mat = acast(ieg_long, subsample ~ seuratclusters53, value.var = "ieg_like_score")
+  df = bb@meta.data[, c("ieg_like_score", "seuratclusters15", "subsample")]
+  ieg_long = aggregate(ieg_like_score ~ seuratclusters15 + subsample, df, mean)  # finds mean per groups
+  ieg_mat = acast(ieg_long, subsample ~ seuratclusters15, value.var = "ieg_like_score")
   # mean_time = proc.time() - ptm
   
   # Find the Correlation between Cluster Combos in Behave Samples
@@ -64,14 +64,14 @@ bb$backup_subsample = bb$subsample
 # Parallelize Finding Difference in Behave and Control for Cluster Combos
 library("parallel")
 numCores = detectCores()
-cluster_level = "seuratclusters53"
+cluster_level = "seuratclusters15"
 # perm_labels = mclapply(1:n_perm, function(x) sample(unname(as.vector(bb$subsample))), mc.cores = numCores)
 # length(which(sapply(1:n_perm, function(x) is.null(perm_labels[[x]]))))
 all_combos = mclapply(1:n_perm, function(perm) combosRes(perm), mc.cores = numCores)
 
 # For some reason, one of the 100k returned a vector of length 1377 instead of 1378.
 # Double check that all returned vectors are the right size
-bad_idx = mclapply(1:n_perm, function(perm) length(all_combos[[perm]]) != 1378, mc.cores = numCores)
+bad_idx = mclapply(1:n_perm, function(perm) length(all_combos[[perm]]) != 105, mc.cores = numCores)
 bad_idx = which(unlist(bad_idx))
 all_combos[bad_idx] = NULL
 
@@ -82,37 +82,23 @@ colnames(perm_bvc_df) = 1:n_perm
 combos = colsplit(rownames(perm_bvc_df), pattern = "\\_", names = c('cluster1', 'cluster2')) # split combos vector into two columns
 perm_bvc_df = cbind(combos, perm_bvc_df)
 
-# # Generate the Cluster Combos Once Outside of the For Loop
-# combos = data.frame()
-# num_clusters = max(as.numeric(as.vector(levels(bb@meta.data[,c(cluster_level)]))))
-# for (cluster2 in 0:(num_clusters-1)) {
-#   for (cluster1 in (cluster2+1):num_clusters) {
-#     combos = rbind(combos, t(c(cluster1, cluster2)))
-#   }
-# }
-# # Reformat Data
-# perm_bvc_mat = matrix(unlist(all_combos), nrow = nrow(combos), dimnames = list(1:nrow(combos), 1:n_perm))
-# perm_bvc_df = data.frame(perm_bvc_mat)
-# perm_bvc_df = cbind(combos, perm_bvc_df)
-
 # Save the Results
-write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_c53_p100k_bvc.csv")
+write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_c15_p100k_bvc.csv")
 
 # # After permutations are done:
 # # Load perm results
-# perm_df = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_summary.csv")
-# perm_df_r_b = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_r_b.csv")
-# perm_df_r_c = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_r_c.csv")
-# perm_df_p_b = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_p_b.csv")
-# perm_df_p_c = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_p_c.csv")
-# perm_df_p_bvc = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_p_bvc.csv")
-# perm_df$X = perm_df_r_b$X = perm_df_r_c$X = perm_df_p_b$X = perm_df_p_c$X = perm_df_p_bvc$X = NULL
+# perm_bvc_df = read.csv("~/scratch/brain/results/ieg_covar_c53_p100k_bvc.csv")
+# rownames(perm_bvc_df) = perm_bvc_df$X
+# perm_bvc_df$X = NULL
+# perm_bvc_df$X100001 = NULL
+# colnames(perm_bvc_df) = c("cluster1", "cluster2", 1:n_perm)
 # 
 # # Real Results
+# perm_labels = list()
 # perm_labels[[n_perm+1]] = bb$backup_subsample
 # real_combos = combosRes(n_perm+1)
-# 
-# # Graph the results
+
+# Graph the results
 # df_bvc_plot = data.frame(cluster1 = rep(perm_df_r_b$Cluster1, n_perm), cluster2 = rep(perm_df_r_b$Cluster2, n_perm),
 #                          bvc = unlist( perm_df_r_b[,3:(n_perm+2)] - perm_df_r_c[,3:(n_perm+2)] ), isReal = rep(FALSE, n_perm))
 # real_combos$bvc = as.numeric(as.vector(real_combos$r_behave)) - as.numeric(as.vector(real_combos$r_control))
@@ -122,48 +108,52 @@ write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_c53_p100k_bvc.csv")
 # df_bvc_plot$combo = paste0(df_bvc_plot$cluster1, "_", df_bvc_plot$cluster2)
 # df_bvc_plot$abs_bvc = abs(df_bvc_plot$bvc)
 # 
-# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_bvc.png", width = 2500, height = 400, res = 90)
+# png("~/scratch/brain/results/ieg_covar_c53_p100k_r_bvc.png", width = 2500, height = 400, res = 90)
 # ggplot(df_bvc_plot, aes(combo, bvc, fill = isReal, color = isReal)) + geom_boxplot(alpha = 0.7)
 # dev.off()
-# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_abs_bvc.png", width = 2500, height = 400, res = 90)
+# png("~/scratch/brain/results/ieg_covar_c53_p100k_r_abs_bvc.png", width = 2500, height = 400, res = 90)
 # ggplot(df_bvc_plot, aes(combo, abs_bvc, fill = isReal, color = isReal)) + geom_boxplot(alpha = 0.7)
 # dev.off()
+
+# library("parallel")
+# numCores = detectCores()
+# df_bvc_plot3 = perm_bvc_df
+# df_bvc_plot3$bvc = 0
+# df_bvc_plot3[names(real_combos),"bvc"] = real_combos
+# perm_greater_boolean = df_bvc_plot3[,as.character(c(1:n_perm))] > df_bvc_plot3$bvc
+# df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
 # 
-# df_bvc_plot3 = real_combos[,c("cluster1", "cluster2", "bvc")]
-# df_bvc_plot3 = cbind(df_bvc_plot3, perm_df_r_b[,3:(n_perm+2)] - perm_df_r_c[,3:(n_perm+2)])
-# colnames(df_bvc_plot3) = c("cluster1", "cluster2", "bvc", 1:n_perm)
-# df_bvc_plot3$n_perm_greater = sapply(1:nrow(df_bvc_plot3), function(x) length(which(df_bvc_plot3[x,as.character(c(1:n_perm))] > df_bvc_plot3[x,c("bvc")])) )
-# # df_bvc_plot3 = df_bvc_plot3[order(as.numeric(as.vector(df_bvc_plot3$cluster1)), as.numeric(as.vector(df_bvc_plot3$cluster2))), ]
-# df_bvc_plot3 = df_bvc_plot3[order(as.numeric(as.vector(df_bvc_plot3$cluster2))), ]
+# df_bvc_plot3$cluster1 = factor(df_bvc_plot3$cluster1, levels = 0:14)
+# df_bvc_plot3$cluster2 = factor(df_bvc_plot3$cluster2, levels = 0:14)
 # 
-# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_bvc_perm_greater_raw.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, max(df_bvc_plot2$n_perm_greater)), begin = 1, end = 0)
+# perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:n_perm))]) > abs(df_bvc_plot3$bvc)
+# df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
+# 
+# png("~/scratch/brain/results/ieg_covar_c53_p100k_r_bvc_perm_greater_raw.png", width = 850, height = 800, res = 90)
+# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + ggtitle("Behave - Control Correation")
 # dev.off()
 # 
-# df_bvc_plot2 = real_combos[,c("cluster1", "cluster2", "abs_bvc")]
-# df_bvc_plot2 = cbind(df_bvc_plot2, abs(perm_df_r_b[,3:(n_perm+2)] - perm_df_r_c[,3:(n_perm+2)]))
-# colnames(df_bvc_plot2) = c("cluster1", "cluster2", "abs_bvc", 1:n_perm)
-# df_bvc_plot2$n_perm_greater = sapply(1:nrow(df_bvc_plot2), function(x) length(which(df_bvc_plot2[x,as.character(c(1:n_perm))] > df_bvc_plot2[x,c("abs_bvc")])) )
-# # df_bvc_plot2 = df_bvc_plot2[order(as.numeric(as.vector(df_bvc_plot2$cluster1)), as.numeric(as.vector(df_bvc_plot2$cluster2))), ]
-# df_bvc_plot2 = df_bvc_plot2[order(as.numeric(as.vector(df_bvc_plot2$cluster2))), ]
-# 
-# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_bvc_perm_greater.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot2, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, max(df_bvc_plot2$n_perm_greater)), begin = 1, end = 0)
+# png("~/scratch/brain/results/ieg_covar_c53_p100k_r_abs_bvc_perm_greater.png", width = 850, height = 800, res = 90)
+# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = abs_n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + labs(fill ="n_perm_greater") + ggtitle("Absolute Value Behave - Control Correation")
 # dev.off()
+# 
+# df_bvc_plot3$p = df_bvc_plot3$n_perm_greater / n_perm
+# df_bvc_plot3$q = p.adjust(df_bvc_plot3$p, method = "BH")
+#   
+# df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
+# df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
+# length(which(df_bvc_plot3$abs_p < 0.05))
+# length(which(df_bvc_plot3$abs_q < 0.05))
+# # df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
 # 
 # # P value per combo
-# z_scores = lapply(1:nrow(df_bvc_plot3), function(x) scale(as.numeric(as.vector(df_bvc_plot3[x, c("bvc", as.character(1:n_perm))]))) )
-# # z_scores = lapply(1:nrow(df_bvc_plot3), function(x) scale(as.numeric(as.vector(df_bvc_plot3[x, c("bvc", paste0("X",1:n_perm))]))) )
-# z_scores_mat = as.matrix(data.frame(z_scores))
-# rownames(z_scores_mat) = c("real", as.character(1:n_perm))
-# colnames(z_scores_mat) = paste0(df_bvc_plot3$cluster1, "_", df_bvc_plot3$cluster2)
-# 
-# p_from_z = lapply(1:ncol(z_scores_mat), function(x) 2*pnorm(-abs(z_scores_mat["real",x])) )
+# z_scores = t(scale(t(df_bvc_plot3[x, c("bvc", as.character(1:n_perm))]))) # scale combos per row 
+# p_from_z = lapply(1:nrow(z_scores), function(x) 2*pnorm(-abs(z_scores[x, "bvc"])) )
 # # p_from_z = lapply(1:ncol(z_scores_mat), function(x) 2*pnorm(-abs(z_scores_mat["real",x]), mean = mean(z_scores_mat[,x]), sd = sd(z_scores_mat[,x])) )
 # p = unlist(p_from_z)
-# names(p) = colnames(z_scores_mat)
+# names(p) = rownames(z_scores)
 # q = p.adjust(p, method = "BH")
-# names(q) = colnames(z_scores_mat)
+# names(q) = rownames(z_scores)
 # length(which(p < 0.05))
 # length(which(q < 0.05))
 # q[which.min(q)]
