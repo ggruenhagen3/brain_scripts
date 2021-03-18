@@ -29,6 +29,7 @@ combosRes = function(perm, cluster_level) {
   bvc_mat = b_r_mat - c_r_mat
   bvc_long = na.omit(melt(bvc_mat))
   bvc = bvc_long[,3]
+  names(bvc) = paste0(bvc_long[,1], "_", bvc_long[,2])
   
   # end_time = proc.time()
   # print(paste0("Mean time: ", mean_time["elapsed"]))
@@ -46,7 +47,7 @@ combosRes = function(perm, cluster_level) {
 rna_path = "~/scratch/brain/"
 bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
 source(paste0(rna_path, "brain_scripts/all_f.R"))
-set.seed(155)
+set.seed(156)
 
 # Load IEG and IEG Like Genes
 ieg_cons = c("LOC101487312", "egr1", "npas4", "jun", "homer1")
@@ -56,7 +57,7 @@ ieg_like = c(ieg_like, "jun")
 bb$ieg_like_score <- colSums(bb@assays$RNA@data[ieg_like,])
 
 # Setup Permutations
-n_perm = 100000
+n_perm = 100001
 perm_labels = lapply(1:n_perm, function(x) sample(unname(as.vector(bb$subsample))))
 bb$backup_subsample = bb$subsample
 
@@ -68,19 +69,31 @@ cluster_level = "seuratclusters53"
 # length(which(sapply(1:n_perm, function(x) is.null(perm_labels[[x]]))))
 all_combos = mclapply(1:n_perm, function(perm) combosRes(perm), mc.cores = numCores)
 
-# Generate the Cluster Combos Once Outside of the For Loop
-combos = data.frame()
-num_clusters = max(as.numeric(as.vector(levels(bb@meta.data[,c(cluster_level)]))))
-for (cluster2 in 0:(num_clusters-1)) {
-  for (cluster1 in (cluster2+1):num_clusters) {
-    combos = rbind(combos, t(c(cluster1, cluster2)))
-  }
-}
+# For some reason, one of the 100k returned a vector of length 1377 instead of 1378.
+# Double check that all returned vectors are the right size
+bad_idx = mclapply(1:n_perm, function(perm) length(all_combos[[perm]]) != 1378, mc.cores = numCores)
+bad_idx = which(unlist(bad_idx))
+all_combos[bad_idx] = NULL
 
-# Reformat Data
-perm_bvc_mat = matrix(unlist(all_combos), nrow = nrow(combos), dimnames = list(1:nrow(combos), 1:n_perm))
-perm_bvc_df = data.frame(perm_bvc_mat)
+# Merge List of Combos into One Dataframe
+perm_bvc_df = data.frame(t(plyr::ldply(all_combos, rbind))) # merge by name
+perm_bvc_df = perm_bvc_df[,1:n_perm]
+colnames(perm_bvc_df) = 1:n_perm
+combos = colsplit(rownames(perm_bvc_df), pattern = "\\_", names = c('cluster1', 'cluster2')) # split combos vector into two columns
 perm_bvc_df = cbind(combos, perm_bvc_df)
+
+# # Generate the Cluster Combos Once Outside of the For Loop
+# combos = data.frame()
+# num_clusters = max(as.numeric(as.vector(levels(bb@meta.data[,c(cluster_level)]))))
+# for (cluster2 in 0:(num_clusters-1)) {
+#   for (cluster1 in (cluster2+1):num_clusters) {
+#     combos = rbind(combos, t(c(cluster1, cluster2)))
+#   }
+# }
+# # Reformat Data
+# perm_bvc_mat = matrix(unlist(all_combos), nrow = nrow(combos), dimnames = list(1:nrow(combos), 1:n_perm))
+# perm_bvc_df = data.frame(perm_bvc_mat)
+# perm_bvc_df = cbind(combos, perm_bvc_df)
 
 # Save the Results
 write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_c53_p100k_bvc.csv")
