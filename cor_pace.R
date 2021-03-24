@@ -8,7 +8,7 @@ print(paste("Num Cors:", detectCores()))
 paul_epi = readRDS("~/scratch/d_tooth/data/epi_full.rds")
 paul_epi$cond[is.na(paul_epi$cond)] <- "INJR"
 paul_injr = subset(paul_epi, cells = colnames(paul_epi)[which(paul_epi$cond == "INJR")])
-obj <- paul_ctrl
+obj <- paul_injr
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 2)]
 mat_data_p   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_data_cor = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
