@@ -5,6 +5,7 @@ library("jaccard")
 library("parallel")
 print(paste("Num Cors:", detectCores()))
 # bb <- readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
+hm = readRDS("~/scratch/d_tooth/data/hm.rds")
 hm$age = hm$sample
 hm$age[which(hm$age %in% c("germ", "y15"))] = "grow"
 hm$age[which(hm$age != "grow")] = "adult"
