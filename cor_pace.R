@@ -5,10 +5,12 @@ library("jaccard")
 library("parallel")
 print(paste("Num Cors:", detectCores()))
 # bb <- readRDS("~/scratch/brain/data/bb_clustered_102820.rds")
-paul_epi = readRDS("~/scratch/d_tooth/data/epi_full.rds")
-paul_epi$cond[is.na(paul_epi$cond)] <- "INJR"
-paul_injr = subset(paul_epi, cells = colnames(paul_epi)[which(paul_epi$cond == "INJR")])
-obj <- paul_injr
+hm$age = hm$sample
+hm$age[which(hm$age %in% c("germ", "y15"))] = "grow"
+hm$age[which(hm$age != "grow")] = "adult"
+hm_grow = subset(hm, cells = colnames(hm)[which(hm$age == "grow")])
+hm_adult = subset(hm, cells = colnames(hm)[which(hm$age == "adult")])
+obj <- hm_grow
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 2)]
 mat_data_p   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_data_cor = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
@@ -78,8 +80,8 @@ r_mat = cor(t(as.matrix(obj@assays$RNA@data[,])), y = NULL)
 t_mat = my_cor_t(r_mat, ncol(obj))
 p_mat = my_cor_p(t_mat, ncol(obj))
 
-saveRDS(r_mat, "~/scratch/d_tooth/data/paul_epi_injr_cor.RDS")
-saveRDS(p_mat,   "~/scratch/d_tooth/data/paul_epi_injr_cor_p.RDS")
+saveRDS(r_mat, "~/scratch/d_tooth/data/hm_grow_cor.RDS")
+saveRDS(p_mat,   "~/scratch/d_tooth/data/hm_adult_cor_p.RDS")
 
 # gene_names <- rownames(bb)[which(rowSums(bb@assays$RNA@counts) > 2)]
 # fx <- function(gene1) cor.test(bb@assays$RNA@data[gene1, ], bb@assays$RNA@data["egr1", ])$p.value
