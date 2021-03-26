@@ -11,7 +11,7 @@ hm$age[which(hm$age %in% c("germ", "y15"))] = "grow"
 hm$age[which(hm$age != "grow")] = "adult"
 hm_grow = subset(hm, cells = colnames(hm)[which(hm$age == "grow")])
 hm_adult = subset(hm, cells = colnames(hm)[which(hm$age == "adult")])
-obj <- hm_grow
+obj <- hm_adult
 gene_names <- rownames(obj)[which(rowSums(as.matrix(obj@assays$RNA@counts)) > 2)]
 mat_data_p   = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
 mat_data_cor = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dimnames = list(gene_names, gene_names))
@@ -81,7 +81,7 @@ r_mat = cor(t(as.matrix(obj@assays$RNA@data[,])), y = NULL)
 t_mat = my_cor_t(r_mat, ncol(obj))
 p_mat = my_cor_p(t_mat, ncol(obj))
 
-saveRDS(r_mat, "~/scratch/d_tooth/data/hm_grow_cor.RDS")
+saveRDS(r_mat, "~/scratch/d_tooth/data/hm_adult_cor.RDS")
 saveRDS(p_mat,   "~/scratch/d_tooth/data/hm_adult_cor_p.RDS")
 
 # gene_names <- rownames(bb)[which(rowSums(bb@assays$RNA@counts) > 2)]
