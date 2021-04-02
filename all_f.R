@@ -15,12 +15,44 @@ library("data.table")
 library("tidyr")
 library("BSDA")
 library("httr")
+library("ggtext")
+library("colourvalues")
+library("colorspace")
 # library("ggforce")
 httr::set_config(config(ssl_verifypeer = FALSE))
 
 ####################
 # Helper Functions #
 ####################
+
+pct_dif_avg_logFC = function(obj, cells.1, cells.2) {
+  #' Find the Average Log FC and Percent Difference for Every Gene
+  #' @param obj Seurat object
+  #' @param cells.1 vector of first group of cells
+  #' @param cells.2 vector of second group of cells
+  both_cells = unique(c(cells.1, cells.2))
+  non_zero_genes = rownames(obj)[which(rowSums(obj@assays$RNA@counts[,both_cells]) > 0)]
+  
+  # Find Percent of Gene+ in both groups of cells
+  mat1 = obj@assays$RNA@counts[non_zero_genes, cells.1]
+  mat1[which(mat1 > 1)] = 1
+  num_pos_cells1 = rowSums(mat1)
+  mat2 = obj@assays$RNA@counts[non_zero_genes, cells.2]
+  mat2[which(mat2 > 1)] = 1
+  num_pos_cells2 = rowSums(mat2)
+  pct_pos_cells1 = (num_pos_cells1/length(cells.1)) * 100
+  pct_pos_cells2 = (num_pos_cells2/length(cells.2)) * 100
+  pct_dif = pct_pos_cells1 - pct_pos_cells2
+  
+  # Find Average Log FC
+  mean_exp1 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.1]))
+  mean_exp2 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.2]))
+  avg_logFC = log(mean_exp1 + 1) - log(mean_exp2 + 1)
+  
+  df = data.frame(genes = non_zero_genes, avg_logFC = avg_logFC, pct.1 = pct_pos_cells1, pct.2 = pct_pos_cells2, pct_dif = pct_dif, num.1 = num_pos_cells1, num.2 = num_pos_cells2)
+  
+  return(df)
+}
 
 r_to_p = function(r1, r2, n1, n2) {
   # Compare Two Correlation Values using Fisher's Z Transformation Method.
@@ -52,8 +84,14 @@ changeClusterID = function(clust_vect, clust_level = NULL) {
   }
   
   # Build Both 15 and 53 level converters
-  convert15 = data.frame(old = 0:14, new = c("8_Ex", "9_Ex", "4_In", "15_InEx", "1_Astro/MG", "10_Ex", "5_In", "11_Ex", "6_In", "2_OPC/Oligo", "12_Ex", "13_Ex", "14_Ex", "3_Peri", "7_In"))
-  convert53 = data.frame(old = 0:52, new = c("4.1_In", "10.1_Ex", "15.1_InEx", "9.1_Ex", "8.1_Ex", "1.1_Astro", "6_In", "5.1_In", "9.2_Ex", "8.2_Ex", "15.2_In", "11.1_Ex", "8.3_Ex", "8.4_Ex", "9.3_Ex", "4.2_In", "8.5_Ex", "5.2_In", "8.6_Ex", "8.7_Ex", "1.2_Astro", "4.3_In", "4.4_In", "9.4_Ex", "9.5_Ex", "8.8_Ex", "9.6_Ex", "4.5_In", "12_Ex", "8.9_Ex", "10.2_Ex", "2.1_OPC", "15.3_In", "11.2_Ex", "15.4_In", "4.6_In", "9.7_Ex", "13_Ex", "14_Ex", "4.7_In", "11.3_Ex", "9.8_Ex", "8-9_Ex", "15.5_InEx", "4.8_In", "1.3_MG", "2.2_Oligo", "15.6_Ex", "8.10_Ex", "8.11_Ex", "3_Peri", "15.7_Ex", "7_In"))
+  convert15 = data.frame(old = 0:14, new = c("8_Ex", "9_Ex", "4_In", "15_In/Ex", "1_Astro/MG", "10_Ex", "5_In", "11_Ex", "6_In", "2_OPC/Oligo", "12_Ex", "13_Ex", "14_Ex", "3_Peri", "7_In"))
+  convert53 = data.frame(old = 0:52, new = c("4.1_In", "10.1_Ex", "15.1_In/Ex", "9.1_Ex", "8.1_Ex", "1.1_Astro", "6_In", "5.1_In", "9.2_Ex", "8.2_Ex", "15.2_In", "11.1_Ex", "8.3_Ex", "8.4_Ex", "9.3_Ex", "4.2_In", "8.5_Ex", "5.2_In", "8.6_Ex", "8.7_Ex", "1.2_Astro", "4.3_In", "4.4_In", "9.4_Ex", "9.5_Ex", "8.8_Ex", "9.6_Ex", "4.5_In", "12_Ex", "8.9_Ex", "10.2_Ex", "2.1_OPC", "15.3_In", "11.2_Ex", "15.4_In", "4.6_In", "9.7_Ex", "13_Ex", "14_Ex", "4.7_In", "11.3_Ex", "9.8_Ex", "8-9_Ex", "15.5_In/Ex", "4.8_In", "1.3_MG", "2.2_Oligo", "15.6_Ex", "8.10_Ex", "8.11_Ex", "3_Peri", "15.7_Ex", "7_In"))
+  
+  # Changed In and Ex to GABA and GLUT
+  convert15$new = gsub("In", "GABA", convert15$new)
+  convert15$new = gsub("Ex", "Glut", convert15$new)
+  convert53$new = gsub("In", "GABA", convert53$new)
+  convert53$new = gsub("Ex", "Glut", convert53$new)
   
   # Select correct converter
   converter = convert53
@@ -228,13 +266,173 @@ myDensityPlot = function(obj, feature1, feature2, cells.use = NULL, myslot = "da
   return(p)
 }
 
-myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_vect = NULL, my.split.by = NULL, my.pt.size = 1) {
+multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cells.use = NULL, cols = NULL) {
+  #' Create a FeaturePlot using multiple markers with different colors
+  #' This one is the preferred function, it uses a color blending function, 
+  #' but multiFeaturePlot is also acceptable and its method is to overlap points.
+  #' @param obj Seurat object
+  #' @param features the vector of features to make a FeaturePlot of
+  #' @param my.pt.size size of points on plot (optional)
+  #' @param my.alpha alpha for all points on plot (optional)
+  #' @param cells.use cells to plot (optional)
+  #' @param cols vector of colors corresponding to the genes (optional)
+  #' @return p UMAP FeaturePlot
+  
+  # Color Scheme
+  lightgray_hex = "#D3D3D3FF"
+  if (is.null(cols))
+    cols = brewer.pal(9, "Set1")
+  
+  # Make sure the input features are in the data and get the value of 
+  df = as.data.frame(obj@reductions$umap@cell.embeddings)
+  df$ident = Idents(obj)
+  if (length(features) > 1)
+    df$order = colSums(obj@assays$RNA@counts[features,])
+  else
+    df$order = obj@assays$RNA@counts[features,]
+  n = ncol(obj)
+  
+  i = 1
+  for (feature in features) {
+    if (feature %in% rownames(obj)) {
+      this_col = cols[i]
+      if (i == 1) {
+        df$feature = obj@assays$RNA@data[feature,]
+        m <- grDevices::colorRamp(c(lightgray_hex, this_col))( (1:n)/n )
+        df$col = colour_values(df$feature, palette = m)
+      } else {
+        this_values = obj@assays$RNA@data[feature,]
+        m <- grDevices::colorRamp(c("lightgray", this_col))( (1:n)/n )
+        this_cols = colour_values(this_values, palette = m)
+        names(this_cols) = colnames(obj)
+        
+        feature_pos = colnames(obj)[which(obj@assays$RNA@counts[feature,] > 0 )]
+        newRow = df[feature_pos,]
+        newRow$feature = this_values[feature_pos]
+        newRow$col = this_cols[feature_pos]
+        
+        my_mix = function(x)  {
+          if (df[x,"col"] == lightgray_hex)
+            this_cols[x]
+          else
+            rgb(mixcolor(alpha = 0.5, hex2RGB(df[x, "col"]), hex2RGB(this_cols[x]))@coords)
+        }
+        new_cols = unlist(lapply(feature_pos, my_mix))
+        df[feature_pos, "col"] = new_cols
+      }
+      i = i + 1
+    } else {
+      print("Feature not found in rownames of object nor meta data.")
+    }
+  }
+  
+  if (! is.null(cells.use) )
+    df = df[cells.use,]
+  
+  df = df[order(df$order, decreasing = F),]
+  print(head(df))
+  p = ggplot(df, aes(UMAP_1, UMAP_2)) + geom_point(size = my.pt.size, colour = df$col, alpha = my.alpha) + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + NoLegend()
+  p = LabelClusters(p, "ident", unique(df$ident), repel = F, colour = "black")
+  
+  # Color title based on genes
+  title_str = "<span>"
+  for (i in 1:length(features)) {
+    if (i == length(features)) {
+      title_str = paste0(title_str, "<span style='color:", as.character(cols[i]), ";'>", features[i], "</span>")
+    } else {
+      title_str = paste0(title_str, "<span style='color:", as.character(cols[i]), ";'>", features[i], "</span> and ")
+    }
+    if (i %% 3 == 0) {
+      title_str = paste0(title_str, "<br></br>")
+    }
+  }
+  title_str = paste0(title_str, "</span>")
+  p = p + labs(title = title_str) + theme( plot.title = element_markdown(lineheight = 1.1 ))
+  
+  return(p)
+}
+
+multiFeaturePlot = function(obj, features, my.pt.size = 1) {
+  #' Experimental Function to create a FeaturePlot using multiple markers
+  #' @param obj Seurat object
+  #' @param features the vector of features to make a FeaturePlot of
+  
+  # cols = rainbow(length(features))
+  cols = brewer.pal(9, "Set1")
+  # Make sure the input features are in the data and get the value of 
+  df = as.data.frame(obj@reductions$umap@cell.embeddings)
+  df$ident = Idents(obj)
+  if (length(features) > 1)
+    df$order = colSums(obj@assays$RNA@counts[features,])
+  else
+    df$order = obj@assays$RNA@counts[features,]
+  n = ncol(obj)
+  
+  i = 1
+  df_others = data.frame()
+  for (feature in features) {
+    if (feature %in% rownames(obj)) {
+      this_col = cols[i]
+      # this_col = "blue"
+      if (i == 1) {
+        df$feature = obj@assays$RNA@data[feature,]
+        m <- grDevices::colorRamp(c("lightgray", this_col))( (1:n)/n )
+        df$col = colour_values(df$feature, palette = m)
+      } else {
+        this_values = obj@assays$RNA@data[feature,]
+        m <- grDevices::colorRamp(c("lightgray", this_col))( (1:n)/n )
+        this_cols = colour_values(this_values, palette = m)
+        names(this_cols) = colnames(obj)
+        
+        feature_pos = colnames(obj)[which(obj@assays$RNA@counts[feature,] > 0 )]
+        newRow = df[feature_pos,]
+        newRow$feature = this_values[feature_pos]
+        newRow$col = this_cols[feature_pos]
+        df_others = rbind(df_others, newRow)
+      }
+      i = i + 1
+    } else {
+      print("Feature not found in rownames of object nor meta data.")
+    }
+  }
+  
+  df = rbind(df, df_others)
+  
+  df = df[order(df$order, decreasing = F),]
+  print(head(df))
+  p = ggplot(df, aes(UMAP_1, UMAP_2)) + geom_point(size = my.pt.size, colour = df$col, alpha = 0.4) + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + NoLegend()
+  p = LabelClusters(p, "ident", unique(df$ident), repel = F, colour = "black")
+  
+  # Color title based on genes
+  title_str = "<span>"
+  for (i in 1:length(features)) {
+    if (i == length(features)) {
+      title_str = paste0(title_str, "<span style='color:", as.character(cols[i]), ";'>", features[i], "</span>")
+    } else {
+      title_str = paste0(title_str, "<span style='color:", as.character(cols[i]), ";'>", features[i], "</span> and ")
+    }
+    if (i %% 3 == 0) {
+      title_str = paste0(title_str, "<br></br>")
+    }
+  }
+  title_str = paste0(title_str, "</span>")
+  p = p + labs(title = title_str) + theme( plot.title = element_markdown(lineheight = 1.1 ))
+  
+  return(p)
+}
+
+myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_vect = NULL, my.split.by = NULL, my.pt.size = 1, my.col.pal = NULL, my.title = NULL, na.blank = FALSE) {
   #' Make a FeaturePlot using ggplot. Having this gives me more control over the plot.
   #' 
   #' @param obj Seurat object
   #' @param feature feature to plot
   #' @param myslot slot to pull data from
   #' @param alpha_vect vector of values to use as an alpha parameter (values in same order as cells)
+  #' @param my.split.by metadata to split plot by
+  #' @param my.pt.size point size
+  #' @param my.col.pal color palette
+  #' @param my.title title to add (only if splitting plot)
+  #' @param na.blank make cells that don't express the gene NA (that way they are colored gray)
   #' @return ggplot object
   exp = GetAssayData(obj, assay = "RNA", slot=myslot)
   if (feature %in% rownames(obj)) {
@@ -245,31 +443,48 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
     print("Feature not found in rownames of object nor meta data.")
   }
   
+  # Create a Dataframe with the UMAP coordinates, the expression values, and the Idents
   df = as.data.frame(obj@reductions$umap@cell.embeddings)
   df$value = values
   df$ident = Idents(obj)
   
+  # Make the Cells that do not express the gene gray
+  my.na.value = "lightgray" # a constant used in the graphs
+  if (na.blank) {
+    if (feature %in% rownames(obj))
+      df$value[which(obj@assays$RNA@counts[feature,] < 1)] = NA
+    if (feature %in% colnames(obj@meta.data))
+      df$value[which(df$value == 0)] = NA
+  }
+    
+  
   onePlot = function(df, mymin, mymax) {
+    print(head(df))
     if ( is.null(alpha_vect) ) {
-      df = df[order(df$value),]
+      df = df[order(df$value, na.last = F),]
       # p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradient2(midpoint=(mymax-mymin)/2 + mymin, low = "blue", mid = "gold", high = "red", space = "Lab", limits=c(mymin, mymax)) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
-      p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradientn(limits = c(mymin, mymax), colors = c("lightgrey", "blue")) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+      p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradientn(limits = c(mymin, mymax), colors = c("lightgrey", "blue"), na.value=my.na.value) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+      if (!is.null(my.col.pal))
+        p = p + scale_color_gradientn(colors = pal(50), na.value=my.na.value, limits = c(mymin, mymax))
     } else {
       rescale <- function(x, newMin, newMax) { (x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin }
       df$total_counts = rescale(alpha_vect, 0.05, 0.6)[rownames(df)]
+      df$total_counts = alpha_vect
       df = df[order(df$value),]
       print(head(df))
-      p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(aes(size = total_counts, alpha = total_counts)) + scale_color_gradient2(midpoint=(mymax-mymin)/2 + mymin, low = "blue", mid = "gold", high = "red", space = "Lab", limits=c(mymin, mymax)) + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + scale_size(range=c(0.2, 2)) + scale_alpha(range=c(0.2, 1))
+      p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(aes(size = total_counts, alpha = total_counts)) + scale_color_gradient2(midpoint=(mymax-mymin)/2 + mymin, low = "blue", mid = "gold", high = "red", space = "Lab", limits=c(mymin, mymax), na.value=my.na.value) + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + scale_size(range=c(0.2, 2)) + scale_alpha(range=c(0.2, 1))
     }
     p = LabelClusters(p, "ident", unique(df$ident), repel = F, colour = "black")
     return(p)
   }
   
+  # Find the min and max values (Used for scaling colors later on)
   if (! is.null(cells.use) )
     df = df[cells.use,]
-  mymax = max(df$value[is.finite(df$value)])
-  mymin = min(df$value[is.finite(df$value)])
+  mymax = max(df$value[is.finite(df$value)], na.rm = T)
+  mymin = min(df$value[is.finite(df$value)], na.rm = T)
   
+  # Split Plot if Necessary
   if ( is.null(my.split.by) )
     p = onePlot(df, mymin, mymax)
   else {
@@ -283,7 +498,13 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
       p_list[[one_split]] = onePlot(df[this_cells,], mymin, mymax) + ggtitle(one_split)
     }
     p = plot_grid(plotlist=p_list, ncol = 2)
-  }
+    
+    # Add a Title if Given
+    if (! is.null(my.title) ) {
+      my.title.obj = ggdraw() + draw_label(my.title)
+      p = plot_grid(my.title.obj, p, ncol = 1, rel_heights=c(0.1, 1))
+    }
+  } # more than one plot
   
   return(p)
 }
@@ -411,10 +632,12 @@ cytoBINdeg = function(obj) {
   return(list(p1, p2, deg))
 }
 
-cytoScoreByIdent = function(obj, my_idents = NULL) {
+cytoScoreByIdent = function(obj, my_idents = NULL, genes = NULL, by.gene = F, pt.alpha = 0.1) {
   #' Make a boxplot of cytoTRACE score by ident/cluster
   #' 
   #' @param obj Seurat object
+  #' @param my_idents 
+  #' @param genes plot the CytoTRACE score of cells positive for these genes (instead of plotting by identity)
   #' @return p boxplot of cytoTRACE score by ident/cluster
   
   # Color Palette
@@ -422,26 +645,41 @@ cytoScoreByIdent = function(obj, my_idents = NULL) {
   temp[6] = "gold" # this is what plotCytoTRACE uses
   pal = colorRampPalette(temp)
   
-  clusters = sort(unique(as.vector(Idents(obj))))
-  if (! any(is.na(as.numeric(Idents(obj))))) {
-    print("Can sort numerically")
-    clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
-  }
-  
-
-  
-  cell_type_df <- as.data.frame(cbind(as.numeric(as.vector(obj$cyto)), as.vector(Idents(obj))))
-  colnames(cell_type_df) <- c("CytoTRACE", "Cell_Type")
-  cell_type_df$CytoTRACE <- as.numeric(as.vector(cell_type_df$CytoTRACE))
-  if (! is.null(my_idents) ) {
-    cell_type_df = cell_type_df[which(cell_type_df$Cell_Type %in% my_idents),]
-    cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=my_idents)
+  if (! is.null(genes) ) {
+    # Plot by Gene Positive Cells
+    cell_type_df = data.frame()
+    for (gene in genes) {
+      gene_pos = colnames(obj)[which(obj@assays$RNA@counts[gene,] > 0)]
+      newRow = data.frame(CytoTRACE = as.numeric(as.vector(obj$cyto[gene_pos])), Cell_Type = gene)
+      cell_type_df = rbind(cell_type_df, newRow)
+    }
   } else {
-    cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=clusters)
+    # Plot by Cell Types
+    cell_type_df <- as.data.frame(cbind(as.numeric(as.vector(obj$cyto)), as.vector(Idents(obj))))
+    colnames(cell_type_df) <- c("CytoTRACE", "Cell_Type")
+    cell_type_df$CytoTRACE <- as.numeric(as.vector(cell_type_df$CytoTRACE))
+    if (! is.null(my_idents) ) {
+      # Plot by input cell types
+      cell_type_df = cell_type_df[which(cell_type_df$Cell_Type %in% my_idents),]
+      cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=my_idents)
+    } else {
+      # Plot by Cluster
+      clusters = sort(unique(as.vector(Idents(obj))))
+      if (! any(is.na(as.numeric(levels(Idents(obj)))))) {
+        print("Can sort numerically")
+        clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+      }
+      cell_type_df$Cell_Type <- factor(cell_type_df$Cell_Type, levels=clusters)
+    }
   }
   rownames(cell_type_df) <- NULL
-  p = ggplot(cell_type_df, aes(x=Cell_Type, y=CytoTRACE)) + geom_boxplot(alpha=0.8, aes(fill=as.character(as.numeric(as.vector(Cell_Type))%%2))) + ylim(0,1) + geom_jitter(position=position_dodge2(width=0.5), alpha=0.1, aes(color = CytoTRACE)) + coord_flip() + theme_classic() + scale_color_gradientn(colors = pal(50)) + scale_fill_manual(values = c("white", "gray47")) + guides(color = F) + NoLegend()
-  
+  print(head(cell_type_df))
+  print(length(which(is.na(as.numeric(as.vector(cell_type_df$CytoTRACE))))))
+  cell_type_df$CytoTRACE = as.numeric(as.vector(cell_type_df$CytoTRACE))
+  # p = ggplot(cell_type_df, aes(x=Cell_Type, y=CytoTRACE)) + geom_boxplot(alpha=0.8, aes(fill=as.character(as.numeric(as.vector(Cell_Type))%%2))) + ylim(0,1) + geom_jitter(position=position_dodge2(width=0.5), alpha=pt.alpha, aes(color = CytoTRACE)) + coord_flip() + theme_classic() + scale_color_gradientn(colors = pal(50)) + scale_fill_manual(values = c("white", "gray47")) + guides(color = F) + NoLegend()
+  p = ggplot(cell_type_df, aes(x=Cell_Type, y=CytoTRACE)) + geom_boxplot(alpha=0.8, aes(fill=as.character(as.numeric(as.vector(Cell_Type))%%2))) + ylim(0,1) + geom_jitter(position=position_dodge2(width=0.5), alpha=pt.alpha, aes(color = CytoTRACE)) + coord_flip() + theme_classic() + scale_color_gradientn(colors = pal(50)) + scale_fill_manual(values = c("white", "gray47")) + guides(color = F) + NoLegend()
+  if (! is.null(genes))
+    p = p + ylab("Genes")
   return(p)
 }
 
@@ -854,6 +1092,7 @@ markerExpPerCellPerClusterBVC = function(obj, markers, myslot="counts", n_marker
 }
 
 separateEnrichTest = function(obj, markers) {
+  #' Experimental Enrichment Test. Plot each gene separately
   exp = GetAssayData(obj, assay = "RNA", slot="counts")
   exp = exp[markers,]
   exp[which(exp > 0)] = 1
@@ -882,6 +1121,69 @@ separateEnrichTest = function(obj, markers) {
   per_cluster_df$p_adj = p.adjust(per_cluster_df$composite_p, method = "bonferroni")
   
   return(list(per_gene_per_cluster_df, per_cluster_df))
+}
+markerExpPerCellPerClusterQuick = function(obj, markers) {
+  #' Same as markerExpPerCellPerCluster using the default settings and using some shortcuts
+  # Defaults from original function
+  n_markers = T
+  correct = T
+  myslot = "counts"
+  
+  title_str = "Average"
+  title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
+  title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
+
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  exp[which(exp > 0)] = 1
+  per_cluster_df = data.frame()
+  d_df = data.frame()
+  clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  
+  for (cluster in clusters) {
+    cluster_cells <- WhichCells(obj, idents = cluster)
+
+    avg_cluster_exp = colSums(exp[markers, cluster_cells])
+    avg_cluster_exp = avg_cluster_exp/obj$nFeature_RNA[cluster_cells]
+    other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
+    other_avg = colSums(exp[markers, other_cells])
+    other_avg = other_avg/obj$nFeature_RNA[other_cells]
+
+    p = z.test(avg_cluster_exp, other_avg, sigma.x = sd(avg_cluster_exp), sigma.y = sd(other_avg), alternative = "greater")$p.value
+
+    # Cohen's d
+    all_exp = c(avg_cluster_exp, other_avg)
+    test= effsize::cohen.d(all_exp, c(rep("cluster", length(avg_cluster_exp)),
+                                      rep("other",   length(other_avg))))
+
+    d=test$estimate
+    up=test$conf.int[2]
+    down = test$conf.int[1]
+    mag=test$magnitude
+    mag_pos=mag
+    mag_pos[which(d < 0)] = "negligible"
+
+    d_df = rbind(d_df, data.frame(cluster, mag, mag_pos, d, up, down, p))
+    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, avg_cluster_exp, p, mag_pos))
+  }
+  
+  d_df$p_val_adj = p.adjust(d_df$p, method = "bonferroni")
+  d_df$cluster = factor(d_df$cluster, levels = clusters)
+  p1  = ggplot(d_df, aes(cluster, d, color=mag, fill = mag)) + geom_pointrange(aes(ymin = down, ymax = up)) + ylab("Cohen's d") + ggtitle("Effect Size in Clusters")
+
+  colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp", "p", "mag_pos")
+  per_cluster_df$avg_cluster_exp = as.numeric(as.vector(per_cluster_df$avg_cluster_exp))
+  per_cluster_df$p_val_adj = unlist(sapply(1:length(clusters), function(x) rep(d_df$p_val_adj[which(d_df$cluster == clusters[x])], length(which(per_cluster_df$cluster == clusters[x]))) ))
+  per_cluster_df$star = ifelse(per_cluster_df$p_val_adj < 0.001, "***",
+                               ifelse(per_cluster_df$p_val_adj < 0.01, "**",
+                                      ifelse(per_cluster_df$p_val_adj < 0.05, "*", "")))
+  per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = clusters)
+  per_cluster_df$mag_pos = factor(per_cluster_df$mag_pos, levels = c("negligible", "small", "medium", "large"))
+  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=mag_pos, color=mag_pos)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.05) + xlab("Cluster") + ylab("") + ggtitle(title_str) + scale_color_viridis(discrete = T,drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size") + scale_fill_viridis(discrete = T, drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size")
+
+  print(head(per_cluster_df[which(per_cluster_df$cluster == 0),]))
+
+  return(list(p, p1, d_df))
 }
 
 markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T, correct=T) {
@@ -1271,6 +1573,63 @@ myAverageExpression <- function(obj, slot="data", assay="RNA", features = NULL, 
   }
   result <- as.data.frame(t(result))
   return(result)
+}
+
+convertHgncDataFrameToMzebra = function(df, gene_column, gene_names, na.rm = F, return_vect = F) {
+  #' Convert a DataFram of HGNC gene names to ENS cichlid gene names
+  #' 
+  #'@param df dataframe of hgnc gene names
+  #'@param gene_column column that has the hgnc gene names
+  #'@param gene_names valid ENS cichlid gene names
+  #'@param na.rm Remove NA ENS cichlid gene names
+  #'@param return_vect return vector of ENS cichlid gene names instead of dataframe
+  #'@return df data frame with a new column for ENS cichlid gene names called "mz" (or optionally return a vector)
+  
+  # Extract Input Genes
+  hgnc_names = df[,gene_column]
+  hgnc_names_unique = unique(hgnc_names)
+  
+  # Mart Objects
+  mzebra = useEnsembl("ensembl", mirror = "uswest", dataset = "mzebra_gene_ensembl")
+  human =  useEnsembl("ensembl", mirror = "uswest", dataset = "hsapiens_gene_ensembl")
+  
+  # Make a converter that includes the ENS names and Zebrafish names
+  ens_converter = getLDS(attributes = c("hgnc_symbol"), filters = "hgnc_symbol", values = hgnc_names_unique , mart = human, attributesL = c("ensembl_gene_id", "zfin_id_symbol", "external_gene_name"), martL = mzebra, uniqueRows=T)
+  ens_converter$Gene.name[which(ens_converter$Gene.name == "")] = NA
+  
+  # Make a converter that includes the ENS names, Zebrafish names, AND the input gene name to lower case.
+  complete_converter = data.frame(hgnc = hgnc_names_unique)
+  complete_converter$mz_ens = ens_converter$Gene.stable.ID[match(complete_converter$hgnc, ens_converter$HGNC.symbol)]
+  complete_converter$mz_ens_name = ens_converter$Gene.name[match(complete_converter$hgnc, ens_converter$HGNC.symbol)]
+  complete_converter$mz_zfin = ens_converter$ZFIN.symbol[match(complete_converter$hgnc, ens_converter$HGNC.symbol)]
+  complete_converter$mz_lower = tolower(hgnc_names_unique)
+  # complete_converter$mz_lower[which(! complete_converter$mz_lower %in% gene_names)] = NA
+  complete_converter$mz_upper = hgnc_names_unique
+  # complete_converter$mz_upper[which(! complete_converter$mz_upper %in% gene_names)] = NA
+  complete_converter$mz_lower_many = paste(tolower(hgnc_names_unique), "(1 of many)")
+  # complete_converter$mz_lower_many[which(! complete_converter$mz_lower_many %in% gene_names)] = NA
+  complete_converter$mz_upper_many = paste(toupper(hgnc_names_unique), "(1 of many)")
+  # complete_converter$mz_upper_many[which(! complete_converter$mz_upper_many %in% gene_names)] = NA
+  
+  # Pick which one of the possible cichlid gene names to use
+  pickMZ = function(x) {
+    good_mz = complete_converter[x, which(complete_converter[x,] %in% gene_names)[1]]
+    if (length(good_mz) == 0)
+      good_mz = NA
+    return(good_mz)
+  }
+  complete_converter$mz = sapply(1:nrow(complete_converter), pickMZ)
+  # complete_converter$mz = unlist(sapply(1:nrow(complete_converter), function(x) complete_converter[x, which(complete_converter[x,] %in% gene_names)[1]]))
+  complete_converter$mz[which(complete_converter$mz == "NULL")] = NA
+  
+  # Convert Input Gene Names
+  df$mz = complete_converter$mz[match(hgnc_names, complete_converter$hgnc)]
+  if (na.rm)
+    df = df[which(! is.na(df$mz) ),]
+  if (return_vect)
+    df = df$mz
+  
+  return(df)
 }
 
 convertToMouseObj <- function(obj) {
