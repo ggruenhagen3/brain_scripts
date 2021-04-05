@@ -72,6 +72,12 @@ mat_data_cor = matrix(0, nrow=length(gene_names), ncol = length(gene_names), dim
 
 # system.time(cor.pvalues <- future_sapply(2:100, function(x) { sapply(1:(x-1), function(y) { cor.test(test[gene_names[x],],test[gene_names[y],])$p.value })}))
 
+Idents(obj) = levels(obj$seuratclusters15)
+for (cluster in levels(obj$seuratclusters15)) {
+  cluster_obj = subset(obj, idents = cluster)
+  
+}
+
 # Attempt as of 02/10/2021
 my_cor_t = function(r, n) (r * sqrt(n - 2))/sqrt(1 - r**2)
 my_cor_p = function(t, n) 2*pt(-abs(t), df=n-2)

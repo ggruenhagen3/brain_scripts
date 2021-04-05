@@ -773,3 +773,229 @@ df2 = neighbor_df_3_3 %>% pivot_longer(c(with, without), names_to = "has_lncRNA"
 df2$mean_expression = as.numeric(as.vector(df2$mean_expression))
 df2$degree = factor(df2$degree, levels=neighbor_degree)
 ggplot(df2, aes(x=degree, y=mean_expression, fill=has_lncRNA, color=has_lncRNA)) + geom_jitter(position=position_jitterdodge(), alpha=0.03) + geom_boxplot(alpha=0.9) + xlab("Neighbor to lncRNA Gene") + ylab("Difference in Means b/w Cells With and Without the lncRNA") + labs(title="Non-zero Transcripts - Difference in Means - With and Without Seperated")
+
+#=======================================================================================
+# BB ===================================================================================
+#=======================================================================================
+rna_path = "C:/Users/miles/Downloads/brain/"
+source(paste0(rna_path, "brain_scripts/all_f.R"))
+bb = readRDS(paste0(rna_path, "data/bb_clustered_102820.rds"))
+gene_info = read.table("C:/Users/miles/Downloads/all_research/gene_info.txt", sep="\t", header = T, stringsAsFactors = F)
+pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
+
+gtf = read.table("C:/Users/miles/Downloads/GCF_000238955.4_M_zebra_UMD2a_genomic.gtf", sep="\t", header = F, stringsAsFactors = F)
+gtf = gtf[which(gtf$V3 == "gene"),]
+gtf$gene_name = unlist(str_split(as.character(gtf$V9),';', n = 2))[c(TRUE, FALSE)]
+gtf$gene_name = unlist(str_split(as.character(gtf$gene_name),' ', n = 2))[c(FALSE, TRUE)]
+gtf = gtf[which(gtf$gene_name %in% rownames(bb)),]
+
+# Distance Expression Differences
+lnc_pos = gtf$V4[which( gtf$gene_name %in% lnc_gene )]
+lnc_lg = gtf$V1[which( gtf$gene_name %in% lnc_gene )]
+min_lnc_dist = c()
+for (i in 1:nrow(gtf)) {
+  this_pos = gtf[i, 4]
+  same_lg_lnc_i = which(lnc_lg == gtf[i, 1])
+  dist_to_lnc = abs( lnc_pos[same_lg_lnc_i] - this_pos )
+  min_lnc_dist = c(min_lnc_dist, min(dist_to_lnc))
+}
+gtf$min_lnc_dist = min_lnc_dist
+
+library("ggpmisc")
+dist_df = data.frame(gene = gtf$gene_name, min_lnc_dist = gtf$min_lnc_dist, counts = rowSums(bb@assays$RNA@counts[gtf$gene_name, ]), data = rowSums(bb@assays$RNA@data[gtf$gene_name, ]) )
+my.formula <- y ~ x
+ggplot(dist_df, aes(min_lnc_dist, counts)) + geom_point(alpha=0.3) + ylab("Mean Number of Transcripts") + xlab("Absolute Distance From lncRNA") + labs(title="Distance Effects - Raw Transcripts") + geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) + stat_poly_eq(formula = my.formula, aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), parse = TRUE)
+ggplot(dist_df, aes(min_lnc_dist, data, color = min_lnc_dist)) + geom_point(alpha=0.3) + ylab("Mean Number of Normalized Transcripts") + xlab("Absolute Distance From lncRNA") + labs(title="Distance Effects - Normalized Transcripts") + geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) + stat_poly_eq(formula = my.formula, aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), parse = TRUE) + NoLegend()
+
+# Neighbor Expression Differences
+# lnc_gene = gene_info$mzebra[which(gene_info$biotype == "lncRNA")]
+# lnc_gene_i = which(gene_info$biotype == "lncRNA")
+# non_zero_lncRNA = lnc_gene[which(rowSums(bb@assays$RNA@counts[lnc_gene,]) != 0)]
+# non_zero_lncRNA_i = lnc_gene_i[which(rowSums(bb@assays$RNA@counts[lnc_gene,]) != 0)]
+# lnc_gene = non_zero_lncRNA
+# lnc_gene_i = non_zero_lncRNA_i
+lnc_gene_df = data.frame(i = which(gene_info$biotype == "lncRNA"))
+lnc_gene_df$gene = gene_info$mzebra[which(gene_info$biotype == "lncRNA")]
+# lnc_gene_df = data.frame(i = sample(nrow(gene_info), 1781))
+# lnc_gene_df$gene = gene_info$mzebra[lnc_gene_df$i]
+lnc_gene_df$i = match(lnc_gene_df$gene, gtf$gene_name)
+lnc_gene_df = lnc_gene_df[which(rowSums(bb@assays$RNA@counts[lnc_gene_df$gene,]) != 0),] #keep non-zero lncRNA
+lnc_gene_df$pos = gtf$V4[lnc_gene_df$i]
+lnc_gene_df$lg = gtf$V1[lnc_gene_df$i]
+lnc_gene_df$placed = startsWith(lnc_gene_df$lg, "NC_") & ! startsWith(lnc_gene_df$lg, "NC_027944")
+lnc_gene_df$mean_cor = rowMeans(r_mat[lnc_gene_df$gene,])  # make sure to convert NA to 0
+n_neighbors = 20
+neighbors = c(-n_neighbors:-1, 1:n_neighbors)
+lnc_df = data.frame()
+neighbor_genes_list = list()
+for (neighbor in neighbors) {
+  neighbor_genes_df = data.frame(n_i = lnc_gene_df$i+neighbor)
+  neighbor_genes_df$degree = neighbor
+  neighbor_genes_df = cbind(neighbor_genes_df, lnc_gene_df)
+  neighbor_genes_df = neighbor_genes_df[which(! (neighbor_genes_df$n_i <= 0 | neighbor_genes_df$n_i > nrow(bb))  ),]
+  neighbor_genes_df$n_gene = gtf$gene_name[neighbor_genes_df$n_i]
+  
+  # Double check the neighbors are on the same contig as the lncRNA
+  neighbor_genes_df$n_lg = gtf$V1[match(neighbor_genes_df$n_gene, gtf$gene_name)]
+  neighbor_genes_df = neighbor_genes_df[which(neighbor_genes_df$lg == neighbor_genes_df$n_lg),]
+  neighbor_genes_list[[as.character(neighbor)]] = neighbor_genes_df$n_gene
+  
+  # Double check that the neighbor isn't a lncRNA
+  neighbor_genes_df = neighbor_genes_df[which(! neighbor_genes_df$n_gene %in% lnc_gene_df$gene ),]
+  
+  # Classify the neighbor as placed or unplaced
+  neighbor_genes_df$n_placed = startsWith(neighbor_genes_df$n_lg, "NC_") & ! startsWith(neighbor_genes_df$n_lg, "NC_027944")
+  neighbor_genes_df$num_placed = length(which(neighbor_genes_df$n_placed))
+  neighbor_genes_df$num_neighbors = nrow(neighbor_genes_df)
+  
+  neighbor_genes_df$n_c = rowMeans(bb@assays$RNA@counts[neighbor_genes_df$n_gene, ])
+  neighbor_genes_df$n_d = rowMeans(bb@assays$RNA@data[neighbor_genes_df$n_gene, ])
+  neighbor_genes_df$n_mean_cor = rowMeans(r_mat[neighbor_genes_df$n_gene,])  # neighbor's correlation with all genes
+  neighbor_genes_df$n_cor = r_mat[cbind(neighbor_genes_df$n_gene, neighbor_genes_df$gene)] # neighbor's correlation with lncRNA
+  neighbor_genes_df$n_cor_norm = neighbor_genes_df$n_cor - neighbor_genes_df$n_mean_cor
+  
+  lnc_df = rbind(lnc_df, neighbor_genes_df)
+}
+lnc_df$degree = factor(lnc_df$degree)
+# ggplot(lnc_df, aes(x=degree, y=neighbor_c, group=degree, fill=degree, color=degree)) + geom_boxplot(alpha=0.9) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.01) + NoLegend() + ylab("Mean Number of Transcripts")
+# ggplot(lnc_df, aes(x=degree, y=neighbor_d, group=degree, fill=degree, color=degree)) + geom_boxplot(alpha=0.9) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.01) + NoLegend() + ylab("Mean Number of Normalized Transcripts")
+ggplot(lnc_df, aes(x=degree, y=neighbor_d, group=degree, fill=num_neighbors, color=num_neighbors)) + geom_boxplot(alpha=0.5, outlier.shape = NA) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.04) + ylab("Mean Number of Normalized Transcripts") + scale_y_continuous(limits = quantile(lnc_df$neighbor_d, c(0, 0.9))) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)])
+ggplot(lnc_df, aes(x=degree, y=neighbor_d, group=degree, fill=num_neighbor_placed, color=num_neighbor_placed)) + geom_boxplot(alpha=0.5, outlier.shape = NA) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.04) + ylab("Mean Number of Normalized Transcripts") + scale_y_continuous(limits = quantile(lnc_df$neighbor_d, c(0, 0.9))) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)])
+ggplot(lnc_df[which( lnc_df$neighbor_placed),], aes(x=degree, y=neighbor_d, group=degree, fill=num_neighbor_placed, color=num_neighbor_placed)) + geom_boxplot(alpha=0.5, outlier.shape = NA) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.04) + ylab("Mean Number of Normalized Transcripts") + scale_y_continuous(limits = quantile(lnc_df$neighbor_d, c(0, 0.9))) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + ggtitle("Placed Neighbors")
+ggplot(lnc_df[which(!lnc_df$neighbor_placed),], aes(x=degree, y=neighbor_d, group=degree, fill=num_neighbor_placed, color=num_neighbor_placed)) + geom_boxplot(alpha=0.5, outlier.shape = NA) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.04) + ylab("Mean Number of Normalized Transcripts") + scale_y_continuous(limits = quantile(lnc_df$neighbor_d, c(0, 0.9))) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + ggtitle("Unplaced Neighbors")
+
+fname = "~/scratch/brain/results/lncRNA_cor_norm.png"
+png(fname, width = 2500, height = 1000, res = 100)
+# ggplot(lnc_df, aes(x=degree, y=n_cor, group=degree, fill=num_neighbors, color=num_neighbors)) + geom_boxplot(alpha=0.5, outlier.shape = NA) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.04) + ylab("Correlation w/ lncRNA") + scale_y_continuous(limits = quantile(lnc_df$n_cor, c(0.05, 0.95))) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)])
+ggplot(lnc_df, aes(x=degree, y=n_cor_norm, group=degree, fill=num_neighbors, color=num_neighbors)) + geom_boxplot(alpha=0.6, outlier.shape = NA) + xlab("Neighbor to lncRNA Gene") + geom_jitter(position=position_jitter(), alpha=0.1) + ylab("lncRNA Correlation w/ Neighbors - lncRNA Correlation w/ All Genes") + scale_y_continuous(limits = quantile(lnc_df$n_cor_norm, c(0.05, 0.95))) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)])
+dev.off()
+system(paste0("rclone copy ", fname, " dropbox:BioSci-Streelman/George/Brain/bb/results/lncRNA"))
+
+# Plot means and Means
+lnc_stats = data.frame(degree = factor(neighbors),
+                       means = sapply(neighbors, function(x) mean(lnc_df$n_d[which(lnc_df$degree == x)])),
+                       medians = sapply(neighbors, function(x) median(lnc_df$n_d[which(lnc_df$degree == x)])),
+                       n_mean_cor_mean = sapply(neighbors, function(x) mean(lnc_df$n_mean_cor[which(lnc_df$degree == x)])),
+                       n_mean_cor_median = sapply(neighbors, function(x) median(lnc_df$n_mean_cor[which(lnc_df$degree == x)])),
+                       n_cor_mean = sapply(neighbors, function(x) mean(lnc_df$n_cor[which(lnc_df$degree == x)])),
+                       n_cor_median = sapply(neighbors, function(x) median(lnc_df$n_cor[which(lnc_df$degree == x)])),
+                       n_cor_mean_norm = sapply(neighbors, function(x) mean(lnc_df$n_cor_norm[which(lnc_df$degree == x)])),
+                       n_cor_median_norm = sapply(neighbors, function(x) median(lnc_df$n_cor_norm[which(lnc_df$degree == x)])),
+                       num_neighbors = sapply(neighbors, function(x) lnc_df$num_neighbors[which(lnc_df$degree == x)][1]),
+                       num_neighbor_placed = sapply(neighbors, function(x) lnc_df$num_placed[which(lnc_df$degree == x)][1]))
+lnc_stats$num_neighbor_unplaced = as.numeric(as.vector(lnc_stats$num_neighbors)) - as.numeric(as.vector(lnc_stats$num_neighbor_placed))
+# ggplot(lnc_stats, aes(x=degree, y=means, group = degree, color=num_neighbors, fill = num_neighbors)) + geom_bar(alpha = 0.9, stat="identity") + ggtitle("Means of Neighbors") + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)])
+# ggplot(lnc_stats, aes(x=degree, y=medians, group = degree, color=num_neighbors, fill = num_neighbors)) + geom_bar(alpha = 0.9, stat="identity") + ggtitle("Medians of Neighbors") + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)])
+ggplot(lnc_stats) + geom_bar(aes(x=degree, y=medians, group = degree, color=num_neighbors, fill = num_neighbors), alpha = 0.6, stat="identity") + geom_line(aes(x=degree, y=means/10, group = 1, color=num_neighbors, fill = num_neighbors), size = 1.5) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_y_continuous(name = "Median (Bar Plot)", sec.axis = sec_axis(~.*10, name="Mean (Line Plot)")) + xlab("Neighbor to lncRNA Gene")
+ggplot(lnc_stats) + geom_bar(aes(x=degree, y=medians, group = degree, color=num_neighbor_unplaced, fill = num_neighbor_unplaced), alpha = 0.6, stat="identity") + geom_line(aes(x=degree, y=means/10, group = 1, color=num_neighbor_unplaced, fill = num_neighbor_unplaced), size = 1.5) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_y_continuous(name = "Median (Bar Plot)", sec.axis = sec_axis(~.*10, name="Mean (Line Plot)")) + xlab("Neighbor to lncRNA Gene") + ggtitle("Unplaced Neighbors")
+
+fname = "~/scratch/brain/results/gene_stats_cor_norm_2.png"
+png(fname, width = 1750, height = 600, res = 100)
+ggplot(lnc_stats) + geom_bar(aes(x=degree, y=n_cor_median_norm, group = degree, color=num_neighbors, fill = num_neighbors), alpha = 0.6, stat="identity") + geom_line(aes(x=degree, y=n_cor_mean_norm, group = 1, color=num_neighbors, fill = num_neighbors), size = 1.5) + scale_fill_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + scale_color_gradientn(colors = brewer.pal(11, "Spectral")[c(8,9,10,11)]) + xlab("Neighbor to lncRNA Gene") + ggtitle("Median (Bar Plot) and Mean (Line Plot) of Normalized Correlation of Neighbors to Genes") + ylab("Normalized Correlation")
+dev.off()
+system(paste0("rclone copy ", fname, " dropbox:BioSci-Streelman/George/Brain/bb/results/lncRNA"))
+
+
+# Test Expression of Genes on Unplaced Contigs vs Genes on LGs
+placed = gtf$gene_name[which( startsWith(gtf$V1, "NC_") & ! startsWith(gtf$V1, "NC_027944") )]
+unplaced =  gtf$gene_name[which(! startsWith(gtf$V1, "NC_") )]
+placed_means = rowMeans(bb@assays$RNA@data[placed, ])
+unplaced_means = rowMeans(bb@assays$RNA@data[unplaced, ])
+placed_df = data.frame()
+placed_df = rbind(placed_df, data.frame(means = placed_means, placed = rep(T, length(placed_means)) ))
+placed_df = rbind(placed_df, data.frame(means = unplaced_means, placed = rep(F, length(unplaced_means)) ))
+ggplot(placed_df, aes(x=placed, y=means, color = placed, fill = placed)) + geom_boxplot(alpha = 0.5) + geom_jitter(position=position_jitter(), alpha=0.01)
+
+# With vs Without lncRNA
+# neighbor_per_lnc = list()
+# lnc_in_cells = lapply(ncol(bb), function(x) c())
+# names(lnc_in_cells) = colnames(bb)
+# to_sum_mat = Matrix(0L, nrow=nrow(bb), ncol = ncol(bb), dimnames = list(rownames(bb), colnames(bb)), sparse = T)
+# lnc_in_cells = Matrix(0L, nrow=length(lnc_gene), ncol = ncol(bb), dimnames = list(lnc_gene, colnames(bb)), sparse = T)
+neighbor_sums_pos = Matrix(0L, nrow=length(neighbors), ncol = ncol(bb), dimnames = list(as.character(neighbors), colnames(bb)), sparse = T)
+neighbor_sums_neg = Matrix(0L, nrow=length(neighbors), ncol = ncol(bb), dimnames = list(as.character(neighbors), colnames(bb)), sparse = T)
+for (i in 1:length(lnc_gene)) {
+    if (i %% 100 == 0)
+      cat(paste0(i, "."))
+    this_lnc = lnc_gene[i]
+    lnc_i = which(gtf$gene_name == this_lnc)
+    lnc_cells = colnames(bb)[which(bb@assays$RNA@counts[this_lnc,] > 0)]
+    not_lnc_cells = colnames(bb)[which( ! colnames(bb) %in% lnc_cells )]
+    
+    good_neighbor = c()
+    good_neighbor_genes = c()
+    for (neighbor in neighbors) { # this just a number
+      neighbor_i = lnc_i + neighbor
+      if (neighbor_i > 0 & neighbor_i < nrow(gtf)) {
+        neighbor_lg = gtf$V1[neighbor_i]
+        neighbor_gene = gtf$gene_name[neighbor_i] # this is the actual gene name
+        if (neighbor_lg == lnc_lg[which(lnc_gene == this_lnc)] & ! neighbor_gene %in% lnc_gene ) {
+          good_neighbor = c(good_neighbor, neighbor)
+          good_neighbor_genes = c(good_neighbor_genes, neighbor_gene)
+        }
+      }
+    } # end neighbor for
+    # neighbor_per_lnc[[this_lnc]] = good_neighbor_genes
+    
+    this_lnc_mat = colSums(bb@assays$RNA@data[good_neighbor_genes, ])
+    neighbor_sums_pos[as.character(good_neighbor),lnc_cells]     = neighbor_sums_pos[as.character(good_neighbor),lnc_cells]     + this_lnc_mat[lnc_cells]
+    # neighbor_sums_neg[as.character(good_neighbor),not_lnc_cells] = neighbor_sums_neg[as.character(good_neighbor),not_lnc_cells] + this_lnc_mat[not_lnc_cells]
+}
+# neighbor_sums_dif = neighbor_sums_pos - neighbor_sums_neg
+
+present_df = data.frame()
+for (i in 1:ncol(bb)) {
+  cell = colnames(bb)[i]
+  good_lnc = lnc_in_cells[,cell]
+  good_lnc = good_lnc[which(good_lnc)]
+  
+}
+
+present_df = data.frame()
+i = 0
+for (this_lnc in lnc_gene) {
+  if (i %% 100 == 0)
+    cat(paste0(i, "."))
+  lnc_cells = colnames(bb)[which(bb@assays$RNA@counts[this_lnc,] > 0)]
+  lnc_neg = colnames(bb)[which( ! colnames(bb) %in% lnc_cells )]
+  lnc_i = which(gtf$gene_name == this_lnc)
+  good_neighbor = c()
+  good_neighbor_genes = c()
+  for (neighbor in neighbors) {
+    neighbor_i = lnc_i + neighbor
+    if (neighbor_i > 0 & neighbor_i < nrow(gtf)) {
+      neighbor_lg = gtf$V1[neighbor_i]
+      neighbor_gene = gtf$gene_name[neighbor_i]
+      if (neighbor_lg == lnc_lg[which(lnc_gene == this_lnc)] & ! neighbor_gene %in% lnc_gene ) {
+        good_neighbor = c(good_neighbor, neighbor)
+        good_neighbor_genes = c(good_neighbor_genes, neighbor_gene)
+      }
+    }
+  } # end neighbor for
+
+  if (length(good_neighbor) > 0) {
+    if (length(lnc_cells) == 1 | length(good_neighbor) == 1) {
+      neighbor_lnc_pos = mean(bb@assays$RNA@data[good_neighbor_genes, lnc_cells])
+      neighbor_lnc_neg = mean(bb@assays$RNA@data[good_neighbor_genes, lnc_neg])
+    } else {
+      neighbor_lnc_pos = colMeans(bb@assays$RNA@data[good_neighbor_genes, lnc_cells])
+      neighbor_lnc_neg = colMeans(bb@assays$RNA@data[good_neighbor_genes, lnc_neg])
+    }
+    # newRow = data.frame(rep(this_lnc, length(good_neighbor)), rep(length(lnc_cells), length(good_neighbor)), good_neighbor, good_neighbor_genes, neighbor_lnc_pos, neighbor_lnc_neg)
+    present_df = rbind(present_df, t(c( rep(this_lnc, length(good_neighbor)), good_neighbor, good_neighbor_genes  )))
+  }
+  i = i + 1
+} # end lncRNA for
+# colnames(present_df) = c("lncRNA", "num_cells", "degree", "gene", "with", "without")
+# present_df$w_wo = present_df$with - present_df$without
+# present_df$degree = factor(present_df$degree, levels = neighbors)
+# ggplot(present_df, aes(x=degree, group = degree, y = w_wo, color = degree, fill = degree)) + geom_boxplot(alpha = 0.5) + geom_jitter(position=position_jitter(), alpha=0.01) + xlab("Neighbor to lncRNA") + ylab("Mean Exp in Cells w/ - w/o the lncRNA") + scale_y_continuous(limits = quantile(present_df$w_wo, c(0.1, 0.9))) + NoLegend()
+# ggplot(present_df, aes(x=degree, group = degree, y = w_wo, color = degree, fill = degree)) + geom_boxplot(alpha = 0.5) + geom_jitter(position=position_jitter(), alpha=0.01) + xlab("Neighbor to lncRNA") + ylab("Mean Exp in Cells w/ - w/o the lncRNA") + NoLegend()
+# # ggplot(present_df, aes(x=degree, group = degree, y = with, color = degree, fill = degree)) + geom_boxplot(alpha = 0.5) + geom_jitter(position=position_jitter(), alpha=0.01)
+# # ggplot(present_df, aes(x=degree, group = degree, y = without, color = degree, fill = degree)) + geom_boxplot(alpha = 0.5) + geom_jitter(position=position_jitter(), alpha=0.01)
+# 
+# w_wo_stats = data.frame(degree = factor(neighbors),
+#                        means = sapply(neighbors, function(x) mean(present_df$w_wo[which(lnc_df$degree == x)])),
+#                        medians = sapply(neighbors, function(x) median(present_df$w_wo[which(lnc_df$degree == x)])))
+# w_wo_stats = melt(w_wo_stats)
+# ggplot(w_wo_stats, aes(x=degree, y=value, color = variable, fill = variable)) + geom_bar(alpha = 0.9, stat="identity", position = "dodge2") + xlab("Neighbor to the lncRNA")

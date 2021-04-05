@@ -46,3 +46,29 @@ for (cluster in 0:14) {
   saveRDS(mat3_trans, paste0("~/scratch/brain/data/bb_j", cluster, ".RDS"))
   saveRDS(mat3_trans_p, paste0("~/scratch/brain/data/bb_j_p", cluster, ".RDS"))
 }
+
+############
+# Analysis #
+############
+for (cluster in 0:14) {
+  
+  mat_j = readRDS(paste0("~/scratch/brain/data/bb_j", cluster, ".RDS"))
+  mat_j_p = readRDS(paste0("~/scratch/brain/data/bb_j_p", cluster, ".RDS"))
+  
+  mat = mat_j_p
+  sig_df = data.frame()
+  for (row in 1:(length(gene_names)-1)) {
+    if (row %% 1000 == 0) { print(row) }
+    j = mat_j[row, (row+1):ncol(mat)]
+    p = mat[row, (row+1):ncol(mat)]
+    q = p.adjust(p, method = "bonferroni")
+    
+    sig_ind = which(q < 0.05)
+    if (length(sig_ind) > 0) {
+      newRow = data.frame(gene = gene_names[row], q = q[sig_ind], p = p[sig_ind], j = j[sig_ind], close_gene = names(q[sig_ind]))
+      sig_df = rbind(sig_df, newRow)
+    }
+  }
+  write.csv(sig_df, paste0("~/scratch/brain/results/bb_j_sig", cluster, ".csv"), row.names = F)
+  
+}

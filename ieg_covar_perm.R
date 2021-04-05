@@ -167,12 +167,23 @@ write.csv(perm_df_p_b, "~/scratch/brain/results/ieg_covar_c53_p1000_p_b.csv")
 write.csv(perm_df_p_c, "~/scratch/brain/results/ieg_covar_c53_p1000_p_c.csv")
 write.csv(perm_df_p_bvc, "~/scratch/brain/results/ieg_covar_c53_p1000_p_bvc.csv")
 
+# # After permutations are done:
+# # Load perm results
+# perm_df = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_summary.csv")
+# perm_df_r_b = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_r_b.csv")
+# perm_df_r_c = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_r_c.csv")
+# perm_df_p_b = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_p_b.csv")
+# perm_df_p_c = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_p_c.csv")
+# perm_df_p_bvc = read.csv("~/scratch/brain/results/ieg_covar_c53_p1000_p_bvc.csv")
+# perm_df$X = perm_df_r_b$X = perm_df_r_c$X = perm_df_p_b$X = perm_df_p_c$X = perm_df_p_bvc$X = NULL
+# 
+# # Real Results
 # perm_labels[[n_perm+1]] = bb$backup_subsample
-# real_combos = combosRes(perm_labels[[n_perm+1]])
-
-# Graph the results
+# real_combos = combosRes(n_perm+1)
+# 
+# # Graph the results
 # df_bvc_plot = data.frame(cluster1 = rep(perm_df_r_b$Cluster1, n_perm), cluster2 = rep(perm_df_r_b$Cluster2, n_perm),
-#                          bvc = unlist( perm_df_r_b[,3:102] - perm_df_r_c[,3:102] ), isReal = rep(FALSE, n_perm))
+#                          bvc = unlist( perm_df_r_b[,3:(n_perm+2)] - perm_df_r_c[,3:(n_perm+2)] ), isReal = rep(FALSE, n_perm))
 # real_combos$bvc = as.numeric(as.vector(real_combos$r_behave)) - as.numeric(as.vector(real_combos$r_control))
 # real_combos$abs_bvc = abs(real_combos$bvc)
 # real_combos$isReal = TRUE
@@ -180,30 +191,48 @@ write.csv(perm_df_p_bvc, "~/scratch/brain/results/ieg_covar_c53_p1000_p_bvc.csv"
 # df_bvc_plot$combo = paste0(df_bvc_plot$cluster1, "_", df_bvc_plot$cluster2)
 # df_bvc_plot$abs_bvc = abs(df_bvc_plot$bvc)
 # 
-# png("~/scratch/brain/results/ieg_covar_c15_p100_r_bvc.png", width = 1500, height = 400, res = 90)
+# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_bvc.png", width = 2500, height = 400, res = 90)
 # ggplot(df_bvc_plot, aes(combo, bvc, fill = isReal, color = isReal)) + geom_boxplot(alpha = 0.7)
 # dev.off()
-# png("~/scratch/brain/results/ieg_covar_c15_p100_r_abs_bvc.png", width = 1500, height = 400, res = 90)
+# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_abs_bvc.png", width = 2500, height = 400, res = 90)
 # ggplot(df_bvc_plot, aes(combo, abs_bvc, fill = isReal, color = isReal)) + geom_boxplot(alpha = 0.7)
 # dev.off()
 # 
 # df_bvc_plot3 = real_combos[,c("cluster1", "cluster2", "bvc")]
-# df_bvc_plot3 = cbind(df_bvc_plot3, perm_df_r_b[,3:102] - perm_df_r_c[,3:102])
-# df_bvc_plot3$n_perm_greater = sapply(1:nrow(df_bvc_plot3), function(x) length(which(df_bvc_plot3[x,as.character(c(1:100))] > df_bvc_plot3[x,c("bvc")])) )
+# df_bvc_plot3 = cbind(df_bvc_plot3, perm_df_r_b[,3:(n_perm+2)] - perm_df_r_c[,3:(n_perm+2)])
+# colnames(df_bvc_plot3) = c("cluster1", "cluster2", "bvc", 1:n_perm)
+# df_bvc_plot3$n_perm_greater = sapply(1:nrow(df_bvc_plot3), function(x) length(which(df_bvc_plot3[x,as.character(c(1:n_perm))] > df_bvc_plot3[x,c("bvc")])) )
 # # df_bvc_plot3 = df_bvc_plot3[order(as.numeric(as.vector(df_bvc_plot3$cluster1)), as.numeric(as.vector(df_bvc_plot3$cluster2))), ]
 # df_bvc_plot3 = df_bvc_plot3[order(as.numeric(as.vector(df_bvc_plot3$cluster2))), ]
 # 
-# png("~/scratch/brain/results/ieg_covar_c15_p100_r_bvc_perm_greater_raw.png", width = 650, height = 600, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, max(df_bvc_plot2$n_perm_greater)))
+# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_bvc_perm_greater_raw.png", width = 850, height = 800, res = 90)
+# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, max(df_bvc_plot2$n_perm_greater)), begin = 1, end = 0)
 # dev.off()
 # 
 # df_bvc_plot2 = real_combos[,c("cluster1", "cluster2", "abs_bvc")]
-# df_bvc_plot2 = cbind(df_bvc_plot2, abs(perm_df_r_b[,3:102] - perm_df_r_c[,3:102]))
-# df_bvc_plot2$n_perm_greater = sapply(1:nrow(df_bvc_plot2), function(x) length(which(df_bvc_plot2[x,as.character(c(1:100))] > df_bvc_plot2[x,c("abs_bvc")])) )
+# df_bvc_plot2 = cbind(df_bvc_plot2, abs(perm_df_r_b[,3:(n_perm+2)] - perm_df_r_c[,3:(n_perm+2)]))
+# colnames(df_bvc_plot2) = c("cluster1", "cluster2", "abs_bvc", 1:n_perm)
+# df_bvc_plot2$n_perm_greater = sapply(1:nrow(df_bvc_plot2), function(x) length(which(df_bvc_plot2[x,as.character(c(1:n_perm))] > df_bvc_plot2[x,c("abs_bvc")])) )
 # # df_bvc_plot2 = df_bvc_plot2[order(as.numeric(as.vector(df_bvc_plot2$cluster1)), as.numeric(as.vector(df_bvc_plot2$cluster2))), ]
 # df_bvc_plot2 = df_bvc_plot2[order(as.numeric(as.vector(df_bvc_plot2$cluster2))), ]
 # 
-# png("~/scratch/brain/results/ieg_covar_c15_p100_r_bvc_perm_greater.png", width = 650, height = 600, res = 90)
-# ggplot(df_bvc_plot2, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, max(df_bvc_plot2$n_perm_greater)))
+# png("~/scratch/brain/results/ieg_covar_c53_p1000_r_bvc_perm_greater.png", width = 850, height = 800, res = 90)
+# ggplot(df_bvc_plot2, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, max(df_bvc_plot2$n_perm_greater)), begin = 1, end = 0)
 # dev.off()
-
+# 
+# # P value per combo
+# z_scores = lapply(1:nrow(df_bvc_plot3), function(x) scale(as.numeric(as.vector(df_bvc_plot3[x, c("bvc", as.character(1:n_perm))]))) )
+# # z_scores = lapply(1:nrow(df_bvc_plot3), function(x) scale(as.numeric(as.vector(df_bvc_plot3[x, c("bvc", paste0("X",1:n_perm))]))) )
+# z_scores_mat = as.matrix(data.frame(z_scores))
+# rownames(z_scores_mat) = c("real", as.character(1:n_perm))
+# colnames(z_scores_mat) = paste0(df_bvc_plot3$cluster1, "_", df_bvc_plot3$cluster2)
+# 
+# p_from_z = lapply(1:ncol(z_scores_mat), function(x) 2*pnorm(-abs(z_scores_mat["real",x])) )
+# # p_from_z = lapply(1:ncol(z_scores_mat), function(x) 2*pnorm(-abs(z_scores_mat["real",x]), mean = mean(z_scores_mat[,x]), sd = sd(z_scores_mat[,x])) )
+# p = unlist(p_from_z)
+# names(p) = colnames(z_scores_mat)
+# q = p.adjust(p, method = "BH")
+# names(q) = colnames(z_scores_mat)
+# length(which(p < 0.05))
+# length(which(q < 0.05))
+# q[which.min(q)]

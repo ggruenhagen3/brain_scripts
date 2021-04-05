@@ -127,7 +127,7 @@ def identifyCell(dir, snp, valid_barcodes, verbose):
                             base = readSplit[9][base_pos - 1]  # only works with the -1, idk why, I think bc pysam
                             if base == alt:
                                 if barcode_modified not in cell_id.keys():
-                                    cell_id[barcode_modified] =[]
+                                    cell_id[barcode_modified] = []
                                 cell_id[barcode_modified].append(snp_sample)
 
     return cell_id

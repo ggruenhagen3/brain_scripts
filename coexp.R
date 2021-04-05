@@ -242,16 +242,138 @@ saveRDS(mat3_trans_p, "~/scratch/brain/data/bb_j_p.RDS")
 ############
 # Analysis #
 ############
-# mat_fish = readRDS("C:/Users/miles/Downloads/brain/data/mat_fish.RDS")
-# 
-# mat = mat_fish
-# sig_df = data.frame()
-# for (row in 1:length(gene_names)) {
-#   if (row %% 1000 == 0) { print(row) }
-#   q = p.adjust(mat[row, (row+1):ncol(mat)], method = "bonferroni")
-#   q_sig = q[which(q < 0.05)]
-#   if (length(q_sig) > 0) {
-#     newRow = data.frame(gene = rep(gene_names[row], length(q_sig)), q = q_sig, close_gene = names(q_sig))
-#     sig_df = rbind(sig_df, newRow)
+mat_fish = readRDS("C:/Users/miles/Downloads/brain/data/mat_fish.RDS")
+mat_j = readRDS("~/scratch/brain/data/bb_j.RDS")
+mat_j_p = readRDS("~/scratch/brain/data/bb_j_p.RDS")
+
+mat = mat_j_p
+sig_df = data.frame()
+for (row in 1:(length(gene_names)-1)) {
+  if (row %% 1000 == 0) { print(row) }
+  # j = mat_j[row, (row+1):ncol(mat)]
+  p = mat[row, (row+1):ncol(mat)]
+  q = p.adjust(p, method = "bonferroni")
+  
+  sig_ind = which(q < 0.05)
+  if (length(sig_ind) > 0) {
+    # newRow = data.frame(gene = gene_names[row], q = q[sig_ind], p = p[sig_ind], j = j[sig_ind], close_gene = names(q[sig_ind]))
+    newRow = data.frame(gene = gene_names[row], close_gene = names(q[sig_ind]), q = q[sig_ind], p = p[sig_ind])
+    sig_df = rbind(sig_df, newRow)
+  }
+}
+write.csv(sig_df, "~/scratch/brain/results/bb_j_sig.csv", row.names = F)
+
+# New analysis
+library("parallel")
+r_mat = readRDS("~/scratch/brain/data/bb_c_cor.RDS")
+p_mat = readRDS("~/scratch/brain/data/bb_c_cor_p.RDS")
+fx = function(row) {
+  q = p.adjust(p_mat[row,], method = "bonferroni")
+}
+numCores <- detectCores()
+system.time(
+  results <- mclapply(1:nrow(p_mat), fx, mc.cores = numCores)
+)
+# results <- lapply(1:nrow(p_mat), fx)
+q_mat = as.data.frame(results, row.names = rownames(p_mat), col.names = colnames(p_mat))
+q_mat[upper.tri(q_mat, diag = T)] = NA
+sig_ind <- data.frame(which(q_mat < 0.05, arr.ind=TRUE))
+sig_ind$gene = rownames(q_mat)[sig_ind$row]
+sig_ind$cor_gene = colnames(q_mat)[sig_ind$col]
+# sig_ind = sig_ind[which(sig_ind$row != sig_ind$col),]
+sig_ind$q = q_mat[as.matrix(sig_ind[,c("row", "col")])]
+sig_ind$cor = r_mat[as.matrix(sig_ind[,c("row", "col")])]
+sig_ind[,c("row", "col")] = NULL
+
+fx = function(gene) length(which(hm_adult@assays$RNA@counts[gene,] != 0))
+# fx = function(gene) length(which(bb@assays$RNA@counts[gene,] != 0))
+# results <- lapply(rownames(bb), fx)
+system.time(
+  results <- mclapply(rownames(p_mat), fx, mc.cores = numCores)
+)
+gene_num_cells = data.frame(num_cells = unlist(results), gene = rownames(p_mat))
+sig_ind$gene_num_cells = gene_num_cells$num_cells[match(sig_ind$gene, gene_num_cells$gene)]
+sig_ind$cor_gene_num_cells = gene_num_cells$num_cells[match(sig_ind$cor_gene, gene_num_cells$gene)]
+
+sig_ind2 = sig_ind[which(sig_ind$gene_num_cells >= 10 & sig_ind$cor_gene_num_cells >= 10),]
+sig_ind2_pos = sig_ind2[which(sig_ind2$cor > 0),]
+
+write.csv(sig_ind, "~/scratch/brain/results/coexp_c_cor_sig_raw.csv")
+write.csv(sig_ind2, "~/scratch/brain/results/coexp_c_cor_sig_min_10_cell.csv")
+write.csv(sig_ind2_pos, "~/scratch/brain/results/coexp_c_cor_sig_min_10_cell_pos.csv")
+
+write.csv(sig_ind, "~/scratch/d_tooth/data/hm_adult_cor_sig_raw.csv")
+write.csv(sig_ind2, "~/scratch/d_tooth/data/hm_adult_cor_sig_min_10_cell.csv")
+write.csv(sig_ind2_pos, "~/scratch/d_tooth/data/hm_adult_cor_sig_min_10_cell_pos.csv")
+
+system("rclone copy ~/scratch/d_tooth/data/hm_adult_cor_sig_raw.csv dropbox:BioSci-Streelman/George/Tooth/rna/results/coexp")
+system("rclone copy ~/scratch/d_tooth/data/hm_adult_cor_sig_min_10_cell.csv dropbox:BioSci-Streelman/George/Tooth/rna/results/coexp")
+system("rclone copy ~/scratch/d_tooth/data/hm_adult_cor_sig_min_10_cell_pos.csv dropbox:BioSci-Streelman/George/Tooth/rna/results/coexp")
+
+# Module Detection
+r_mat = readRDS("~/scratch/brain/data/mat_data_cor.RDS")
+Colors=rev(brewer.pal(11,"Spectral"))
+my_palette1=colorRampPalette(Colors)(n = 299)
+my_palette <- colorRampPalette(c("#ff4b5c", "#FFFFFF", "#056674"))(n = 299)
+this_genes = sample(1:length(gene_names), 1000)
+dend_mat = r_mat[this_genes, this_genes]
+dend_mat = dend_mat[which( ! is.na(dend_mat[1,]) ), which( ! is.na(dend_mat[1,]) )]
+dend_mat = log2(dend_mat)
+# diag(dend_mat) = 0
+par(mar=c(1,1,1,1))
+png(png5_name, width = 2000, height = 2000, unit = "px", res = 150)
+par(mar=c(1,1,1,1))
+heatmap.2(dend_mat, scale = "none", col = my_palette1, trace = "none", dendrogram='none', Rowv=TRUE, Colv=TRUE, na.rm = T)
+# heatmap.2(dend_mat, scale = "none", dendrogram = "both", col = my_palette1, trace = "none", margins=c(10,5), srtCol=45, symm=F,symkey=F,symbreaks=F, main="Mean Expression")
+dev.off()
+
+# dend_mat = r_mat_orig[df$gene[which(df$module == 15)],df$gene[which(df$module == 15)]]
+dend_mat = r_mat_orig[df$gene[which(df$module %in% c(20, 21))],df$gene[which(df$module %in% c(20, 21))]]
+diag(dend_mat) = 0
+png5_name = "~/scratch/brain/results/bb_wgcna_modules_20_21.png"
+png(png5_name, width = 2000, height = 2000, unit = "px", res = 150)
+heatmap.2(dend_mat, scale = "none", col = my_palette1, trace = "none", dendrogram='none', Rowv=TRUE, Colv=TRUE, na.rm = T)
+dev.off()
+
+int = c()
+my_cor = c()
+my_cor_p = c()
+for (i in 1:nrow(sig_df)) {
+  gene1 = sig_df$gene[i]
+  gene2 = sig_df$close_gene[i]
+  
+  this_cor = cor.test(obj@assays$RNA@data[gene1,], obj@assays$RNA@data[gene2,])
+  my_cor = c(my_cor, this_cor$estimate)
+  my_cor_p = c(my_cor_p, this_cor$p.value)
+    
+  int = c(int, length(which(gene_cells[[gene1]] %in% gene_cells[[gene2]])))
+}
+sig_df$int = int
+sig_df$cor = my_cor
+sig_df$cor_p = my_cor_p
+
+for (gene in sig_genes) {
+  gene_cells[[gene]] = colnames(obj)[which(obj@assays$RNA@counts[gene,] != 0)]
+}
+for (row in 1:257871) {
+  if (row %% 1000 == 0) { print(row/1000) }
+  cor.test(bb@assays$RNA@data["bdnf",], bb@assays$RNA@data["LOC101475150",])
+}
+
+# reciprocal_hit = data.frame()
+# sig_genes = unique(sig_df$gene)
+# print(length(sig_genes))
+# for (i in 1:length(sig_genes)) {
+#   if (i %% 500 == 0) { print(i) }
+#   gene = sig_genes[i]
+#   gene_rows = sig_df[which(sig_df$gene == gene),]
+#   hits = gene_rows$close_gene
+#   for (hit in hits) {
+#     hit_rows = sig_df[which(sig_df$gene == hit),]
+#     hit_genes = hit_rows$close_gene
+#     if (gene %in% hit_genes) {
+#       reciprocal_hit = rbind(reciprocal_hit, t(c(gene, hit, gene_rows$q, gene_rows$p, gene_rows$j,
+#                                                  hit_rows$q, hit_rows$q, hit_rows$p, hit_rows$j)))
+#     }
 #   }
 # }
