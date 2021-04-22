@@ -2528,13 +2528,13 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   df = data.frame() # big df of all pairwise comparisons
   for (i in 1:length(dfs)) {
     for (i_clust in 1:num_clusters[[i]]) {
-      print(paste0("SAMPLE 1:", clusters[[i]][[i_clust]]))
+      # print(paste0("SAMPLE 1:", clusters[[i]][[i_clust]]))
       i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
       i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
       
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
-          print(paste0("SAMPLE 2:", clusters[[j]][[j_clust]]))
+          # print(paste0("SAMPLE 2:", clusters[[j]][[j_clust]]))
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
           j_clust_df = j_clust_df[!duplicated(j_clust_df$gene),]
           
@@ -2835,16 +2835,18 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   }
   
   colnames(df) <- c("df1_cluster", "df2_cluster", "ovlp", "pct", "ovlp_same_dir", "pct_same_dir")
+  df$df1_cluster = factor(df$df1_cluster, levels = df1_clusters)
+  df$df2_cluster = factor(df$df2_cluster, levels = df2_clusters)
   df$ovlp = as.numeric(as.vector(df$ovlp))
   df$pct = as.numeric(as.vector(df$pct))
   df$ovlp_same_dir = as.numeric(as.vector(df$ovlp_same_dir))
   df$pct_same_dir = as.numeric(as.vector(df$pct_same_dir))
   
   # Sort Clusters Numerically if Possible
-  if (! any(is.na(as.numeric(df$df1_cluster))))
-    df$df1_cluster = as.numeric(df$df1_cluster)
-  if (! any(is.na(as.numeric(df$df2_cluster))))
-    df$df1_cluster =as.numeric(df$df2_cluster)
+  # if (! any(is.na(as.numeric(df$df1_cluster))))
+  #   df$df1_cluster = as.numeric(df$df1_cluster)
+  # if (! any(is.na(as.numeric(df$df2_cluster))))
+  #   df$df1_cluster =as.numeric(df$df2_cluster)
   
   
   # Color for text label in heatmap
