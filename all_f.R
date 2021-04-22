@@ -2528,13 +2528,13 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   df = data.frame() # big df of all pairwise comparisons
   for (i in 1:length(dfs)) {
     for (i_clust in 1:num_clusters[[i]]) {
-      # print(paste0("SAMPLE 1:", clusters[[i]][[i_clust]]))
+      print(paste0("SAMPLE 1:", clusters[[i]][[i_clust]]))
       i_clust_df = dfs[[i]][which(dfs[[i]]$cluster == clusters[[i]][i_clust]),]
       i_clust_df = i_clust_df[!duplicated(i_clust_df$gene),]
       
       for (j in 1:length(dfs)) {
         for (j_clust in 1:num_clusters[[j]]) {
-          # print(paste0("SAMPLE 2:", clusters[[j]][[j_clust]]))
+          print(paste0("SAMPLE 2:", clusters[[j]][[j_clust]]))
           j_clust_df = dfs[[j]][which(dfs[[j]]$cluster == clusters[[j]][j_clust]),]
           j_clust_df = j_clust_df[!duplicated(j_clust_df$gene),]
           
