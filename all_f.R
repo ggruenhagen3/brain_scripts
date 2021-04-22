@@ -2835,12 +2835,17 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   }
   
   colnames(df) <- c("df1_cluster", "df2_cluster", "ovlp", "pct", "ovlp_same_dir", "pct_same_dir")
-  df$df1_cluster = factor(df$df1_cluster, levels = df1_clusters)
-  df$df2_cluster = factor(df$df2_cluster, levels = df2_clusters)
   df$ovlp = as.numeric(as.vector(df$ovlp))
   df$pct = as.numeric(as.vector(df$pct))
   df$ovlp_same_dir = as.numeric(as.vector(df$ovlp_same_dir))
   df$pct_same_dir = as.numeric(as.vector(df$pct_same_dir))
+  
+  # Sort Clusters Numerically if Possible
+  if (! any(is.na(as.numeric(df$df1_cluster))))
+    df$df1_cluster = sort(unique(as.numeric(df$df1_cluster)))
+  if (! any(is.na(as.numeric(df$df2_cluster))))
+    df$df1_cluster = sort(unique(as.numeric(df$df2_cluster)))
+  
   
   # Color for text label in heatmap
   df$id = rownames(df)
