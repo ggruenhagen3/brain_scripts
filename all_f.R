@@ -2842,9 +2842,9 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   
   # Sort Clusters Numerically if Possible
   if (! any(is.na(as.numeric(df$df1_cluster))))
-    df$df1_cluster = sort(unique(as.numeric(df$df1_cluster)))
+    df$df1_cluster = as.numeric(df$df1_cluster)
   if (! any(is.na(as.numeric(df$df2_cluster))))
-    df$df1_cluster = sort(unique(as.numeric(df$df2_cluster)))
+    df$df1_cluster =as.numeric(df$df2_cluster)
   
   
   # Color for text label in heatmap
