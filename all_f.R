@@ -2565,6 +2565,9 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
           pct = (total_ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           pct_same_dir = (total_ovlp_same_dir / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
           
+          print(sample1_clust)
+          print(sample2_clust)
+          print(pct_same_dir)
           # Check if pct is greater than 100
           if (sample1_clust != sample2_clust && pct_same_dir > 100) {
             print("Error pct ovlp > 100")
