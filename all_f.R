@@ -67,10 +67,11 @@ r_to_p = function(r1, r2, n1, n2) {
   return(p)
 }
 
-changeClusterID = function(clust_vect, clust_level = NULL) {
+changeClusterID = function(clust_vect, clust_level = NULL, returnFactor = F) {
   #' Convert old cluster labels to the new labels
   #' @param clust_vect vector of old cluster labels
   #' @param clut_level 15 or 53 cluster level? If NA, detect automatically
+  #' @param returnFactor return vector as a factor?
   #' @return new_vect a vector of new cluster labels
   
   # If not supplied, determine the cluster level of the input
@@ -93,6 +94,15 @@ changeClusterID = function(clust_vect, clust_level = NULL) {
   convert53$new = gsub("In", "GABA", convert53$new)
   convert53$new = gsub("Ex", "Glut", convert53$new)
   
+  # Allow converters to sort numerically
+  convert15 = cbind(convert15, colsplit(convert15$new, pattern = "_", names = c("new.num", "new.gaba")))
+  convert15 = convert15[order(convert15$new.num, decreasing = F),]
+  convert53 = cbind(convert53, colsplit(convert53$new, pattern = "_", names = c("new.num", "new.gaba")))
+  convert53 = cbind(convert53, colsplit(convert53$new.num, pattern = "\\.", names = c("new.num1", "new.num2")))
+  convert53$new.num1[which(convert53$new == "8-9_Glut")] = 8
+  convert53$new.num2[which(convert53$new == "8-9_Glut")] = 99
+  convert53 = convert53[order(as.numeric(convert53$new.num1), as.numeric(convert53$new.num2), decreasing = F),]
+  
   # Select correct converter
   converter = convert53
   if (clust_level == 15)
@@ -100,6 +110,9 @@ changeClusterID = function(clust_vect, clust_level = NULL) {
   
   # Convert Data
   new_vect = as.vector(converter$new[match(clust_vect, converter$old)])
+  
+  if (returnFactor)
+    new_vect = factor(new_vect, levels = converter$new)
   
   print("Conversion Successful.")
   return(new_vect)
@@ -461,11 +474,11 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
   onePlot = function(df, mymin, mymax) {
     print(head(df))
     if ( is.null(alpha_vect) ) {
-      df = df[order(df$value, na.last = F),]
+      df = df[order(df$value, na.last = F, decreasing = F),]
       # p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradient2(midpoint=(mymax-mymin)/2 + mymin, low = "blue", mid = "gold", high = "red", space = "Lab", limits=c(mymin, mymax)) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
       p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradientn(limits = c(mymin, mymax), colors = c("lightgrey", "blue"), na.value=my.na.value) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
       if (!is.null(my.col.pal))
-        p = p + scale_color_gradientn(colors = pal(50), na.value=my.na.value, limits = c(mymin, mymax))
+        p = p + scale_color_gradientn(colors = my.col.pal(50), na.value=my.na.value, limits = c(mymin, mymax))
     } else {
       rescale <- function(x, newMin, newMax) { (x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin }
       df$total_counts = rescale(alpha_vect, 0.05, 0.6)[rownames(df)]
@@ -485,9 +498,13 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
   mymin = min(df$value[is.finite(df$value)], na.rm = T)
   
   # Split Plot if Necessary
-  if ( is.null(my.split.by) )
+  if ( is.null(my.split.by) ) {
     p = onePlot(df, mymin, mymax)
-  else {
+    if ( is.null(my.title) )
+      p = p + ggtitle(feature)
+    else
+      p = p + ggtitle(my.title)
+  } else {
     p_list = list()
     split_unique = unique(obj@meta.data[c(my.split.by)][,c(my.split.by)])
     # split_unique = levels(bb@meta.data[c("sample")][,c("sample")])
@@ -788,10 +805,15 @@ markerLogFC = function(obj, markers, myslot="data") {
   for (i in 1:length(clusters)) {
     cluster = clusters[i]
     cluster_cells <- WhichCells(obj, idents = cluster)
-    cluster_mean_exp = rowMeans(expm1(exp[markers, cluster_cells]))
-    
     other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
-    other_mean_exp = rowMeans(expm1(exp[markers, other_cells]))
+    
+    if (length(markers) > 1) {
+      cluster_mean_exp = rowMeans(expm1(exp[markers, cluster_cells]))
+      other_mean_exp = rowMeans(expm1(exp[markers, other_cells]))
+    } else {
+      cluster_mean_exp = mean(expm1(exp[cluster_cells]))
+      other_mean_exp = mean(expm1(exp[other_cells]))
+    }
     
     avg_logFC = log(cluster_mean_exp + 1) - log(other_mean_exp + 1)
     exp_df = rbind(exp_df, cbind(rep(cluster, length(markers)), markers, avg_logFC))
@@ -884,13 +906,16 @@ degDend = function(mat, genes, png_name, include_samples=c()) {
   return(p)
 }
 
-cellCycle = function(obj, isMzebra = T, isMouse=F) {
+cellCycle = function(obj, isMzebra = T, isMouse=F, isNCBI = F, work = T) {
   #' Paint Seurat's Cell Cycle Annotation for each Cell
   #' 
   #' @param obj Seurat object
   #' @param isMzebra is the Seurat object from a cichlid?
   #' @param isMouse is the Seurat object from a mouse?
   #' @return cc_fact factor of cell cycle state for each cell (you can make this into metadata)
+  
+  if (work)
+    rna_path = "~/research/"
   
   library("Seurat")
   s.genes   <- cc.genes$s.genes
@@ -900,8 +925,16 @@ cellCycle = function(obj, isMzebra = T, isMouse=F) {
     if (isMouse) {
       print("Mouse and Mzebra selected. Please choose only one organism (default is Mzebra).")
     }
-    s.genes   <- hgncGood(s.genes, rownames(obj@assays$RNA@counts))
-    g2m.genes <- hgncGood(g2m.genes, rownames(obj@assays$RNA@counts))
+    if (isNCBI) {
+      gene_info = read.table(paste0(rna_path, "/all_research/gene_info.txt"), sep="\t", header = T, stringsAsFactors = F)
+      s.genes   <- gene_info$mzebra[match(s.genes, gene_info$human)]
+      g2m.genes <- gene_info$mzebra[match(g2m.genes, gene_info$human)]
+      s.genes = s.genes[which(! is.na(s.genes) )]
+      g2m.genes = s.genes[which(! is.na(g2m.genes) )]
+    } else {
+      s.genes   <- convertHgncDataFrameToMzebra(data.frame(s.genes), gene_column = 1, gene_names = rownames(obj), na.rm = T, return_vect = T)
+      g2m.genes <- convertHgncDataFrameToMzebra(data.frame(g2m.genes), gene_column = 1, gene_names = rownames(obj), na.rm = T, return_vect = T)
+    }
   } else if (isMouse) {
     s.genes = str_to_title(s.genes)
     g2m.genes = str_to_title(g2m.genes)
@@ -983,10 +1016,15 @@ markerCellPerCluster = function(obj, markers, correct=T) {
   per_cluster_df = data.frame()
   clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
   for (cluster in clusters) {
+    print(cluster)
     cluster_cells = WhichCells(obj, idents = cluster)
-    num_cells = sum(colSums(exp[markers, cluster_cells]))
+    if (length(markers) > 1)
+      num_cells = sum(colSums(exp[markers, cluster_cells]))
+    else
+      num_cells = sum(exp[markers, cluster_cells])
     if (correct)
-      num_cells = num_cells / sum(colSums(exp[,cluster_cells]))
+      num_cells = num_cells / sum(colSums(exp[, cluster_cells]))
+    print(num_cells)
     per_cluster_df = rbind(per_cluster_df, data.frame(cluster, num_cells))
   }
   colnames(per_cluster_df) = c("cluster", "num_cells")
@@ -1122,6 +1160,7 @@ separateEnrichTest = function(obj, markers) {
   
   return(list(per_gene_per_cluster_df, per_cluster_df))
 }
+
 markerExpPerCellPerClusterQuick = function(obj, markers) {
   #' Same as markerExpPerCellPerCluster using the default settings and using some shortcuts
   # Defaults from original function
@@ -2021,8 +2060,8 @@ convertMouseDataFrameToHgnc = function(mouse_df, gene_column) {
 convertToHgnc <- function(genes) {
   # human  = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
   # mzebra = useMart(biomart="ensembl", dataset="mzebra_gene_ensembl")
-  mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
-  human =  useEnsembl("ensembl", mirror = "useast", dataset = "hsapiens_gene_ensembl")
+  mzebra = useEnsembl("ensembl", mirror = "uswest", dataset = "mzebra_gene_ensembl")
+  human =  useEnsembl("ensembl", mirror = "uswest", dataset = "hsapiens_gene_ensembl")
   
   ensembl_genes <- getLDS(attributes = c("ensembl_gene_id"), filters = "ensembl_gene_id", values = genes , mart = mzebra, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
   zfin_genes    <- getLDS(attributes = c("zfin_id_symbol"), filters = "zfin_id_symbol", values = genes , mart = mzebra, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
@@ -2043,7 +2082,8 @@ hgncMzebra <- function(genes, gene_names, onPACE=F) {
   if (onPACE) {
     pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
   } else {
-    pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
+    # pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
+    pat = read.table("~/research/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
   }
   valid_genes <- validGenes(genes, gene_names)
   all_hgnc <- convertToHgnc(gene_names)
@@ -2795,6 +2835,8 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   }
   
   colnames(df) <- c("df1_cluster", "df2_cluster", "ovlp", "pct", "ovlp_same_dir", "pct_same_dir")
+  df$df1_cluster = factor(df$df1_cluster, levels = df1_clusters)
+  df$df2_cluster = factor(df$df2_cluster, levels = df2_clusters)
   df$ovlp = as.numeric(as.vector(df$ovlp))
   df$pct = as.numeric(as.vector(df$pct))
   df$ovlp_same_dir = as.numeric(as.vector(df$ovlp_same_dir))
