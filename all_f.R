@@ -2557,9 +2557,6 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
             total_ovlp = ovlp*i_clust_df$correction_factor[1] + ovlp*j_clust_df$correction_factor[1]
             total_ovlp_same_dir = ovlp_same_dir*i_clust_df$correction_factor[1] + ovlp_same_dir*j_clust_df$correction_factor[1]
             with_correction = "w/ Correction for Gene Conversion"
-            # print(paste("Correction factor found in", sample1_clust, "and", sample2_clust))
-            # print(colnames(i_clust_df))
-            # print(colnames(j_clust_df))
           }
           
           pct = (total_ovlp / (nrow(i_clust_df) + nrow(j_clust_df))) * 100
@@ -2913,11 +2910,11 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   # Plot 3 - Pct
   if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
     png(paste(filepath, filename, "_pct_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
     dev.off()
   } else {
     png(paste(filepath, filename, "_pct.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
     dev.off()
   }
   print("finished plot 3")
