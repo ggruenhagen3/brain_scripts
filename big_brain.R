@@ -1,16 +1,10 @@
-# Load libraries
-library("Seurat")
-library("Matrix")
-library("reticulate")
-library("cowplot")
-library("biomaRt")
-library("stringr")
-library("dplyr")
-library("ggplot2")
-rna_path = "C:/Users/miles/Downloads/brain/"
+#rna_path = "C:/Users/miles/Downloads/brain/"
+rna_path = "~/research/brain/"
+setwd(rna_path)
 # rna_path = "~/scratch/brain/"
 bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
 source(paste0(rna_path, "brain_scripts/all_f.R"))
+Idents(bb) = bb$seurat_clusters
 
 #==========================================================================================
 # Final Object ============================================================================
@@ -18,6 +12,7 @@ source(paste0(rna_path, "brain_scripts/all_f.R"))
 rna_path = "C:/Users/miles/Downloads/brain/"
 bb = readRDS(paste0(rna_path, "data/bb_clustered_102820.rds"))
 
+# Add Depth Change
 bb$depth = 0
 bb$depth[which(bb$sample == "b1")] = 70.7531187
 bb$depth[which(bb$sample == "b2")] = 78.17879535
@@ -25,6 +20,7 @@ bb$depth[which(bb$sample == "b3")] = 36.58969697
 bb$depth[which(bb$sample == "b4")] = 170.4355415
 bb$depth[which(bb$sample == "b5")] = 118.5065215
 
+# Add GSI
 bb$gsi = 0
 bb$gsi[which(bb$sample == "b1")] = 0.4225
 bb$gsi[which(bb$sample == "b2")] = 0.625
@@ -37,6 +33,204 @@ bb$gsi[which(bb$sample == "c3")] = 0.37825
 bb$gsi[which(bb$sample == "c4")] = 0.4133333
 bb$gsi[which(bb$sample == "c5")] = 0.365
 
+# Add RNA velocity stuff to bb
+all_rna = read.csv("~/research/brain/data/rna_velo_all_data.csv", stringsAsFactors = F)
+all_rna$good_names = paste0(all_rna$cond, "_", all_rna$X, "_1-1")
+df = data.frame()
+function()
+for (barcode in all_rna$X) {
+  new_cell = colnames(bb)[which(grepl(barcode, colnames(bb)))]
+  if (length(new_cell) > 0) {
+    newRow = data.frame(barcode = barcode, bb_cell = new_cell)
+    df = rbind(df, newRow)
+  }
+}
+
+# Find DEGs between each sample
+all_deg = list()
+sig_deg = list()
+Idents(bb) = bb$sample
+bb_samples = unique(bb$sample)
+sample_df = data.frame()
+for (i in 2:length(bb_samples)) {
+  print(paste0("i = ", i))
+  for (j in 1:(i-1)) {
+    this_deg = FindMarkers(bb, ident.1 = bb_samples[i], ident.2 = bb_samples[j], logfc.threshold = 0.1, min.pct = 0.01)
+    this_sig_deg = this_deg[which(this_deg$p_val_adj < 0.05),]
+    all_deg[[paste0(bb_samples[i], "_", bb_samples[j])]] = this_deg
+    sig_deg[[paste0(bb_samples[i], "_", bb_samples[j])]] = this_sig_deg
+    sample_df = rbind(sample_df, t(c(i, j, bb_samples[i], bb_samples[j], nrow(this_deg), nrow(this_sig_deg))))
+  }
+}
+sample_df[c(1,2,5,6)] <- lapply(sample_df[c(1,2,5,6)], as.numeric)
+colnames(sample_df) = c("i", "j", "sample1", "sample2", "all_deg", "sig_deg")
+
+png("~/scratch/brain/results/bb_sample_sig_deg.png", width = 600, height = 600)
+print(ggplot(sample_df, aes(x=sample1, y = sample2, fill = sig_deg)) + geom_tile() + scale_fill_viridis() + ggtitle("Significant DEGs b/w Pairwise Samples"))
+dev.off()
+
+png("~/scratch/brain/results/bb_sample_all_deg.png", width = 600, height = 600)
+print(ggplot(sample_df, aes(x=sample1, y = sample2, fill = all_deg)) + geom_tile() + scale_fill_viridis() + ggtitle("All DEGs b/w Pairwise Samples"))
+dev.off()
+
+png("~/scratch/brain/results/bb_sample_sig_deg_red_blue.png", width = 600, height = 600)
+print(ggplot(sample_df, aes(x=sample1, y = sample2, fill = sig_deg)) + geom_tile() + scale_fill_gradientn(colors = pal(50)) + ggtitle("Significant DEGs b/w Pairwise Samples"))
+dev.off()
+
+png("~/scratch/brain/results/bb_sample_all_deg_red_blue.png", width = 600, height = 600)
+print(ggplot(sample_df, aes(x=sample1, y = sample2, fill = all_deg)) + geom_tile() + scale_fill_gradientn(colors = pal(50)) + ggtitle("All DEGs b/w Pairwise Samples"))
+dev.off()
+
+# Find DEGs between each subsample
+all_deg = list()
+sig_deg = list()
+Idents(bb) = bb$subsample
+bb_susamples = unique(bb$subsample)
+subsample_df = data.frame()
+for (i in 2:length(bb_susamples)) {
+  print(paste0("i = ", i))
+  for (j in 1:(i-1)) {
+    this_deg = FindMarkers(bb, ident.1 = bb_susamples[i], ident.2 = bb_susamples[j], logfc.threshold = 0.1, min.pct = 0.01)
+    this_sig_deg = this_deg[which(this_deg$p_val_adj < 0.05),]
+    all_deg[[paste0(bb_susamples[i], "_", bb_susamples[j])]] = this_deg
+    sig_deg[[paste0(bb_susamples[i], "_", bb_susamples[j])]] = this_sig_deg
+    subsample_df = rbind(subsample_df, t(c(i, j, bb_susamples[i], bb_susamples[j], nrow(this_deg), nrow(this_sig_deg))))
+  }
+}
+subsample_df[c(1,2,5,6)] <- lapply(subsample_df[c(1,2,5,6)], as.numeric)
+colnames(subsample_df) = c("i", "j", "subsample1", "subsample2", "all_deg", "sig_deg")
+subsample_df$subsample1 = as.vector(bb_susamples[subsample_df$i])
+subsample_df$subsample2 = as.vector(bb_susamples[subsample_df$j])
+
+png("~/scratch/brain/results/bb_subsample_sig_deg.png", width = 900, height = 900)
+print(ggplot(subsample_df, aes(x=subsample1, y = subsample2, fill = sig_deg)) + geom_tile() + scale_fill_viridis() + ggtitle("Significant DEGs b/w Pairwise Subsamples"))
+dev.off()
+
+png("~/scratch/brain/results/bb_subsample_all_deg.png", width = 900, height = 900)
+print(ggplot(subsample_df, aes(x=subsample1, y = subsample2, fill = all_deg)) + geom_tile() + scale_fill_viridis() + ggtitle("All DEGs b/w Pairwise Subsamples"))
+dev.off()
+
+png("~/scratch/brain/results/bb_subsample_sig_deg_red_blue.png", width = 900, height = 900)
+print(ggplot(subsample_df, aes(x=subsample1, y = subsample2, fill = sig_deg)) + geom_tile() + scale_fill_gradientn(colors = pal(50)) + ggtitle("Significant DEGs b/w Pairwise Subsamples"))
+dev.off()
+
+png("~/scratch/brain/results/bb_subsample_all_deg_red_blue.png", width = 900, height = 900)
+print(ggplot(subsample_df, aes(x=subsample1, y = subsample2, fill = all_deg)) + geom_tile() + scale_fill_gradientn(colors = pal(50)) + ggtitle("All DEGs b/w Pairwise Subsamples"))
+dev.off()
+
+# PCA of samples
+library("factoextra")
+sample_avg = read.table("~/research/brain/data/t_sample_avg.txt")
+test = sample_avg[,which(colSums(sample_avg) != 0)]
+res.pca <- prcomp(test, scale = T)
+groups = factor(c(rep("Behave", 5), rep("Control", 5)))
+fviz_pca_ind(res.pca, col.ind = groups, palette = c("#00AFBB",  "#FC4E07"), addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
+
+# PCA of subsamples
+library("factoextra")
+subsample_avg = read.table("~/research/brain/data/bb_subsample_data.txt")
+test = subsample_avg[,which(colSums(subsample_avg) != 0)]
+res.pca <- prcomp(test, scale = T)
+groups = factor(c(rep("Behave", 19), rep("Control", 19)))
+groups2 = factor(colsplit(as.vector(unique(bb$subsample)), pattern = "\\.", names = c('1', "2"))[,1])
+fviz_pca_ind(res.pca, col.ind = groups, palette = c("#00AFBB",  "#FC4E07"), addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
+fviz_pca_ind(res.pca, col.ind = groups2, addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
+
+lg11 = read.table("~/research/brain/data/markers/LG11_highFST_genes_umd2a_120920.txt", stringsAsFactors = F)[,1]
+mat = as.matrix(bb@assays$RNA@counts[lg11,])
+mat[which(mat > 0)] = 1
+mat_scale = scale(colSums(mat)/bb$nFeature_RNA)
+bb$enrich_z = mat_scale
+abs_max = max(abs(bb$enrich_z))
+floor(seq(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z") + scale_color_gradientn(colors = pal2(100), limits = c(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z") + scale_color_gradientn(colors = colorRampPalette(rev(brewer.pal(11, "RdYlBu")))(50), limits = c(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z") + scale_color_gradientn(colors = colorRampPalette(rev(brewer.pal(11, "RdBu")))(50), limits = c(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z") + scale_color_gradientn(colors = colorRampPalette(brewer.pal(11, "BrBG"))(50), limits = c(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z", my.pt.size = 0.01) + scale_color_gradientn(colors = colorRampPalette(rev(brewer.pal(11, "PuOr")))(50), limits = c(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z") + scale_colour_continuous_diverging( limits = c(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z") + scale_colour_continuous_divergingx( limits = c(-abs_max, abs_max))
+myFeaturePlot(bb, "enrich_z", my.pt.size = 0.20) + scale_colour_viridis_c( limits = c(-abs_max, abs_max))
+bb$enrich_z2 = bb$enrich_z ** 2
+myFeaturePlot(bb, "enrich_z2") + scale_colour_viridis_c() + ggtitle("Z Score Squared")
+myFeaturePlot(bb, "enrich_z2") + scale_color_gradientn(colors = colorRampPalette(rev(brewer.pal(11, "RdBu")))(50)) + ggtitle("Z Score Squared")
+myFeaturePlot(bb, "enrich_z") + scale_color_gradientn(colors = c(rep("lightgray", 750), rep("red", 250)), limits = c(-abs_max, abs_max), breaks = c(-abs_max, -abs_max/2, 0, abs_max/2, abs_max), labels = c(0, 25, 50, 75, 100))
+
+# Sample/Subsample Stats
+library("DropletUtils")
+all_res = lapply(unique(bb$sample), findMeanReadsPerNuc)
+all_res_df = bind_rows(all_res)
+bb$reads = all_res_df$reads[match(colnames(bb), all_res_df$real)]
+ggplot(bb@meta.data, aes(x=nCount_RNA, y = reads, color = sample)) + geom_point()
+
+# Stats by Sample
+sample_df = setNames(aggregate(nFeature_RNA ~ sample, bb@meta.data, mean), list("sample", "mean_nFeature_RNA"))
+sample_df$median_nFeature_RNA = aggregate(nFeature_RNA ~ sample, bb@meta.data, median)[,2]
+sample_df$mean_nCount_RNA = aggregate(nCount_RNA ~ sample, bb@meta.data, mean)[,2]
+sample_df$mean_reads = aggregate(reads ~ sample, bb@meta.data, mean)[,2]*2
+sample_df$num_reads = aggregate(reads ~ sample, bb@meta.data, sum)[,2]*2
+sample_df$num_nuc = table(bb@meta.data$sample)
+sample_df$genes_detected = unlist(lapply(unique(bb$sample), function(x) length(which(rowSums(bb@assays$RNA@counts[,which(bb$sample == x)]) > 0))))
+write.csv(sample_df, "~/research/brain/results/sample_stat.csv")
+
+# Stats by Subsample
+subsample_df = setNames(aggregate(nFeature_RNA ~ subsample, bb@meta.data, mean), list("subsample", "mean_nFeature_RNA"))
+subsample_df$median_nFeature_RNA = aggregate(nFeature_RNA ~ subsample, bb@meta.data, median)[,2]
+subsample_df$mean_nCount_RNA = aggregate(nCount_RNA ~ subsample, bb@meta.data, mean)[,2]
+subsample_df$mean_reads = aggregate(reads ~ subsample, bb@meta.data, mean)[,2]*2
+subsample_df$num_reads = aggregate(reads ~ subsample, bb@meta.data, sum)[,2]*2
+subsample_df$num_nuc = table(bb@meta.data$subsample)
+subsample_df$genes_detected = unlist(lapply(unique(bb$subsample), function(x) length(which(rowSums(bb@assays$RNA@counts[,which(bb$subsample == x)]) > 0))))
+write.csv(subsample_df, "~/research/brain/results/subsample_stat.csv")
+
+ggplot(sample_df, aes(x=median_nFeature_RNA, y = mean_nCount_RNA, color = sample)) + geom_point()
+ggplot(sample_df, aes(x=median_nFeature_RNA, y = genes_detected, color = sample)) + geom_point()
+ggplot(subsample_df, aes(x=median_nFeature_RNA, y = mean_nCount_RNA, color = subsample)) + geom_point()
+ggplot(subsample_df, aes(x=median_nFeature_RNA, y = genes_detected, color = subsample)) + geom_point()
+ggplot(subsample_df, aes(x=mean_reads, y = genes_detected, color = subsample)) + geom_point()
+ggplot(subsample_df, aes(x=num_nuc, y = genes_detected, color = subsample)) + geom_point()
+
+mat = bb@assays$RNA@counts
+mat[which(mat > 0)] = 1
+for (sample in bb$sample) {
+  num_sample_cells = length(which(bb$sample == sample))
+  this_sample_min_cells = min_pct * num_sample_cells
+  idx = which(rowSums(mat) >= this_sample_min_cells)
+}
+
+findMeanReadsPerNuc = function(sample) {
+  print(sample)
+  this_reads = read10xMolInfo(paste0("~/research/brain/data/", sample, "_molecule_info.h5"))
+  this_convert = data.frame(real = colnames(bb)[which(bb$sample == sample)])
+  this_convert$sub = colsplit(this_convert$real, pattern = "-", names = c("1", "2"))[,1]
+  this_convert$sub_sub = colsplit(this_convert$sub, pattern = "_", names = c("1", "2"))[,2]
+  this_reads_good = this_reads$data[which(this_reads$data$cell %in% this_convert$sub_sub),]
+  reads_per_cell = aggregate(reads ~ cell, this_reads_good, sum)
+  this_convert$reads = reads_per_cell$reads[match(this_convert$sub_sub, reads_per_cell$cell)]
+  
+  # num_reads = sum(this_reads_good$reads)*2
+  # mean_reads = (sum(this_reads_good$reads)/nrow(this_convert))*2
+  
+  return(this_convert)
+}
+
+findCell = function(cells_strip, obj, sample) {
+  df = data.frame()
+  cells_to_search = colnames(obj)[which(obj$sample == sample)]
+  
+  findCellMini = function(old_cell) {
+    new_cell = cells_to_search[which(grepl(old_cell, cells_to_search))]
+    return(new_cell)
+  }
+  
+  numCores = detectCores()
+  new_cells = unlist(mclapply(cells_strip, findCellMini, mc.cores = numCores))
+  df = data.frame(old_cell = cells_strip, new_cell = new_cells)
+  
+  return(df)
+}
+
+# Enrichment Testing
 res = separateEnrichTest(bb, this_list)
 test = res[[2]]
 bb_all_enrich = xlsx::read.xlsx("C:/Users/miles/Downloads/brain/results/bb/bb_all_enrich_results.xlsx", sheetIndex = 1)
@@ -465,7 +659,7 @@ for (cluster in levels(bb$seuratclusters53)) {
   prop_df[,cluster] = cluster_sizes
 }
 prop_df_pct = lapply(1:nrow(prop_df), function(x) prop_df[x,2:ncol(prop_df)]/sum(prop_df[x,2:ncol(prop_df)]))
-prop_df_pct = matrix(unlist(prop_df_pct), nrow = nrow(prop_df), dimnames = list(prop_df$sample, colnames(prop_df)[2:ncol(prop_df)]))
+prop_df_pct = matrix(unlist(prop_df_pct), nrow = nrow(prop_df), byrow = T, dimnames = list(prop_df$sample, colnames(prop_df)[2:ncol(prop_df)]))
 write.table(prop_df_pct, "~/scratch/brain/data/bb_sample_cluster_pct.txt", row.names = T, quote = F)
 
 # Make a Matrix of Subsample by Cluster Proportion for ML
@@ -478,7 +672,7 @@ for (cluster in levels(bb$seuratclusters53)) {
   prop_df2[,cluster] = cluster_sizes
 }
 prop_df_pct2 = lapply(1:nrow(prop_df2), function(x) prop_df2[x,2:ncol(prop_df2)]/sum(prop_df2[x,2:ncol(prop_df2)]))
-prop_df_pct2 = matrix(unlist(prop_df_pct2), nrow = nrow(prop_df2), dimnames = list(prop_df2$subsample, colnames(prop_df2)[2:ncol(prop_df2)]))
+prop_df_pct2 = matrix(unlist(prop_df_pct2), nrow = nrow(prop_df2), byrow = T, dimnames = list(prop_df2$subsample, colnames(prop_df2)[2:ncol(prop_df2)]))
 write.table(prop_df_pct2, "~/scratch/brain/data/bb_subsample_cluster_pct.txt", row.names = T, quote = F)
 
 #==========================================================================================
@@ -1711,6 +1905,121 @@ dev.off()
 system(paste0("rclone copy ", png_name, " dropbox:BioSci-Streelman/George/Brain/bb/tmp/"))
 
 #=======================================================================================
+# GO Enrichment ========================================================================
+#=======================================================================================
+library("parallel")
+numCores = detectCores()
+all_go = read.csv("~/research/brain/data/cluster_compare_all_levels_MF_042021.csv", stringsAsFactors = F)
+# all_go = read.csv("~/research/brain/data/53cluster_compare_all_levels_MF_042021.csv", stringsAsFactors = F)
+all_go = read.csv("~/Downloads/cluster15_compare_all_levels_CC_042121.csv", stringsAsFactors = F)
+all_go$p = -1
+levels_categories = data.frame()
+for (level_cur in 2:13) {
+  print(level_cur)
+  go_cur_idx = which(all_go$level == level_cur)
+  go_cur = all_go[go_cur_idx,]
+  levels_categories = rbind(levels_categories, data.frame(Description = unique(go_cur$Description), level = level_cur))
+  go_cur = cbind(go_cur, colsplit(go_cur$GeneRatio, pattern = "/", names = c("Hit", "Total")))
+  go_cur_tots = aggregate(Hit ~ Description, go_cur, sum)
+  go_cur_tots$Total = aggregate(Total ~ Description, go_cur, sum)[,2]
+  go_cur$Hit_Total = go_cur_tots$Hit[match(go_cur$Description, go_cur_tots$Description)]
+  go_cur$Total_Total = go_cur_tots$Total[match(go_cur$Description, go_cur_tots$Description)]
+  
+  # Set up contingency table values
+  # a b
+  # c d
+  go_cur$a = go_cur$Hit
+  go_cur$b = go_cur$Hit_Total - go_cur$Hit
+  go_cur$c = go_cur$Total - go_cur$Hit
+  go_cur$d = go_cur$Total_Total - go_cur$a - go_cur$b - go_cur$c
+  
+  # Calculate p value
+  findP = function(x) {
+    contig_table = matrix(c(go_cur[x,"a"], go_cur[x,"b"], go_cur[x,"c"], go_cur[x,"d"]), nrow = 2, byrow = T)
+    fisher.test(contig_table)$p.value
+  }
+  go_cur$p = unlist(mclapply(1:nrow(go_cur), findP, mc.cores = numCores))
+  all_go$p[go_cur_idx] = go_cur$p[match(all_go$X[go_cur_idx], go_cur$X)]
+}
+all_go$bh = p.adjust(all_go$p, method = "BH")
+all_go$bon = p.adjust(all_go$p, method = "bonferroni")
+all_go$new_cluster = changeClusterID(all_go$Cluster, returnFactor = T)
+
+all_go$bh_sig = all_go$bh < 0.05
+for (level_cur in 2:13) {
+  go_cur = all_go[which(all_go$level == level_cur),]
+  
+  # Loose
+  go_cur$bh = p.adjust(go_cur$p, method = "BH")
+  go_cur$bh_sig = go_cur$bh < 0.05
+  
+  go_cur_good_categories = aggregate(bh_sig ~ Description, go_cur, sum)
+  go_cur_good_categories = go_cur_good_categories$Description[which(go_cur_good_categories$bh_sig > 0)]
+  go_cur = go_cur[which(go_cur$Description %in% go_cur_good_categories),]
+  png(paste0("~/research/brain/results/go/dif_enrich_loose_53/", level_cur, ".png"), width = 1000, height = 1000, res = 90)
+  print(ggplot(go_cur, aes(x = Description, y = new_cluster, fill = bh_sig)) + geom_tile() + scale_fill_viridis_d() + ggtitle(paste0("Significantly Differentially Enriched MF Categories by BH at Level ", level_cur)) + xlab("Category") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+  dev.off()
+}
+
+# Top Hits
+# top_go_15 = read.csv("~/research/brain/data/15cluster_enrichGO_compareCluster_MF_042021.csv", stringsAsFactors = F)
+# top_go_15 = read.csv("~/research/brain/data/53cluster_enrichGO_compareCluster_MF_042021.csv", stringsAsFactors = F)
+# top_go_15 = read.csv("~/research/brain/data/15cluster_enrichGO_compareCluster_MF_all_pvalues_042121.csv", stringsAsFactors = F)
+# top_go_15 = read.csv("~/research/brain/data/53cluster_enrichGO_compareCluster_MF_all_pvalues_all_set_sizes_test_042121.csv", stringsAsFactors = F)
+# top_go_15 = read.csv("~/research/brain/data/15cluster_enrichGO_compareCluster_CC_all_pvalues_all_set_sizes_test_042121.csv", stringsAsFactors = F)
+# top_go_15 = read.csv("~/research/brain/data/53cluster_enrichGO_compareCluster_CC_all_pvalues_all_set_sizes_test_042121.csv", stringsAsFactors = F)
+# top_go_15 = read.csv("~/research/brain/data/53cluster_enrichGO_compareCluster_BP_all_pvalues_all_set_sizes_test_042121.csv", stringsAsFactors = F)
+top_go_15$new_cluster = changeClusterID(top_go_15$Cluster, returnFactor = T)
+top_go_15$neg_log_p_adj = -log10(top_go_15$p.adjust)
+# top_go_15$level = levels_categories$level[match(top_go_15$Description, levels_categories$Description)]
+for (level_cur in 1) {
+# for (level_cur in 2:13) {
+  
+  go_cur = top_go_15
+  # go_cur = top_go_15[which(top_go_15$level == level_cur),]
+  go_cur2 = data.frame()
+  sig_categories = unique(go_cur$Description[which(go_cur$p.adjust < 0.05)])
+  if ( length(sig_categories) > 1 ) {
+    for (cat_cur in sig_categories) {
+      # For sig/non-sig
+      # newRows = as.data.frame(table(go_cur$new_cluster[which(go_cur$Description == cat_cur)]))
+      # newRows$Cat = cat_cur
+      # For continuous
+      newRows = go_cur[which(go_cur$Description == cat_cur), c("new_cluster", "neg_log_p_adj", "Description")]
+      go_cur2 = rbind(go_cur2, newRows)
+    }
+    colnames(go_cur2) = c("new_cluster", "sig", "Description")
+    
+    fullRows = expand.grid(unique(top_go_15$new_cluster),sig_categories)
+    fullRows$pvalue = 1
+    colnames(fullRows) = c("new_cluster", "Description", "sig")
+    
+    go_cur2 = rbind(go_cur2, fullRows[which(! paste(fullRows$new_cluster, fullRows$Description) %in% paste(go_cur2$new_cluster, go_cur2$Description) ), c("new_cluster", "sig", "Description")])
+    
+    this_height = 100+33*length(sig_categories)
+    if (this_height < 400)
+      this_height = 400
+    
+    go_cur2_mat = acast(go_cur2, Description ~ new_cluster, value.var = "sig")
+    old_rownames = rownames(go_cur2_mat)
+    rownames(go_cur2_mat) = substr(rownames(go_cur2_mat), 1, 50L)
+    rownames(go_cur2_mat)[which(old_rownames != rownames(go_cur2_mat))] = paste0(str_trim(rownames(go_cur2_mat)[which(old_rownames != rownames(go_cur2_mat))]), "...")
+    
+    # All
+    png(paste0("~/research/brain/results/go/enrich_53_BP_scale.png"), width = 2500,  height = this_height, res = 90)
+    pheatmap::pheatmap(go_cur2_mat, color = colorRampPalette(viridis(100))(100), na_col = viridis(1), cluster_cols = F, cluster_rows = T, angle_col = 45, scale = "row", cellwidth = 25, cellheight = 25, border_color = "black")
+    # print(ggplot(go_cur2, aes(x = Description, y = new_cluster, fill = sig)) + geom_tile() + scale_fill_viridis_c() + ggtitle(paste0("Significantly Enriched MF Categories by BH at Level ", level_cur)) + xlab("Category") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed() + theme(panel.background = element_rect(fill = viridis(1)), panel.grid.major = element_blank(), panel.grid.minor = element_blank()))
+    dev.off()
+    
+    # By level
+    # png(paste0("~/research/brain/results/go/enrich_15/", level_cur, "_enrich.png"), width = 2500,  height = this_height, res = 90)
+    # pheatmap::pheatmap(go_cur2_mat, color = colorRampPalette(viridis(100))(100), na_col = viridis(1), cluster_cols = F, cluster_rows = T, angle_col = 45, scale = "none", cellwidth = 25, cellheight = 25, border_color = "black")
+    # # print(ggplot(go_cur2, aes(x = Description, y = new_cluster, fill = sig)) + geom_tile() + scale_fill_viridis_c() + ggtitle(paste0("Significantly Enriched MF Categories by BH at Level ", level_cur)) + xlab("Category") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed() + theme(panel.background = element_rect(fill = viridis(1)), panel.grid.major = element_blank(), panel.grid.minor = element_blank()))
+    # dev.off()
+  }
+}
+
+#=======================================================================================
 # Cluster Size on DEG ==================================================================
 #=======================================================================================
 my_data = matrix(0L, nrow = 6, ncol = 1000, dimnames = list(paste0("gene", 1:6), paste0("cell", 1:1000)))
@@ -1769,25 +2078,89 @@ for (old_cluster in unique(old$seurat_clusters)) {
 }
 
 #======================================================================================
+# Gene Set ============================================================================
+#======================================================================================
+neuro_df = as.data.frame(readxl::read_excel("~/research/brain/data/aau5324_Moffitt_Table-S3.xlsx"))
+colnames(neuro_df) = c("Neuropeptides", "TF", "Neuromodulators")
+neuro_df = neuro_df[-1,]
+neuro_df[1:87,1] = neuro_df[2:88,1]
+neuro_df[77:85,1] = neuro_df[78:86,1]
+neuro_df[86,1] = NA
+cluster15_deg = read.csv("~/research/brain/results/bb_all_markers_15clusters_102820_more_info.csv")
+
+neuro_deg = data.frame()
+for (cluster15 in levels(bb$seuratclusters15)) {
+  deg_rows = cluster15_deg[which(cluster15_deg$cluster == cluster15 & cluster15_deg$p_val_adj < 0.05 & cluster15_deg$avg_logFC > 0),]
+  deg_genes = deg_rows$human[which(! is.na(deg_rows$human) )]
+  ranks_logFC = deg_rows$avg_logFC[which(! is.na(deg_rows$human) )]
+  ranks_p = deg_rows$p_val[which(! is.na(deg_rows$human) )]
+  names(ranks_logFC) = deg_genes
+  names(ranks_p) = deg_genes
+  for (gene_list in colnames(neuro_df)) {
+    this_list = neuro_df[,c(gene_list)]
+    this_list = this_list[which(!is.na(this_list))]
+    this_list = toupper(this_list)
+    num_ovlp = length(which(deg_genes %in% this_list))
+    
+    this_list_list = list(this_list)
+    names(this_list_list) = c(gene_list)
+    
+    if (num_ovlp > 0) {
+      p_logFC = fgsea(this_list_list, ranks_logFC)$pval
+      p_p = fgsea(this_list_list, ranks_p)$pval
+      png(paste0("~/research/brain/results/fgsea/fgsea_logFC_", cluster15, "_", gene_list, ".png"), width = 400, height = 400)
+      print(plotEnrichment(this_list_list[[gene_list]], ranks_logFC))
+      dev.off()
+      png(paste0("~/research/brain/results/fgsea/fgsea_p_", cluster15, "_", gene_list, ".png"), width = 400, height = 400)
+      print(plotEnrichment(this_list_list[[gene_list]], ranks_p))
+      dev.off()
+    } else { p_logFC = 1; p_p = 1 }
+    
+    neuro_deg = rbind(neuro_deg, t(c(cluster15, gene_list, p_logFC, p_p, num_ovlp, length(deg_genes), length(this_list))))
+  }
+}
+colnames(neuro_deg) = c("cluster", "gene_list", "p_logFC", "p_p", "num_ovlp", "num_degs", "num_list")
+neuro_deg[,c("cluster", "p_logFC", "p_p", "num_ovlp", "num_degs", "num_list")] <- lapply(neuro_deg[,c("cluster", "p_logFC", "p_p", "num_ovlp", "num_degs", "num_list")], as.numeric)
+neuro_deg$neg_logp_logFC = -log10(neuro_deg$p_logFC)
+neuro_deg$neg_logp_p = -log10(neuro_deg$p_p)
+neuro_deg$new = convert15$new.full[match(neuro_deg$cluster, convert15$old)]
+neuro_deg$new = factor(neuro_deg$new, levels = convert15$new.full)
+neuro_deg$corrected_ovlp = neuro_deg$num_ovlp / neuro_deg$num_degs / neuro_deg$num_list
+
+ggplot(neuro_deg, aes(x=new,y=gene_list, fill = neg_logp_logFC)) + geom_tile() + scale_fill_viridis_c(name = "-log(p)") + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("") + ggtitle("GSEA on Avg LogFC Ranks")
+ggplot(neuro_deg, aes(x=new,y=gene_list, fill = neg_logp_p)) + geom_tile() + scale_fill_viridis_c(name = "-log(p)") + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("") + ggtitle("GSEA on p-value Ranks")
+ggplot(neuro_deg, aes(x=new,y=gene_list, fill = num_ovlp)) + geom_tile() + scale_fill_viridis_c(name = "Ovlp") + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("") + ggtitle("Raw Overlap")
+ggplot(neuro_deg, aes(x=new,y=gene_list, fill = corrected_ovlp)) + geom_tile() + scale_fill_viridis_c(name = "Corr. Ovlp") + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("") + ggtitle("Corrected Overlap")
+write.csv(neuro_deg, "~/research/brain/results/fgsea_results_04132021.csv")
+
+#======================================================================================
 # For Katie ===========================================================================
 #======================================================================================
 # old = readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
-old = readRDS("C:/Users/miles/Downloads/brain/data/bb_subsample_02222021.RDS")
+old = readRDS("~/Downloads/B1C1C2MZ_combined_katie.rds")
+# old = readRDS("C:/Users/miles/Downloads/brain/data/bb_subsample_02222021.RDS")
 # new = readRDS("C:/Users/miles/Downloads/B1C1C2MZ_combinedv3.rds")
-new = readRDS("C:/Users/miles/Downloads/mcmz_bb_combinedv2.rds")
+# new = readRDS("~/Downloads/mcmzbb_combined_vst_1.8res.rds")
+# new = readRDS("C:/Users/miles/Downloads/mcmz_bb_combinedv2.rds")
+new = readRDS("~/Downloads/combined_sctransform1.8res.rds")
 
 new_cells = sapply(colnames(new), function(x) substr(x, 0, 21))
 old_cells = sapply(colnames(old), function(x) substr(x, 0, 21))
 
-df = data.frame()
-for (old_cell in colnames(old)) {
-  sub_cell = substr(old_cell, 6, 21)
-  new_cell = colnames(new)[which(grepl(sub_cell, colnames(new)))]
-  if (length(new_cell) > 0) {
-    newRow = data.frame(old_cell = old_cell, new_cell = new_cell, old_cluster = old$seurat_clusters[old_cell], new_cluster = new$seurat_clusters[new_cell])
-    df = rbind(df, newRow)
-  }
-}
+new_df = data.frame(new_cell = colnames(new), new_sample = substr(new$sample, 0, 2), new_cluster = new$seurat_clusters)
+old_df = data.frame(old_cell = colnames(old), old_sample = old$sample, old_cluster = old$seurat_clusters)
+
+new_df$cell_strip = str_remove(new_df$new_cell, "MCMZ_")
+new_df$cell_strip = colsplit(new_df$cell_strip, "_", names = c("begin", "barcode"))[,2]
+new_df$cell_strip = colsplit(new_df$cell_strip, "-", names = c("barcode", "end"))[,1]
+
+old_df$cell_strip = str_remove(old_df$old_cell, "MCMZ_")
+old_df$cell_strip = colsplit(old_df$cell_strip, "_", names = c("begin", "barcode"))[,2]
+old_df$cell_strip = colsplit(old_df$cell_strip, "-", names = c("barcode", "end"))[,1]
+
+new_df[,c("old_cell", "old_cluster")] = old_df[match( paste0(new_df$cell_strip, new_df$new_sample), paste0(old_df$cell_strip, old_df$old_sample) ), c("old_cell", "old_cluster")]
+df = new_df
+df = df[which(df$new_sample == "c2"),]
 
 df2_mat = matrix(0L, nrow = length(unique(old$seurat_clusters)), ncol = length(unique(new$seurat_clusters)), dimnames = list(levels(old$seurat_clusters), levels(new$seurat_clusters)))
 df2 = data.frame()
@@ -1803,6 +2176,18 @@ colnames(df2) = c("old_cluster", "new_cluster", "value")
 df2$value = as.numeric(as.vector(df2$value))
 df2$old_cluster = factor(df2$old_cluster, levels = levels(old$seurat_clusters))
 df2$new_cluster = factor(df2$new_cluster, levels = levels(new$seurat_clusters))
+
+png("~/Downloads/katie_to_sc_big_bar_rock.png", width = 1000, height = 600)
+ggplot(df2, aes(old_cluster, value, fill = new_cluster, color = new_cluster)) + geom_bar(stat = "identity") + xlab("Katie Clusters") + ylab("Number of Cells from New Cluster in Katie Cluster") + ggtitle("Map of New Clusters to Katie's Clusters")
+dev.off()
+png("~/Downloads/katie_to_sc_big_heat_2_rock.png", width = 750, height = 750)
+heatmap.2(df2_mat, scale = "row", Rowv=FALSE, Colv=FALSE, cexRow = 1, cexCol = 1, dendrogram = "none", trace = "none", xlab = "New Clusters", ylab = "Katie's Clusters")
+dev.off()
+df2_mat_melt = melt(df2_mat)
+png("~/Downloads/katie_to_sc_big_heat_3_rock.png", width = 750, height = 750)
+ggplot(df2_mat_melt, aes(x = Var1, y = Var2, fill = value)) + geom_tile() + scale_fill_viridis() + xlab("Kaite's Clusters") + ylab("New Clusters")
+dev.off()
+write.csv(df2_mat, "~/Downloads/katie_to_sc_rock.csv")
 
 png("C:/Users/miles/Downloads/zackbb_to_katie_big_bar.png", width = 1000, height = 600)
 ggplot(df2, aes(old_cluster, value, fill = new_cluster, color = new_cluster)) + geom_bar(stat = "identity") + xlab("Zack BB Clusters") + ylab("Number of Cells from Katie Cluster in BB Cluster") + ggtitle("Map of Katie's Clusters to Zack's BB Clusters")
