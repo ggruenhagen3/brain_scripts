@@ -1,3 +1,4 @@
+# Load packages
 import pickle
 import scipy
 import scipy.sparse as sparse
@@ -8,6 +9,13 @@ import random
 import argparse
 import multiprocessing
 from itertools import repeat
+
+# Global Variables
+data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
+gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,
+              1].to_numpy()
+cond_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,
+              1].to_numpy()
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Shuffle BHVE and CTRL, find correlations for both, node strength for both and node strength difference.')
@@ -72,9 +80,6 @@ def main():
     perm_num, num_perm = parseArgs()
     # Read BB data
     # data_mat = pickle.load(open("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.pickle", "rb")) # data matrix
-    data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
-    gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,1].to_numpy()
-    cond_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,1].to_numpy()
     # Set random seed so all the permutations are different
     print("Seed = " + str(perm_num))
     random.seed(perm_num)
