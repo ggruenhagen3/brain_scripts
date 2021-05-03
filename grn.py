@@ -11,8 +11,8 @@ from itertools import repeat
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Shuffle BHVE and CTRL, find correlations for both, node strength for both and node strength difference.')
-    parser.add_argument('perm_num', metavar='perm_num', help='The current permutation number. This is used for the seed.')
-    parser.add_argument('num_perm', metavar='num_perm', help='The number of permutations to complete.')
+    parser.add_argument('perm_num', metavar='perm_num', type = int, help='The current permutation number. This is used for the seed.')
+    parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     args = parser.parse_args()
     return args.perm_num, args.num_perm
 
