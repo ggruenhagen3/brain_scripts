@@ -18,6 +18,7 @@ library("httr")
 library("ggtext")
 library("colourvalues")
 library("colorspace")
+library("scales")
 # library("ggforce")
 httr::set_config(config(ssl_verifypeer = FALSE))
 
@@ -163,9 +164,11 @@ bvcVis = function(obj, feature, myslot = "data", mode = "box", meta = "sample", 
   if (only.pos)
     df = df[which(df$values > 0),]
   
-  if (length(unique(obj@meta.data[c(meta)][,c(meta)])) == 2)
+  if (length(unique(obj@meta.data[c(meta)][,c(meta)])) == 2) {
     col_pal = c("#F2444A","#0077b6")
-  else
+  } else if (length(unique(obj@meta.data[c(meta)][,c(meta)])) == 12) {
+    col_pal = gc.ramp <- hue_pal()(12)
+  } else
     col_pal = c("#9d0208", "#d00000", "#dc2f02", "#e85d04", "#f48c06", "#03045e", "#023e8a", "#0077b6", "#0096c7", "#00b4d8")
   # col_pal = c("#9d0208", "#d00000", "#dc2f02", "#e85d04", "#f48c06", "#7400b8", "#6930c3", "#5e60ce", "#5390d9", "#4ea8de")
   # col_pal = c("#F2444A","#F25C44", "#F27A44", "#F2B644", "#F2D444", "#023e8a", "#0077b6", "#0096c7", "#00b4d8", "#48cae4")
@@ -1590,8 +1593,8 @@ convertHgncDataFrameToMzebra = function(df, gene_column, gene_names, na.rm = F, 
   hgnc_names_unique = unique(hgnc_names)
   
   # Mart Objects
-  mzebra = useEnsembl("ensembl", mirror = "uswest", dataset = "mzebra_gene_ensembl")
-  human =  useEnsembl("ensembl", mirror = "uswest", dataset = "hsapiens_gene_ensembl")
+  mzebra = useEnsembl("ensembl", mirror = "useast", dataset = "mzebra_gene_ensembl")
+  human =  useEnsembl("ensembl", mirror = "useast", dataset = "hsapiens_gene_ensembl")
   
   # Make a converter that includes the ENS names and Zebrafish names
   ens_converter = getLDS(attributes = c("hgnc_symbol"), filters = "hgnc_symbol", values = hgnc_names_unique , mart = human, attributesL = c("ensembl_gene_id", "zfin_id_symbol", "external_gene_name"), martL = mzebra, uniqueRows=T)

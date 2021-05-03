@@ -516,6 +516,11 @@ homo_df[which(homo_df$description == "5S ribosomal RNA")]
 hist(table(homo_df$description), breaks = 35)
 
 #==========================================================================================
+# Enrichment Testing on GeneX+ vs GeneX- for Many Lists ===================================
+#==========================================================================================
+
+
+#==========================================================================================
 # IEG =====================================================================================
 #==========================================================================================
 ieg_cons = c("LOC101487312", "egr1", "npas4", "jun", "homer1")
@@ -1010,6 +1015,59 @@ dev.off()
 
 Idents(bb) = bb$seuratclusters15
 FeaturePlot(bb, "p", order = T, label = T, pt.size = 1)
+
+# Make VCFs
+distinguish_df = data.frame()
+for (sample in c("b1", "b2", "b3", "b4", "b5", "c1", "c2", "c3", "c4", "c5")) {
+  vcf = read.table(paste0("~/scratch/brain/ffm/JTS07-", toupper(sample), "/outs/split/scSplit.vcf"), sep = "\t")
+  big_new_vcf = vcf[,1:9]
+  big_new_vcf_prob = vcf[,1:9]
+  for (i in 10:ncol(vcf)) {
+    this_sub = i-9
+    print(paste0(sample, ".", this_sub))
+    
+    this_genotype = vcf[,i]
+    this_genotype = reshape2::colsplit(this_genotype, ":", names = c(1,2))[,1]
+    
+    this_genotype_sep = reshape2::colsplit(this_genotype, ",", names = c("REFREF", "REFALT"))
+    this_genotype_sep[,c("REFALT", "ALTALT")] = reshape2::colsplit(this_genotype_sep$REFALT, ",", names = c('REFALT', 'ALTALT'))
+    
+    colnames(this_genotype_sep) = c("0/0", "0/1", "1/1")
+    prob_genotype = pmax(this_genotype_sep[,1], this_genotype_sep[,2], this_genotype_sep[,3])
+    most_prob_genotype = colnames(this_genotype_sep)[max.col(this_genotype_sep, ties.method="first")]
+    
+    new_vcf = vcf[,1:9]
+    new_vcf[, as.character(this_sub-1)] = most_prob_genotype
+    # write.table(new_vcf, paste0("~/scratch/brain/results/scSplit_vcf/", sample, ".", this_sub, ".vcf"), sep = "\t", row.names = F, quote = F)
+    # write.table(new_vcf[which(prob_genotype >= 0.9),], paste0("~/scratch/brain/results/scSplit_vcf_90/", sample, ".", this_sub, ".vcf"), sep = "\t", row.names = F, quote = F)
+    
+    big_new_vcf[, as.character(this_sub-1)] = most_prob_genotype
+    big_new_vcf_prob[, as.character(this_sub-1)] = prob_genotype
+  }
+  
+  for (i in 10:ncol(big_new_vcf)) {
+    others_colnames = colnames(big_new_vcf)[c(10:ncol(big_new_vcf))]
+    others_colnames = others_colnames[which(others_colnames != colnames(big_new_vcf)[i])]
+    others = big_new_vcf[, others_colnames[1]]
+    
+    for (other_colname_i in 2:length(others_colnames) ) {
+      others = paste(others, big_new_vcf[, others_colnames[other_colname_i]])
+    }
+    
+    this_distinguish_idx = which( ((grepl("1", big_new_vcf[,i]) & !grepl("1", others)) | (grepl("0", big_new_vcf[,i]) & !grepl("0", others))) & 
+                                  rowSums(big_new_vcf_prob[,10:ncol(big_new_vcf_prob)] > 0.75) == length(10:ncol(big_new_vcf_prob)) )
+    this_distinguish = big_new_vcf[this_distinguish_idx, ]
+    
+    distinguish_df = rbind(distinguish_df, t(c(paste0(sample, ".", i-9), nrow(this_distinguish))))
+  }
+  
+}
+colnames(distinguish_df) = c("subsample", "num_distinguish_snp")
+distinguish_df$num_distinguish_snp = as.numeric(as.vector(distinguish_df$num_distinguish_snp))
+distinguish_df[which.min(distinguish_df$num_distinguish_snp),]
+distinguish_df[which.max(distinguish_df$num_distinguish_snp),]
+mean(distinguish_df$num_distinguish_snp)
+median(distinguish_df$num_distinguish_snp)
 
 #==========================================================================================
 # Sample ID from Unique SNPs ==============================================================
