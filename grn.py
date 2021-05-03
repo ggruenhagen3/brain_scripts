@@ -24,38 +24,21 @@ def parseArgs():
     args = parser.parse_args()
     return args.perm_num, args.num_perm
 
-# def corAndNodeStrength(perm_label, data_mat = data_mat, gene_labels = gene_labels):
-def corAndNodeStrength(perm_label):
+
+def corAndNodeStrength(this_idx):
     """
-    For 1 permutation, create BHVE and CTRL Matrices, find correlations, find node strengths and find node strength differences.
-    :param perm_label: Labels of condition (BHVE and CTRL) for this permutation
-    :return bhve_minus_ctrl_ns: bhve node strength - control node strength
+    Given idexes of cells, creat a matrix, find correlations, and find node strengths
+    :param this_idx: Indexes of columns
+    :return ns: Node Strength
     """
-    # Find BHVE and CTRL cells
-    bhve_idx = []
-    ctrl_idx = []
-    for i in range(0, len(perm_label)):
-        this_label = perm_label[i]
-        if this_label == "BHVE":
-            bhve_idx.append(i)
-        else:
-            ctrl_idx.append(i)
     # Create BHVE and CTRL Matrices
-    bhve_mat = data_mat[:, bhve_idx]
-    ctrl_mat = data_mat[:, ctrl_idx]
+    mat = data_mat[:, this_idx]
     # Find Correlations
-    print("Finding BHVE correlations")
-    bhve_cor = pandas.DataFrame(data = sparse_corrcoef(bhve_mat.todense()), index = gene_labels, columns = gene_labels)
-    print("Finding CTRL correlations")
-    ctrl_cor = pandas.DataFrame(data = sparse_corrcoef(ctrl_mat.todense()), index = gene_labels, columns = gene_labels)
+    print("Finding correlations")
+    cor = pandas.DataFrame(data = sparse_corrcoef(mat.todense()), index = gene_labels, columns = gene_labels)
     # Find Node Strength
-    bhve_ns = bhve_cor.sum(axis=1)
-    ctrl_ns = ctrl_cor.sum(axis=1)
-    bhve_minus_ctrl_ns = bhve_ns - ctrl_ns
-    print(bhve_ns[0:5])
-    print(ctrl_ns[0:5])
-    print(bhve_minus_ctrl_ns[0:5])
-    return(bhve_minus_ctrl_ns)
+    ns = cor.sum(axis=1)
+    return ns
 
 
 def sparse_corrcoef(A, B=None):
@@ -73,6 +56,37 @@ def sparse_corrcoef(A, B=None):
     coeffs = C / np.sqrt(np.outer(d, d))
     return coeffs
 
+def myShuffle(this_list):
+    """
+    Shuffle and return the list. (I made this function bc I don't like the how regular shuffle returns the list).
+    :param this_list: input list (unshuffled)
+    :return this_list: shuffled list
+    """
+    random.shuffle(this_list)
+    return(this_list)
+
+def permuteLabels(num_perm):
+    """
+    Permute BHVE and CTRL condition labels and find the indexes of the matrix belong to each.
+    :param num_perm: Number of permutations
+    :return mat_idx: dictionary of lists of column indexes that belong to BHVE and CTRL for each permutation
+    """
+    mat_idx = {} # key is name of cond + perm, value is columns that belong to that simulated sample
+    for i in range(0, num_perm):
+        perm_label = myShuffle(cond_labels)
+        bhve_idx = []
+        ctrl_idx = []
+        for j in range(0, len(perm_label)):
+            this_label = perm_label[j]
+            if this_label == "BHVE":
+                bhve_idx.append(j)
+            else:
+                ctrl_idx.append(j)
+        mat_idx["B" + str(i)] = bhve_idx
+        mat_idx["C" + str(i)] = ctrl_idx
+    return mat_idx
+
+
 def main():
     # Start the timer
     start_time = time.perf_counter()
@@ -85,14 +99,15 @@ def main():
     random.seed(perm_num)
     # Permute BHVE and CTRL labels
     print("Permuting Data" + str(num_perm) + " times.")
-    perm_labels = []
-    for i in range(0, num_perm):
-        perm_labels.append(random.shuffle(cond_labels))
+    mat_idx = permuteLabels(num_perm)
     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
-    # pool = multiprocessing.Pool(num_perm)
+    pool = multiprocessing.Pool(multiprocessing.cpu_count())
     # this_result = pool.map(corAndNodeStrength, [perm_label for perm_label in perm_labels])
-    test = corAndNodeStrength(cond_labels)
+    ns_dict = pool.map(corAndNodeStrength, mat_idx.values())
+    # df=pd.DataFrame.from_dict(d,orient='index').transpose()
+    # test = corAndNodeStrength(cond_labels)
+
 
 
 if __name__ == '__main__':
