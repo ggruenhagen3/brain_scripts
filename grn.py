@@ -79,7 +79,7 @@ def main():
     print("Seed = " + str(perm_num))
     random.seed(perm_num)
     # Permute BHVE and CTRL labels
-    print("Permuting Data" + num_perm + "times.")
+    print("Permuting Data" + str(num_perm) + " times.")
     perm_labels = []
     for i in range(0, num_perm):
         perm_labels.append(random.shuffle(cond_labels))
