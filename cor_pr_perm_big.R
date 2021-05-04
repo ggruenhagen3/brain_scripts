@@ -5,8 +5,8 @@
 
 # Constants
 output_folder = "~/scratch/brain/results/cor_pr_perm/"
-n_perm = 100 # 200 matrices total because bhve and ctrl
-n_perm_per_job = 10
+n_perm = 1000 # 200 matrices total because bhve and ctrl
+n_perm_per_job = 100
 pbs_file_name = "~/scratch/brain/brain_scripts/cor_pr_perm.pbs"
 
 # Generate pbs script and submit jobs
@@ -27,8 +27,11 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
                "module load anaconda3",
                "module load r",
                "conda activate r4\n",
-               paste("Rscript cor_pr_perm.R", x, n_perm_per_job)),
+               paste("python grn.py", x, n_perm_per_job)),
              fileConn)
   close(fileConn)
   system(paste("qsub", pbs_file_name))
 })
+
+  
+# paste("Rscript cor_pr_perm.R", x, n_perm_per_job)),
