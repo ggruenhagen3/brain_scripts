@@ -10,7 +10,6 @@ import argparse
 import multiprocessing
 from itertools import repeat
 import grn_test
-from multiprocessing.dummy import Pool as ThreadPool
 
 global data_mat
 global gene_labels
@@ -42,6 +41,7 @@ def corAndNodeStrength(this_idx):
     # Find Correlations
     print("Finding correlations")
     cor = pandas.DataFrame(data = sparse_corrcoef(data_mat[:, this_idx].todense()), index = gene_labels, columns = gene_labels)
+    print("Done w/ corr")
     # Find Node Strength
     ns = cor.sum(axis=1)
     print(id(data_mat))
@@ -49,6 +49,7 @@ def corAndNodeStrength(this_idx):
 
 
 def sparse_corrcoef(A, B=None):
+    print("In corr calc")
     if B is not None:
         A = sparse.vstack((A, B), format='csr')
     A = A.astype(np.float64)
@@ -60,7 +61,9 @@ def sparse_corrcoef(A, B=None):
     # The correlation coefficients are given by
     # C_{i,j} / sqrt(C_{i} * C_{j})
     d = np.diag(C)
+    print("Before corr error")
     coeffs = C / np.sqrt(np.outer(d, d))
+    print("After corr error")
     return coeffs
 
 def myShuffle(this_list):
@@ -107,14 +110,14 @@ def main():
     print("Seed = " + str(perm_num))
     random.seed(perm_num)
     # Permute BHVE and CTRL labels
-    print("Permuting Data" + str(num_perm) + " times.")
+    print("Permuting Data " + str(num_perm) + " times.")
     mat_idx = permuteLabels(num_perm)
     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
     # this_result = pool.map(corAndNodeStrength, [perm_label for perm_label in perm_labels])
     mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
     print("Created Mat 3")
-    with ThreadPool(multiprocessing.cpu_count()) as pool:
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         ns_dict = pool.map(grn_test.corAndNodeStrength, mat_idx3.values())
     # df=pd.DataFrame.from_dict(d,orient='index').transpose()
     # test = corAndNodeStrength(cond_labels)
