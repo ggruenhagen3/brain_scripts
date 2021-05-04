@@ -15,13 +15,6 @@ global data_mat
 global gene_labels
 global cond_labels
 
-data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
-gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,
-              1].to_numpy()
-cond_labels = pandas.read_csv(
-    "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,
-              1].to_numpy()
-
 def parseArgs():
     parser = argparse.ArgumentParser(description='Shuffle BHVE and CTRL, find correlations for both, node strength for both and node strength difference.')
     parser.add_argument('perm_num', metavar='perm_num', type = int, help='The current permutation number. This is used for the seed.')
@@ -101,7 +94,15 @@ def main():
     # Start the timer
     start_time = time.perf_counter()
     #Globals
-
+    global data_mat
+    global gene_labels
+    global cond_labels
+    data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
+    gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,
+                  1].to_numpy()
+    cond_labels = pandas.read_csv(
+        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,
+                  1].to_numpy()
     # Read Inputs
     perm_num, num_perm = parseArgs()
     # Read BB data
