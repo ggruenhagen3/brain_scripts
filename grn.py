@@ -10,11 +10,15 @@ import argparse
 import multiprocessing
 from itertools import repeat
 
-# Global Variables
+global data_mat
+global gene_labels
+global cond_labels
+
 data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
 gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,
               1].to_numpy()
-cond_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,
+cond_labels = pandas.read_csv(
+    "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,
               1].to_numpy()
 
 def parseArgs():
@@ -32,12 +36,13 @@ def corAndNodeStrength(this_idx):
     :return ns: Node Strength
     """
     # Create BHVE and CTRL Matrices
-    mat = data_mat[:, this_idx]
+    # mat = data_mat[:, this_idx]
     # Find Correlations
     print("Finding correlations")
-    cor = pandas.DataFrame(data = sparse_corrcoef(mat.todense()), index = gene_labels, columns = gene_labels)
+    cor = pandas.DataFrame(data = sparse_corrcoef(data_mat[:, this_idx].todense()), index = gene_labels, columns = gene_labels)
     # Find Node Strength
     ns = cor.sum(axis=1)
+    print(id(data_mat))
     return ns
 
 
@@ -90,6 +95,8 @@ def permuteLabels(num_perm):
 def main():
     # Start the timer
     start_time = time.perf_counter()
+    #Globals
+
     # Read Inputs
     perm_num, num_perm = parseArgs()
     # Read BB data
@@ -102,12 +109,20 @@ def main():
     mat_idx = permuteLabels(num_perm)
     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
-    pool = multiprocessing.Pool(multiprocessing.cpu_count())
     # this_result = pool.map(corAndNodeStrength, [perm_label for perm_label in perm_labels])
-    ns_dict = pool.map(corAndNodeStrength, mat_idx.values())
+    mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
+    print("Created Mat 3")
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+        ns_dict = pool.map(corAndNodeStrength, mat_idx.values())
     # df=pd.DataFrame.from_dict(d,orient='index').transpose()
     # test = corAndNodeStrength(cond_labels)
 
+# def testFun(values):
+#     print(values)
+#
+# mat_idx2 = {}
+# for key in mat_idx.keys():
+#     mat_idx2[key] = mat_idx[key][0:5]
 
 
 if __name__ == '__main__':
