@@ -30,19 +30,17 @@ def corAndNodeStrength(this_idx):
     :return ns: Node Strength
     """
     # Create BHVE and CTRL Matrices
-    # mat = data_mat[:, this_idx]
     # Find Correlations
-    print("Finding correlations")
     cor = pandas.DataFrame(data = sparse_corrcoef(data_mat[:, this_idx].todense()), index = gene_labels, columns = gene_labels)
-    print("Done w/ corr")
     # Find Node Strength
     ns = cor.sum(axis=1)
-    print(id(data_mat))
     return ns
 
 
 def sparse_corrcoef(A, B=None):
-    print("In corr calc")
+    """
+    Find correlations in sparse matrix
+    """
     if B is not None:
         A = sparse.vstack((A, B), format='csr')
     A = A.astype(np.float64)
@@ -54,9 +52,7 @@ def sparse_corrcoef(A, B=None):
     # The correlation coefficients are given by
     # C_{i,j} / sqrt(C_{i} * C_{j})
     d = np.diag(C)
-    print("Before corr error")
     coeffs = C / np.sqrt(np.outer(d, d))
-    print("After corr error")
     return coeffs
 
 def myShuffle(this_list):
@@ -116,20 +112,15 @@ def main():
     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
     # this_result = pool.map(corAndNodeStrength, [perm_label for perm_label in perm_labels])
-    mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
-    print("Created Mat 3")
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        ns_dict = pool.map(corAndNodeStrength, mat_idx3.values())
+    # mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
+    print("Finding Correlations")
+    for i in range(0, num_perm):
+        print("Start Pair: " + str(num_perm))
+        with multiprocessing.Pool(2) as pool:
+            ns_dict = pool.map(corAndNodeStrength, [mat_idx['B' + str(i)], mat_idx['C' + str(i)]])
+        print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     # df=pd.DataFrame.from_dict(d,orient='index').transpose()
     # test = corAndNodeStrength(cond_labels)
-
-# def testFun(values):
-#     print(values)
-#
-# mat_idx2 = {}
-# for key in mat_idx.keys():
-#     mat_idx2[key] = mat_idx[key][0:5]
-
 
 if __name__ == '__main__':
     main()
