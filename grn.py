@@ -9,7 +9,6 @@ import random
 import argparse
 import multiprocessing
 from itertools import repeat
-import grn_test
 
 global data_mat
 global gene_labels
@@ -89,7 +88,9 @@ def permuteLabels(num_perm):
 def main():
     # Start the timer
     start_time = time.perf_counter()
-    #Globals
+    # Read Inputs
+    perm_num, num_perm = parseArgs()
+    # Read BB data
     global data_mat
     global gene_labels
     global cond_labels
@@ -99,10 +100,6 @@ def main():
     cond_labels = pandas.read_csv(
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,
                   1].to_numpy()
-    # Read Inputs
-    perm_num, num_perm = parseArgs()
-    # Read BB data
-    # data_mat = pickle.load(open("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.pickle", "rb")) # data matrix
     # Set random seed so all the permutations are different
     print("Seed = " + str(perm_num))
     random.seed(perm_num)
@@ -111,16 +108,16 @@ def main():
     mat_idx = permuteLabels(num_perm)
     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
-    # this_result = pool.map(corAndNodeStrength, [perm_label for perm_label in perm_labels])
     # mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
     print("Finding Correlations")
+    ns_dict = {}
     for i in range(0, num_perm):
         print("Start Pair: " + str(i))
         with multiprocessing.Pool(2) as pool:
             ns_dict = pool.map(corAndNodeStrength, [mat_idx['B' + str(i)], mat_idx['C' + str(i)]])
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
-    # df=pd.DataFrame.from_dict(d,orient='index').transpose()
-    # test = corAndNodeStrength(cond_labels)
+    perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
+    perm_ns_dif.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns" + str(perm_num))
 
 if __name__ == '__main__':
     main()
