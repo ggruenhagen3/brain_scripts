@@ -115,7 +115,7 @@ def main():
         print("Start Pair: " + str(i))
         with multiprocessing.Pool(2) as pool:
             pool_ns = pool.map(corAndNodeStrength, [mat_idx['B' + str(i)], mat_idx['C' + str(i)]])
-            ns_dict[i] = pool_ns[[0]] - pool_ns[[1]]
+            ns_dict[i] = pool_ns[0] - pool_ns[1]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
     perm_ns_dif.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns" + str(perm_num))
