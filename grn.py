@@ -118,7 +118,7 @@ def main():
     mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
     print("Created Mat 3")
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        ns_dict = pool.map(grn_test.corAndNodeStrength, mat_idx3.values())
+        ns_dict = pool.map(corAndNodeStrength, mat_idx3.values())
     # df=pd.DataFrame.from_dict(d,orient='index').transpose()
     # test = corAndNodeStrength(cond_labels)
 
