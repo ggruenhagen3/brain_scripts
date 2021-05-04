@@ -115,7 +115,7 @@ def main():
     # mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
     print("Finding Correlations")
     for i in range(0, num_perm):
-        print("Start Pair: " + str(num_perm))
+        print("Start Pair: " + str(i))
         with multiprocessing.Pool(2) as pool:
             ns_dict = pool.map(corAndNodeStrength, [mat_idx['B' + str(i)], mat_idx['C' + str(i)]])
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
