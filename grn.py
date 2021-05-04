@@ -10,6 +10,7 @@ import argparse
 import multiprocessing
 from itertools import repeat
 import grn_test
+from multiprocessing.dummy import Pool as ThreadPool
 
 global data_mat
 global gene_labels
@@ -113,7 +114,7 @@ def main():
     # this_result = pool.map(corAndNodeStrength, [perm_label for perm_label in perm_labels])
     mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
     print("Created Mat 3")
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    with ThreadPool(multiprocessing.cpu_count()) as pool:
         ns_dict = pool.map(grn_test.corAndNodeStrength, mat_idx3.values())
     # df=pd.DataFrame.from_dict(d,orient='index').transpose()
     # test = corAndNodeStrength(cond_labels)
