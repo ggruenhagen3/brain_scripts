@@ -2360,5 +2360,4 @@ raw = as.numeric(as.vector(df_bvc_plot3[which(df_bvc_plot3$cluster1 == 18 & df_b
 scaled = scale(raw)
 hist(scaled, breaks = 50)
 mean(scaled)
-
 z_scores = lapply(1:nrow(df_bvc_plot3), function(x) scale(as.numeric(as.vector(df_bvc_plot3[x, c("bvc", paste0("X",1:1000))]))) )
