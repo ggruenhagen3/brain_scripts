@@ -1161,6 +1161,60 @@ separateEnrichTest = function(obj, markers) {
   return(list(per_gene_per_cluster_df, per_cluster_df))
 }
 
+markerExpPerCellPerClusterQuickGeneX = function(obj, markers, geneX) {
+  #' Same as markerExpPerCellPerClusterQuick but on GeneX+ vs GeneX-
+  # Defaults from original function
+  n_markers = T
+  correct = T
+  myslot = "counts"
+  
+  title_str = "Average"
+  title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
+  title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
+  
+  obj$geneX = "Neg"
+  obj$geneX[which(obj@assays$RNA@counts[geneX,] > 0)] = "Pos"
+  if (length(which(obj$geneX == "Pos")) < 3)
+    return(NA)
+  Idents(obj) = obj$geneX
+  
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  exp[which(exp > 0)] = 1
+  d_df = data.frame()
+  clusters = c("Pos", "Neg")
+  
+  for (cluster in clusters) {
+    cluster_cells <- WhichCells(obj, idents = cluster)
+    num_cells = length(cluster_cells)
+    
+    avg_cluster_exp = colSums(exp[markers, cluster_cells])
+    avg_cluster_exp = avg_cluster_exp/obj$nFeature_RNA[cluster_cells]
+    other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
+    other_avg = colSums(exp[markers, other_cells])
+    other_avg = other_avg/obj$nFeature_RNA[other_cells]
+    
+    p = z.test(avg_cluster_exp, other_avg, sigma.x = sd(avg_cluster_exp), sigma.y = sd(other_avg), alternative = "greater")$p.value
+    
+    # Cohen's d
+    all_exp = c(avg_cluster_exp, other_avg)
+    test= effsize::cohen.d(all_exp, c(rep("cluster", length(avg_cluster_exp)),
+                                      rep("other",   length(other_avg))))
+    
+    d=test$estimate
+    up=test$conf.int[2]
+    down = test$conf.int[1]
+    mag=test$magnitude
+    mag_pos=mag
+    mag_pos[which(d < 0)] = "negligible"
+    
+    d_df = rbind(d_df, data.frame(cluster, mag, mag_pos, d, up, down, num_cells, p))
+  }
+  d_df$cluster = factor(d_df$cluster, levels = clusters)
+  
+  return(d_df)
+}
+
 markerExpPerCellPerClusterQuick = function(obj, markers) {
   #' Same as markerExpPerCellPerCluster using the default settings and using some shortcuts
   # Defaults from original function

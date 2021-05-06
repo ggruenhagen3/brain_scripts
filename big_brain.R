@@ -693,6 +693,35 @@ df$pct_bhve_cells = df$n_bhve_cells / length(bhve_cells)
 df$pct_ctrl_cells = df$n_ctrl_cells / length(ctrl_cells)
 
 #==========================================================================================
+# Enrichment Testing on GeneX+ vs GeneX- for Many Lists ===================================
+#==========================================================================================
+geneX_list = read.csv("~/research/brain/data/bb_all_interesting_genes_final_042921.csv")
+enrich_list = read.csv("~/research/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv")
+geneX_list_unique = unique(geneX_list$gene)
+
+full_res = data.frame()
+for (i in 1:length(geneX_list_unique)) {
+  gene = geneX_list_unique[i]
+  if (i %% 50 == 0) { print(i) }
+  this_res = markerExpPerCellPerClusterQuickGeneX(bb, enrich_list$mzebra, gene)
+  if (! is.na(this_res) ) {
+    this_res$gene = gene
+    this_res = this_res[,c(ncol(this_res), 1:(ncol(this_res)-1))]
+    full_res = rbind(full_res, this_res)
+  }
+}
+rownames(full_res) = paste0(full_res$gene, "_", full_res$cluster)
+full_res$bh = p.adjust(full_res$p, method = "BH")
+full_res$bon = p.adjust(full_res$p, method = "bonferroni")
+full_res$hgnc = gene_info$human[match(full_res$gene, gene_info$mzebra)]
+write.csv(full_res, "~/research/brain/results/bb_all_interesting_pcrc_lg11_040520.csv")
+
+# full_res2 = full_res[which(full_res$bon < 0.05,),]
+full_res2 = full_res
+full_res2$neg_log_bon = -log10(full_res2$bon)
+ggplot(full_res2, aes(x = num_cells, y = neg_log_bon, color = mag_pos, size = mag_pos)) + geom_point() + scale_color_manual(values = viridis(4)) + scale_size_manual(values = c(0.5, 1, 2, 3)) + ylab("Negative log10 Bonferroni Adjusted p-value") + xlab("Number of Cells") + geom_text(data=subset(full_res2, mag_pos == "large"), aes(num_cells,neg_log_bon,label=hgnc), color = "black")
+
+#==========================================================================================
 # Homolog =================================================================================
 #==========================================================================================
 gene_info$mzebra_description_clean = as.vector(data.frame(do.call('rbind', strsplit(as.character(gene_info$mzebra_description),'[Source',fixed=TRUE)))[,1])
@@ -1126,40 +1155,64 @@ for (pair in 1:5) {
 #==========================================================================================
 # B vs C Network ==========================================================================
 #==========================================================================================
-real = read.csv("~/scratch/brain/results/cor_pr_real_strength.csv")
-colnames(real)[1] = "gene"
-real = left_join(data.frame(gene = rownames(bb)), real, by = "gene")
-rownames(real) = real$gene
+# real = read.csv("~/scratch/brain/results/cor_pr_real_strength.csv")
+# colnames(real)[1] = "gene"
+# real = left_join(data.frame(gene = rownames(bb)), real, by = "gene")
+# rownames(real) = real$gene
+real = read.csv("~/scratch/brain/results/py_ns_real.csv")
+rownames(real) = real$X
+real$X = NULL
+real = real[which(real$Dif != 0),]
 
 perm = data.frame(gene = rownames(bb))
-for (i in 1:7) {
-  perm_small = read.csv(paste0("~/scratch/brain/results/cor_pr_perm/perm_", i, ".csv"))
-  colnames(perm_small)[1] = "gene"
-  perm = left_join(perm, perm_small, by = "gene")
+for (i in 1:10) {
+  print(i)
+  # perm_small = read.csv(paste0("~/scratch/brain/results/cor_pr_perm/perm_", i, ".csv"))
+  # colnames(perm_small)[1] = "gene"
+  # perm = left_join(perm, perm_small, by = "gene")
+  perm_small = read.csv(paste0("~/scratch/brain/results/py_ns/perm_", i, ".csv"))
+  perm = cbind(perm, perm_small[,-c(1)])
 }
 rownames(perm) = perm$gene
 perm$gene = NULL
 perm = data.matrix(perm)
+colnames(perm) = c(1:1000)
 
-test_stat = data.frame(gene = rownames(bb), num_greater = 0, pct_greater = 0)
-rownames(test_stat) = rownames(bb)
-for (gene in rownames(bb)) {
+test_stat = data.frame(gene = rownames(real), num_greater = 0, pct_greater = 0)
+rownames(test_stat) = rownames(real)
+for (gene in rownames(real)) {
   this_num_greater = length(which( perm[gene, ] > real[gene, "Dif"] ))
   test_stat[gene,] = c(gene, this_num_greater, this_num_greater / ncol(perm))
 }
 test_stat[which( is.na(real$Dif) ),c("num_greater", "pct_greater")] = NA
 
-num_greater_table = table(factor(test_stat$num_greater, levels = 0:70))
-test_stat_95 = test_stat[which(test_stat$num_greater > 0.95*70),]
-test_stat_100 = test_stat[which(test_stat$num_greater > 100*70),]
+num_greater_table = table(factor(test_stat$num_greater, levels = 0:1000))
+test_stat_95 = test_stat[which(test_stat$num_greater > 0.95*1000),]
+test_stat_100 = test_stat[which(test_stat$num_greater > 1*1000),]
 ieg_cons = c("LOC101487312", "egr1", "npas4", "jun", "homer1")
 ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_fos_egr1_npas4_detected_011521.csv"))[,"ieg_like"]
 test_stat[ieg_cons,]
 test_stat[ieg_like,]
 test_stat[which( test_stat$gene %in% ieg_like & (test_stat$pct_greater < 0.05 | test_stat$pct_greater > 0.95) ),]
 
-png(paste0(rna_path, "/results/cor_res_skew.png"))
+df = data.frame()
+for (gene in rownames(bb)) {
+  df = rbind(df, t(c(gene, length(which(bb@assays$RNA@counts[gene,] > 0)))))
+}
+colnames(df) = c("gene", "num_cells")
+df$num_cells = as.numeric(as.vector(df$num_cells))
+write.csv(df, "~/scratch/brain/data/gene_num_cells.csv")
+
+png(paste0(rna_path, "/results/py_ns.png"))
 hist(as.numeric(test_stat$num_greater[which(! is.na(test_stat$num_greater) )]), xlab = "Number of Permutations that are Greater than the Real B vs C", breaks = 50, col = "lightgray")
+dev.off()
+
+png(paste0(rna_path, "/results/py_ns_real.png"))
+hist(as.numeric(real$Dif), xlab = "BHVE vs CTRL Node Strength Difference", breaks = 50, col = "lightgray")
+dev.off()
+
+png(paste0(rna_path, "/results/py_ns_perm.png"))
+hist(as.numeric(rowMeans(perm)), xlab = "Average Permuted BHVE vs CTRL Node Strength Difference", breaks = 50, col = "lightgray")
 dev.off()
 
 non_zero = rownames(bb)[which( rowSums(bb@assays$RNA@counts) > 0 )]
