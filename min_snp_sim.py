@@ -5,6 +5,7 @@ import random
 import math
 import time
 from random import randrange
+from collections import Counter
 
 global read_length
 read_length = 95
@@ -30,8 +31,6 @@ def simReads(depth, chrom_stats, verbose = True):
     :return read_start_pos: numpy array of read positions
     """
     total_length = int(chrom_stats['Length'].sum())
-    print("Creating covered dataframe")
-    covered_snps = pandas.DataFrame(columns=snps.columns)
     min_num_reads = math.ceil((depth * total_length)/read_length)
     if verbose:
         print(str(min_num_reads) + " reads of length " + str(read_length) + " required to reach a depth of " +
@@ -48,6 +47,7 @@ def findCoveredSnps(read_start_pos, snps):
     :param snps: pandas dataframe of snps and their positions
     :return snps_covered: snps that were covered by the reads
     """
+    # freq = Counter(test)
     snps_covered = snps.loc[snps['Raw_Pos'].isin(read_start_pos)]
     return snps_covered
 
@@ -96,6 +96,7 @@ read_sim_start = time.perf_counter()
 read_start_pos = simReads(1, chrom_stats)
 print(f"Time to simulate reads: {time.perf_counter() - read_sim_start:0.4f} seconds")
 
+read_start_pos_in_any_snp = pandas.Series(read_start_pos).isin(all_snps_pos)
 all_covered_snps = {} # key is the sample and value is the snps covered by the reads
 for sample in samples:
     this_snps = all_snps[sample]
@@ -105,11 +106,18 @@ for sample in samples:
 
 # Clear Memory
 del read_start_pos
-
-# start_time = time.perf_counter()
-# ran_test = numpy.random.rand(1000 * 1000 * 1000)
-# ran_test = numpy.floor(ran_test * 957468680)
-# print(f"Numpy Rand. Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
+# [x for x in a if x in b]
+a = set(this_snps['Raw_Pos']) # 32.9 sec
+a = numpy.array(list(this_snps['Raw_Pos'])) # 33 sec
+start_time = time.perf_counter()
+# test = pandas.Series(read_start_pos).isin(a) # 32.9 sec
+test = [i in a for i in list(read_start_pos)]
+# test = numpy.isin(read_start_pos, a)
+# test2 = read_start_pos[test]
+# test = [numpy.isin(read_start_pos, pos).sum() for pos in this_snps['Raw_Pos'][0:5] ]
+# test = dict(zip(*numpy.unique(read_start_pos, return_counts=True)))
+# test = numpy.array(read_start_pos, this_snps['Raw_Pos'])
+print(f"# ovlp. Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
 
 if __name__ == '__main__':
     main()
