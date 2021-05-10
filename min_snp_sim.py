@@ -185,7 +185,7 @@ def main():
     del snps_data
 
     # Create Results DataFrame
-    res = pandas.DataFrame(-1, index = list(range(0, num_perm)), columns = depth)
+    res = pandas.DataFrame(-1, index = list(range(0, num_perm)), columns = list(depth))
 
     # Simulate SNPs and keep those that are in SNPs
     for this_perm in range(0, num_perm):
