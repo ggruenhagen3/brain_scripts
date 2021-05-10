@@ -65,15 +65,16 @@ def simReads(depth, chrom_stats, verbose = True):
     return read_start_pos
 
 
-def formatSnps(this_snps, chrom_stats):
+def formatSnps(sample, chrom_stats):
     """
     Reformat SNPs info. Change some column names. Change actual position to a "Raw Position".
     Change Genotype information to 0,1,2. Keep only SNPs where genotype confidence meets the minimum for all subsamples.
 
-    :param this_snps: raw input snps
+    :param sample: this sample
     :param chrom_stats: chromosome informtation
     :return this_snps: snps that are correctly formatted
     """
+    this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split/scSplit.vcf", sep="\s+", header=33)
     this_snps.rename(columns={ this_snps.columns[0]: "LG" }, inplace = True)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
@@ -149,6 +150,7 @@ def predictSubSampleML(snps, subs, verbose = True):
     train_score = rc.score(xtrain, ytrain)
     return test_score, train_score
 
+
 def main():
     start_time = time.perf_counter()  # start the timer
     perm_num, num_perm, depth, paired_reads, min_snp_prob, read_length = parseArgs()
@@ -172,19 +174,20 @@ def main():
     subs_real = ['Real_' + sub for sub in subs]
 
     # Read in predictive SNPs from scSplit
-    all_snps = {}  # key is the sample and value is the subsample SNPs from scSplit
-    all_snps_pos = []
     samples = ['b1', 'b2', 'b3', 'b4', 'b5', 'c1', 'c2', 'c3', 'c4', 'c5']
-    for sample in samples:
-        this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split/scSplit.vcf", sep="\s+", header = 33)
-        this_snps = formatSnps(this_snps, chrom_stats)
-        all_snps_pos.extend(list(this_snps['Raw_Pos']))
-        all_snps[sample] = this_snps
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+        snps_data = pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
+    all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
+    all_snps_pos = set( [this_snps['Raw_Pos'] for this_snps in all_snps.values()] )
+    # for sample in samples:
+    #     this_snps = formatSnps(this_snps, chrom_stats)
+    #     all_snps_pos.extend(list(this_snps['Raw_Pos']))
+    #     all_snps[sample] = this_snps
     print(f"Time to read and format SNPs: {time.perf_counter() - start_time:0.4f} seconds")
-    all_snps_pos = set(all_snps_pos)
+    # all_snps_pos = set(all_snps_pos)
 
     for this_perm in range(0, num_perm):
-        print("Permutation " + this_perm)
+        print("Permutation " + str(this_perm))
         # Simulate reads, then subset by those in the predictive SNPs
         global relevant_reads
         relevant_reads = {}  # key is sub 0/1/2/3 and value is list of Read Positions that overlap with any of the 38 subsamples
