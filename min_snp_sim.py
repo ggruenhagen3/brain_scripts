@@ -181,7 +181,7 @@ def main():
     all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
     # all_snps_pos = set( [list(this_snps['Raw_Pos']) for this_snps in all_snps.values()] )
     for sample in samples:
-        all_snps_pos.extend(all_snps_pos[sample]['Raw_Pos'])
+        all_snps_pos.extend(all_snps[sample]['Raw_Pos'])
     # for sample in samples:
     #     this_snps = formatSnps(this_snps, chrom_stats)
     #     all_snps_pos.extend(list(this_snps['Raw_Pos']))
