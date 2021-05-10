@@ -24,7 +24,7 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Predict Individuals at various sequencing depths')
     parser.add_argument('perm_num', metavar='perm_num', type = int, help='Permutation Number (used to set random seed)')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='Number of Permutations to do')
-    parser.add_argument('depth', metavar='depth', help='Depth of Sequencing')
+    parser.add_argument('depth', metavar='depth', type = int, help='Depth of Sequencing')
     parser.add_argument("-p", "--paired_reads", help="Paired Reads?", action="store_true")
     parser.add_argument("-m", "--min_snp_prob", help="Minimum Probability for any Individual in any SNP", nargs="?",
                         type=int, default=0.65, const=0.65)
