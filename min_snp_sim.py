@@ -199,7 +199,7 @@ def main():
 
         # Find the simulated Genotypes
         all_covered_snps = {}  # key is the sample and value is the snps covered by the reads
-            ovlp_start = time.perf_counter()
+        ovlp_start = time.perf_counter()
         for sample in samples:
             individual_dfs = []
             sample_snps = all_snps[sample]
