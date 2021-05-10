@@ -244,7 +244,7 @@ def main():
         res.iloc[this_perm, 0] = accurracy100
         print(f"Time to predict all individuals: {time.perf_counter() - start_predict:0.4f} seconds")
         print("-----------------------")
-
+    res.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/sim_reads/perm_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
