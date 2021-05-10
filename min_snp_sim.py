@@ -61,7 +61,6 @@ def simReads(depth, chrom_stats, verbose = True):
         print(str(min_num_reads) + " reads of length " + str(read_length) + " required to reach a depth of " +
               str(depth) + "X. Meaning that " + str(min_num_reads*95) + " positions need to be sampled.")
     read_start_pos = numpy.random.randint(0, total_length, min_num_reads * read_length, dtype=numpy.uint32)
-    print("ALL DONE!")
     return read_start_pos
 
 
@@ -105,7 +104,7 @@ def findCoveredSnps(snps, col):
     count_name = 'Count_' + col
     freq = Counter(read_start_pos)
     snps[count_name] = snps['Raw_Pos'].map(freq)
-    snps_covered = snps.loc[snps['Count'] > 0, ['Raw_Pos', col, count_name]]
+    snps_covered = snps.loc[snps[count_name] > 0, ['Raw_Pos', col, count_name]]
     genotype = []
     all_real_genotypes = list(snps_covered[col])
     all_counts = list(snps_covered[count_name])
@@ -179,13 +178,8 @@ def main():
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         snps_data = pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
     all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
-    # all_snps_pos = set( [list(this_snps['Raw_Pos']) for this_snps in all_snps.values()] )
     for sample in samples:
         all_snps_pos.extend(all_snps[sample]['Raw_Pos'])
-    # for sample in samples:
-    #     this_snps = formatSnps(this_snps, chrom_stats)
-    #     all_snps_pos.extend(list(this_snps['Raw_Pos']))
-    #     all_snps[sample] = this_snps
     print(f"Time to read and format SNPs: {time.perf_counter() - start_time:0.4f} seconds")
     # all_snps_pos = set(all_snps_pos)
 
@@ -194,14 +188,12 @@ def main():
         # Simulate reads, then subset by those in the predictive SNPs
         global relevant_reads
         relevant_reads = {}  # key is sub 0/1/2/3 and value is list of Read Positions that overlap with any of the 38 subsamples
+        read_sim_start = time.perf_counter()
         for this_sub in subs:
-            read_sim_start = time.perf_counter()
             read_start_pos = simReads(depth, chrom_stats, False)
-            print(f"Time to simulate reads: {time.perf_counter() - read_sim_start:0.4f} seconds")
-            read_search_start = time.perf_counter()
             read_in_any_snp_bool = pandas.Series(read_start_pos).isin(all_snps_pos)
             relevant_reads[this_sub] = read_start_pos[read_in_any_snp_bool]
-            print(f"Time to find overlap: {time.perf_counter() - read_search_start:0.4f} seconds")
+        print(f"Time to simulate reads and find overlap: {time.perf_counter() - read_sim_start:0.4f} seconds")
 
         # Find the simulated Genotypes
         all_covered_snps = {}  # key is the sample and value is the snps covered by the reads
