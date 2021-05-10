@@ -45,12 +45,11 @@ def myShuffle(this_list):
     return(this_list)
 
 
-def simReads(depth, chrom_stats, verbose = True):
+def simReads(chrom_stats, all_snps_pos, verbose = True):
     """
     Simulate positions of random reads. Then do this x read_length because the that's the probability of a snp being covered.
     Probability of snp X getting covered by 1 read is (1 read * read_length) / (length of genome)
 
-    :param depth: depth of sequencing
     :param chrom_stats: chromosome informtation
     :param verbose: optionally set verbose to False to turn off print statements
     :return read_start_pos: numpy array of read positions
@@ -61,6 +60,8 @@ def simReads(depth, chrom_stats, verbose = True):
         print(str(min_num_reads) + " reads of length " + str(read_length) + " required to reach a depth of " +
               str(depth) + "X. Meaning that " + str(min_num_reads*95) + " positions need to be sampled.")
     read_start_pos = numpy.random.randint(0, total_length, min_num_reads * read_length, dtype=numpy.uint32)
+    read_in_any_snp_bool = pandas.Series(read_start_pos).isin(all_snps_pos)
+    read_start_pos = read_start_pos[read_in_any_snp_bool]
     return read_start_pos
 
 
@@ -181,18 +182,24 @@ def main():
     for sample in samples:
         all_snps_pos.extend(all_snps[sample]['Raw_Pos'])
     print(f"Time to read and format SNPs: {time.perf_counter() - start_time:0.4f} seconds")
-    # all_snps_pos = set(all_snps_pos)
 
+    # Clear memory
+    del snps_data
+
+    # Simulate SNPs and keep those that are in SNPs
     for this_perm in range(0, num_perm):
         print("Permutation " + str(this_perm))
         # Simulate reads, then subset by those in the predictive SNPs
         global relevant_reads
         relevant_reads = {}  # key is sub 0/1/2/3 and value is list of Read Positions that overlap with any of the 38 subsamples
         read_sim_start = time.perf_counter()
-        for this_sub in subs:
-            read_start_pos = simReads(depth, chrom_stats, False)
-            read_in_any_snp_bool = pandas.Series(read_start_pos).isin(all_snps_pos)
-            relevant_reads[this_sub] = read_start_pos[read_in_any_snp_bool]
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+            relevant_reads = pool.starmap(simReads, zip(repeat(chrom_stats, len(subs)), repeat(all_snps_pos, len(subs))))
+        relevant_reads = dict(zip(subs, relevant_reads))
+        # for this_sub in subs:
+        #     read_start_pos = simReads(depth, chrom_stats, False)
+        #     read_in_any_snp_bool = pandas.Series(read_start_pos).isin(all_snps_pos)
+        #     relevant_reads[this_sub] = read_start_pos[read_in_any_snp_bool]
         print(f"Time to simulate reads and find overlap: {time.perf_counter() - read_sim_start:0.4f} seconds")
 
         # Find the simulated Genotypes
