@@ -18,7 +18,7 @@ for depth in [0.125, 0.25, 0.5, 0.75]:
                  "conda activate scSplit\n",
                  "python min_snp_sim.py " + str(1) + " " + str(100) + " " + str(depth)]
 
-    f = open("min_snp_sim_depth.pbs", "a")
+    f = open("min_snp_sim_depth.pbs", "w")
     f.write('\n'.join(pbs_script))
     f.close()
     os.system("qsub min_snp_sim_depth.pbs")
