@@ -45,7 +45,7 @@ def myShuffle(this_list):
     return(this_list)
 
 
-def simReads(chrom_stats, all_snps_pos, verbose = True):
+def simReads(chrom_stats, all_snps_pos, verbose = False):
     """
     Simulate positions of random reads. Then do this x read_length because the that's the probability of a snp being covered.
     Probability of snp X getting covered by 1 read is (1 read * read_length) / (length of genome)
@@ -132,13 +132,12 @@ def findCoveredSnps(snps, col):
     return snps_covered
 
 
-def predictSubSampleML(snps, subs, verbose = True):
+def predictSubSampleML(snps, subs):
     """
     Use machine learning to predict what scSplit individuals the simulated/sequenced individuals correspond to.
     :param snps: predictive snps with simulated and real samples as rows and snps as columns
     :param subs: names possible subsamples
-    :param verbose: activate print messages?
-    :return test_score, train_score: testing (simulated) correctly predicted?, training (real) correctly predicted?
+    :return test_score, train_score: testing (simulated) correctly predicted?
     """
     xtrain = snps.loc[['Real_' + sub for sub in subs if sub in snps.index]]
     xtest = snps.loc[[sub for sub in subs if sub in snps.index]]
@@ -147,8 +146,7 @@ def predictSubSampleML(snps, subs, verbose = True):
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
     test_score = rc.score(xtest, ytest)
-    train_score = rc.score(xtrain, ytrain)
-    return test_score, train_score
+    return test_score
 
 
 def main():
@@ -185,6 +183,9 @@ def main():
 
     # Clear memory
     del snps_data
+
+    # Create Results DataFrame
+    res = pandas.DataFrame(repeat(-1, num_perm), index = list(range(0, num_perm)), columns = depth)
 
     # Simulate SNPs and keep those that are in SNPs
     for this_perm in range(0, num_perm):
@@ -238,7 +239,9 @@ def main():
         # Predict individuals
         start_predict = time.perf_counter()
         with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            res = pool.starmap(predictSubSampleML , my_tuples)
+            predict_res = pool.starmap(predictSubSampleML , my_tuples)
+        accurracy100 = all([i >= 1 for i in predict_res])
+        res.iloc[this_perm, 0] = accurracy100
         print(f"Time to predict all individuals: {time.perf_counter() - start_predict:0.4f} seconds")
         print("-----------------------")
 
