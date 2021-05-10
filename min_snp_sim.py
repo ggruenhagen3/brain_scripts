@@ -175,10 +175,13 @@ def main():
 
     # Read in predictive SNPs from scSplit
     samples = ['b1', 'b2', 'b3', 'b4', 'b5', 'c1', 'c2', 'c3', 'c4', 'c5']
+    all_snps_pos = []
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         snps_data = pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
     all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
-    all_snps_pos = set( [this_snps['Raw_Pos'] for this_snps in all_snps.values()] )
+    # all_snps_pos = set( [list(this_snps['Raw_Pos']) for this_snps in all_snps.values()] )
+    for sample in samples:
+        all_snps_pos.extend(all_snps_pos[sample]['Raw_Pos'])
     # for sample in samples:
     #     this_snps = formatSnps(this_snps, chrom_stats)
     #     all_snps_pos.extend(list(this_snps['Raw_Pos']))
