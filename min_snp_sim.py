@@ -10,6 +10,8 @@ from sklearn.linear_model import LogisticRegression
 import multiprocessing
 from itertools import repeat
 import argparse
+from sklearn.decomposition import PCA
+from matplotlib import pyplot as plt
 
 global read_length
 global min_snp_prob
@@ -146,6 +148,35 @@ def predictSubSampleML(snps, subs):
     return test_score
 
 
+def createPCA(snps, subs, sample):
+    """
+    Create a PCA plot.
+    """
+    pca = PCA(n_components=2)
+    xtest = snps.loc[[sub for sub in subs if sub in snps.index]]
+    principalComponents = pca.fit_transform(xtest)
+    principalDf = pandas.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
+    principalDf['target'] = [sub for sub in subs if sub in snps.index]
+
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_xlabel('Principal Component 1', fontsize=15)
+    ax.set_ylabel('Principal Component 2', fontsize=15)
+    ax.set_title('2 component PCA', fontsize=20)
+    targets = [sub for sub in subs if sub in snps.index]
+    colors = ['r', 'g', 'b', 'o']
+
+    for i in range(0, len(targets)):
+        indicesToKeep = principalDf['target'] == targets[i]
+        ax.scatter(principalDf.loc[indicesToKeep, 'principal component 1']
+                   , principalDf.loc[indicesToKeep, 'principal component 2']
+                   , c=colors[i]
+                   , s=50)
+    ax.legend(targets)
+    ax.grid()
+    plt.savefig("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/sim_reads_001_" + sample + ".png")
+    return
+
 def main():
     start_time = time.perf_counter()  # start the timer
     global read_length
@@ -242,6 +273,9 @@ def main():
                 my_tuples.append((sample_covered_snps, subs))
             else:
                 any_not_covered = True
+
+        for sample in samples:
+            createPCA(all_covered_snps[sample], subs, sample)
 
         # Predict individuals
         start_predict = time.perf_counter()
