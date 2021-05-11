@@ -45,7 +45,7 @@ def myShuffle(this_list):
     return(this_list)
 
 
-def simReads(chrom_stats, all_snps_pos, verbose = False):
+def simReads(chrom_stats, all_snps_pos, verbose = True):
     """
     Simulate positions of random reads. Then do this x read_length because the that's the probability of a snp being covered.
     Probability of snp X getting covered by 1 read is (1 read * read_length) / (length of genome)
