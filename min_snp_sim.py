@@ -141,6 +141,7 @@ def predictSubSampleML(snps, subs):
     ytest = ytrain
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
+    print(rc.predict(xtest))
     test_score = rc.score(xtest, ytest)
     return test_score
 
