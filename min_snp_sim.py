@@ -172,7 +172,7 @@ def createPCA(snps, subs, sample):
                    , principalDf.loc[indicesToKeep, 'principal component 2']
                    , c=colors[i]
                    , s=50)
-        ax.annotate(targets[i], principalDf.loc[indicesToKeep, 'principal component 1'], principalDf.loc[indicesToKeep, 'principal component 2'])
+        ax.annotate(targets[i], (principalDf.loc[indicesToKeep, 'principal component 1'], principalDf.loc[indicesToKeep, 'principal component 2']))
     ax.legend(targets)
     plt.savefig("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/sim_reads_001_" + sample + ".png")
     return
