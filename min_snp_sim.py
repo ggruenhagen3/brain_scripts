@@ -276,6 +276,7 @@ def main():
 
         # Create PCA plots for eachs sample
         for snps, sample in my_tuples:
+            print(sample)
             createPCA(snps, subs, sample)
 
         # Predict individuals
