@@ -16,10 +16,6 @@ global min_snp_prob
 global depth
 global relevant_reads
 
-read_length = 95
-min_snp_prob = 0.65
-depth = 1
-
 def parseArgs():
     parser = argparse.ArgumentParser(description='Predict Individuals at various sequencing depths')
     parser.add_argument('perm_num', metavar='perm_num', type = int, help='Permutation Number (used to set random seed)')
