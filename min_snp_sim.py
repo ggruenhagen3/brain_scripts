@@ -221,11 +221,11 @@ def main():
         print(f"Time to find all covered SNPs: {time.perf_counter() - ovlp_start:0.4f} seconds")
 
         # Print stats on snps covered
-        # for sample in samples:
-        #     sample_snps = all_snps[sample]
-        #     sample_covered_snps = all_covered_snps[sample]
-        #     print(sample + ": " + str(sample_covered_snps.shape[0]) + "/" + str(sample_snps.shape[0]) +
-        #           f" ({(sample_covered_snps.shape[0] / sample_snps.shape[0]) * 100:0.4f}%) SNPs covered by all individuals in sample at " + str(depth) + "X.")
+        for sample in samples:
+            sample_snps = all_snps[sample]
+            sample_covered_snps = all_covered_snps[sample]
+            print(sample + ": " + str(sample_covered_snps.shape[0]) + "/" + str(sample_snps.shape[0]) +
+                  f" ({(sample_covered_snps.shape[0] / sample_snps.shape[0]) * 100:0.4f}%) SNPs covered by all individuals in sample at " + str(depth) + "X.")
 
         # Prepare tuples for parallelized prediction
         my_tuples = []
