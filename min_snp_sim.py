@@ -156,7 +156,7 @@ def createPCA(snps, subs, sample):
     xtest = snps.loc[[sub for sub in subs if sub in snps.index]]
     principalComponents = pca.fit_transform(snps)
     principalDf = pandas.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
-    principalDf['target'] = [sub for sub in subs if sub in snps.index]
+    principalDf['target'] = snps.index
 
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
