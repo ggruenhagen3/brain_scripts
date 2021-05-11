@@ -8,7 +8,7 @@ for depth in [0.001, 0.01, 0.1]:
                  "#PBS -l nodes=2:ppn=4",
                  "#PBS -l walltime=10:00:00",
                  "#PBS -j oe",
-                 "#PBS -o min_snp_sim_", str(depth), ".out",
+                 "#PBS -o min_snp_sim_" + str(depth) + ".out",
                  "#PBS -m abe",
                  "#PBS -M gwg@gatech.edu\n",
                  "cd $PBS_O_WORKDIR",
