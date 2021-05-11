@@ -164,7 +164,7 @@ def createPCA(snps, subs, sample):
     ax.set_ylabel('Principal Component 2', fontsize=15)
     ax.set_title('2 component PCA', fontsize=20)
     targets = [sub for sub in subs if sub in snps.index]
-    colors = ['r', 'g', 'b', 'o']
+    colors = ['r', 'g', 'b', 'orange']
 
     for i in range(0, len(targets)):
         indicesToKeep = principalDf['target'] == targets[i]
