@@ -1,6 +1,6 @@
 import os
 
-for depth in [0.125, 0.25, 0.5, 0.75]:
+for depth in [0.001, 0.01, 0.1]:
     print(depth)
     pbs_script = ["#PBS -A GT-js585",
                  "#PBS -N min_snp_sim_" + str(depth),
@@ -16,7 +16,7 @@ for depth in [0.125, 0.25, 0.5, 0.75]:
                  "module load anaconda3",
                  "module load r",
                  "conda activate scSplit\n",
-                 "python min_snp_sim.py " + str(1) + " " + str(100) + " " + str(depth)]
+                 "python min_snp_sim.py " + str(1) + " " + str(3) + " " + str(depth)]
 
     f = open("min_snp_sim_depth.pbs", "w")
     f.write('\n'.join(pbs_script))
