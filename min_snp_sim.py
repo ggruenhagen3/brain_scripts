@@ -147,6 +147,10 @@ def predictSubSampleML(snps, subs):
 
 def main():
     start_time = time.perf_counter()  # start the timer
+    global read_length
+    global min_snp_prob
+    global depth
+    global relevant_reads
     perm_num, num_perm, depth, paired_reads, min_snp_prob, read_length = parseArgs()
     random.seed(perm_num)
     print("Depth: " + str(depth))
