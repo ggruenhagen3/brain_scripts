@@ -143,7 +143,6 @@ def predictSubSampleML(snps, subs):
     a = rc.fit(xtrain, ytrain)
     print(rc.predict(xtest))
     test_score = rc.score(xtest, ytest)
-    print(test_score)
     return test_score
 
 
@@ -227,7 +226,7 @@ def main():
         for sample in samples:
             sample_snps = all_snps[sample]
             sample_covered_snps = all_covered_snps[sample]
-            print(sample_covered_snps)
+            # print(sample_covered_snps)
             print(sample + ": " + str(sample_covered_snps.shape[0]) + "/" + str(sample_snps.shape[0]) +
                   f" ({(sample_covered_snps.shape[0] / sample_snps.shape[0]) * 100:0.4f}%) SNPs covered by all individuals in sample at " + str(depth) + "X.")
 
