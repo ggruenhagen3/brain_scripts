@@ -154,7 +154,7 @@ def createPCA(snps, subs, sample):
     """
     pca = PCA(n_components=2)
     xtest = snps.loc[[sub for sub in subs if sub in snps.index]]
-    principalComponents = pca.fit_transform(xtest)
+    principalComponents = pca.fit_transform(snps)
     principalDf = pandas.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
     principalDf['target'] = [sub for sub in subs if sub in snps.index]
 
@@ -165,7 +165,7 @@ def createPCA(snps, subs, sample):
     ax.set_title('2 component PCA', fontsize=20)
     targets = [sub for sub in subs if sub in snps.index]
     colors = ['r', 'g', 'b', 'orange']
-
+    colors = ['r', 'r', 'g', 'g', 'b', 'b', 'orange', 'orange']
     for i in range(0, len(targets)):
         indicesToKeep = principalDf['target'] == targets[i]
         ax.scatter(principalDf.loc[indicesToKeep, 'principal component 1']
