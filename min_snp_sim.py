@@ -274,8 +274,9 @@ def main():
             else:
                 any_not_covered = True
 
-        for sample in samples:
-            createPCA(all_covered_snps[sample], subs, sample)
+        # Create PCA plots for eachs sample
+        for snps, sample in my_tuples:
+            createPCA(snps, subs, sample)
 
         # Predict individuals
         start_predict = time.perf_counter()
