@@ -232,18 +232,25 @@ def main():
 
         # Prepare tuples for parallelized prediction
         my_tuples = []
+        any_not_covered = False
         for sample in samples:
             sample_covered_snps = all_covered_snps[sample]
-            good_columns = sample_covered_snps.columns[
-                sample_covered_snps.columns.isin(subs) | sample_covered_snps.columns.isin(subs_real)]
-            sample_covered_snps = sample_covered_snps[good_columns].transpose().dropna(axis=1)
-            my_tuples.append((sample_covered_snps, subs))
+            if sample_covered_snps.shape[0] > 0:
+                good_columns = sample_covered_snps.columns[
+                    sample_covered_snps.columns.isin(subs) | sample_covered_snps.columns.isin(subs_real)]
+                sample_covered_snps = sample_covered_snps[good_columns].transpose().dropna(axis=1)
+                my_tuples.append((sample_covered_snps, subs))
+            else:
+                any_not_covered = True
 
         # Predict individuals
         start_predict = time.perf_counter()
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            predict_res = pool.starmap(predictSubSampleML , my_tuples)
-        accurracy100 = all([i >= 1 for i in predict_res])
+        if any_not_covered:
+            accurracy100 = False
+        else:
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+                predict_res = pool.starmap(predictSubSampleML , my_tuples)
+            accurracy100 = all([i >= 1 for i in predict_res])
         res.iloc[this_perm, 0] = accurracy100
         print(f"Time to predict all individuals: {time.perf_counter() - start_predict:0.4f} seconds")
         print("Accuracy is 100%: " + str(accurracy100))
