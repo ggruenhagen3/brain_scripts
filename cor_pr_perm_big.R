@@ -13,7 +13,7 @@ pbs_file_name = "~/scratch/brain/brain_scripts/cor_pr_perm.pbs"
 system(paste0("mkdir -p ", output_folder))
 sapply(1:(n_perm/n_perm_per_job), function(x) {
   fileConn <- file(pbs_file_name)
-  writeLines(c("#PBS -A GT-js585",
+  writeLines(c("#PBS -A GT-js585-biocluster",
                paste0("#PBS -N cor_pr_perm_", x),
                "#PBS -l mem=128gb",
                "#PBS -l nodes=2:ppn=4",
