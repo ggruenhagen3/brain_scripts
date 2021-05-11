@@ -275,7 +275,9 @@ def main():
                 any_not_covered = True
 
         # Create PCA plots for eachs sample
-        for snps, sample in my_tuples:
+        for i in range(0, len(samples)):
+            sample = samples[i]
+            snps, subs = my_tuples[i]
             print(sample)
             createPCA(snps, subs, sample)
 
