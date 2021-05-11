@@ -143,6 +143,7 @@ def predictSubSampleML(snps, subs):
     a = rc.fit(xtrain, ytrain)
     print(rc.predict(xtest))
     test_score = rc.score(xtest, ytest)
+    print(test_score)
     return test_score
 
 
