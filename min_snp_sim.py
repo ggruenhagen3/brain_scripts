@@ -244,6 +244,7 @@ def main():
         accurracy100 = all([i >= 1 for i in predict_res])
         res.iloc[this_perm, 0] = accurracy100
         print(f"Time to predict all individuals: {time.perf_counter() - start_predict:0.4f} seconds")
+        print("Accuracy is 100%: " + accurracy100)
         print("-----------------------")
     res.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/sim_reads/depth_" + str(depth) + "_perm_" + str(perm_num) + ".csv")
 
