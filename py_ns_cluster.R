@@ -33,7 +33,6 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
                  paste("python grn.py", x, n_perm_per_job, "-c", cluster, "-o", output_folder)),
                fileConn)
     close(fileConn)
-    # system(paste("qsub", pbs_file_name))
-    paste("qsub", pbs_file_name)
+    system(paste("qsub", pbs_file_name))
   }
 })
