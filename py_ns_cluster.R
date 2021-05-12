@@ -13,16 +13,15 @@ cluster = 15
 # Generate pbs script and submit jobs
 system(paste0("mkdir -p ", output_folder))
 sapply(1:(n_perm/n_perm_per_job), function(x) {
-  for (cluster in 0:cluster) {
-    print(paste(cluster, x))
+  for (cluster in 0:(cluster-1)) {
     fileConn <- file(pbs_file_name)
     writeLines(c("#PBS -A GT-js585-biocluster",
-                 paste0("#PBS -N py_ns_cluster", as.character(cluster), "_", x),
+                 paste0("#PBS -N py_ns_cluster", as.character(cluster), "_", as.character(x)),
                  "#PBS -l mem=128gb",
                  "#PBS -l nodes=2:ppn=4",
                  "#PBS -l walltime=90:00:00",
                  "#PBS -j oe",
-                 paste0("#PBS -o py_ns_cluster", as.character(cluster), "_", x, ".out"),
+                 paste0("#PBS -o py_ns_cluster", as.character(cluster), "_", as.character(x), ".out"),
                  "#PBS -m abe",
                  "#PBS -M gwg@gatech.edu\n",
                  "cd $PBS_O_WORKDIR",
