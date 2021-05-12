@@ -20,7 +20,7 @@ def parseArgs():
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     parser.add_argument("-c", "--cluster15", help="15 Cluster to subset data by", nargs="?", type=int, default=-1, const=-1)
     parser.add_argument("-b", "--cluster53", help="53 Cluster to subset data by", nargs="?", type=int, default=-1, const=-1)
-    parser.add_argument("-o", "--ouput_folder", help="Output Folder", nargs="?",
+    parser.add_argument("-o", "--output_folder", help="Output Folder", nargs="?",
                         default="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/",
                         const="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/")
     args = parser.parse_args()
