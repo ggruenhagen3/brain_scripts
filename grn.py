@@ -114,10 +114,12 @@ def main():
     if cluster15 != -1:
         print("Subsetting on 15 cluster level for cluster " + str(cluster15))
         data_mat = data_mat[:, np.flatnonzero(cluster15_labels == cluster15)]
+        cond_labels = cond_labels[np.flatnonzero(cluster15_labels == cluster15)]
     else:
         if cluster53 != -1:
             print("Subsetting on 53 cluster level for cluster " + str(cluster53))
-            data_mat = data_mat[:, np.flatnonzero(cluster53_labels == cluster15)]
+            data_mat = data_mat[:, np.flatnonzero(cluster53_labels == cluster53)]
+            cond_labels = cond_labels[np.flatnonzero(cluster53_labels == cluster53)]
         else:
             print("Not subsetting by any clusters.")
 
