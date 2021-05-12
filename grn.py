@@ -18,8 +18,13 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Shuffle BHVE and CTRL, find correlations for both, node strength for both and node strength difference.')
     parser.add_argument('perm_num', metavar='perm_num', type = int, help='The current permutation number. This is used for the seed.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
+    parser.add_argument("-c", "--cluster15", help="15 Cluster to subset data by", nargs="?", type=int, default=-1, const=-1)
+    parser.add_argument("-b", "--cluster53", help="53 Cluster to subset data by", nargs="?", type=int, default=-1, const=-1)
+    parser.add_argument("-o", "--ouput_folder", help="Output Folder", nargs="?",
+                        default="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/",
+                        const="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/")
     args = parser.parse_args()
-    return args.perm_num, args.num_perm
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.output_folder
 
 
 def corAndNodeStrength(this_idx):
@@ -88,25 +93,43 @@ def permuteLabels(num_perm):
 def main():
     # Start the timer
     start_time = time.perf_counter()
+
     # Read Inputs
-    perm_num, num_perm = parseArgs()
+    perm_num, num_perm, cluster15, cluster53, output_folder = parseArgs()
+
     # Read BB data
     global data_mat
     global gene_labels
     global cond_labels
     data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
-    gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,
-                  1].to_numpy()
+    gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:, 1].to_numpy()
     cond_labels = pandas.read_csv(
-        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:,
-                  1].to_numpy()
+        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:, 1].to_numpy()
+    cluster15_labels = pandas.read_csv(
+        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters15.csv").iloc[:, 0].to_numpy()
+    cluster53_labels = pandas.read_csv(
+        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters53.csv").iloc[:, 0].to_numpy()
+
+    # Subset by cluster if necessary
+    if cluster15 != -1:
+        print("Subsetting on 15 cluster level for cluster " + str(cluster15))
+        data_mat = data_mat[:, np.flatnonzero(cluster15_labels == cluster15)]
+    else:
+        if cluster53 != -1:
+            print("Subsetting on 53 cluster level for cluster " + str(cluster53))
+            data_mat = data_mat[:, np.flatnonzero(cluster53_labels == cluster15)]
+        else:
+            print("Not subsetting by any clusters.")
+
     # Set random seed so all the permutations are different
     print("Seed = " + str(perm_num))
     random.seed(perm_num)
+
     # Permute BHVE and CTRL labels
     print("Permuting Data " + str(num_perm) + " times.")
     mat_idx = permuteLabels(num_perm)
     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
+
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
     # mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
     print("Finding Correlations")
@@ -118,7 +141,7 @@ def main():
             ns_dict[i] = pool_ns[0] - pool_ns[1]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
-    perm_ns_dif.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/perm_" + str(perm_num) + ".csv")
+    perm_ns_dif.to_csv(output_folder + "/perm_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
