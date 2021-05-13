@@ -112,13 +112,16 @@ def main():
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters53.csv").iloc[:, 0].to_numpy()
 
     # Subset by cluster if necessary
+    base_name = "perm"
     if cluster15 != -1:
         print("Subsetting on 15 cluster level for cluster " + str(cluster15))
+        base_name = "cluster15_" + str(cluster15)
         data_mat = data_mat[:, np.flatnonzero(cluster15_labels == cluster15)]
         cond_labels = cond_labels[np.flatnonzero(cluster15_labels == cluster15)]
     else:
         if cluster53 != -1:
             print("Subsetting on 53 cluster level for cluster " + str(cluster53))
+            base_name = "cluster53_" + str(cluster53)
             data_mat = data_mat[:, np.flatnonzero(cluster53_labels == cluster53)]
             cond_labels = cond_labels[np.flatnonzero(cluster53_labels == cluster53)]
         else:
@@ -155,13 +158,7 @@ def main():
                 ns_dict[i] = pool_ns[0] - pool_ns[1]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
-    if no_perm and cluster15 != -1:
-        perm_ns_dif.to_csv(output_folder + "/cluster15_" + str(cluster15) + ".csv")
-    else:
-        if no_perm and cluster53 != -1:
-            perm_ns_dif.to_csv(output_folder + "/cluster53_" + str(cluster53) + ".csv")
-        else:
-            perm_ns_dif.to_csv(output_folder + "/perm_" + str(perm_num) + ".csv")
+    perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
