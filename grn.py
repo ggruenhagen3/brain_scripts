@@ -23,8 +23,9 @@ def parseArgs():
     parser.add_argument("-o", "--output_folder", help="Output Folder", nargs="?",
                         default="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/",
                         const="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/")
+    parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
     args = parser.parse_args()
-    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.output_folder
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.output_folder, args.no_perm
 
 
 def corAndNodeStrength(this_idx):
@@ -95,7 +96,7 @@ def main():
     start_time = time.perf_counter()
 
     # Read Inputs
-    perm_num, num_perm, cluster15, cluster53, output_folder = parseArgs()
+    perm_num, num_perm, cluster15, cluster53, output_folder, no_perm = parseArgs()
 
     # Read BB data
     global data_mat
@@ -128,9 +129,15 @@ def main():
     random.seed(perm_num)
 
     # Permute BHVE and CTRL labels
-    print("Permuting Data " + str(num_perm) + " times.")
-    mat_idx = permuteLabels(num_perm)
-    print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
+    if no_perm:
+        print("Not permuting Data")
+        mat_idx = {}
+        mat_idx["B" + str(1)] = np.flatnonzero(cond_labels == "BHVE")
+        mat_idx["C" + str(1)] = np.flatnonzero(cond_labels == "CTRL")
+    else:
+        print("Permuting Data " + str(num_perm) + " times.")
+        mat_idx = permuteLabels(num_perm)
+        print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
 
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
     # mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
