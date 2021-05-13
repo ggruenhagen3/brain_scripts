@@ -132,8 +132,8 @@ def main():
     if no_perm:
         print("Not permuting Data")
         mat_idx = {}
-        mat_idx["B" + str(1)] = np.flatnonzero(cond_labels == "BHVE")
-        mat_idx["C" + str(1)] = np.flatnonzero(cond_labels == "CTRL")
+        mat_idx["B" + str(0)] = np.flatnonzero(cond_labels == "BHVE")
+        mat_idx["C" + str(0)] = np.flatnonzero(cond_labels == "CTRL")
     else:
         print("Permuting Data " + str(num_perm) + " times.")
         mat_idx = permuteLabels(num_perm)
