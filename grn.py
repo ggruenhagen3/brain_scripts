@@ -157,9 +157,11 @@ def main():
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
     if no_perm and cluster15 != -1:
         perm_ns_dif.to_csv(output_folder + "/cluster15_" + str(cluster15) + ".csv")
-    if no_perm and cluster53 != -1:
-        perm_ns_dif.to_csv(output_folder + "/cluster53_" + str(cluster53) + ".csv")
-    perm_ns_dif.to_csv(output_folder + "/perm_" + str(perm_num) + ".csv")
+    else:
+        if no_perm and cluster53 != -1:
+            perm_ns_dif.to_csv(output_folder + "/cluster53_" + str(cluster53) + ".csv")
+        else:
+            perm_ns_dif.to_csv(output_folder + "/perm_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
