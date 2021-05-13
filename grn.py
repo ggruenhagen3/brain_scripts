@@ -147,9 +147,18 @@ def main():
         print("Start Pair: " + str(i))
         with multiprocessing.Pool(2) as pool:
             pool_ns = pool.map(corAndNodeStrength, [mat_idx['B' + str(i)], mat_idx['C' + str(i)]])
-            ns_dict[i] = pool_ns[0] - pool_ns[1]
+            if no_perm:
+                ns_dict["B"] = pool_ns[0]
+                ns_dict["C"] = pool_ns[1]
+                ns_dict["Dif"] = pool_ns[0] - pool_ns[1]
+            else:
+                ns_dict[i] = pool_ns[0] - pool_ns[1]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
+    if no_perm and cluster15 != -1:
+        perm_ns_dif.to_csv(output_folder + "/cluster15_" + str(cluster15) + ".csv")
+    if no_perm and cluster53 != -1:
+        perm_ns_dif.to_csv(output_folder + "/cluster53_" + str(cluster53) + ".csv")
     perm_ns_dif.to_csv(output_folder + "/perm_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
