@@ -19,7 +19,7 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
                  paste0("#PBS -N py_ns_cluster", as.character(cluster), "_", as.character(x)),
                  "#PBS -l mem=128gb",
                  "#PBS -l nodes=2:ppn=4",
-                 "#PBS -l walltime=90:00:00",
+                 "#PBS -l walltime=60:00:00",
                  "#PBS -j oe",
                  paste0("#PBS -o py_ns_cluster", as.character(cluster), "_", as.character(x), ".out"),
                  "#PBS -m abe",
