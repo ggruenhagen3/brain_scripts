@@ -1234,14 +1234,15 @@ png(paste0(rna_path, "/results/cor_res_means_real.png"))
 hist(real_means, breaks = 50)
 dev.off()
 
-# 15 Cluster Results
-for (i in 1:14) {
-  system(paste0("python grn.py 1 1 -c ", i, " -o /storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns_cluster15_real/ -n"))
-}
-
-cluster15 = data.frame()
+#====================#
+# 15 Cluster Results #
+#====================#
+real_cluster15 = data.frame()
 for (i in 0:14) {
-  
+  this_real = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, ".csv"))
+  rownames(this_real) = this_real$X
+  this_real$X = NULL
+  this_real = this_real[which(this_real$Dif != 0),]
 }
 
 #==========================================================================================
