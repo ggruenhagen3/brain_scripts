@@ -7,6 +7,7 @@ import numpy as np
 import time
 import random
 import argparse
+import h5py
 import multiprocessing
 from itertools import repeat
 
@@ -24,9 +25,23 @@ def parseArgs():
                         default="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/",
                         const="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/")
     parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
+    parser.add_argument("-r", "--cor_only", help="Only find correlations in the data?", action="store_true")
     args = parser.parse_args()
-    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.output_folder, args.no_perm
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.output_folder, args.no_perm, args.cor_only
 
+
+def corOnlyAndWrite(this_idx, output_path):
+    """
+    Given idexes of cells, create a matrix and find correlations only
+    :param this_idx: Indexes of columns
+    :param output_path: Output path of h5 correlation matrix file
+    :return success: Function completed? True/False
+    """
+    cor = pandas.DataFrame(data=sparse_corrcoef(data_mat[:, this_idx].todense()), index=gene_labels, columns=gene_labels)
+    h5f = h5py.File(output_path, 'w')
+    h5f.create_dataset('name', data=cor)
+    h5f.close()
+    return True
 
 def corAndNodeStrength(this_idx):
     """
@@ -96,7 +111,7 @@ def main():
     start_time = time.perf_counter()
 
     # Read Inputs
-    perm_num, num_perm, cluster15, cluster53, output_folder, no_perm = parseArgs()
+    perm_num, num_perm, cluster15, cluster53, output_folder, no_perm, cor_only = parseArgs()
 
     # Read BB data
     global data_mat
@@ -126,6 +141,17 @@ def main():
             cond_labels = cond_labels[np.flatnonzero(cluster53_labels == cluster53)]
         else:
             print("Not subsetting by any clusters.")
+
+    # If necessary, find the correlations only (and don't do node strength stuff) and do no permutations
+    if cor_only:
+        print("Finding Correlations Only")
+        base_name = base_name + "_cor"
+        bhve_output_path = output_folder + "/" + base_name + "_bhve.h5"
+        ctrl_output_path = output_folder + "/" + base_name + "_ctrl.h5"
+        bhve_cor_success = corOnlyAndWrite(np.flatnonzero(cond_labels == "BHVE"), bhve_output_path)
+        ctrl_cor_success = corOnlyAndWrite(np.flatnonzero(cond_labels == "CTRL"), ctrl_output_path)
+        print("Done")
+        return
 
     # Set random seed so all the permutations are different
     print("Seed = " + str(perm_num))
