@@ -92,7 +92,8 @@ def singleRun():
         clust53_dif_res[clust53] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
     clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
 
-    return bulk_df, clust15_df, clust53_df
+    # return bulk_df, clust15_df, clust53_df
+    return [bulk_df, clust15_df, clust53_df]
 
 def main():
     gene_list, num_perm = parseArgs()
