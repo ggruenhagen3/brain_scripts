@@ -1,13 +1,9 @@
 # Load packages
-import pickle
-import scipy
 import scipy.sparse as sparse
 import pandas
 import numpy as np
-import time
 import random
 import argparse
-import h5py
 import multiprocessing
 from itertools import repeat
 
@@ -15,9 +11,8 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Find correlations and their differences in BHVE and CTRL for each gene with a score for a list of genes.')
     parser.add_argument('gene_list', metavar='gene_list', type = str, help='List of genes to create a score for. Options are ieg, neurogen, and prog.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
-    parser.add_argument("output_name", metavar='output_name', help="Output File Name")
     args = parser.parse_args()
-    return args.gene_list, args.num_perm, args.output_name
+    return args.gene_list, args.num_perm
 
 def findCor(gene_idx, subset_idx = None):
     cor = 0
@@ -100,7 +95,7 @@ def singleRun():
     return bulk_df, clust15_df, clust53_df
 
 def main():
-    gene_list, num_perm, output_name = parseArgs()
+    gene_list, num_perm = parseArgs()
 
     # Read Data
     global data_mat
