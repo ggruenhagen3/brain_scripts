@@ -189,14 +189,14 @@ def main():
             clust53_bool_idx = clust53_bool_idx[i]
             clust53_greater_idx = clust53_bool_idx[0]
             clust53_smaller_idx = clust53_bool_idx[1]
-            perm_greater_clust53.loc[clust53_greater_idx, str(i)] += perm_clust53.loc[clust53_greater_idx, str(i)] > real_clust53_df.loc[clust53_greater_idx, str(i)]
-            perm_greater_clust53.loc[clust53_smaller_idx, str(i)] += perm_clust53.loc[clust53_smaller_idx, str(i)] < real_clust53_df.loc[clust53_smaller_idx, str(i)]
+            perm_greater_clust53.loc[clust53_greater_idx, i] += perm_clust53.loc[clust53_greater_idx, i] > real_clust53_df.loc[clust53_greater_idx, i]
+            perm_greater_clust53.loc[clust53_smaller_idx, i] += perm_clust53.loc[clust53_smaller_idx, i] < real_clust53_df.loc[clust53_smaller_idx, i]
             if i <= 14:
                 clust15_bool_idx = clust15_bool_idx[i]
                 clust15_greater_idx = clust15_bool_idx[0]
                 clust15_smaller_idx = clust15_bool_idx[1]
-                perm_greater_clust15.loc[clust15_greater_idx, str(i)] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, str(i)]
-                perm_greater_clust15.loc[clust15_smaller_idx, str(i)] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, str(i)]
+                perm_greater_clust15.loc[clust15_greater_idx, i] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, i]
+                perm_greater_clust15.loc[clust15_smaller_idx, i] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, i]
 
         print(f"Time to complete permutation {i:0.1f}: {time.perf_counter() - this_perm_start_time:0.4f} seconds")
 
