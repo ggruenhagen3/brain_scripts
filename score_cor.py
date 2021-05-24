@@ -161,6 +161,7 @@ def main():
 
     # Do permutations
     for i in range(0, num_perm):
+        print("Permutation " + str(i))
         perm_label = myShuffle(cond_labels)
         perm_bhve_idx = np.where(perm_label == "BHVE")[0]
         perm_ctrl_idx = np.where(perm_label == "CTRL")[0]
@@ -189,6 +190,7 @@ def main():
     perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
     perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
     perm_greater_clust53.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
+    print("Done")
     # bulk_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_neurogen_score_cor_bvc.csv")
     # clust15_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_real_neurogen_score_cor_bvc.csv")
     # clust53_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_real_neurogen_score_cor_bvc.csv")
