@@ -134,9 +134,9 @@ def main():
     score_genes_idx = score_genes_idx[score_genes_idx].index
 
     # Read in Real Data
-    real_bulk_df    = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_" + gene_list + "_score_cor_bvc.csv")
-    real_clust15_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_real_" + gene_list + "_score_cor_bvc.csv")
-    real_clust53_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_real_" + gene_list + "_score_cor_bvc.csv")
+    real_bulk_df    = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
+    real_clust15_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
+    real_clust53_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
 
     # # Real bhve and ctrl indexes
     # real_bhve_idx = np.where(cond_labels == "BHVE")[0]
