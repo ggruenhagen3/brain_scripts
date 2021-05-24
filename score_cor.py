@@ -3,6 +3,7 @@ import scipy.sparse as sparse
 import pandas
 import numpy as np
 import random
+import time
 import argparse
 import multiprocessing
 from itertools import repeat
@@ -95,6 +96,7 @@ def singleRun():
     return bulk_df, clust15_df, clust53_df
 
 def main():
+    start_time = time.perf_counter()
     gene_list, num_perm = parseArgs()
 
     # Read Data
@@ -159,8 +161,12 @@ def main():
     perm_greater_clust15 = pandas.DataFrame(0, index=real_clust15_df.index, columns = real_clust15_df.columns)
     perm_greater_clust53 = pandas.DataFrame(0, index=real_clust53_df.index, columns = real_clust53_df.columns)
 
+    time_before_perm = time.perf_counter()
+    print(f"Time before starting permutations: {time.perf_counter() - start_time:0.4f} seconds")
+
     # Do permutations
     for i in range(0, num_perm):
+        this_perm_start_time = time.perf_counter()
         print("Permutation " + str(i))
         perm_label = myShuffle(cond_labels)
         perm_bhve_idx = np.where(perm_label == "BHVE")[0]
@@ -172,6 +178,10 @@ def main():
         perm_bulk, perm_clust15, perm_clust53 = singleRun()
 
         # Compare the permuted results to the real results to see if they are more extreme
+        print(bulk_greater_idx[0:5])
+        print(perm_greater_bulk)
+        print(perm_bulk)
+        print(real_bulk_df)
         perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
         perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_greater_idx]['Dif']
         for i in range(0, 53):
@@ -186,6 +196,8 @@ def main():
                 clust15_smaller_idx = clust15_bool_idx[1]
                 perm_greater_clust15.loc[clust15_greater_idx, str(i)] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, str(i)]
                 perm_greater_clust15.loc[clust15_smaller_idx, str(i)] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, str(i)]
+
+        print(f"Time to complete permutation {i:0.1f}: {time.perf_counter() - this_perm_start_time:0.4f} seconds")
 
     perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
     perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
