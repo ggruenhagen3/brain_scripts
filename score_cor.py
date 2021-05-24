@@ -184,7 +184,7 @@ def main():
         print(perm_bulk)
         print(real_bulk_df)
         perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
-        perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_greater_idx]['Dif']
+        perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_smaller_idx]['Dif']
         for i in range(0, 53):
             clust53_bool_idx = clust53_bool_idx[i]
             clust53_greater_idx = clust53_bool_idx[0]
