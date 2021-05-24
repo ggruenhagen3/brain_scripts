@@ -179,6 +179,7 @@ def main():
 
         # Compare the permuted results to the real results to see if they are more extreme
         print(bulk_greater_idx[0:5])
+        print(bulk_greater_idx[(len(bulk_greater_idx)-5):len(bulk_greater_idx)])
         print(perm_greater_bulk)
         print(perm_bulk)
         print(real_bulk_df)
