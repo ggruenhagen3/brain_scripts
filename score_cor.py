@@ -92,8 +92,7 @@ def singleRun():
         clust53_dif_res[clust53] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
     clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
 
-    # return bulk_df, clust15_df, clust53_df
-    return [bulk_df, clust15_df, clust53_df]
+    return bulk_df, clust15_df, clust53_df
 
 def main():
     gene_list, num_perm = parseArgs()
@@ -169,7 +168,7 @@ def main():
         global ctrl_idx
         bhve_idx = perm_bhve_idx
         ctrl_idx = perm_ctrl_idx
-        perm_bulk, perm_clust15, perm_clust53 = singleRun
+        perm_bulk, perm_clust15, perm_clust53 = singleRun()
 
         # Compare the permuted results to the real results to see if they are more extreme
         perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
