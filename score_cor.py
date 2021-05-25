@@ -77,20 +77,20 @@ def singleRun():
     # 53 cluster level
     clust53_res = {}
     clust53_dif_res = {}
-    for clust53 in range(0, 53):
-        print(clust53)
-        clust_idx = np.where(cluster53_labels == clust53)[0]
-        clust_bhve_idx = pandas.Series(bhve_idx).isin(clust_idx)
-        clust_bhve_idx = bhve_idx[clust_bhve_idx]
-        clust_ctrl_idx = pandas.Series(ctrl_idx).isin(clust_idx)
-        clust_ctrl_idx = ctrl_idx[clust_ctrl_idx]
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(clust_bhve_idx, len(gene_labels))))
-            clust53_res["BHVE_" + str(clust53)] = np.array(this_res)
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(clust_ctrl_idx, len(gene_labels))))
-            clust53_res["CTRL_" + str(clust53)] = np.array(this_res)
-        clust53_dif_res[clust53] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
+    # for clust53 in range(0, 53):
+    #     print(clust53)
+    #     clust_idx = np.where(cluster53_labels == clust53)[0]
+    #     clust_bhve_idx = pandas.Series(bhve_idx).isin(clust_idx)
+    #     clust_bhve_idx = bhve_idx[clust_bhve_idx]
+    #     clust_ctrl_idx = pandas.Series(ctrl_idx).isin(clust_idx)
+    #     clust_ctrl_idx = ctrl_idx[clust_ctrl_idx]
+    #     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    #         this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(clust_bhve_idx, len(gene_labels))))
+    #         clust53_res["BHVE_" + str(clust53)] = np.array(this_res)
+    #     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    #         this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(clust_ctrl_idx, len(gene_labels))))
+    #         clust53_res["CTRL_" + str(clust53)] = np.array(this_res)
+    #     clust53_dif_res[clust53] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
     clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
 
     return bulk_df, clust15_df, clust53_df
@@ -178,23 +178,23 @@ def main():
         perm_bulk, perm_clust15, perm_clust53 = singleRun()
 
         # Compare the permuted results to the real results to see if they are more extreme
-        print(bulk_greater_idx[0:5])
-        print(bulk_greater_idx[(len(bulk_greater_idx)-5):len(bulk_greater_idx)])
-        print(perm_greater_bulk)
-        print(perm_bulk)
-        print(real_bulk_df)
         perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
         perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_smaller_idx]['Dif']
         for i in range(0, 53):
             clust53_bool_idx = clust53_bool_idx[i]
             clust53_greater_idx = clust53_bool_idx[0]
             clust53_smaller_idx = clust53_bool_idx[1]
-            perm_greater_clust53.loc[clust53_greater_idx, i] += perm_clust53.loc[clust53_greater_idx, i] > real_clust53_df.loc[clust53_greater_idx, i]
-            perm_greater_clust53.loc[clust53_smaller_idx, i] += perm_clust53.loc[clust53_smaller_idx, i] < real_clust53_df.loc[clust53_smaller_idx, i]
+            # perm_greater_clust53.loc[clust53_greater_idx, i] += perm_clust53.loc[clust53_greater_idx, i] > real_clust53_df.loc[clust53_greater_idx, i]
+            # perm_greater_clust53.loc[clust53_smaller_idx, i] += perm_clust53.loc[clust53_smaller_idx, i] < real_clust53_df.loc[clust53_smaller_idx, i]
             if i <= 14:
                 clust15_bool_idx = clust15_bool_idx[i]
                 clust15_greater_idx = clust15_bool_idx[0]
                 clust15_smaller_idx = clust15_bool_idx[1]
+                print(clust15_bool_idx[0:5])
+                print(clust15_greater_idx[(len(clust15_greater_idx) - 5):len(clust15_greater_idx)])
+                print(perm_greater_clust15)
+                print(perm_clust15)
+                print(real_clust15_df)
                 perm_greater_clust15.loc[clust15_greater_idx, i] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, i]
                 perm_greater_clust15.loc[clust15_smaller_idx, i] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, i]
 
