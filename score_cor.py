@@ -195,6 +195,7 @@ def main():
                 # print(perm_greater_clust15)
                 # print(perm_clust15)
                 # print(real_clust15_df)
+                print(clust15_greater_idx)
                 print(perm_greater_clust15.columns)
                 print(perm_clust15.columns)
                 print(real_clust15_df.columns)
