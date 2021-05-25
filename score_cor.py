@@ -70,7 +70,7 @@ def singleRun():
         with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
             this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(clust_ctrl_idx, len(gene_labels))))
             clust15_res["CTRL_" + str(clust15)] = np.array(this_res)
-        clust15_dif_res[clust15] = clust15_res["BHVE_" + str(clust15)] - clust15_res["CTRL_" + str(clust15)]
+        clust15_dif_res[str(clust15)] = clust15_res["BHVE_" + str(clust15)] - clust15_res["CTRL_" + str(clust15)]
 
     clust15_df = pandas.DataFrame(clust15_dif_res, index=gene_labels)
 
@@ -90,7 +90,7 @@ def singleRun():
     #     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
     #         this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(clust_ctrl_idx, len(gene_labels))))
     #         clust53_res["CTRL_" + str(clust53)] = np.array(this_res)
-    #     clust53_dif_res[clust53] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
+    #     clust53_dif_res[str(clust53)] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
     clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
 
     return bulk_df, clust15_df, clust53_df
@@ -184,8 +184,8 @@ def main():
             clust53_bool_idx = clust53_bool_idx[i]
             clust53_greater_idx = clust53_bool_idx[0]
             clust53_smaller_idx = clust53_bool_idx[1]
-            # perm_greater_clust53.loc[clust53_greater_idx, i] += perm_clust53.loc[clust53_greater_idx, i] > real_clust53_df.loc[clust53_greater_idx, i]
-            # perm_greater_clust53.loc[clust53_smaller_idx, i] += perm_clust53.loc[clust53_smaller_idx, i] < real_clust53_df.loc[clust53_smaller_idx, i]
+            # perm_greater_clust53.loc[clust53_greater_idx, str(i)] += perm_clust53.loc[clust53_greater_idx, str(i)] > real_clust53_df.loc[clust53_greater_idx, str(i)]
+            # perm_greater_clust53.loc[clust53_smaller_idx, str(i)] += perm_clust53.loc[clust53_smaller_idx, str(i)] < real_clust53_df.loc[clust53_smaller_idx, str(i)]
             if i <= 14:
                 clust15_bool_idx = clust15_bool_idx[i]
                 clust15_greater_idx = clust15_bool_idx[0]
@@ -198,8 +198,8 @@ def main():
                 print(perm_greater_clust15.columns)
                 print(perm_clust15.columns)
                 print(real_clust15_df.columns)
-                perm_greater_clust15.loc[clust15_greater_idx, i] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, i]
-                perm_greater_clust15.loc[clust15_smaller_idx, i] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, i]
+                perm_greater_clust15.loc[clust15_greater_idx, str(i)] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, str(i)]
+                perm_greater_clust15.loc[clust15_smaller_idx, str(i)] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, str(i)]
 
         print(f"Time to complete permutation {i:0.1f}: {time.perf_counter() - this_perm_start_time:0.4f} seconds")
 
