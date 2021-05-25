@@ -57,8 +57,8 @@ def singleRun():
     # 15 cluster level
     clust15_res = {}
     clust15_dif_res = {}
+    print("Finding Correlations on 15 Cluster Level Permutations")
     for clust15 in range(0, 15):
-        print(clust15)
         clust_idx = np.where(cluster15_labels == clust15)[0]
         clust_bhve_idx = pandas.Series(bhve_idx).isin(clust_idx)
         clust_bhve_idx = bhve_idx[clust_bhve_idx]
@@ -77,8 +77,8 @@ def singleRun():
     # 53 cluster level
     clust53_res = {}
     clust53_dif_res = {}
+    print("Finding Correlations on 53 Cluster Level Permutations")
     for clust53 in range(0, 53):
-        print(clust53)
         clust_idx = np.where(cluster53_labels == clust53)[0]
         clust_bhve_idx = pandas.Series(bhve_idx).isin(clust_idx)
         clust_bhve_idx = bhve_idx[clust_bhve_idx]
