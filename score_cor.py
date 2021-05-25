@@ -181,15 +181,15 @@ def main():
         perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
         perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_smaller_idx]['Dif']
         for i in range(0, 53):
-            clust53_bool_idx = clust53_bool_idx[i]
-            clust53_greater_idx = clust53_bool_idx[0]
-            clust53_smaller_idx = clust53_bool_idx[1]
+            clust53_bool_idx_i = clust53_bool_idx[i]
+            clust53_greater_idx = clust53_bool_idx_i[0]
+            clust53_smaller_idx = clust53_bool_idx_i[1]
             # perm_greater_clust53.loc[clust53_greater_idx, str(i)] += perm_clust53.loc[clust53_greater_idx, str(i)] > real_clust53_df.loc[clust53_greater_idx, str(i)]
             # perm_greater_clust53.loc[clust53_smaller_idx, str(i)] += perm_clust53.loc[clust53_smaller_idx, str(i)] < real_clust53_df.loc[clust53_smaller_idx, str(i)]
             if i <= 14:
-                clust15_bool_idx = clust15_bool_idx[i]
-                clust15_greater_idx = clust15_bool_idx[0]
-                clust15_smaller_idx = clust15_bool_idx[1]
+                clust15_bool_idx_i = clust15_bool_idx[i]
+                clust15_greater_idx = clust15_bool_idx_i[0]
+                clust15_smaller_idx = clust15_bool_idx_i[1]
                 # print(clust15_bool_idx[0:5])
                 # print(clust15_greater_idx[(len(clust15_greater_idx) - 5):len(clust15_greater_idx)])
                 print(perm_greater_clust15)
