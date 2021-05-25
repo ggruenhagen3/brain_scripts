@@ -190,11 +190,11 @@ def main():
                 clust15_bool_idx = clust15_bool_idx[i]
                 clust15_greater_idx = clust15_bool_idx[0]
                 clust15_smaller_idx = clust15_bool_idx[1]
-                print(clust15_bool_idx[0:5])
-                print(clust15_greater_idx[(len(clust15_greater_idx) - 5):len(clust15_greater_idx)])
-                print(perm_greater_clust15)
-                print(perm_clust15)
-                print(real_clust15_df)
+                # print(clust15_bool_idx[0:5])
+                # print(clust15_greater_idx[(len(clust15_greater_idx) - 5):len(clust15_greater_idx)])
+                # print(perm_greater_clust15)
+                # print(perm_clust15)
+                # print(real_clust15_df)
                 print(perm_greater_clust15.columns)
                 print(perm_clust15.columns)
                 print(real_clust15_df.columns)
