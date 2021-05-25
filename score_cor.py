@@ -195,6 +195,9 @@ def main():
                 print(perm_greater_clust15)
                 print(perm_clust15)
                 print(real_clust15_df)
+                print(perm_greater_clust15.columns)
+                print(perm_clust15.columns)
+                print(real_clust15_df.columns)
                 perm_greater_clust15.loc[clust15_greater_idx, i] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, i]
                 perm_greater_clust15.loc[clust15_smaller_idx, i] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, i]
 
