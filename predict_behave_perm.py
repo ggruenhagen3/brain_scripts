@@ -52,10 +52,6 @@ def permSingleRun(i):
     xtrain = xtrain.iloc[:, sort_idx[0, 0:num_top_model]]
     xtest = xtest.iloc[:, sort_idx[0, 0:num_top_model]]
 
-    print(xtrain)
-    print(ytrain)
-    print(xtest)
-    print(ytest)
     # Refit the Model and Predict
     a = rc.fit(xtrain, ytrain)
     test_score = rc.score(xtest, ytest)
@@ -94,8 +90,10 @@ def pilotSingleRun():
     xtrain = xtrain.iloc[:, sort_idx[0, 0:num_top_model]]
     xtest = xtest.iloc[:, sort_idx[0, 0:num_top_model]]
 
+    print(xtrain)
+    print(ytrain)
+    print(xtest)
     print(ytest)
-    print(len(ytest))
     # Refit the Model and Predict
     a = rc.fit(xtrain, ytrain)
     test_score = rc.score(xtest, ytest)
