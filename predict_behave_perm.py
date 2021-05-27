@@ -29,8 +29,6 @@ def permSingleRun(i):
     print(pd_df)
     train_names = [x for x in list(pd_df.index) if "train" in x]  # the subsamples that are in the test data
     test_names = [x for x in list(pd_df.index) if "test" in x]  # the subsamples that are in the test data
-    print(train_names)
-    print(pd_df.index)
     xtrain = pd_df.loc[pd_df.index.intersection(train_names)]
     xtest = pd_df.loc[pd_df.index.intersection(test_names)]
     ytrain = numpy.multiply(["b" in x for x in list(xtrain.index)], 1)
@@ -46,6 +44,8 @@ def permSingleRun(i):
     xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
     xtest = xtest.iloc[:, dif_idx[0:num_cum_dif]]
 
+    print(xtrain)
+    
     # Select the Top Features to the Model
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
