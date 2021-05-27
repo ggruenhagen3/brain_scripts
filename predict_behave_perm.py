@@ -58,7 +58,7 @@ def permSingleRun(i):
 
 # 100 Permutations
 with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-    pool_res = pool.map(permSingleRun, range(0, 200))
-    perm_df = pandas.DataFrame(pool_res, columns = list(range(0, 200)))
+    pool_res = pool.map(permSingleRun, range(0, 5))
+    perm_df = pandas.DataFrame(pool_res, columns = list(range(0, 5)))
 
 
