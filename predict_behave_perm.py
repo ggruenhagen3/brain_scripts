@@ -31,14 +31,16 @@ def permSingleRun(i):
     test_names = [x for x in list(pd_df.index) if "test" in x]  # the subsamples that are in the test data
     print(train_names)
     print(pd_df.index)
-    xtrain = pd_df.loc[train_names]
-    xtest = pd_df.loc[test_names]
+    xtrain = pd_df.loc[pd_df.index.intersection(train_names)]
+    xtest = pd_df.loc[pd_df.index.intersection(test_names)]
+    ytrain = numpy.multiply(["b" in x for x in list(xtrain.index)], 1)
+    ytest = numpy.multiply(["b" in x for x in list(xtest.index)], 1)
 
     # Find Genes with the largest cummulative difference between bhve and ctrl
     bhve_names = [x for x in list(pd_df.index) if "b" in x]
     ctrl_names = [x for x in list(pd_df.index) if "c" in x]
-    b_sum = xtrain.loc[bhve_names].sum(axis=0)
-    c_sum = xtrain.loc[ctrl_names].sum(axis=0)
+    b_sum = xtrain.loc[pd_df.index.intersection(bhve_names)].sum(axis=0)
+    c_sum = xtrain.loc[pd_df.index.intersection(ctrl_names)].sum(axis=0)
     dif = abs(b_sum - c_sum)
     dif_idx = (-dif).argsort()
     xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
