@@ -43,6 +43,12 @@ def permSingleRun(i):
     xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
     xtest = xtest.iloc[:, dif_idx[0:num_cum_dif]]
 
+    # Standardize the Data
+    scaler = StandardScaler().fit(xtrain)
+    # scaler = MinMaxScaler().fit(xtrain)
+    xtrain = pandas.DataFrame(data=scaler.transform(xtrain), index=xtrain.index, columns=xtrain.columns)
+    xtest = pandas.DataFrame(data=scaler.transform(xtest), index=xtest.index, columns=xtest.columns)
+
     # Select the Top Features to the Model
     # rc = LogisticRegression(C=1, solver='liblinear')
     rc = LogisticRegression(C=1, solver='liblinear')
@@ -81,6 +87,12 @@ def pilotSingleRun():
     dif_idx = (-dif).argsort()
     xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
     xtest = xtest.iloc[:, dif_idx[0:num_cum_dif]]
+
+    # Standardize the Data
+    scaler = StandardScaler().fit(xtrain)
+    # scaler = MinMaxScaler().fit(xtrain)
+    xtrain = pandas.DataFrame(data=scaler.transform(xtrain), index=xtrain.index, columns=xtrain.columns)
+    xtest = pandas.DataFrame(data=scaler.transform(xtest), index=xtest.index, columns=xtest.columns)
 
     # Select the Top Features to the Model
     rc = LogisticRegression(C=1, solver='liblinear')
