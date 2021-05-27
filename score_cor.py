@@ -180,18 +180,18 @@ def main():
         # Compare the permuted results to the real results to see if they are more extreme
         perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
         perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_smaller_idx]['Dif']
-        for i in range(0, 53):
-            clust53_bool_idx_i = clust53_bool_idx[i]
-            clust53_greater_idx = clust53_bool_idx_i[0]
-            clust53_smaller_idx = clust53_bool_idx_i[1]
-            perm_greater_clust53.loc[clust53_greater_idx, str(i)] += perm_clust53.loc[clust53_greater_idx, str(i)] > real_clust53_df.loc[clust53_greater_idx, str(i)]
-            perm_greater_clust53.loc[clust53_smaller_idx, str(i)] += perm_clust53.loc[clust53_smaller_idx, str(i)] < real_clust53_df.loc[clust53_smaller_idx, str(i)]
-            if i <= 14:
-                clust15_bool_idx_i = clust15_bool_idx[i]
-                clust15_greater_idx = clust15_bool_idx_i[0]
-                clust15_smaller_idx = clust15_bool_idx_i[1]
-                perm_greater_clust15.loc[clust15_greater_idx, str(i)] += perm_clust15.loc[clust15_greater_idx, str(i)] > real_clust15_df.loc[clust15_greater_idx, str(i)]
-                perm_greater_clust15.loc[clust15_smaller_idx, str(i)] += perm_clust15.loc[clust15_smaller_idx, str(i)] < real_clust15_df.loc[clust15_smaller_idx, str(i)]
+        for j in range(0, 53):
+            clust53_bool_idx_j = clust53_bool_idx[j]
+            clust53_greater_idx = clust53_bool_idx_j[0]
+            clust53_smaller_idx = clust53_bool_idx_j[1]
+            perm_greater_clust53.loc[clust53_greater_idx, str(j)] += perm_clust53.loc[clust53_greater_idx, str(j)] > real_clust53_df.loc[clust53_greater_idx, str(j)]
+            perm_greater_clust53.loc[clust53_smaller_idx, str(j)] += perm_clust53.loc[clust53_smaller_idx, str(j)] < real_clust53_df.loc[clust53_smaller_idx, str(j)]
+            if j <= 14:
+                clust15_bool_idx_j = clust15_bool_idx[j]
+                clust15_greater_idx = clust15_bool_idx_j[0]
+                clust15_smaller_idx = clust15_bool_idx_j[1]
+                perm_greater_clust15.loc[clust15_greater_idx, str(j)] += perm_clust15.loc[clust15_greater_idx, str(j)] > real_clust15_df.loc[clust15_greater_idx, str(j)]
+                perm_greater_clust15.loc[clust15_smaller_idx, str(j)] += perm_clust15.loc[clust15_smaller_idx, str(j)] < real_clust15_df.loc[clust15_smaller_idx, str(j)]
 
         print(f"Time to complete permutation: {time.perf_counter() - this_perm_start_time:0.4f} seconds")
 
