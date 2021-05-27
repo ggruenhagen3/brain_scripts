@@ -26,7 +26,6 @@ def permSingleRun(i):
 
     # Read Data and Separate Train from Test
     pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/pseudo_subsample_ml/pseudo_" + str(i) + ".csv", index_col=0)
-    print(pd_df)
     train_names = [x for x in list(pd_df.index) if "train" in x]  # the subsamples that are in the test data
     test_names = [x for x in list(pd_df.index) if "test" in x]  # the subsamples that are in the test data
     xtrain = pd_df.loc[pd_df.index.intersection(train_names)]
@@ -47,7 +46,7 @@ def permSingleRun(i):
     print(ytrain)
 
     # Select the Top Features to the Model
-    rc = LogisticRegression(C=1)
+    rc = LogisticRegression(C=1, solver='liblinear')
     a = rc.fit(xtrain, ytrain)
     importance = numpy.abs(rc.coef_)
     sort_idx = (-importance).argsort()  # argsort give the indexes which would sort the array
