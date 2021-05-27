@@ -26,8 +26,11 @@ def permSingleRun(i):
 
     # Read Data and Separate Train from Test
     pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/pseudo_subsample_ml/pseudo_" + str(i) + ".csv", index_col=0)
+    print(pd_df)
     train_names = [x for x in list(pd_df.index) if "train" in x]  # the subsamples that are in the test data
     test_names = [x for x in list(pd_df.index) if "test" in x]  # the subsamples that are in the test data
+    print(train_names)
+    print(pd_df.index)
     xtrain = pd_df.loc[train_names]
     xtest = pd_df.loc[test_names]
 
