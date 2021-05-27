@@ -44,6 +44,7 @@ def permSingleRun(i):
     xtest = xtest.iloc[:, dif_idx[0:num_cum_dif]]
 
     # Select the Top Features to the Model
+    # rc = LogisticRegression(C=1, solver='liblinear')
     rc = LogisticRegression(C=1, solver='liblinear')
     a = rc.fit(xtrain, ytrain)
     importance = numpy.abs(rc.coef_)
