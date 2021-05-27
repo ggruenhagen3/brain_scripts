@@ -43,9 +43,6 @@ def permSingleRun(i):
     xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
     xtest = xtest.iloc[:, dif_idx[0:num_cum_dif]]
 
-    print(xtrain.shape)
-    print(ytrain)
-
     # Select the Top Features to the Model
     rc = LogisticRegression(C=1, solver='liblinear')
     a = rc.fit(xtrain, ytrain)
@@ -64,7 +61,7 @@ def permSingleRun(i):
 # 100 Permutations
 with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
     pool_res = pool.map(permSingleRun, range(1, 5))
-    perm_df = pandas.DataFrame(pool_res, columns = list(range(1, 5)))
+    perm_df = pandas.DataFrame(pool_res)
     print(perm_df)
 
 
