@@ -33,14 +33,6 @@ def myShuffle(this_list):
     return(this_list)
 
 def singleRun():
-    # Create Score
-    mat = data_mat[:, :]
-    nonzero_mat = mat.nonzero()
-    mat[nonzero_mat[0], nonzero_mat[1]] = 1
-    global score
-    score = np.array(mat[score_genes_idx,].sum(axis=0)) / np.array(mat.sum(axis=0))
-    score = score[0]
-
     # Find the correlated genes in bulk in both BHVE and CTRL
     bulk_res = {}
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
@@ -132,6 +124,14 @@ def main():
     # Find the index of genes used to create the score
     score_genes_idx = pandas.Series(gene_labels).isin(score_genes)
     score_genes_idx = score_genes_idx[score_genes_idx].index
+
+    # Create Score
+    mat = data_mat[:, :]
+    nonzero_mat = mat.nonzero()
+    mat[nonzero_mat[0], nonzero_mat[1]] = 1
+    global score
+    score = np.array(mat[score_genes_idx,].sum(axis=0)) / np.array(mat.sum(axis=0))
+    score = score[0]
 
     # Read in Real Data
     real_bulk_df    = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
