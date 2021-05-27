@@ -39,8 +39,8 @@ def permSingleRun(i):
     # Find Genes with the largest cummulative difference between bhve and ctrl
     bhve_names = [x for x in list(pd_df.index) if "b" in x]
     ctrl_names = [x for x in list(pd_df.index) if "c" in x]
-    b_sum = xtrain.loc[pd_df.index.intersection(bhve_names)].sum(axis=0)
-    c_sum = xtrain.loc[pd_df.index.intersection(ctrl_names)].sum(axis=0)
+    b_sum = xtrain.loc[xtrain.index.intersection(bhve_names)].sum(axis=0)
+    c_sum = xtrain.loc[xtrain.index.intersection(ctrl_names)].sum(axis=0)
     dif = abs(b_sum - c_sum)
     dif_idx = (-dif).argsort()
     xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
