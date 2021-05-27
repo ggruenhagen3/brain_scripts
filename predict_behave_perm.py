@@ -112,15 +112,15 @@ def pilotSingleRun():
 
     return (test_score)
 
-# # 100 Permutations
-# with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-#     pool_res = pool.map(permSingleRun, range(1, 5))
-#     perm_df = pandas.DataFrame(pool_res)
-#     print(perm_df)
+# 100 Permutations
+with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    pool_res = pool.map(permSingleRun, range(1, 5))
+    perm_df = pandas.DataFrame(pool_res)
+    print(perm_df)
 
-bb_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_subsample_counts.txt",sep="\s")
-pilot_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/pilot_b1b2c1_ncbi_avg_counts.csv", index_col=0)
-bb_df.columns = pilot_df.columns
-pd_df = bb_df.append(pilot_df, sort = False)
-
-print(pilotSingleRun())
+# bb_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_subsample_counts.txt",sep="\s")
+# pilot_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/pilot_b1b2c1_ncbi_avg_counts.csv", index_col=0)
+# bb_df.columns = pilot_df.columns
+# pd_df = bb_df.append(pilot_df, sort = False)
+#
+# print(pilotSingleRun())
