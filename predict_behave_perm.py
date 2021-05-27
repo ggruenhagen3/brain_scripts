@@ -43,6 +43,7 @@ def permSingleRun(i):
     xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
     xtest = xtest.iloc[:, dif_idx[0:num_cum_dif]]
 
+    print(xtrain.shape)
     print(ytrain)
 
     # Select the Top Features to the Model
