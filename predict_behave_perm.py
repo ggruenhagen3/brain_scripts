@@ -51,7 +51,7 @@ def permSingleRun(i):
 
     # Select the Top Features to the Model
     # rc = LogisticRegression(C=1, solver='liblinear')
-    rc = LogisticRegression(C=1, solver='liblinear')
+    rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
     importance = numpy.abs(rc.coef_)
     sort_idx = (-importance).argsort()  # argsort give the indexes which would sort the array
@@ -95,7 +95,7 @@ def pilotSingleRun():
     xtest = pandas.DataFrame(data=scaler.transform(xtest), index=xtest.index, columns=xtest.columns)
 
     # Select the Top Features to the Model
-    rc = LogisticRegression(C=1, solver='liblinear')
+    rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
     importance = numpy.abs(rc.coef_)
     sort_idx = (-importance).argsort()  # argsort give the indexes which would sort the array
