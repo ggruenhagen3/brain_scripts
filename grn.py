@@ -21,13 +21,15 @@ def parseArgs():
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     parser.add_argument("-c", "--cluster15", help="15 Cluster to subset data by", nargs="?", type=int, default=-1, const=-1)
     parser.add_argument("-b", "--cluster53", help="53 Cluster to subset data by", nargs="?", type=int, default=-1, const=-1)
+    parser.add_argument("-g", "--gene", help="Find correlations only in gene positive cells", nargs="?", type=str, default="", const="")
     parser.add_argument("-o", "--output_folder", help="Output Folder", nargs="?",
                         default="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/",
                         const="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns/")
     parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
     parser.add_argument("-r", "--cor_only", help="Only find correlations in the data?", action="store_true")
+    parser.add_argument("-a", "--do_abs", help="Take the absolute value of the correlations?", action="store_true")
     args = parser.parse_args()
-    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.output_folder, args.no_perm, args.cor_only
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs
 
 
 def corOnlyAndWrite(this_idx, output_path):
@@ -52,6 +54,11 @@ def corAndNodeStrength(this_idx):
     # Create BHVE and CTRL Matrices
     # Find Correlations
     cor = pandas.DataFrame(data = sparse_corrcoef(data_mat[:, this_idx].todense()), index = gene_labels, columns = gene_labels)
+    if do_abs:
+        print("Taking absolute value of correlations")
+        cor = cor.abs()
+    else:
+        print("NOT taking absolute value of correlations. Using raw values.")
     # Find Node Strength
     ns = cor.sum(axis=1)
     return ns
@@ -111,7 +118,8 @@ def main():
     start_time = time.perf_counter()
 
     # Read Inputs
-    perm_num, num_perm, cluster15, cluster53, output_folder, no_perm, cor_only = parseArgs()
+    global do_abs
+    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs = parseArgs()
 
     # Read BB data
     global data_mat
@@ -125,6 +133,14 @@ def main():
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters15.csv").iloc[:, 0].to_numpy()
     cluster53_labels = pandas.read_csv(
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters53.csv").iloc[:, 0].to_numpy()
+
+    # Subset by gene if necessary
+    if gene != "":
+        print("Subsetting by gene: " + gene)
+        gene_idx = np.where(gene_labels == gene)[0][0]  # row number of the gene
+        gene_pos_idx = np.nonzero(data_mat[gene_idx])[1] # gene positive cells
+        data_mat = data_mat[:, gene_pos_idx]
+        cond_labels = cond_labels[gene_pos_idx]
 
     # Subset by cluster if necessary
     base_name = "perm"
