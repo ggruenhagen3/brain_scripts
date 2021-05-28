@@ -117,6 +117,7 @@ with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
     pool_res = pool.map(permSingleRun, range(1, 101))
     perm_df = pandas.DataFrame(pool_res)
     print(perm_df)
+    perm_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/ml_80_20.csv")
     # print(perm_df.mean(axis = 1))
 
 # bb_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_subsample_counts.txt",sep="\s")
