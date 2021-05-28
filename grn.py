@@ -207,7 +207,10 @@ def main():
             print("Sum of Abs NS Dif " + np.sum(np.absolute(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells])))
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
-    perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(perm_num) + ".csv")
+    if gene != "":
+        perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(perm_num) + ".csv")
+    else:
+        perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + gene + "_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
