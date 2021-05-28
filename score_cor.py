@@ -15,12 +15,48 @@ def parseArgs():
     args = parser.parse_args()
     return args.gene_list, args.num_perm
 
-def findCor(gene_idx, subset_idx = None):
+def generate_correlation_map(x, y):
+    """Correlate each n with each m.
+
+    Parameters
+    ----------
+    x : np.array
+      Shape N X T.
+
+    y : np.array
+      Shape M X T.
+
+    Returns
+    -------
+    np.array
+      N X M array in which each element is a correlation coefficient.
+
+    """
+    mu_x = x.mean(1)
+    mu_y = y.mean(1)
+    n = x.shape[1]
+    if n != y.shape[1]:
+        raise ValueError('x and y must ' +
+                         'have the same number of timepoints.')
+    s_x = x.std(1, ddof=n - 1)
+    s_y = y.std(1, ddof=n - 1)
+    cov = np.dot(x,
+                 y.T) - n * np.dot(mu_x[:, np.newaxis],
+                                  mu_y[np.newaxis, :])
+    return cov / np.dot(s_x[:, np.newaxis], s_y[np.newaxis, :])
+
+def findCor(gene_idx = None, subset_idx = None):
     cor = 0
     if subset_idx is not None:
-        cor = np.corrcoef(score[subset_idx], data_mat[gene_idx, subset_idx].todense())[0,1]
+        if gene_idx is not None:
+            cor = np.corrcoef(data_mat[gene_idx, subset_idx].todense(), score[subset_idx])[0, 1]
+        else:
+            cor = np.corrcoef(data_mat[:, subset_idx].todense(), score[subset_idx])[0, 1::]
     else:
-        cor = np.corrcoef(score, data_mat[gene_idx, ].todense())[0,1]
+        if gene_idx is not None:
+            cor = np.corrcoef(data_mat[gene_idx, ].todense(), score)[0, 1]
+        else:
+            cor = np.corrcoef(data_mat.todense(), score)[0, 1::]
     return cor
 
 def myShuffle(this_list):
@@ -32,6 +68,45 @@ def myShuffle(this_list):
     random.shuffle(this_list)
     return(this_list)
 
+def singleRunNew():
+    score2 = np.array([score, score])
+    bulk_res = {}
+    bulk_res["BHVE"] = generate_correlation_map(score2[:, bhve_idx], data_mat[:, bhve_idx].toarray())[0,:]
+    bulk_res["CTRL"] = generate_correlation_map(score2[:, ctrl_idx], data_mat[:, ctrl_idx].toarray())[0,:]
+    # Save the bulk results to a dataframe
+    bulk_df = pandas.DataFrame(bulk_res, index=gene_labels)
+    bulk_df['Dif'] = bulk_df['BHVE'] - bulk_df['CTRL']
+    # 15 Cluster Level
+    clust15_res = {}
+    clust15_dif_res = {}
+    print("Finding Correlations on 15 Cluster Level Permutations")
+    for clust15 in range(0, 15):
+        clust_idx = np.where(cluster15_labels == clust15)[0]
+        clust_bhve_idx = pandas.Series(bhve_idx).isin(clust_idx)
+        clust_bhve_idx = bhve_idx[clust_bhve_idx]
+        clust_ctrl_idx = pandas.Series(ctrl_idx).isin(clust_idx)
+        clust_ctrl_idx = ctrl_idx[clust_ctrl_idx]
+        clust15_res["BHVE_" + str(clust15)] = generate_correlation_map(score2[:, clust_bhve_idx], data_mat[:, clust_bhve_idx].toarray())[0,:]
+        clust15_res["CTRL_" + str(clust15)] = generate_correlation_map(score2[:, clust_ctrl_idx], data_mat[:, clust_ctrl_idx].toarray())[0,:]
+        clust15_dif_res[str(clust15)] = clust15_res["BHVE_" + str(clust15)] - clust15_res["CTRL_" + str(clust15)]
+    clust15_df = pandas.DataFrame(clust15_dif_res, index=gene_labels)
+    # 53 Cluster Level
+    clust53_res = {}
+    clust53_dif_res = {}
+    print("Finding Correlations on 53 Cluster Level Permutations")
+    for clust53 in range(0, 53):
+        clust_idx = np.where(cluster53_labels == clust53)[0]
+        clust_bhve_idx = pandas.Series(bhve_idx).isin(clust_idx)
+        clust_bhve_idx = bhve_idx[clust_bhve_idx]
+        clust_ctrl_idx = pandas.Series(ctrl_idx).isin(clust_idx)
+        clust_ctrl_idx = ctrl_idx[clust_ctrl_idx]
+        clust53_res["BHVE_" + str(clust53)] = generate_correlation_map(score2[:, clust_bhve_idx], data_mat[:, clust_bhve_idx].toarray())[0,:]
+        clust53_res["CTRL_" + str(clust53)] = generate_correlation_map(score2[:, clust_ctrl_idx], data_mat[:, clust_ctrl_idx].toarray())[0,:]
+        clust53_dif_res[str(clust53)] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
+    clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
+    return bulk_df, clust15_df, clust53_df
+
+
 def singleRun():
     # Find the correlated genes in bulk in both BHVE and CTRL
     bulk_res = {}
@@ -41,11 +116,9 @@ def singleRun():
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(ctrl_idx, len(gene_labels))))
         bulk_res["CTRL"] = this_res
-
     # Save the bulk results to a dataframe
     bulk_df = pandas.DataFrame(bulk_res, index=gene_labels)
     bulk_df['Dif'] = bulk_df['BHVE'] - bulk_df['CTRL']
-
     # 15 cluster level
     clust15_res = {}
     clust15_dif_res = {}
@@ -63,9 +136,7 @@ def singleRun():
             this_res = pool.starmap(findCor, zip(range(0, len(gene_labels)), repeat(clust_ctrl_idx, len(gene_labels))))
             clust15_res["CTRL_" + str(clust15)] = np.array(this_res)
         clust15_dif_res[str(clust15)] = clust15_res["BHVE_" + str(clust15)] - clust15_res["CTRL_" + str(clust15)]
-
     clust15_df = pandas.DataFrame(clust15_dif_res, index=gene_labels)
-
     # 53 cluster level
     clust53_res = {}
     clust53_dif_res = {}
@@ -84,7 +155,6 @@ def singleRun():
             clust53_res["CTRL_" + str(clust53)] = np.array(this_res)
         clust53_dif_res[str(clust53)] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
     clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
-
     return bulk_df, clust15_df, clust53_df
 
 def main():
@@ -175,7 +245,7 @@ def main():
         global ctrl_idx
         bhve_idx = perm_bhve_idx
         ctrl_idx = perm_ctrl_idx
-        perm_bulk, perm_clust15, perm_clust53 = singleRun()
+        perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
 
         # Compare the permuted results to the real results to see if they are more extreme
         perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
@@ -202,7 +272,6 @@ def main():
     # bulk_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_neurogen_score_cor_bvc.csv")
     # clust15_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_real_neurogen_score_cor_bvc.csv")
     # clust53_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_real_neurogen_score_cor_bvc.csv")
-
 
 if __name__ == '__main__':
     main()
