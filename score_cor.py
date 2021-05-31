@@ -292,6 +292,8 @@ def main():
     my_base_name = "perm" + "_" + str(num_perm)
     if no_perm:
         my_base_name = "real"
+        if full:
+            my_base_name = my_base_name + "_full"
     perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
     perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
     perm_greater_clust53.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
