@@ -171,6 +171,8 @@ def main():
     global score_genes_idx
     global cluster15_labels
     global cluster53_labels
+    global bhve_idx
+    global ctrl_idx
     data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
     gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,
                   1].to_numpy()
@@ -209,10 +211,9 @@ def main():
     if no_perm:
         print("Doing a real run with no permutations.")
         # Real BHVE and CTRL labels
-        global bhve_idx
-        global ctrl_idx
         bhve_idx = np.where(cond_labels == "BHVE")[0]
         ctrl_idx = np.where(cond_labels == "CTRL")[0]
+        
         perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
         perm_greater_bulk = perm_bulk
         perm_greater_clust15 = perm_clust15
@@ -253,8 +254,6 @@ def main():
             perm_label = myShuffle(cond_labels)
             perm_bhve_idx = np.where(perm_label == "BHVE")[0]
             perm_ctrl_idx = np.where(perm_label == "CTRL")[0]
-            global bhve_idx
-            global ctrl_idx
             bhve_idx = perm_bhve_idx
             ctrl_idx = perm_ctrl_idx
             perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
