@@ -12,8 +12,9 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Find correlations and their differences in BHVE and CTRL for each gene with a score for a list of genes.')
     parser.add_argument('gene_list', metavar='gene_list', type = str, help='List of genes to create a score for. Options are ieg, neurogen, prog, and pcrclg11.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
+    parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
     args = parser.parse_args()
-    return args.gene_list, args.num_perm
+    return args.gene_list, args.num_perm, args.no_perm
 
 def generate_correlation_map(x, y):
     """Correlate each n with each m.
@@ -159,7 +160,7 @@ def singleRun():
 
 def main():
     start_time = time.perf_counter()
-    gene_list, num_perm = parseArgs()
+    gene_list, num_perm, no_perm = parseArgs()
 
     # Read Data
     global data_mat
@@ -205,75 +206,87 @@ def main():
     score = np.array(mat[score_genes_idx,].sum(axis=0)) / np.array(mat.sum(axis=0))
     score = score[0]
 
-    # Read in Real Data
-    real_bulk_df    = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
-    real_clust15_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
-    real_clust53_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
-
-    # # Real bhve and ctrl indexes
-    # real_bhve_idx = np.where(cond_labels == "BHVE")[0]
-    # real_ctrl_idx = np.where(cond_labels == "CTRL")[0]
-
-    # Store values of indexes of genes that a positive and negative difference
-    bulk_greater_idx = real_bulk_df['Dif'] > 0
-    bulk_smaller_idx = real_bulk_df['Dif'] < 0
-    clust15_bool_idx = {}  # key is cluster, value is a list of 2 (1. greater_idx and 2. smaller_idx)
-    clust53_bool_idx = {}  # key is cluster, value is a list of 2 (1. greater_idx and 2. smaller_idx)
-    for i in range(0, 15):
-        greater_idx = real_clust15_df[str(i)] > 0
-        smaller_idx = real_clust15_df[str(i)] < 0
-        clust15_bool_idx[i] = [greater_idx, smaller_idx]
-    for i in range(0, 53):
-        greater_idx = real_clust53_df[str(i)] > 0
-        smaller_idx = real_clust53_df[str(i)] < 0
-        clust53_bool_idx[i] = [greater_idx, smaller_idx]
-
-    # Prepare DataFrames that store the number of permutations more extreme than the real
-    perm_greater_bulk = pandas.DataFrame(0, index = real_bulk_df.index, columns = ['nMoreExtreme'])
-    perm_greater_clust15 = pandas.DataFrame(0, index=real_clust15_df.index, columns = real_clust15_df.columns)
-    perm_greater_clust53 = pandas.DataFrame(0, index=real_clust53_df.index, columns = real_clust53_df.columns)
-
-    time_before_perm = time.perf_counter()
-    print(f"Time before starting permutations: {time.perf_counter() - start_time:0.4f} seconds")
-
-    # Do permutations
-    for i in range(0, num_perm):
-        this_perm_start_time = time.perf_counter()
-        print("Permutation " + str(i))
-        perm_label = myShuffle(cond_labels)
-        perm_bhve_idx = np.where(perm_label == "BHVE")[0]
-        perm_ctrl_idx = np.where(perm_label == "CTRL")[0]
+    if no_perm:
+        print("Doing a real run with no permutations.")
+        # Real BHVE and CTRL labels
+        real_bhve_idx = np.where(cond_labels == "BHVE")[0]
+        real_ctrl_idx = np.where(cond_labels == "CTRL")[0]
         global bhve_idx
         global ctrl_idx
-        bhve_idx = perm_bhve_idx
-        ctrl_idx = perm_ctrl_idx
+        bhve_idx = real_bhve_idx
+        ctrl_idx = real_ctrl_idx
         perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
+        perm_greater_bulk = perm_bulk
+        perm_greater_clust15 = perm_clust15
+        perm_greater_clust53 = perm_clust53
 
-        # Compare the permuted results to the real results to see if they are more extreme
-        perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
-        perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_smaller_idx]['Dif']
-        for j in range(0, 53):
-            clust53_bool_idx_j = clust53_bool_idx[j]
-            clust53_greater_idx = clust53_bool_idx_j[0]
-            clust53_smaller_idx = clust53_bool_idx_j[1]
-            perm_greater_clust53.loc[clust53_greater_idx, str(j)] += perm_clust53.loc[clust53_greater_idx, str(j)] > real_clust53_df.loc[clust53_greater_idx, str(j)]
-            perm_greater_clust53.loc[clust53_smaller_idx, str(j)] += perm_clust53.loc[clust53_smaller_idx, str(j)] < real_clust53_df.loc[clust53_smaller_idx, str(j)]
-            if j <= 14:
-                clust15_bool_idx_j = clust15_bool_idx[j]
-                clust15_greater_idx = clust15_bool_idx_j[0]
-                clust15_smaller_idx = clust15_bool_idx_j[1]
-                perm_greater_clust15.loc[clust15_greater_idx, str(j)] += perm_clust15.loc[clust15_greater_idx, str(j)] > real_clust15_df.loc[clust15_greater_idx, str(j)]
-                perm_greater_clust15.loc[clust15_smaller_idx, str(j)] += perm_clust15.loc[clust15_smaller_idx, str(j)] < real_clust15_df.loc[clust15_smaller_idx, str(j)]
+    else:
+        # Read in Real Data
+        real_bulk_df    = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
+        real_clust15_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
+        real_clust53_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_real_" + gene_list + "_score_cor_bvc.csv", index_col = 0)
 
-        print(f"Time to complete permutation: {time.perf_counter() - this_perm_start_time:0.4f} seconds")
+        # Store values of indexes of genes that a positive and negative difference
+        bulk_greater_idx = real_bulk_df['Dif'] > 0
+        bulk_smaller_idx = real_bulk_df['Dif'] < 0
+        clust15_bool_idx = {}  # key is cluster, value is a list of 2 (1. greater_idx and 2. smaller_idx)
+        clust53_bool_idx = {}  # key is cluster, value is a list of 2 (1. greater_idx and 2. smaller_idx)
+        for i in range(0, 15):
+            greater_idx = real_clust15_df[str(i)] > 0
+            smaller_idx = real_clust15_df[str(i)] < 0
+            clust15_bool_idx[i] = [greater_idx, smaller_idx]
+        for i in range(0, 53):
+            greater_idx = real_clust53_df[str(i)] > 0
+            smaller_idx = real_clust53_df[str(i)] < 0
+            clust53_bool_idx[i] = [greater_idx, smaller_idx]
 
-    perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
-    perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
-    perm_greater_clust53.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_perm_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
+        # Prepare DataFrames that store the number of permutations more extreme than the real
+        perm_greater_bulk = pandas.DataFrame(0, index = real_bulk_df.index, columns = ['nMoreExtreme'])
+        perm_greater_clust15 = pandas.DataFrame(0, index=real_clust15_df.index, columns = real_clust15_df.columns)
+        perm_greater_clust53 = pandas.DataFrame(0, index=real_clust53_df.index, columns = real_clust53_df.columns)
+
+        time_before_perm = time.perf_counter()
+        print(f"Time before starting permutations: {time.perf_counter() - start_time:0.4f} seconds")
+
+        # Do permutations
+        for i in range(0, num_perm):
+            this_perm_start_time = time.perf_counter()
+            print("Permutation " + str(i))
+            perm_label = myShuffle(cond_labels)
+            perm_bhve_idx = np.where(perm_label == "BHVE")[0]
+            perm_ctrl_idx = np.where(perm_label == "CTRL")[0]
+            global bhve_idx
+            global ctrl_idx
+            bhve_idx = perm_bhve_idx
+            ctrl_idx = perm_ctrl_idx
+            perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
+
+            # Compare the permuted results to the real results to see if they are more extreme
+            perm_greater_bulk.loc[bulk_greater_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_greater_idx]['Dif'] > real_bulk_df.loc[bulk_greater_idx]['Dif']
+            perm_greater_bulk.loc[bulk_smaller_idx, 'nMoreExtreme'] += perm_bulk.loc[bulk_smaller_idx]['Dif'] < real_bulk_df.loc[bulk_smaller_idx]['Dif']
+            for j in range(0, 53):
+                clust53_bool_idx_j = clust53_bool_idx[j]
+                clust53_greater_idx = clust53_bool_idx_j[0]
+                clust53_smaller_idx = clust53_bool_idx_j[1]
+                perm_greater_clust53.loc[clust53_greater_idx, str(j)] += perm_clust53.loc[clust53_greater_idx, str(j)] > real_clust53_df.loc[clust53_greater_idx, str(j)]
+                perm_greater_clust53.loc[clust53_smaller_idx, str(j)] += perm_clust53.loc[clust53_smaller_idx, str(j)] < real_clust53_df.loc[clust53_smaller_idx, str(j)]
+                if j <= 14:
+                    clust15_bool_idx_j = clust15_bool_idx[j]
+                    clust15_greater_idx = clust15_bool_idx_j[0]
+                    clust15_smaller_idx = clust15_bool_idx_j[1]
+                    perm_greater_clust15.loc[clust15_greater_idx, str(j)] += perm_clust15.loc[clust15_greater_idx, str(j)] > real_clust15_df.loc[clust15_greater_idx, str(j)]
+                    perm_greater_clust15.loc[clust15_smaller_idx, str(j)] += perm_clust15.loc[clust15_smaller_idx, str(j)] < real_clust15_df.loc[clust15_smaller_idx, str(j)]
+
+            print(f"Time to complete permutation: {time.perf_counter() - this_perm_start_time:0.4f} seconds")
+
+    # Save Results
+    my_base_name = "perm"
+    if no_perm:
+        my_base_name = "real"
+    perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_" + my_base_name + "_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
+    perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_" + my_base_name + "_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
+    perm_greater_clust53.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_" + my_base_name + "_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
     print("Done")
-    # bulk_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_real_neurogen_score_cor_bvc.csv")
-    # clust15_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_real_neurogen_score_cor_bvc.csv")
-    # clust53_df.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_real_neurogen_score_cor_bvc.csv")
 
 if __name__ == '__main__':
     main()
