@@ -293,6 +293,7 @@ def main():
     if no_perm:
         my_base_name = "real"
         if full:
+            print("Saving full results, including BHVE and CTRL correlations on 15 and 53 cluster level instead of just their difference.")
             my_base_name = my_base_name + "_full"
     perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
     perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
