@@ -78,6 +78,7 @@ def singleRunNew():
     # Save the bulk results to a dataframe
     bulk_df = pandas.DataFrame(bulk_res, index=gene_labels)
     bulk_df['Dif'] = bulk_df['BHVE'] - bulk_df['CTRL']
+
     # 15 Cluster Level
     clust15_res = {}
     clust15_dif_res = {}
@@ -92,6 +93,9 @@ def singleRunNew():
         clust15_res["CTRL_" + str(clust15)] = generate_correlation_map(score2[:, clust_ctrl_idx], data_mat[:, clust_ctrl_idx].toarray())[0,:]
         clust15_dif_res[str(clust15)] = clust15_res["BHVE_" + str(clust15)] - clust15_res["CTRL_" + str(clust15)]
     clust15_df = pandas.DataFrame(clust15_dif_res, index=gene_labels)
+    if full:
+        clust15_df = pandas.DataFrame(clust15_res, index=gene_labels)
+
     # 53 Cluster Level
     clust53_res = {}
     clust53_dif_res = {}
@@ -106,6 +110,9 @@ def singleRunNew():
         clust53_res["CTRL_" + str(clust53)] = generate_correlation_map(score2[:, clust_ctrl_idx], data_mat[:, clust_ctrl_idx].toarray())[0,:]
         clust53_dif_res[str(clust53)] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
     clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
+    if full:
+        clust53_df = pandas.DataFrame(clust53_res, index=gene_labels)
+
     return bulk_df, clust15_df, clust53_df
 
 
