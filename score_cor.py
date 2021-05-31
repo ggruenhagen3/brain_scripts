@@ -10,7 +10,7 @@ from itertools import repeat
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Find correlations and their differences in BHVE and CTRL for each gene with a score for a list of genes.')
-    parser.add_argument('gene_list', metavar='gene_list', type = str, help='List of genes to create a score for. Options are ieg, neurogen, and prog.')
+    parser.add_argument('gene_list', metavar='gene_list', type = str, help='List of genes to create a score for. Options are ieg, neurogen, prog, and pcrclg11.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     args = parser.parse_args()
     return args.gene_list, args.num_perm
@@ -187,8 +187,10 @@ def main():
         score_genes = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/neurogen_genes_final_050621.csv").iloc[:, 0].to_numpy()
     elif gene_list == "prog":
         score_genes = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/progenitor_sox2_nes_coexpress_051721.csv").iloc[:, 0].to_numpy()
+    elif gene_list == "pcrclg11":
+        score_genes = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv").iloc[:,0].to_numpy()
     else:
-        print("Invalid input gene list. The options are ieg, neurogen, and prog. Terminating program.")
+        print("Invalid input gene list. The options are ieg, neurogen, prog, and pcrclg11. Terminating program.")
         return(False)
 
     # Find the index of genes used to create the score
