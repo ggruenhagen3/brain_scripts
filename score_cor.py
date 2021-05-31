@@ -209,12 +209,10 @@ def main():
     if no_perm:
         print("Doing a real run with no permutations.")
         # Real BHVE and CTRL labels
-        real_bhve_idx = np.where(cond_labels == "BHVE")[0]
-        real_ctrl_idx = np.where(cond_labels == "CTRL")[0]
         global bhve_idx
         global ctrl_idx
-        bhve_idx = real_bhve_idx
-        ctrl_idx = real_ctrl_idx
+        bhve_idx = np.where(cond_labels == "BHVE")[0]
+        ctrl_idx = np.where(cond_labels == "CTRL")[0]
         perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
         perm_greater_bulk = perm_bulk
         perm_greater_clust15 = perm_clust15
