@@ -13,8 +13,9 @@ def parseArgs():
     parser.add_argument('gene_list', metavar='gene_list', type = str, help='List of genes to create a score for. Options are ieg, neurogen, prog, and pcrclg11.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
+    parser.add_argument("-f", "--full", help="Full Results (ie include BHVE and CTRL correlations on 15 and 53 cluster levels)?", action="store_true")
     args = parser.parse_args()
-    return args.gene_list, args.num_perm, args.no_perm
+    return args.gene_list, args.num_perm, args.no_perm, args.full
 
 def generate_correlation_map(x, y):
     """Correlate each n with each m.
@@ -120,6 +121,7 @@ def singleRun():
     # Save the bulk results to a dataframe
     bulk_df = pandas.DataFrame(bulk_res, index=gene_labels)
     bulk_df['Dif'] = bulk_df['BHVE'] - bulk_df['CTRL']
+
     # 15 cluster level
     clust15_res = {}
     clust15_dif_res = {}
@@ -138,6 +140,9 @@ def singleRun():
             clust15_res["CTRL_" + str(clust15)] = np.array(this_res)
         clust15_dif_res[str(clust15)] = clust15_res["BHVE_" + str(clust15)] - clust15_res["CTRL_" + str(clust15)]
     clust15_df = pandas.DataFrame(clust15_dif_res, index=gene_labels)
+    if full:
+        clust15_df = pandas.DataFrame(clust15_res, index=gene_labels)
+
     # 53 cluster level
     clust53_res = {}
     clust53_dif_res = {}
@@ -156,13 +161,13 @@ def singleRun():
             clust53_res["CTRL_" + str(clust53)] = np.array(this_res)
         clust53_dif_res[str(clust53)] = clust53_res["BHVE_" + str(clust53)] - clust53_res["CTRL_" + str(clust53)]
     clust53_df = pandas.DataFrame(clust53_dif_res, index=gene_labels)
+    if full:
+        clust53_df = pandas.DataFrame(clust53_res, index=gene_labels)
+
     return bulk_df, clust15_df, clust53_df
 
 def main():
-    start_time = time.perf_counter()
-    gene_list, num_perm, no_perm = parseArgs()
-
-    # Read Data
+    # Define global variables
     global data_mat
     global gene_labels
     global cond_labels
@@ -173,6 +178,13 @@ def main():
     global cluster53_labels
     global bhve_idx
     global ctrl_idx
+    global full
+
+    # Start timer and read input
+    start_time = time.perf_counter()
+    gene_list, num_perm, no_perm, full = parseArgs()
+
+    # Read Data
     data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
     gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_rownames.csv").iloc[:,
                   1].to_numpy()
@@ -213,7 +225,7 @@ def main():
         # Real BHVE and CTRL labels
         bhve_idx = np.where(cond_labels == "BHVE")[0]
         ctrl_idx = np.where(cond_labels == "CTRL")[0]
-        
+
         perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
         perm_greater_bulk = perm_bulk
         perm_greater_clust15 = perm_clust15
@@ -277,12 +289,12 @@ def main():
             print(f"Time to complete permutation: {time.perf_counter() - this_perm_start_time:0.4f} seconds")
 
     # Save Results
-    my_base_name = "perm"
+    my_base_name = "perm" + "_" + str(num_perm)
     if no_perm:
         my_base_name = "real"
-    perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_" + my_base_name + "_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
-    perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_" + my_base_name + "_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
-    perm_greater_clust53.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_" + my_base_name + "_" + str(num_perm) + "_" + gene_list + "_score_cor_bvc.csv")
+    perm_greater_bulk.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/bulk_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
+    perm_greater_clust15.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust15_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
+    perm_greater_clust53.to_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/clust53_" + my_base_name + "_" + gene_list + "_score_cor_bvc.csv")
     print("Done")
 
 if __name__ == '__main__':
