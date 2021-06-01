@@ -201,7 +201,7 @@ def main():
                 ns_dict[i] = pool_ns[0] - pool_ns[1]
             num_cells_bhve = np.array(data_mat[:, mat_idx['B' + str(i)]].astype(bool).sum(axis=1))[:, 0]
             num_cells_ctrl = np.array(data_mat[:, mat_idx['C' + str(i)]].astype(bool).sum(axis=1))[:, 0]
-            gene_idx_min_cells = np.where(np.logical_and(num_cells_bhve >= 5, num_cells_ctrl >= 5))
+            gene_idx_min_cells = np.where(np.logical_and(num_cells_bhve >= 5, num_cells_ctrl >= 5))[0]
             print("Sums for genes with at least 5 cells in BHVE and CTRL")
             print("Sum of NS Dif " + np.sum(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells]) )
             print("Sum of Abs NS Dif " + np.sum(np.absolute(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells])))
