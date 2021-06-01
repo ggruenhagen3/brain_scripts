@@ -203,8 +203,8 @@ def main():
             num_cells_ctrl = np.array(data_mat[:, mat_idx['C' + str(i)]].astype(bool).sum(axis=1))[:, 0]
             gene_idx_min_cells = np.where(np.logical_and(num_cells_bhve >= 5, num_cells_ctrl >= 5))[0]
             print("Sums for genes with at least 5 cells in BHVE and CTRL")
-            print("Sum of NS Dif " + np.sum(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells]) )
-            print("Sum of Abs NS Dif " + np.sum(np.absolute(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells])))
+            print("Sum of NS Dif " + str(np.sum(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells])) )
+            print("Sum of Abs NS Dif " + str(np.sum(np.absolute(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells]))))
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
     if gene != "":
