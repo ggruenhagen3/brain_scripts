@@ -143,16 +143,20 @@ def main():
         cond_labels = cond_labels[gene_pos_idx]
 
     # Subset by cluster if necessary
-    base_name = "perm"
+    base_name = "perm_"
+    if no_perm:
+        base_name = "real_"
+    if do_abs:
+        base_name = base_name + "abs_"
     if cluster15 != -1:
         print("Subsetting on 15 cluster level for cluster " + str(cluster15))
-        base_name = "cluster15_" + str(cluster15)
+        base_name = base_name + "cluster15_" + str(cluster15)
         data_mat = data_mat[:, np.flatnonzero(cluster15_labels == cluster15)]
         cond_labels = cond_labels[np.flatnonzero(cluster15_labels == cluster15)]
     else:
         if cluster53 != -1:
             print("Subsetting on 53 cluster level for cluster " + str(cluster53))
-            base_name = "cluster53_" + str(cluster53)
+            base_name = base_name + "cluster53_" + str(cluster53)
             data_mat = data_mat[:, np.flatnonzero(cluster53_labels == cluster53)]
             cond_labels = cond_labels[np.flatnonzero(cluster53_labels == cluster53)]
         else:
