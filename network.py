@@ -118,6 +118,11 @@ scv.pp.moments(ad_sub)
 scv.tl.velocity(ad_sub, mode='stochastic')
 scv.tl.velocity_graph(ad_sub)
 
+# Reclustered cluster 0
+scv.pl.velocity_embedding_stream(ad_sub, basis='X_pca', color='seuratclusters53', save = "bb_parent0_recluster_stream.svg")
+scv.pl.velocity_embedding_grid(ad_sub, basis='X_pca', color='seuratclusters53', save = "bb_parent0_recluster_grid.svg", arrow_size = 4)
+
+
 import scanpy
 scanpy.AnnData.write_loom(merged, "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/all_velo/all_merged_w_seurat.loom")
 'write/pbmc3k.h5ad'
@@ -133,6 +138,7 @@ pos = nx.nx_agraph.graphviz_layout(G)
 """
 Tooth RNA Velocity
 """
+# Jaw
 import loompy
 import scvelo as scv
 loompy.combine(["/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/bs/MZ/UJ_bcl/velocyto/UJ_bcl.loom",
@@ -150,3 +156,53 @@ scv.pl.velocity_embedding_stream(merged, basis='umap_cell_embeddings', color='se
 scv.pl.velocity_embedding_grid(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "jaw_veloplot_grid.svg", arrow_size = 2)
 scv.pl.velocity_embedding(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "jaw_veloplot_cell.svg", arrow_size = 2)
 
+# Tooth
+adata = scv.read("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/bs/TJ/TJ_bcl/velocyto/TJ_bcl.loom", cache=True)
+scv.pp.filter_and_normalize(adata)
+scv.pp.moments(adata)
+scv.tl.velocity(adata, mode='stochastic')
+scv.tl.velocity_graph(adata)
+seurat_data = scv.read("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/tj.loom")
+
+merged = scv.utils.merge(adata, seurat_data)
+scv.pl.velocity_embedding_stream(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "tj_veloplot.svg")
+scv.pl.velocity_embedding_grid(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "tj_veloplot_grid.svg", arrow_size = 2)
+scv.pl.velocity_embedding(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "tj_veloplot_cell.svg", arrow_size = 2)
+
+# Tooth + Jaw
+loompy.combine(["/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/bs/TJ/TJ_bcl/velocyto/TJ_bcl.loom",
+                "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/bs/MZ/all_jaw.loom"],
+                "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/bs/TJ/tj_jaw_velo.loom")
+adata = scv.read("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/bs/TJ/tj_jaw_velo.loom", cache=True)
+scv.pp.filter_and_normalize(adata)
+scv.pp.moments(adata)
+scv.tl.velocity(adata, mode='stochastic')
+scv.tl.velocity_graph(adata)
+seurat_data = scv.read("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/tj_jaw.loom")
+
+merged = scv.utils.merge(adata, seurat_data)
+scv.pl.velocity_embedding_stream(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "tj_jaw_veloplot.svg")
+scv.pl.velocity_embedding_grid(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "tj_jaw_veloplot_grid.svg", arrow_size = 4)
+scv.pl.velocity_embedding(merged, basis='umap_cell_embeddings', color='seurat_clusters', save = "tj_jaw_veloplot_cell.svg", arrow_size = 4)
+
+import pandas
+gene_info = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/m_zebra_ref/gene_info.txt", sep="\t")
+isdup = gene_info.duplicated(subset=['mzebra'], keep = 'first')
+gene_info2 = gene_info.loc[isdup == False,]
+gene_info2 = gene_info2.reset_index(drop=True)
+match_idx = [gene_info2.index[gene_info2['mzebra'] == i].tolist() for i in adata.var_names]
+df = pandas.DataFrame(match_idx, columns = ['idx'])
+df = df.fillna(-1)
+new_var_names = gene_info2.iloc[df['idx'].tolist(), 9]
+new_var_names = new_var_names.fillna("")
+old_var_names = adata.var_names
+adata.var_names = new_var_names
+scv.pl.velocity(merged, ['celsr1a', 'gli1'], basis='umap_cell_embeddings', layers=["velocity", "norm_data"], save="jaw_celsr1_gli1.svg", ncols = 1)
+
+merged = scv.utils.merge(adata, seurat_data)
+velo = merged.layers['velocity']
+numpy.where(merged.var_names == "celsr1a")
+merged.obs_names
+celsr1_df = pandas.DataFrame(data={'celsr1a':velo[:,10676]}, index = merged.obs_names)
+celsr1_df.to_csv('/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/results/jaw_celsr1_velo.csv', index = True)
+merged.obs.to_csv('/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/results/jaw_velo.csv', index = True)

@@ -94,11 +94,12 @@ coef_df = pandas.DataFrame()
 good_i = []
 good_i_avg_prob = []
 results = {}
+features_used = {}
 success = False
 for i in range(1, 2):
     # if i % 5 == 0:
     #     print("i: " + str(i))
-    for j in range(1, 52):
+    for j in range(3,4):
         print("***")
         print("j: " + str(j))
         print("***")
@@ -108,7 +109,7 @@ for i in range(1, 2):
         all_test_prob = []
         all_test_score = []
         for pair in pairs:
-            print("Predicted Pair: b" + pair + " and c" + pair)
+            # print("Predicted Pair: b" + pair + " and c" + pair)
             sub_pair = [ x for x in list(pd_df.index) if x[1:2] == pair ]  # the subsamples that are in the test pair
             not_sub_pair = [ x for x in list(pd_df.index) if x[1:2] != pair ]  # the subsamples that are not in the test pair
             # sub_pair = [ x for x in list(pd_df.index) if x[2:3] == pair ]  # the subsamples that are in the test pair
@@ -205,7 +206,7 @@ for i in range(1, 2):
             # this_features = this_features[sort_idx[0, range(0,j)]]
             a = rc.fit(xtrain, ytrain)
             # rc.predict(xtest)
-            rc.predict_proba(xtest)
+            # rc.predict_proba(xtest)
             # sfm = SelectFromModel(rc, threshold=1e-3)
             # sfm.fit(xtrain, ytrain)
             # xtrain = sfm.transform(xtrain)
@@ -217,8 +218,8 @@ for i in range(1, 2):
             # train_score = rc.score(xtrain, ytrain)
             # print("Accuracy on train set: ", str(train_score))
             test_score = rc.score(xtest, ytest)
-            print("Accuracy on test set (Pair " + pair + "): ", str(test_score))
-            print(xtrain.shape)
+            # print("Accuracy on test set (Pair " + pair + "): ", str(test_score))
+            # print(xtrain.shape)
             # if test_score < 0.66:
             # #     print("Total Performance: " + str(len(all_test_score)) + "/" + str(len(all_test_score)+1))
             #     results[str(i) + "," + str(j)] = [-1, -1, -1, -1, -1]
@@ -227,6 +228,7 @@ for i in range(1, 2):
             if test_score >= 1:
                 all_test_score.append(test_score)
             results[str(i) + "," + str(j)].append(test_score)
+            features_used[pair] = xtest.columns
             # # this_prob = rc.predict_proba(xtest)
             # # all_test_prob.append(this_prob[0][1])  # probability that the behave sample is behave
             # # all_test_prob.append(this_prob[1][0])  # probability that the control sample is control
@@ -237,10 +239,12 @@ for i in range(1, 2):
             #     good_i_avg_prob.append(numpy.mean(all_test_prob))
             #     if not success:
                 print("Found a winner!" + str(i) + ", " + str(j))
+                pandas.DataFrame(data=features_used)
                     # success = True
             #         break
 
 
+features_used2 = pandas.DataFrame(data = features_used)
 results2 = pandas.DataFrame(data = results)
 # results2 = results2.append(numpy.sum(results2, axis = 0)/results2.shape[0], ignore_index = True)
 overall_pct = [ (results2.iloc[0,x] * 8 + results2.iloc[1,x] * 8 + results2.iloc[2,x] * 8 + results2.iloc[3,x] * 6 + results2.iloc[4,x] * 8)/38 for x in range(0, results2.shape[1])]
