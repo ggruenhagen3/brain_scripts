@@ -244,10 +244,50 @@ deg15 = read.csv("C:/Users/miles/Downloads/brain/results/bb/bb_all_cluster_15_de
 deg53 = read.csv("C:/Users/miles/Downloads/brain/results/bb/bb_all_cluster_53_degs.csv", stringsAsFactors = F)
 deg15 = deg15[which(deg15$p_val_adj < 0.05),]
 deg53 = deg53[which(deg53$p_val_adj < 0.05),]
+
 num_deg = findMarkersInDEG(deg = deg15, markers = int_genes$gene)[[2]]
 pct_deg = findMarkersInDEG(deg = deg15, markers = int_genes$gene, pct = T)[[2]]
 test15 = markersInDEGUpDown(deg15, int_genes$gene)
 test53 = markersInDEGUpDown(deg53, int_genes$gene)
+
+non_zero_genes = rownames(bb)[which(rowSums(bb@assays$RNA@counts > 0))]
+all_clust15_deg = unique(deg15$gene[which(deg15$avg_logFC > 0)])
+all_class_genes = unique(int_genes$gene)
+
+int_clust15 = data.frame()
+for (clust in 0:52) {
+  clust_pos_deg = deg53[which(deg53$avg_logFC > 0 & deg53$cluster == clust),]
+  # clust_pos_deg = clust_pos_deg[which(clust_pos_deg$gene %in% all_class_genes),]
+  num_clust_deg = nrow(clust_pos_deg)
+  for (class in unique(int_genes$class)) {
+    class_genes = int_genes$gene[which(int_genes$class == class | int_genes$class2 == class)]
+    class_genes = class_genes[which(class_genes %in% non_zero_genes)]
+    # class_genes = class_genes[which(class_genes %in% all_clust15_deg)]
+    num_class_genes = length(class_genes)
+    
+    # Overlap Values
+    raw_ovlp = length(which(class_genes %in% clust_pos_deg$gene))
+    ovlp_norm_clust = raw_ovlp / num_clust_deg
+    ovlp_norm_list = raw_ovlp / num_class_genes
+    ovlp_norm_clust_list = raw_ovlp / (num_clust_deg + num_class_genes)
+    
+    # Statistical Test
+    # contig_table = data.frame(isClass = c(raw_ovlp, num_class_genes - length(raw_ovlp)), notClass = c(num_clust_deg - length(raw_ovlp), length(non_zero_genes) - length(unique(c(class_genes, clust_pos_deg$gene)))))
+    # contig_table = data.frame(isClass = c(raw_ovlp, num_class_genes - length(raw_ovlp)), notClass = c(num_clust_deg - length(raw_ovlp), length(all_clust15_deg) - length(unique(c(class_genes, clust_pos_deg$gene))) ))
+    contig_table = data.frame(isClass = c(raw_ovlp, num_class_genes - length(raw_ovlp)), 
+                              notClass = c(num_clust_deg - length(raw_ovlp), length(all_clust15_deg) - length(unique(c(class_genes, clust_pos_deg$gene))) ))
+    rownames(contig_table) = c("isDEG", "notDEG")
+    p = fisher.test(contig_table, alternative = "greater")$p.value
+    
+    int_clust15 = rbind(int_clust15, data.frame(cluster = clust, class = class, raw_ovlp = raw_ovlp, ovlp_norm_clust = ovlp_norm_clust, ovlp_norm_list = ovlp_norm_list, ovlp_norm_clust_list = ovlp_norm_clust_list, p = p, this_clust = contig_table[1,1]/contig_table[1,2], other = contig_table[2,1]/contig_table[2,2]))
+  }
+}
+int_clust15$cluster = factor(int_clust15$cluster, levels = 0:52)
+int_clust15$bh = p.adjust(int_clust15$p, method = "BH")
+int_clust15$bon = p.adjust(int_clust15$p, method = "bonferroni")
+
+ggplot(int_clust15, aes(x = cluster, y = ovlp_norm_clust_list, fill = class)) + geom_bar(stat="identity") + ylab("Normalized Overlap") + xlab("Cluster") + ggtitle("Overlap with Interesting Genes and Cluster DEGs Normalized for Length of Both")
+ggplot(int_clust15, aes(x = cluster, y = raw_ovlp, fill = class)) + geom_bar(stat="identity") + ylab("Raw Overlap") + xlab("Cluster") + ggtitle("Raw Overlap with Interesting Genes and Cluster DEGs")
 
 big_res = data.frame()
 for (i in 0:14) {
@@ -769,7 +809,8 @@ dev.off()
 geneX_list = read.csv("C:/Users/miles/Downloads/brain/data/markers/bb_all_interesting_genes_final_3count_051021.csv")
 geneX_list$gene[which(geneX_list$gene == "slac17a6")] = "slc17a6"
 # enrich_list = read.csv("C:/Users/miles/Downloads/brain/data/markers/LG11_highFST_genes_umd2a_120920.txt", he)
-enrich_list = read.table("C:/Users/miles/Downloads/brain/data/markers/LG11_highFST_genes_umd2a_120920.txt", header = F)[,1]
+# enrich_list = read.table("C:/Users/miles/Downloads/brain/data/markers/LG11_highFST_genes_umd2a_120920.txt", header = F)[,1]
+enrich_list = read.table("C:/Users/miles/Downloads/brain/data/markers/pcrc_FST20_30_LG11_evolution_genes_031821.csv", header = T)[,1]
 geneX_list_unique = unique(geneX_list$gene)
 
 full_res = data.frame()
@@ -1169,6 +1210,36 @@ print(ggplot(p_bvc_df, aes(Cluster1, Cluster2, fill = bh)) + geom_tile() + scale
 dev.off()
 
 #==========================================================================================
+# PS6 =====================================================================================
+#==========================================================================================
+ieg_genes = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
+prog_genes = read.csv("C:/Users/miles/Downloads/progenitor_sox2_nes_coexpress_051721.csv", stringsAsFactors = F)[,1]
+neurogen_genes = read.csv("C:/Users/miles/Downloads/neurogen_genes_final_050621.csv", stringsAsFactors = F)[,1]
+
+# Calculate Score
+mat = bb@assays$RNA@counts
+mat[which(mat > 1)] = 1
+
+bb$ieg_score = colSums(mat[ieg_genes, ])
+bb$ieg_score_norm = bb$ieg_score / bb$nFeature_RNA
+
+ieg_score_norm_95 = colnames(bb)[which(bb$ieg_score_norm >= quantile(bb$ieg_score_norm, 0.95))]
+ieg_score_3 = colnames(bb)[which(bb$ieg_score >= 7)]
+DimPlot(bb, cells.highlight = ieg_score_norm_95, order = T)
+DimPlot(bb, cells.highlight = ieg_score_3, order = T)
+
+bb$pos = F
+bb$pos[ieg_score_norm_95] = T
+Idents(bb) = bb$pos
+ieg_ps6 = FindMarkers(bb, ident.1 = T, ident.2 = F)
+
+bb$prog_score = colSums(mat[prog_genes, ])
+bb$prog_score_norm = bb$prog_score / bb$nFeature_RNA
+
+prog_score_norm_95 = colnames(bb)[which(bb$prog_score_norm >= quantile(bb$prog_score_norm, 0.95))]
+DimPlot(bb, cells.highlight = prog_score_norm_95, order = T)
+
+#==========================================================================================
 # Depth and GSI Cor =======================================================================
 #==========================================================================================
 # 04/02/2021
@@ -1250,6 +1321,12 @@ rownames(perm) = perm$gene
 perm$gene = NULL
 perm = data.matrix(perm)
 colnames(perm) = c(1:1000)
+
+gene = "kcna4"
+png(paste0("~/scratch/brain/results/py_ns_bulk_", gene, ".png"), width = 600, height = 400)
+hist_df = data.frame(perm_dif = perm[gene,])
+print(ggplot(hist_df, aes(x=perm_dif)) + geom_histogram(color="black", fill="lightgray") + geom_vline(xintercept = real[gene,"Dif"]) + annotate(x=real[gene,"Dif"],y=+Inf,label="Real",vjust=2,geom="label") + ggtitle(paste0("NS Difference in Permutations Compared to Real for ", gene)) + xlab("NS Difference"))
+dev.off()
 
 test_stat = data.frame(gene = rownames(real), num_greater = 0, pct_greater = 0)
 rownames(test_stat) = rownames(real)
@@ -1522,6 +1599,199 @@ for ( i in 0:10 ) {
 big_df2_top$cluster = factor(big_df2_top$cluster, levels = 0:14)
 ggplot(big_df2_top, aes(x = num, y=cluster, size = node_strength, color = dif, label = gene)) + geom_point() + geom_text(aes(label=gene),hjust=0, vjust=0) + facet_wrap( ~ cond)
 ggplot(big_df2_top, aes(x = cond, y=cluster, size = node_strength, color = dif)) + geom_point() + geom_text(aes(label=gene),hjust=1.2, vjust=0.5, size = 3, color = "black") + facet_wrap( ~ num) + ggtitle("Top 5 Genes with Significantly Greater Control NS") + guides(color=guide_legend(title="NS Dif"), size=guide_legend(title="NS")) + scale_color_continuous(high = "#132B43", low = "#56B1F7")
+
+# Score Cor Results - Bulk
+# num_cells = write.csv("~/scratch/brain/data/gene_num_cells.csv", stringsAsFactors = F)
+print("Calculating number of cells")
+mat = bb@assays$RNA@counts[,which(bb$cond == "BHVE")]
+mat[which(mat > 0)] = 1
+bhve_num_cells = rowSums(mat)
+mat = bb@assays$RNA@counts[,which(bb$cond == "CTRL")]
+mat[which(mat > 0)] = 1
+ctrl_num_cells = rowSums(mat)
+# gene_lists = c("ieg", "prog", "neurogen")
+gene_lists = c("pcrclg11")
+for (gene_list in gene_lists) {
+  real = read.csv(paste0("~/scratch/brain/results/bulk_real_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(real) = real$X
+  real$X = NULL
+  real = real[which(real$Dif != 0),]
+  perm = read.csv(paste0("~/scratch/brain/results/bulk_perm_1000_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(perm) = perm$X
+  perm$X = NULL
+  
+  real$nMoreExtreme = perm$nMoreExtreme[match(rownames(real), rownames(perm))]
+  # real$num_cells = num_cells$num_cells[match(rownames(real), num_cells$gene)]
+  real$bhve_num_cells = bhve_num_cells[match(rownames(real), rownames(bb))]
+  real$ctrl_num_cells = ctrl_num_cells[match(rownames(real), rownames(bb))]
+  
+  real$perm.two.tail.p = 2 * (real$nMoreExtreme/1000)
+  real$perm.bh = p.adjust(real$perm.two.tail.p, method = "BH")
+  real$fisher.p = r_to_p(real$BHVE, real$CTRL, ncol(bb), ncol(bb))
+  real$fisher.bh = p.adjust(real$fisher.p, method = "BH") 
+  write.csv(real, paste0("~/scratch/brain/results/bulk_real_", gene_list, "_score_cor_bvc_w_stats.csv"))
+  system(paste0("rclone copy ~/scratch/brain/results/bulk_real_", gene_list, "_score_cor_bvc_w_stats.csv dropbox:BioSci-Streelman/George/Brain/bb/results/score_cor/bulk/"))
+  
+  # real_sig = real[which(real$bh < 0.05 & real$num_cells >= 10),]
+  real_sig = real[which(real$perm.bh < 0.05 & real$fisher.bh < 0.05 & real$bhve_num_cells >= 5 & real$ctrl_num_cells >= 5),]
+  write.csv(real_sig, paste0("~/scratch/brain/results/bulk_real_", gene_list, "_score_cor_bvc_w_stats_sig.csv"))
+  system(paste0("rclone copy ~/scratch/brain/results/bulk_real_", gene_list, "_score_cor_bvc_w_stats_sig.csv dropbox:BioSci-Streelman/George/Brain/bb/results/score_cor/bulk/"))
+  
+  png(paste0("~/scratch/brain/results/bulk_score_cor_", gene_list, "_extreme.png"))
+  hist(real$nMoreExtreme, breaks = 50, xlab = "Number of Correlations More Extreme than Permutations", main = "")
+  dev.off()
+  system(paste0("rclone copy ~/scratch/brain/results/bulk_score_cor_", gene_list, "_extreme.png dropbox:BioSci-Streelman/George/Brain/bb/results/score_cor/bulk/"))
+  
+  print(gene_list)
+  print(paste0("Number of significant bulk results: ", nrow(real_sig)))
+  print(paste0("Max Significant Difference: ", rownames(real_sig)[which.max(abs(real_sig$Dif))], ", ", max(abs(real_sig$Dif))))
+}
+
+
+# Score Cor Results - 15 Cluster Level
+# gene_lists = c("ieg", "prog", "neurogen")
+gene_lists = c("pcrclg11")
+for (gene_list in gene_lists) {
+  print(gene_list)
+  real = read.csv(paste0("~/scratch/brain/results/clust15_real_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(real) = real$X
+  real$X = NULL
+  colnames(real) = 0:14
+  perm = read.csv(paste0("~/scratch/brain/results/clust15_perm_1000_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(perm) = perm$X
+  perm$X = NULL
+  colnames(perm) = 0:14
+  
+  real_full = read.csv(paste0("~/scratch/brain/results/clust15_real_full_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(real_full) = real_full$X
+  real_full$X = NULL
+  
+  clust15_sig = data.frame()
+  clust15_full = data.frame()
+  for (i in 0:14) {
+    # print(i)
+    # print("Calculating the number of cells in the cluster")
+    num_clust_cells = length(which(bb$seuratclusters15 == i))
+    mat = bb@assays$RNA@counts[,which(bb$seuratclusters15 == i & bb$cond == "BHVE")]
+    mat[which(mat > 0)] = 1
+    bhve_num_cells = rowSums(mat)
+    mat = bb@assays$RNA@counts[,which(bb$seuratclusters15 == i & bb$cond == "CTRL")]
+    mat[which(mat > 0)] = 1
+    ctrl_num_cells = rowSums(mat)
+    
+    # this_real = data.frame(Dif = real[,as.character(i)], num_cells = num_cells)
+    this_real = data.frame(BHVE = real_full[,paste0("BHVE_",i)], CTRL = real_full[,paste0("CTRL_",i)], Dif = real[,as.character(i)], bhve_num_cells = bhve_num_cells, ctrl_num_cells = ctrl_num_cells)
+    rownames(this_real) = rownames(real)
+    this_real = this_real[which(this_real$Dif != 0),]
+    
+    this_real$nMoreExtreme = perm[match(rownames(this_real), rownames(perm)), as.character(i)]
+    this_real$two.tail.p = 2 * (this_real$nMoreExtreme/1000)
+    this_real$perm.bh = p.adjust(this_real$two.tail.p, method = "BH")
+    this_real$fisher.p = r_to_p(this_real$BHVE, this_real$CTRL, num_clust_cells, num_clust_cells)
+    this_real$fisher.bh = p.adjust(this_real$fisher.p, method = "BH")
+    
+    this_real$gene = rownames(this_real)
+    this_real$cluster = i
+    rownames(this_real) = paste0(rownames(this_real), "_", i)
+    clust15_full = rbind(clust15_full, this_real)
+    
+    # this_real_sig = this_real[which(this_real$bh < 0.05 & this_real$num_cells >= 10),]
+    this_real_sig = this_real[which(this_real$perm.bh < 0.05 & this_real$fisher.bh < 0.05 & this_real$bhve_num_cells >= 5 & this_real$ctrl_num_cells),]
+    if ( nrow(this_real_sig) > 0 ) {
+      clust15_sig = rbind(clust15_sig, this_real_sig)
+    }
+    
+    print(paste0("Number of significant results for cluster ", i, ": ", nrow(this_real_sig)))
+    # if ( nrow(this_real_sig) > 0 )
+    #   print(paste0("Max Significant Difference: ", rownames(this_real_sig)[which.max(abs(this_real_sig$Dif))], ", ", max(abs(this_real_sig$Dif))))
+  } # end cluster for
+  print(paste0("Total Number of 15 Cluster Significant results for ", gene_list, ": ", nrow(clust15_sig)))
+  write.csv(clust15_sig, paste0("~/scratch/brain/results/clust15_real_", gene_list, "_score_cor_bvc_w_stats_sig.csv"))
+  system(paste0("rclone copy ~/scratch/brain/results/clust15_real_", gene_list, "_score_cor_bvc_w_stats_sig.csv dropbox:BioSci-Streelman/George/Brain/bb/results/score_cor/clust15/"))
+  
+  # Across Cluster BH Correction
+  clust15_full$full.fisher.bh = p.adjust(clust15_full$fisher.p, method = "BH")
+  clust15_full$full.perm.bh = p.adjust(clust15_full$two.tail.p, method = "BH")
+  clust15_full_sig = clust15_full[which(clust15_full$full.fisher.bh < 0.05 & clust15_full$full.perm.bh < 0.05 & clust15_full$bhve_num_cells >= 5 & clust15_full$ctrl_num_cells >= 5),]
+  print(paste0("Total Number of FULL 15 Cluster Significant results for ", gene_list, ": ", nrow(clust15_full_sig)))
+  write.csv(clust15_sig, paste0("~/scratch/brain/results/clust15_real_full_", gene_list, "_score_cor_bvc_w_stats_sig.csv"))
+  system(paste0("rclone copy ~/scratch/brain/results/clust15_real_full_", gene_list, "_score_cor_bvc_w_stats_sig.csv dropbox:BioSci-Streelman/George/Brain/bb/results/score_cor/clust15/"))
+} # end gene_list for
+
+# Score Cor Results - 53 Cluster Level
+# gene_lists = c("ieg", "prog", "neurogen")
+gene_lists = c("pcrclg11")
+for (gene_list in gene_lists) {
+  print(gene_list)
+  real = read.csv(paste0("~/scratch/brain/results/clust53_real_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(real) = real$X
+  real$X = NULL
+  colnames(real) = 0:52
+  perm = read.csv(paste0("~/scratch/brain/results/clust53_perm_1000_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(perm) = perm$X
+  perm$X = NULL
+  colnames(perm) = 0:52
+  
+  real_full = read.csv(paste0("~/scratch/brain/results/clust53_real_full_", gene_list, "_score_cor_bvc.csv"), stringsAsFactors = F)
+  rownames(real_full) = real_full$X
+  real_full$X = NULL
+  
+  clust53_sig = data.frame()
+  clust53_full = data.frame()
+  for (i in 0:52) {
+    # print(i)
+    # print("Calculating the number of cells in the cluster")
+    num_clust_cells = length(which(bb$seuratclusters53 == i))
+    mat = bb@assays$RNA@counts[,which(bb$seuratclusters53 == i & bb$cond == "BHVE")]
+    mat[which(mat > 0)] = 1
+    bhve_num_cells = rowSums(mat)
+    mat = bb@assays$RNA@counts[,which(bb$seuratclusters53 == i & bb$cond == "CTRL")]
+    mat[which(mat > 0)] = 1
+    ctrl_num_cells = rowSums(mat)
+    
+    # this_real = data.frame(Dif = real[,as.character(i)], num_cells = num_cells)
+    this_real = data.frame(BHVE = real_full[,paste0("BHVE_",i)], CTRL = real_full[,paste0("CTRL_",i)], Dif = real[,as.character(i)], bhve_num_cells = bhve_num_cells, ctrl_num_cells = ctrl_num_cells)
+    rownames(this_real) = rownames(real)
+    this_real = this_real[which(this_real$Dif != 0),]
+    
+    this_real$nMoreExtreme = perm[match(rownames(this_real), rownames(perm)), as.character(i)]
+    this_real$two.tail.p = 2 * (this_real$nMoreExtreme/1000)
+    this_real$perm.bh = p.adjust(this_real$two.tail.p, method = "BH")
+    this_real$fisher.p = r_to_p(this_real$BHVE, this_real$CTRL, num_clust_cells, num_clust_cells)
+    this_real$fisher.bh = p.adjust(this_real$fisher.p, method = "BH")
+    
+    this_real$gene = rownames(this_real)
+    this_real$cluster = i
+    rownames(this_real) = paste0(rownames(this_real), "_", i)
+    clust53_full = rbind(clust53_full, this_real)
+    
+    # this_real_sig = this_real[which(this_real$bh < 0.05 & this_real$num_cells >= 10),]
+    this_real_sig = this_real[which(this_real$perm.bh < 0.05 & this_real$fisher.bh < 0.05 & this_real$bhve_num_cells >= 5 & this_real$ctrl_num_cells),]
+    if ( nrow(this_real_sig) > 0 ) {
+      clust53_sig = rbind(clust53_sig, this_real_sig)
+    }
+    
+    # print(paste0("Number of significant results for cluster ", i, ": ", nrow(this_real_sig)))
+    # if ( nrow(this_real_sig) > 0 )
+    #   print(paste0("Max Significant Difference: ", rownames(this_real_sig)[which.max(abs(this_real_sig$Dif))], ", ", max(abs(this_real_sig$Dif))))
+  } # end cluster for
+  print(paste0("Total Number of 53 Cluster Significant results for ", gene_list, ": ", nrow(clust53_sig)))
+  write.csv(clust53_sig, paste0("~/scratch/brain/results/clust53_real_", gene_list, "_score_cor_bvc_w_stats_sig.csv"))
+  system(paste0("rclone copy ~/scratch/brain/results/clust53_real_", gene_list, "_score_cor_bvc_w_stats_sig.csv dropbox:BioSci-Streelman/George/Brain/bb/results/score_cor/clust53/"))
+  
+  # Across Cluster BH Correction
+  clust53_full$full.fisher.bh = p.adjust(clust53_full$fisher.p, method = "BH")
+  clust53_full$full.perm.bh = p.adjust(clust53_full$two.tail.p, method = "BH")
+  clust53_full_sig = clust53_full[which(clust53_full$full.fisher.bh < 0.05 & clust53_full$full.perm.bh < 0.05 & clust53_full$bhve_num_cells >= 5 & clust53_full$ctrl_num_cells >= 5),]
+  print(paste0("Total Number of FULL 53 Cluster Significant results for ", gene_list, ": ", nrow(clust53_full_sig)))
+  write.csv(clust53_sig, paste0("~/scratch/brain/results/clust53_real_full_", gene_list, "_score_cor_bvc_w_stats_sig.csv"))
+  system(paste0("rclone copy ~/scratch/brain/results/clust53_real_full_", gene_list, "_score_cor_bvc_w_stats_sig.csv dropbox:BioSci-Streelman/George/Brain/bb/results/score_cor/clust53/"))
+} # end gene_list for
+
+
+# png("~/scratch/brain/results/score_cor_ieg_sig.png")
+# ggplot(real_sig, aes(Dif, nMoreExtreme, color = num_cells)) + geom_point()
+# dev.off()
 
 #==========================================================================================
 # Split Into Individuals ==================================================================
@@ -1869,6 +2139,27 @@ for (i in 1:length(bri_clean)) {
 #==========================================================================================
 bhve_samples = c("b1", "b2", "b3", "b4", "b5")
 ctrl_samples = c("c1", "c2", "c3", "c4", "c5")
+
+# 100 Permutations
+for (i in 1:100) {
+  print(i)
+  subsample_stats_df = data.frame()
+  bb$pseudo_subsample = "NA"
+  set.seed(i)
+  for (sub_sample in levels(bb$subsample)) {
+    sub_sample_cells = colnames(bb)[which(bb$subsample == sub_sample)]
+    train_num_cells = floor(length(sub_sample_cells) * 0.8)
+    train_cells = sample(sub_sample_cells, train_num_cells)
+    test_cells = sub_sample_cells[which(!sub_sample_cells %in% train_cells)]
+    bb$pseudo_subsample[train_cells] = paste0(sub_sample, "_train")
+    bb$pseudo_subsample[test_cells] = paste0(sub_sample, "_test")
+    # subsample_stats_df = rbind(subsample_stats_df, t(c(length(sub_sample_cells), train_num_cells, length(test_cells))))
+  }
+  Idents(bb) = bb$pseudo_subsample
+  pseudo_avg = myAverageExpression(bb, slot = "counts")
+  pseudo_avg = t(pseudo_avg)
+  write.csv(pseudo_avg, paste0("~/scratch/brain/data/pseudo_subsample_ml/pseudo_", i, ".csv"))
+}
 
 # Scrap Code for Python/PACE
 bb$sample.clust = paste0(bb$sample, ".", bb$seuratclusters53)
@@ -2478,12 +2769,14 @@ write.csv(neuro_deg, "~/research/brain/results/fgsea_results_04132021.csv")
 # For Katie ===========================================================================
 #======================================================================================
 # old = readRDS("C:/Users/miles/Downloads/brain/brain_scripts/brain_mz_shiny/data/B1C1C2MZ_combined_031020.rds")
-old = readRDS("~/Downloads/B1C1C2MZ_combined_katie.rds")
+# old = readRDS("~/Downloads/B1C1C2MZ_combined_katie.rds")
+old = readRDS("C:/Users/miles/Downloads/combined.sct_ensemble.rds")
 # old = readRDS("C:/Users/miles/Downloads/brain/data/bb_subsample_02222021.RDS")
+new = readRDS("C:/Users/miles/Downloads/combined.sct_ncbi.rds")
 # new = readRDS("C:/Users/miles/Downloads/B1C1C2MZ_combinedv3.rds")
 # new = readRDS("~/Downloads/mcmzbb_combined_vst_1.8res.rds")
 # new = readRDS("C:/Users/miles/Downloads/mcmz_bb_combinedv2.rds")
-new = readRDS("~/Downloads/combined_sctransform1.8res.rds")
+# new = readRDS("~/Downloads/combined_sctransform1.8res.rds")
 
 new_cells = sapply(colnames(new), function(x) substr(x, 0, 21))
 old_cells = sapply(colnames(old), function(x) substr(x, 0, 21))
@@ -2495,13 +2788,16 @@ new_df$cell_strip = str_remove(new_df$new_cell, "MCMZ_")
 new_df$cell_strip = colsplit(new_df$cell_strip, "_", names = c("begin", "barcode"))[,2]
 new_df$cell_strip = colsplit(new_df$cell_strip, "-", names = c("barcode", "end"))[,1]
 
+old_df$old_sample = str_replace(old_df$old_sample, "MC_BHVE", "MC")
+old_df$old_sample = str_replace(old_df$old_sample, "MC_CTRL", "MC")
+old_df$old_sample = str_replace(old_df$old_sample, "MZ_CTRL", "MZ")
 old_df$cell_strip = str_remove(old_df$old_cell, "MCMZ_")
 old_df$cell_strip = colsplit(old_df$cell_strip, "_", names = c("begin", "barcode"))[,2]
 old_df$cell_strip = colsplit(old_df$cell_strip, "-", names = c("barcode", "end"))[,1]
 
 new_df[,c("old_cell", "old_cluster")] = old_df[match( paste0(new_df$cell_strip, new_df$new_sample), paste0(old_df$cell_strip, old_df$old_sample) ), c("old_cell", "old_cluster")]
 df = new_df
-df = df[which(df$new_sample == "c2"),]
+df = df[which(df$new_sample == "MZ"),]
 
 df2_mat = matrix(0L, nrow = length(unique(old$seurat_clusters)), ncol = length(unique(new$seurat_clusters)), dimnames = list(levels(old$seurat_clusters), levels(new$seurat_clusters)))
 df2 = data.frame()
@@ -2521,8 +2817,8 @@ df2$new_cluster = factor(df2$new_cluster, levels = levels(new$seurat_clusters))
 png("~/Downloads/katie_to_sc_big_bar_rock.png", width = 1000, height = 600)
 ggplot(df2, aes(old_cluster, value, fill = new_cluster, color = new_cluster)) + geom_bar(stat = "identity") + xlab("Katie Clusters") + ylab("Number of Cells from New Cluster in Katie Cluster") + ggtitle("Map of New Clusters to Katie's Clusters")
 dev.off()
-png("~/Downloads/katie_to_sc_big_heat_2_rock.png", width = 750, height = 750)
-heatmap.2(df2_mat, scale = "row", Rowv=FALSE, Colv=FALSE, cexRow = 1, cexCol = 1, dendrogram = "none", trace = "none", xlab = "New Clusters", ylab = "Katie's Clusters")
+png("~/Downloads/katie_ens_v_ncbi.png", width = 750, height = 750)
+heatmap.2(df2_mat, scale = "row", Rowv=FALSE, Colv=FALSE, cexRow = 1, cexCol = 1, dendrogram = "none", trace = "none", xlab = "NCBI Clusters", ylab = "ENSEMBL Clusters")
 dev.off()
 df2_mat_melt = melt(df2_mat)
 png("~/Downloads/katie_to_sc_big_heat_3_rock.png", width = 750, height = 750)

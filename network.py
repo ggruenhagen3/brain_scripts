@@ -118,6 +118,17 @@ scv.pp.moments(ad_sub)
 scv.tl.velocity(ad_sub, mode='stochastic')
 scv.tl.velocity_graph(ad_sub)
 
+merged = scanpy.read("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/all_velo/all_merged_w_seurat_dynamical.h5ad")
+scv.tl.latent_time(merged)
+merged.obs['root_cells'] = 1 - merged.obs['root_cells']
+merged.obs['end_points'] = 1 - merged.obs['end_points']
+# merged.obs.loc[merged.obs['seuratclusters53'] != '12']['root_cells'] = 0
+# merged.obs.loc[merged.obs['seuratclusters53'] == '12']['root_cells'] = 1
+scv.tl.recover_latent_time(merged)
+ad_sub=merged[merged.obs['seuratclusters15']=='0',:]
+# scv.tl.recover_latent_time(ad_sub)
+scv.pl.scatter(ad_sub, color='latent_time', color_map='Spectral_r', size=80, basis = 'umap_cell_embeddings', save = '_dynamical_time0_flip.svg')
+
 import scanpy
 scanpy.AnnData.write_loom(merged, "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/all_velo/all_merged_w_seurat.loom")
 'write/pbmc3k.h5ad'

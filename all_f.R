@@ -18,6 +18,7 @@ library("httr")
 library("ggtext")
 library("colourvalues")
 library("colorspace")
+library("ggrepel")
 # library("ggforce")
 httr::set_config(config(ssl_verifypeer = FALSE))
 
@@ -45,9 +46,15 @@ pct_dif_avg_logFC = function(obj, cells.1, cells.2) {
   pct_dif = pct_pos_cells1 - pct_pos_cells2
   
   # Find Average Log FC
+  # Seurat
   mean_exp1 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.1]))
   mean_exp2 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.2]))
   avg_logFC = log(mean_exp1 + 1) - log(mean_exp2 + 1)
+  
+  # # Zack 
+  # mean_exp1 = rowSums(bb@assays$RNA@counts[non_zero_genes,cells.1]) / sum(bb$nCount_RNA[cells.1])
+  # mean_exp2 = expm1(rowSums(bb@assays$RNA@counts[non_zero_genes,cells.2]) / sum(bb$nCount_RNA[cells.2]))
+  # avg_logFC = log(mean_exp1 + 1) - log(mean_exp2 + 1)
   
   df = data.frame(genes = non_zero_genes, avg_logFC = avg_logFC, pct.1 = pct_pos_cells1, pct.2 = pct_pos_cells2, pct_dif = pct_dif, num.1 = num_pos_cells1, num.2 = num_pos_cells2)
   
@@ -462,7 +469,7 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
   df$ident = Idents(obj)
   
   # Make the Cells that do not express the gene gray
-  my.na.value = "lightgray" # a constant used in the graphs
+  my.na.value = "grey90" # a constant used in the graphs
   if (na.blank) {
     if (feature %in% rownames(obj))
       df$value[which(obj@assays$RNA@counts[feature,] < 1)] = NA

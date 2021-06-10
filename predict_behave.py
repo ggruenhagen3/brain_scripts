@@ -332,11 +332,10 @@ def singleRun(i, j):
         xtrain = xtrain.iloc[:, dif_idx[0:i]]
         xtest = xtest.iloc[:, dif_idx[0:i]]
         # Standardize the Data
-        # scaler = StandardScaler()
-        # a = scaler.fit(xtrain)
+        scaler = StandardScaler().fit(xtrain)
         # scaler = MinMaxScaler().fit(xtrain)
-        # xtrain = pandas.DataFrame(data=scaler.transform(xtrain), index=xtrain.index, columns=xtrain.columns)
-        # xtest = pandas.DataFrame(data=scaler.transform(xtest), index=xtest.index, columns=xtest.columns)
+        xtrain = pandas.DataFrame(data=scaler.transform(xtrain), index=xtrain.index, columns=xtrain.columns)
+        xtest = pandas.DataFrame(data=scaler.transform(xtest), index=xtest.index, columns=xtest.columns)
         # Fit the Model
         rc = LogisticRegression(C=1)
         a = rc.fit(xtrain, ytrain)
@@ -363,6 +362,49 @@ numpy.argwhere(numpy.isin(features, d_15_biased[j])).flatten().tolist()
         # coef_df[b_pair] = rc.coef_[0,:]
         # coef_df[b_pair] = pd_df.columns[sort_idx[0, range(0, i)]]
         # coef_df[b_pair] = this_features.tolist()
+
+def permSingleRun(i):
+    # Set Constants for Number of Features to Select
+    num_cum_dif = 117
+    num_top_model = 4
+
+    # Read Data and Separate Train from Test
+    pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/pseudo_subsample_ml/pseudo_" + str(i) + ".csv", index_col=0)
+    train_names = [x for x in list(pd_df.index) if "train" in x]  # the subsamples that are in the test data
+    test_names = [x for x in list(pd_df.index) if "test" in x]  # the subsamples that are in the test data
+    xtrain = pd_df.loc[train_names]
+    xtest = pd_df.loc[test_names]
+
+    # Find Genes with the largest cummulative difference between bhve and ctrl
+    bhve_names = [x for x in list(pd_df.index) if "b" in x]
+    ctrl_names = [x for x in list(pd_df.index) if "c" in x]
+    b_sum = xtrain.loc[bhve_names].sum(axis=0)
+    c_sum = xtrain.loc[ctrl_names].sum(axis=0)
+    dif = abs(b_sum - c_sum)
+    dif_idx = (-dif).argsort()
+    xtrain = xtrain.iloc[:, dif_idx[0:num_cum_dif]]
+    xtest = xtest.iloc[:, dif_idx[0:num_cum_dif]]
+
+    # Select the Top Features to the Model
+    rc = LogisticRegression(C=1)
+    a = rc.fit(xtrain, ytrain)
+    importance = numpy.abs(rc.coef_)
+    sort_idx = (-importance).argsort()  # argsort give the indexes which would sort the array
+    xtrain = xtrain.iloc[:, sort_idx[0, 0:num_top_model]]
+    xtest = xtest.iloc[:, sort_idx[0, 0:num_top_model]]
+
+    # Refit the Model and Predict
+    a = rc.fit(xtrain, ytrain)
+    test_score = rc.score(xtest, ytest)
+
+    return(test_score)
+
+
+# 100 Permutations
+with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    pool_res = pool.map(permSingleRun, range(0, 200))
+    perm_df = pandas.DataFrame(pool_res, columns = list(range(0, 200)))
+
 
 
 
