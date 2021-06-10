@@ -71,7 +71,7 @@ for (module in sort(unique(df6$module))) {
   print(module)
   this_genes = df6$gene[which(df6$module == module)]
   bb$this_module = colSums(bb@assays$RNA@data[this_genes,])
-  png(paste0("C:/Users/miles/Downloads/brain/results/bb/modules6/module_", module, ".png"), height = 550, width = 600)
+  png(paste0("C:/Users/miles/Downloads/brain/results/bb/modules6_equal/module_", module, ".png"), height = 550, width = 600)
   print(FeaturePlot(bb, "this_module", order = T, label = T, pt.size = 1.5) + ggtitle(paste("Module", module)))
   dev.off()
 }
