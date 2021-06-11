@@ -219,9 +219,9 @@ def main():
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
     if gene != "":
-        perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(perm_num) + ".csv")
+        perm_ns_dif.to_csv(output_folder + "/" + base_name + str(perm_num) + ".csv")
     else:
-        perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + gene + "_" + str(perm_num) + ".csv")
+        perm_ns_dif.to_csv(output_folder + "/" + base_name + gene + "_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
