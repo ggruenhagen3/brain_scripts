@@ -28,8 +28,9 @@ def parseArgs():
     parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
     parser.add_argument("-r", "--cor_only", help="Only find correlations in the data?", action="store_true")
     parser.add_argument("-a", "--do_abs", help="Take the absolute value of the correlations?", action="store_true")
+    parser.add_argument("-s", "--sum_ns", help="Sum absolute value of node strength difference?", action="store_true")
     args = parser.parse_args()
-    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns
 
 
 def corOnlyAndWrite(this_idx, output_path):
@@ -119,7 +120,7 @@ def main():
 
     # Read Inputs
     global do_abs
-    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs = parseArgs()
+    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs, sum_ns = parseArgs()
 
     # Read BB data
     global data_mat
@@ -203,12 +204,18 @@ def main():
                 ns_dict["Dif_Abs"] = np.absolute(pool_ns[0] - pool_ns[1])
             else:
                 ns_dict[i] = pool_ns[0] - pool_ns[1]
+            # Find Genes that are in at least 5 cells in BHVE and CTRL
             num_cells_bhve = np.array(data_mat[:, mat_idx['B' + str(i)]].astype(bool).sum(axis=1))[:, 0]
             num_cells_ctrl = np.array(data_mat[:, mat_idx['C' + str(i)]].astype(bool).sum(axis=1))[:, 0]
             gene_idx_min_cells = np.where(np.logical_and(num_cells_bhve >= 5, num_cells_ctrl >= 5))[0]
+            # Find Sum of NS and Sum of Absolute NS for those genes
+            sum_ns_dif = np.sum(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells])
+            sum_abs_ns_dif = np.sum(np.absolute(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells]))
+            if sum_ns:
+                ns_dict[i] = sum_abs_ns_dif
             print("Sums for genes with at least 5 cells in BHVE and CTRL")
-            print("Sum of NS Dif " + str(np.sum(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells])) )
-            print("Sum of Abs NS Dif " + str(np.sum(np.absolute(pool_ns[0][gene_idx_min_cells] - pool_ns[1][gene_idx_min_cells]))))
+            print("Sum of NS Dif " + str(sum_ns_dif) )
+            print("Sum of Abs NS Dif " + str(sum_abs_ns_dif))
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
     if gene != "":
