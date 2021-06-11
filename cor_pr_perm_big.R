@@ -27,7 +27,7 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
                "module load anaconda3",
                "module load r",
                "conda activate r4\n",
-               paste("python grn.py", x, n_perm_per_job)),
+               paste("python grn.py", x, n_perm_per_job, "-a")),
              fileConn)
   close(fileConn)
   system(paste("qsub", pbs_file_name))
