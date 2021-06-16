@@ -155,7 +155,7 @@ def main():
     if do_abs:
         base_name = base_name + "abs_"
     if gene != "":
-        base_name = base_name + "gene_"
+        base_name = base_name + str(gene)
     if cluster15 != -1:
         print("Subsetting on 15 cluster level for cluster " + str(cluster15))
         base_name = base_name + "cluster15_" + str(cluster15)
