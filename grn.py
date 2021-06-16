@@ -41,6 +41,11 @@ def corOnlyAndWrite(this_idx, output_path):
     :return success: Function completed? True/False
     """
     cor = pandas.DataFrame(data=sparse_corrcoef(data_mat[:, this_idx].todense()), index=gene_labels, columns=gene_labels)
+    if do_abs:
+        print("Taking absolute value of correlations")
+        cor = cor.abs()
+    else:
+        print("NOT taking absolute value of correlations. Using raw values.")
     h5f = h5py.File(output_path, 'w')
     h5f.create_dataset('name', data=cor)
     h5f.close()
@@ -149,6 +154,8 @@ def main():
         base_name = "real_"
     if do_abs:
         base_name = base_name + "abs_"
+    if gene != "":
+        base_name = base_name + "gene_"
     if cluster15 != -1:
         print("Subsetting on 15 cluster level for cluster " + str(cluster15))
         base_name = base_name + "cluster15_" + str(cluster15)
@@ -218,10 +225,7 @@ def main():
             print("Sum of Abs NS Dif " + str(sum_abs_ns_dif))
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
-    if gene != "":
-        perm_ns_dif.to_csv(output_folder + "/" + base_name + str(perm_num) + ".csv")
-    else:
-        perm_ns_dif.to_csv(output_folder + "/" + base_name + gene + "_" + str(perm_num) + ".csv")
+    perm_ns_dif.to_csv(output_folder + "/" + base_name + gene + "_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
