@@ -4,7 +4,7 @@
 #======================================================+
 
 # Constants
-output_folder = "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns_cluster15/"
+output_folder = "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/py_ns_cluster15_abs/"
 n_perm = 1000 # 200 matrices total because bhve and ctrl
 n_perm_per_job = 500
 pbs_file_name = "~/scratch/brain/brain_scripts/py_ns_cluster.pbs"
@@ -29,7 +29,7 @@ sapply(1:(n_perm/n_perm_per_job), function(x) {
                  "module load anaconda3",
                  "module load r",
                  "conda activate r4\n",
-                 paste("python grn.py", x, n_perm_per_job, "-c", cluster, "-o", output_folder)),
+                 paste("python grn.py", x, n_perm_per_job, "-a", "-c", cluster, "-o", output_folder)),
                fileConn)
     close(fileConn)
     system(paste("qsub", pbs_file_name))
