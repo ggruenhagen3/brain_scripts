@@ -225,7 +225,7 @@ def main():
             print("Sum of Abs NS Dif " + str(sum_abs_ns_dif))
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
-    perm_ns_dif.to_csv(output_folder + "/" + base_name + gene + "_" + str(perm_num) + ".csv")
+    perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
     main()
