@@ -29,8 +29,9 @@ def parseArgs():
     parser.add_argument("-r", "--cor_only", help="Only find correlations in the data?", action="store_true")
     parser.add_argument("-a", "--do_abs", help="Take the absolute value of the correlations?", action="store_true")
     parser.add_argument("-s", "--sum_ns", help="Sum absolute value of node strength difference?", action="store_true")
+    parser.add_argument("-m", "--replicate_match", help="Does the NS Dif match for all replicates?", action="store_true")
     args = parser.parse_args()
-    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns, args.replicate_match
 
 
 def corOnlyAndWrite(this_idx, output_path):
@@ -125,7 +126,7 @@ def main():
 
     # Read Inputs
     global do_abs
-    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs, sum_ns = parseArgs()
+    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs, sum_ns, replicate_match = parseArgs()
 
     # Read BB data
     global data_mat
@@ -139,6 +140,7 @@ def main():
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters15.csv").iloc[:, 0].to_numpy()
     cluster53_labels = pandas.read_csv(
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters53.csv").iloc[:, 0].to_numpy()
+    bb_metadata = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_metadata.csv")
 
     # Subset by gene if necessary
     if gene != "":
@@ -156,6 +158,8 @@ def main():
         base_name = base_name + "abs_"
     if gene != "":
         base_name = base_name + str(gene)
+    if replicate_match:
+        base_name = base_name + "replicate"
     if cluster15 != -1:
         print("Subsetting on 15 cluster level for cluster " + str(cluster15))
         base_name = base_name + "cluster15_" + str(cluster15)
@@ -196,6 +200,22 @@ def main():
         mat_idx = permuteLabels(num_perm)
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
 
+    # Subset by cells if necessary
+    if replicate_match:
+        print("Checking to see all replicates have a matching direction for NS Dif")
+        num_perm = 5
+        mat_idx = {}
+        mat_idx["B" + str(0)] = np.flatnonzero(bb_metadata[["sample"]] == "b1")
+        mat_idx["C" + str(0)] = np.flatnonzero(bb_metadata[["sample"]] == "c1")
+        mat_idx["B" + str(1)] = np.flatnonzero(bb_metadata[["sample"]] == "b2")
+        mat_idx["C" + str(1)] = np.flatnonzero(bb_metadata[["sample"]] == "c2")
+        mat_idx["B" + str(2)] = np.flatnonzero(bb_metadata[["sample"]] == "b3")
+        mat_idx["C" + str(2)] = np.flatnonzero(bb_metadata[["sample"]] == "c3")
+        mat_idx["B" + str(3)] = np.flatnonzero(bb_metadata[["sample"]] == "b4")
+        mat_idx["C" + str(3)] = np.flatnonzero(bb_metadata[["sample"]] == "c4")
+        mat_idx["B" + str(4)] = np.flatnonzero(bb_metadata[["sample"]] == "b5")
+        mat_idx["C" + str(4)] = np.flatnonzero(bb_metadata[["sample"]] == "c5")
+
     # Create BHVE and CTRL Matrices, Find Correlations, Find Node Strengths and Find NodeStrength Differences
     # mat_idx3 = {'B0': [0, 1, 2, 3, 5], 'C0': [4, 6, 10, 11, 15], 'B1': [1, 3, 4, 7, 8]}
     print("Finding Correlations")
@@ -204,7 +224,7 @@ def main():
         print("Start Pair: " + str(i))
         with multiprocessing.Pool(2) as pool:
             pool_ns = pool.map(corAndNodeStrength, [mat_idx['B' + str(i)], mat_idx['C' + str(i)]])
-            if no_perm:
+            if no_perm and not replicate_match:
                 ns_dict["B"] = pool_ns[0]
                 ns_dict["C"] = pool_ns[1]
                 ns_dict["Dif"] = pool_ns[0] - pool_ns[1]
@@ -225,6 +245,8 @@ def main():
             print("Sum of Abs NS Dif " + str(sum_abs_ns_dif))
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
+    if replicate_match:
+        perm_ns_dif.columns = ["NS_Dif_1", "NS_Dif_2", "NS_Dif_3", "NS_Dif_4", "NS_Dif_5"]
     perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(perm_num) + ".csv")
 
 if __name__ == '__main__':
