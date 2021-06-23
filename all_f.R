@@ -2711,7 +2711,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png4_name = paste(filepath, filename, "_pct_best_guess_same_dir.png", sep="")
     png5_name = paste(filepath, filename, "_mag_dend_same_dir.png", sep="")
     png6_name = paste(filepath, filename, "_dend_same_dir.png", sep="")
-    pdf3_name = paste(filepath, filename, "_pct_same_dir.png", sep="")
+    pdf3_name = paste(filepath, filename, "_pct_same_dir.pdf", sep="")
     
     png1_title = paste("DEGs in Common w/ Same Sign b/w Clusters")
     png2_title = paste("Best Guess of DEGs w/ Same Sign")
@@ -2777,7 +2777,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   pdf(pdf3_name,  width = .25*length(dfs)+.50, height = .250*length(dfs))
   print(p)
   dev.off()
-  print("finished plot 3")
+  # print("finished plot 3")
   
   # Plot 4 - Pct Best Guess
   png(png4_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
