@@ -2774,10 +2774,10 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
   print(p)
   dev.off()
-  pdf(pdf3_name,  width = .25*length(dfs)+.50, height = .250*length(dfs))
+  pdf(pdf3_name,  width = 2.5*length(dfs)+.50, height = 2.5*length(dfs))
   print(p)
   dev.off()
-  # print("finished plot 3")
+  print("finished plot 3")
   
   # Plot 4 - Pct Best Guess
   png(png4_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
