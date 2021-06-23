@@ -203,6 +203,7 @@ def main():
     # Subset by cells if necessary
     if replicate_match:
         print("Checking to see all replicates have a matching direction for NS Dif")
+        num_perm = 5
         mat_idx = {}
         mat_idx["B" + str(0)] = np.flatnonzero(bb_metadata[["sample"]] == "b1")
         mat_idx["C" + str(0)] = np.flatnonzero(bb_metadata[["sample"]] == "c1")
