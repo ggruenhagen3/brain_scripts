@@ -2711,6 +2711,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png4_name = paste(filepath, filename, "_pct_best_guess_same_dir.png", sep="")
     png5_name = paste(filepath, filename, "_mag_dend_same_dir.png", sep="")
     png6_name = paste(filepath, filename, "_dend_same_dir.png", sep="")
+    pdf3_name = paste(filepath, filename, "_pct_same_dir.png", sep="")
     
     png1_title = paste("DEGs in Common w/ Same Sign b/w Clusters")
     png2_title = paste("Best Guess of DEGs w/ Same Sign")
@@ -2771,6 +2772,9 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     p = p + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) 
   if (! xlab)
     p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  print(p)
+  dev.off()
+  pdf(pdf3_name,  width = .25*length(dfs)+.50, height = .250*length(dfs))
   print(p)
   dev.off()
   print("finished plot 3")
