@@ -30,8 +30,9 @@ def parseArgs():
     parser.add_argument("-a", "--do_abs", help="Take the absolute value of the correlations?", action="store_true")
     parser.add_argument("-s", "--sum_ns", help="Sum absolute value of node strength difference?", action="store_true")
     parser.add_argument("-m", "--replicate_match", help="Does the NS Dif match for all replicates?", action="store_true")
+    parser.add_argument("-i", "--ieg", help="Run on cells that express at least X IEGs.", nargs="?", type=int, default=0, const=0)
     args = parser.parse_args()
-    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns, args.replicate_match
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns, args.replicate_match, args.ieg
 
 
 def corOnlyAndWrite(this_idx, output_path):
@@ -126,7 +127,7 @@ def main():
 
     # Read Inputs
     global do_abs
-    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs, sum_ns, replicate_match = parseArgs()
+    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs, sum_ns, replicate_match, ieg = parseArgs()
 
     # Read BB data
     global data_mat
@@ -141,6 +142,7 @@ def main():
     cluster53_labels = pandas.read_csv(
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters53.csv").iloc[:, 0].to_numpy()
     bb_metadata = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_metadata.csv")
+    ieg_score = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_ieg_score.csv").iloc[:,1].to_numpy()
 
     # Subset by gene if necessary
     if gene != "":
@@ -150,7 +152,13 @@ def main():
         data_mat = data_mat[:, gene_pos_idx]
         cond_labels = cond_labels[gene_pos_idx]
 
-    # Subset by cluster if necessary
+    # Subset by IEG Score if necessary
+    if ieg > 0:
+        ieg_idx = np.where(ieg_score >= ieg)[0]
+        data_mat = data_mat[:, ieg_idx]
+        cond_labels = cond_labels[ieg_idx]
+
+    # Change file name based on input
     base_name = "perm_"
     if no_perm:
         base_name = "real_"
@@ -160,6 +168,10 @@ def main():
         base_name = base_name + str(gene)
     if replicate_match:
         base_name = base_name + "replicate"
+    if ieg > 0:
+        base_name = base_name + "ieg" + str(ieg)
+
+    # Subset by cluster if necessary
     if cluster15 != -1:
         print("Subsetting on 15 cluster level for cluster " + str(cluster15))
         base_name = base_name + "cluster15_" + str(cluster15)
