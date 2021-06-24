@@ -2767,7 +2767,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   
   # Plot 3 - Pct
   png(png3_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
-  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + ggtitle(png3_title) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+  p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + ggtitle(png3_title) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
     p = p + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) 
   if (! xlab)
