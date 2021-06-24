@@ -2774,7 +2774,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
   print(p)
   dev.off()
-  pdf(pdf3_name,  width = 2.5*length(dfs)+.50, height = 2.5*length(dfs), version = "1.6", compress = F)
+  pdf(pdf3_name,  width = 2.5*length(dfs)+.50, height = 2.5*length(dfs), version = "1.6", fillOddEven = T)
   print(p)
   dev.off()
   print("finished plot 3")
