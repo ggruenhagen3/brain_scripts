@@ -38,7 +38,7 @@ def detectMotifInRecord(record):
 def writeFile(file, lines):
     f = open(file, "w")
     for line in lines:
-        f.write(line)
+        f.write(line + "\n")
     f.close()
 
 
