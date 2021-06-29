@@ -3,8 +3,6 @@ import argparse
 from Bio import SeqIO
 import multiprocessing
 
-global seq
-
 def parseArgs():
     parser = argparse.ArgumentParser(description='Find estrogen response elements (EREs).')
     parser.add_argument('input', metavar='input', help='Input fasta file')
@@ -32,6 +30,7 @@ def main():
     input = parseArgs()
     print("Reading input file: " + input)
     record = SeqIO.read("/storage/home/hcoda1/6/ggruenhagen3/scratch/msc/sequence.fasta", "fasta")
+    global seq
     seq = record.seq
 
     print("Splitting sequence into tenths.")
