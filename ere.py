@@ -32,7 +32,7 @@ def writeFile(file, lines, vcf):
         start = line.split(":")[1].split("-")[0]
         stop = line.split(":")[1].split("-")[1]
         if vcf:
-            f.write(chr + "\t" + start + "\t" + stop + ".\tA\tA\t1.0\t1\n")
+            f.write(chr + "\t" + start + "\t" + stop + "\t.\tA\tA\t1.0\t1\n")
         else:
             f.write(chr + "\t" + start + "\t" + stop + "\n")
     f.close()
