@@ -17,7 +17,7 @@ def detectMotif(tenth_split = None):
         res = prog.finditer(seq)
     else:
         tenth_length = len(seq) / 10
-        res = prog.finditer(seq[int(tenth_length*tenth_split):int(tenth_length*tenth_length + tenth_length)])
+        res = prog.finditer(seq[int(tenth_length*tenth_split):int(tenth_length*tenth_split + tenth_length)])
     for match in res:
         match_start = match.span()[0]
         if tenth_split != None:
