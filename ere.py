@@ -50,7 +50,7 @@ def main():
     all_eres = [item for sublist in all_eres for item in sublist]  # flatten all_eres list
 
     if vcf:
-        output.replace(".bed", ".vcf")
+        output = output.replace(".bed", ".vcf")
 
     # Printing output
     print("Writing output in BED format to: " + output)
