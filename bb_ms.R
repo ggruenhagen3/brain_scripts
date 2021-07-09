@@ -60,6 +60,10 @@ for (clust15_new_num in 1:15) {
     convert53[as.numeric(this_rows$row), "col"] = new_cols
   }
 } # end outer for
+convert53 = convert53[order(as.numeric(convert53$new.parent), decreasing = F),]
+tmp = convert53[which(convert53$new == "8-9_Glut"),]
+convert53 = convert53[-which(convert53$new == "8-9_Glut"),]
+convert53 = rbind(convert53[1:29,], tmp, convert53[30:nrow(convert53),])
 
 bb$good_names = convert53$new[match(bb$seuratclusters53, convert53$old)]
 bb$good_names_num = colsplit(bb$good_names, "_", c("num", "ex"))[,1]
@@ -335,3 +339,204 @@ p_list[["CTRL"]] = ggplot(df[which(df$cond == "CTRL"),], aes(UMAP_1, UMAP_2, col
 png("C:/Users/miles/Downloads/bvc15_umap_rdylbu.png", width = 2000, height = 1000, res = 120)
 plot_grid(plotlist=p_list, ncol = 2)
 dev.off()
+
+# *************************************************************************************************************
+# Circular Figure =============================================================================================
+# *************************************************************************************************************
+set.seed(999)
+n = 1000
+df = data.frame(sectors = bb$seurat_clusters,
+                x = bb$nFeature_RNA, y = bb$nCount_RNA)
+
+library(circlize)
+library(ComplexHeatmap)
+circos.par("track.height" = 0.1)
+circos.initialize(df$sectors, x = df$x)
+circos.track(df$sectors, y = df$y,
+             panel.fun = function(x, y) {
+               circos.text(CELL_META$xcenter, 
+                           CELL_META$cell.ylim[2] + mm_y(5), 
+                           CELL_META$sector.index)
+               circos.axis(labels.cex = 0.6)
+             })
+# col = rep(c("#FF0000", "#00FF00"), 4)
+# circos.trackPoints(df$sectors, df$x, df$y, col = col, pch = 16, cex = 0.5)
+circos.trackPoints(df$sectors, df$x, df$y)
+circos.text(-1, 0.5, "text", sector.index = "a", track.index = 1)
+circos.clear()
+
+mat1 = as.matrix(bb$nCount_RNA)
+split = bb$seurat_clusters
+
+quantile_breaks <- function(xs, n = 10) {
+  breaks <- quantile(xs, probs = seq(0, 1, length.out = n))
+  breaks[!duplicated(breaks)]
+}
+# col_fun1 = colorRampPalette(viridis(100))
+# col_fun1 = colorRamp2(c(min(bb$nCount_RNA), median(bb$nCount_RNA), max(bb$nCount_RNA)), c("blue", "white", "red"))
+ii <- cut(bb$nCount_RNA, breaks = seq(min(bb$nCount_RNA), max(bb$nCount_RNA), len = 100), include.lowest = TRUE)
+col_fun1 = colorRampPalette(viridis(100))(99)[ii]
+col_fun1 = colorRamp2(quantile_breaks(bb$nCount_RNA, 100), colors = viridis(100))
+circos.heatmap(mat1, split = split, col = col_fun1, show.sector.labels = TRUE)
+circos.clear()
+
+mat = bb@assays$RNA@counts
+mat[which(mat > 1)] = 1
+
+bb$annot15 = factor(convert15$new.full[match(bb$seurat_clusters, convert15$old)])
+neuro_gen = read.csv("~/research/brain/data/neurogen_genes_final_050621.csv")[,1]
+neuro_gen_scores = list()
+for (cluster in convert15$new.full) {
+  for (sample in unique(bb$sample)) {
+    neuro_gen_scores[paste0(cluster, "_", sample)] = mean(mat[neuro_gen, which(bb$annot15 == cluster & bb$sample == sample)])
+  }
+}
+
+bb$annot = factor(convert53$new[match(bb$seurat_clusters, convert53$old)], levels = convert53$new)
+bb_df15 = data.frame(cluster = factor(convert15$new.full), col = convert15$col, new_sub = as.vector(table(factor(convert53$new.parent, levels = 1:15))))
+# bb_df15 = rbind(bb_df15, data.frame(cluster = "16_NA", col = NA, new_sub = 3))
+bb_df15$cluster = factor(bb_df15$cluster, levels = bb_df15$cluster)
+  
+bb_df53 = data.frame(cluster = levels(bb$annot), col = convert53$col, num_cells = aggregate(nCount_RNA ~ annot, bb@meta.data, length)[,2])
+
+circos.par("gap.after" = c(rep(0, 14), 10), cell.padding = c(0, 0, 0, 0), "start.degree" = 90, track.margin = c(0.02, 0.02))
+circos.initialize(bb_df15$cluster, xlim = cbind(rep(0, nrow(bb_df15)), bb_df15$new_sub))
+track1_breaks = pretty(unlist(neuro_gen_scores), n = 2)
+circos.track(ylim = c(min(track1_breaks), max(track1_breaks)), track.height = 0.30, bg.border = "black", panel.fun = function(x, y) {
+  for (tb in track1_breaks) {
+    if (tb != track1_breaks[1] & tb != track1_breaks[length(track1_breaks)])
+      circos.segments(CELL_META$cell.xlim[1], tb, CELL_META$cell.xlim[2], tb, col = "gray60", lty = 2)
+  }
+  
+  xrange = CELL_META$cell.xlim[2] - CELL_META$cell.xlim[1]
+  this_gap = 0.15*xrange
+  this_gap = ifelse(this_gap > 1.5, 1.5, this_gap)
+  for (sample in unique(bb$sample)) {
+    if ( startsWith(sample, "b") ) {
+      this_col = "#d0000090"
+      this_x = myJitter(CELL_META$xcenter-this_gap, 0.1*xrange)
+    } else {
+      this_col = "#023e8a90"
+      this_x = myJitter(CELL_META$xcenter+this_gap, 0.1*xrange)
+    }
+    print(sample)
+    this_score = as.numeric(neuro_gen_scores[paste0(CELL_META$sector.index, "_", sample)])
+    print(this_score)
+    circos.points(this_x, this_score, col = this_col, pch = 20, cex = 1.5)
+  }
+})
+circos.yaxis(at = track1_breaks, sector.index = "1_Astro/MG", track.index = 1, side = "left")
+
+circos.track(ylim = c(0, 1), track.height = 0.15, bg.border = NA, panel.fun = function(x, y) {
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  bg.col = bb_df15$col[CELL_META$sector.numeric.index]
+  circos.text(CELL_META$xcenter, CELL_META$cell.ylim[1] - mm_y(2),
+              CELL_META$sector.index, facing = "clockwise", niceFacing = TRUE,
+              adj = c(1, 0.5), cex = 0.6)
+  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$col[CELL_META$sector.numeric.index], border = NA)
+})
+
+
+###################################################################
+# Replicate #######################################################
+###################################################################
+bb = ScaleData(bb, features = c("LOC106675461", "rsrp1"))
+bb$aroma = bb@assays$RNA@scale.data["LOC106675461",]
+bb_df = data.frame(sample = unique(bb$sample), pair = rep(1:5, 2), col = c("#9d020890", "#d0000090", "#dc2f0290", "#e85d0490", "#f4b90690", "#03045e90", "#023e8a90", "#0077b690", "#0096c790", "#00b4d890"), cond = c(rep("BHVE", 5), rep("CTRL", 5)), num_cells = aggregate(nCount_RNA ~ sample, bb@meta.data, length)[,2], depth = aggregate(depth ~ sample, bb@meta.data, mean)[,2], aroma = aggregate(aroma ~ sample, bb@meta.data, mean)[,2] )
+bb_df$prop13 = unlist(sapply(bb_df$sample, function(x) length(which(bb$seuratclusters53 == 13 & bb$sample == x)) ))
+bb_df$prop13 = unlist(sapply(bb_df$sample, function(x) bb_df$prop13[which(bb_df$sample == x)] /length(which(bb$seuratclusters15 == 0 & bb$sample == x)) ))
+# bb_df$prop13 = bb_df$prop13 / bb_df$num_cells
+bb_df$sample = factor(bb_df$sample, levels = c("c4", "c5", "b5", "b4", "b3", "b2", "b1", "c1", "c2", "c3"))
+bb_df$aroma_col = scaleValues(bb_df$aroma)
+# bb_df$depth[which(bb_df$cond == "CTRL")] = F
+
+myJitter = function(x, jitter_width = 0.15) {
+  return(x + runif(1, min = -jitter_width, max = jitter_width))
+}
+
+pdf("~/research/brain/results/test2.pdf", width =  10, height = 10)
+circos.par("gap.degree" = 10, cell.padding = c(0, 0, 0, 0), "start.degree" = -28, track.margin = c(0.02, 0.02))
+circos.initialize(bb_df$pair, xlim = c(0, 1))
+
+# Depth
+track1_breaks = pretty(bb_df$depth, n = 3)
+circos.track(ylim = c(0, max(track1_breaks)), bg.col = NA, bg.border = "black", track.height = 0.15, panel.fun = function(x, y) {
+  for (tb in track1_breaks) {
+    if (tb != track1_breaks[1] & tb != track1_breaks[length(track1_breaks)])
+      circos.segments(0, tb, 1, tb, col = "gray90")
+  }
+  
+  b_sample = paste0("b", CELL_META$sector.index)
+  value = bb_df$depth[which(bb_df$sample == b_sample)]
+  circos.barplot(value, CELL_META$xcenter, col = bb_df$col[which(bb_df$sample == b_sample)], bar_width = 0.2, border = NA)
+  # c_sample = paste0("c", CELL_META$sector.index)
+  # value = bb_df$depth[which(bb_df$sample == c_sample)]
+  # circos.barplot(value, CELL_META$xcenter, col = bb_df$col[which(bb_df$sample == c_sample)], bar_width = 0.2, border = NA)
+})
+circos.yaxis(at = track1_breaks, sector.index = "1", track.index = 1, side = "right")
+
+# Proportion
+track2_breaks = c(0, pretty(bb_df$prop13, n = 1))
+circos.track(ylim = c(0, max(track2_breaks)), bg.col = NA, bg.border = "black", track.height = 0.15, panel.fun = function(x, y) {
+  for (tb in track2_breaks) {
+    if (tb != track2_breaks[1] & tb != track2_breaks[length(track2_breaks)])
+      circos.segments(0, tb, 1, tb, col = "gray90")
+  }
+  
+  b_sample = paste0("b", CELL_META$sector.index)
+  c_sample = paste0("c", CELL_META$sector.index)
+  value = bb_df$prop13[which(bb_df$sample == b_sample)]
+  circos.barplot(value, CELL_META$xcenter-0.05, col = bb_df$col[which(bb_df$sample == b_sample)], bar_width = 0.05, border = "black")
+  value = bb_df$prop13[which(bb_df$sample == c_sample)]
+  circos.barplot(value, CELL_META$xcenter+0.05, col = bb_df$col[which(bb_df$sample == c_sample)], bar_width = 0.05, border = "black")
+  
+})
+circos.yaxis(at=track2_breaks, sector.index = "1", track.index = 2, side = "right")
+
+# Aromatase
+# hist(bb@assays$RNA@data["rsrp1",])
+aroma_mid_bool = bb@assays$RNA@data["rsrp1",] < quantile(bb@assays$RNA@data["rsrp1",], 0.95)
+track3_breaks = pretty(bb@assays$RNA@data["rsrp1", which(aroma_mid_bool)], n = 2)
+circos.track(ylim = c(min(track3_breaks), max(track3_breaks)), bg.col = NA, bg.border = "black", track.height = 0.15, panel.fun = function(x, y) {
+  # Negative zone
+  # circos.rect(0, min(track3_breaks), 1, 0, col = "gray70", border = NULL)
+  
+  for (tb in track3_breaks) {
+    if (tb != track3_breaks[1] & tb != track3_breaks[length(track3_breaks)])
+      circos.segments(0, tb, 1, tb, col = "gray90")
+  }
+  
+  # value = bb_df$aroma[which(bb_df$sample == CELL_META$sector.index)]
+  # circos.barplot(value, CELL_META$xcenter, col = bb_df$aroma_col[which(bb_df$sample == CELL_META$sector.index)], bar_width = 0.2, border = NA)
+  b_sample = paste0("b", CELL_META$sector.index)
+  c_sample = paste0("c", CELL_META$sector.index)
+  b_value = bb@assays$RNA@data["rsrp1", which(bb$sample == b_sample & aroma_mid_bool)]
+  c_value = bb@assays$RNA@data["rsrp1", which(bb$sample == c_sample & aroma_mid_bool)]
+  circos.violin(b_value, CELL_META$xcenter-0.15, col = bb_df$col[which(bb_df$sample == b_sample)], violin_width = 0.2)
+  circos.violin(c_value, CELL_META$xcenter+0.15, col = bb_df$col[which(bb_df$sample == c_sample)], violin_width = 0.2)
+  
+  for (i in 1:4) {
+    subsample = paste0(b_sample, ".", i)
+    if (subsample %in% unique(bb$subsample))
+      circos.points(myJitter(CELL_META$xcenter-0.15, 0.1), mean(bb@assays$RNA@data["rsrp1", which(bb$subsample == subsample & aroma_mid_bool)]), col = bb_df$col[which(bb_df$sample == b_sample)], pch = 20)
+  }
+  for (i in 1:4) {
+    subsample = paste0(c_sample, ".", i)
+    if (subsample %in% unique(bb$subsample))
+      circos.points(myJitter(CELL_META$xcenter+0.15, 0.1), mean(bb@assays$RNA@data["rsrp1", which(bb$subsample == subsample & aroma_mid_bool)]), col = bb_df$col[which(bb_df$sample == c_sample)], pch = 20)
+  }
+})
+circos.yaxis(at=track3_breaks, sector.index = "1", track.index = 3, side = "right")
+
+# Sample
+# circos.track(ylim = c(0, 1), bg.col = NA, bg.border = NA, track.height = 0.15, panel.fun = function(x, y) {
+#   pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+#   circos.text(CELL_META$xcenter, CELL_META$cell.ylim[1] - mm_y(2),
+#               CELL_META$sector.index, facing = "clockwise", niceFacing = TRUE,
+#               adj = c(1, 0.5), cex = 0.6)
+#   circos.rect(0, 0, 1, 1, col = bb_df$col[which(bb_df$sample == CELL_META$sector.index)], border = NA)
+# })
+dev.off()
+circos.clear()
+
+

@@ -1303,7 +1303,8 @@ for (pair in 1:5) {
 # colnames(real)[1] = "gene"
 # real = left_join(data.frame(gene = rownames(bb)), real, by = "gene")
 # rownames(real) = real$gene
-real = read.csv("~/scratch/brain/results/py_ns_real.csv")
+# real = read.csv("~/scratch/brain/results/py_ns_real.csv")
+real = read.csv("~/scratch/brain/results/py_ns_real_abs.csv")
 rownames(real) = real$X
 real$X = NULL
 real = real[which(real$Dif != 0),]
@@ -1314,7 +1315,9 @@ for (i in 1:20) {
   # perm_small = read.csv(paste0("~/scratch/brain/results/cor_pr_perm/perm_", i, ".csv"))
   # colnames(perm_small)[1] = "gene"
   # perm = left_join(perm, perm_small, by = "gene")
-  perm_small = read.csv(paste0("~/scratch/brain/results/py_ns/perm_", i, ".csv"))
+  # perm_small = read.csv(paste0("~/scratch/brain/results/py_ns/perm_", i, ".csv"))
+  # perm_small = read.csv(paste0("~/scratch/brain/results/py_ns/perm_abs___", i, ".csv"))
+  perm_small = read.csv(paste0("~/scratch/brain/results/py_ns_ieg5/perm_abs_ieg5_", i, ".csv"))
   perm = cbind(perm, perm_small[,-c(1)])
 }
 rownames(perm) = perm$gene
@@ -1466,10 +1469,11 @@ dev.off()
 
 # Wrap a for loop around this
 library("rhdf5")
-h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluster15_1_cor_bhve.h5")
+# h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluster15_1_cor_bhve.h5")
+h5f = H5Fopen("~/scratch/brain/results/test/perm_abs.h5")
 b_cor = h5f$name
 h5closeAll()
-h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluster15_1_cor_ctrl.h5")
+h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluslster15_1_cor_ctrl.h5")
 c_cor = h5f$name
 h5closeAll()
 tf = read.csv("~/scratch/brain/data/tf_mouse_human_mzebra.csv")
@@ -1519,8 +1523,10 @@ node_df = data.frame(idx = clust_idx, gene = num_cells$gene[clust_idx], isTF = T
 node_df$isTF[which(! node_df$gene %in% tf_mz )] = F
 node_df$col[which(node_df$gene %in% clust1_sig$X & clust1_sig$Dif > 0)] = "#e8eb34"
 node_df$col[which(node_df$gene %in% clust1_sig$X & clust1_sig$Dif < 0)] = "#3295a8" 
-node_df$b_size = clust1_res$B[match(node_df$gene, clust1_res$X)]
-node_df$c_size = clust1_res$C[match(node_df$gene, clust1_res$X)]
+node_df$b_size = clust1_sig$B[match(node_df$gene, clust1_sig$X)]
+node_df$c_size = clust1_sig$C[match(node_df$gene, clust1_sig$X)]
+# node_df$b_size = clust1_res$B[match(node_df$gene, clust1_res$X)]
+# node_df$c_size = clust1_res$C[match(node_df$gene, clust1_res$X)]
 node_df$Id = gene_info$human[match(node_df$gene, gene_info$mzebra)]
 node_df$Id[which(is.na(node_df$Id))] = node_df$gene[which(is.na(node_df$Id))]
 node_df$Label = node_df$Id
@@ -1535,6 +1541,26 @@ write.csv(node_df, "~/scratch/brain/grn/cluster15_1_network/nodes_no_tf.csv", ro
 system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/b_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/cluster1_network"))
 system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/c_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/cluster1_network"))
 system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/nodes_no_tf.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/cluster1_network"))
+
+# Write Nodes and Edges to a file - Bulk
+colnames(b_tf_melt_hgnc) = c("Source", "Target", "Value")
+colnames(c_tf_melt_hgnc) = c("Source", "Target", "Value")
+write.csv(b_tf_melt_hgnc, "~/scratch/brain/grn/bulk_network/b_no_tf_edges.csv", row.names = F)
+write.csv(c_tf_melt_hgnc, "~/scratch/brain/grn/bulk_network/c_no_tf_edges.csv", row.names = F)
+write.csv(node_df, "~/scratch/brain/grn/bulk_network/nodes_no_tf.csv", row.names = F)
+system(paste0("rclone copy ~/scratch/brain/grn/bulk_network/b_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/bulk/bulk_network"))
+system(paste0("rclone copy ~/scratch/brain/grn/bulk_network/c_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/bulk/bulk_network"))
+system(paste0("rclone copy ~/scratch/brain/grn/bulk_network/nodes_no_tf.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/bulk/bulk_network"))
+
+bvc_tf = bvc[clust_idx, clust_idx]
+bvc_tf[which(upper.tri(bvc_tf, diag = T))] = NA
+bvc_tf_melt = reshape2::melt(bvc_tf)
+bvc_tf_melt = bvc_tf_melt[which(! is.na(bvc_tf_melt$value) ),]
+
+bvc_p_tf = bvc_p[clust_idx, clust_idx]
+bvc_p_tf[which(upper.tri(bvc_p_tf, diag = T))] = NA
+bvc_p_tf_melt = reshape2::melt(bvc_p_tf)
+bvc_p_tf_melt = bvc_p_tf_melt[which(! is.na(bvc_p_tf_melt$value) ),]
 
 # Make a big heatmap
 png("~/scratch/brain/grn/cluster15_1_network/b_tf_heatmap.png", width = nrow(b_tf)*33, height = ncol(b_tf)*33)
