@@ -1209,6 +1209,185 @@ png("C:/Users/miles/Downloads/brain/results/bb/ieg_covariance_bvc_bh_15.png", wi
 print(ggplot(p_bvc_df, aes(Cluster1, Cluster2, fill = bh)) + geom_tile() + scale_fill_viridis(begin = 1, end = 0) + theme_classic() + ggtitle("Behave vs Control Fisher's Z Transformation") + labs(fill = "BH"))
 dev.off()
 
+#******************************************************************************************
+# Sierra ==================================================================================
+#******************************************************************************************
+library("Sierra")
+FindPeaks("~/scratch/brain/bs/JTS07/pbs/b4_peaks.txt", gtf.file = "~/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.gff", bamfile = "~/scratch/brain/bs/JTS07/pbs/B1_intron/outs/possorted_genome_bam.bam", junctions.file = "~/scratch/brain/bs/JTS07/pbs/b4_intron_junctions.bed", ncores = 24)
+
+my.peak.data.set.table = data.frame(Peak_file = c(sapply(1:5, function(x) paste0("~/scratch/brain/bs/JTS07/pbs/b", x, "_peaks.txt")), sapply(1:5, function(x) paste0("~/scratch/brain/bs/JTS07/pbs/c", x, "_peaks.txt"))), 
+                                    Identifier = c(sapply(1:5, function(x) paste0("b", x)), sapply(1:5, function(x) paste0("c", x))))
+MergePeakCoordinates(peak.dataset.table = my.peak.data.set.table, output.file = "~/scratch/brain/bs/JTS07/pbs/peak_coord_tmp.txt", ncores = 24)
+CountPeaks(peak.sites.file = "~/scratch/brain/bs/JTS07/pbs/peak_coord_tmp.txt", gtf.file = "~/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.gff", whitelist.file = "~/scratch/brain/bs/JTS07/pbs/B1_intron/outs/filtered_feature_bc_matrix/barcodes.tsv.gz", bamfile = "~/scratch/brain/bs/JTS07/pbs/B1_intron/outs/possorted_genome_bam.bam", output.dir = "~/scratch/brain/bs/JTS07/pbs/peak_counts/")
+AnnotatePeaksFromGTF(peak.sites.file = "~/scratch/brain/bs/JTS07/pbs/peak_coord.txt", 
+                     gtf.file = "~/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.gff",
+                     output.file = "~/scratch/brain/bs/JTS07/pbs/peak_annot.txt", 
+                     genome = NULL)
+
+my.count.dirs = list("b1" = "~/scratch/brain/bs/JTS07/pbs/b1_peak_counts/", "b2" = "~/scratch/brain/bs/JTS07/pbs/b2_peak_counts/", 
+                     "b3" = "~/scratch/brain/bs/JTS07/pbs/b3_peak_counts/", "b4" = "~/scratch/brain/bs/JTS07/pbs/b4_peak_counts/", "b5" = "~/scratch/brain/bs/JTS07/pbs/b5_peak_counts/", 
+                     "c1" = "~/scratch/brain/bs/JTS07/pbs/c1_peak_counts/", "c2" = "~/scratch/brain/bs/JTS07/pbs/c2_peak_counts/", 
+                     "c3" = "~/scratch/brain/bs/JTS07/pbs/c3_peak_counts/", "c4" = "~/scratch/brain/bs/JTS07/pbs/c4_peak_counts/", "c5" = "~/scratch/brain/bs/JTS07/pbs/c5_peak_counts/")
+for (pair in 4:5) {
+  print(paste("Pair:", pair))
+  print("Aggregating Counts")
+  AggregatePeakCounts(peak.sites.file = "~/scratch/brain/bs/JTS07/pbs/peak_coord.txt",
+                      count.dirs = unlist(my.count.dirs[c(paste0("b", pair), paste0("c", pair))]),
+                      exp.labels = c(paste0("b", pair), paste0("c", pair)),
+                      output.dir = paste0("~/scratch/brain/bs/JTS07/pbs/counts_pair", pair,"/"))
+  print("Creating Seurat Object")
+  peak.counts = ReadPeakCounts(data.dir = paste0("~/scratch/brain/bs/JTS07/pbs/counts_pair", pair,"/"))
+  peak.counts.meta.data = data.frame(barcode = reshape2::colsplit(colnames(peak.counts), "-", c(1,2))[,1], sample = reshape2::colsplit(colnames(peak.counts), "-", c(1,2))[,2])
+  bb_barcodes = data.frame( sample = bb$sample, real = colnames(bb), barcode = reshape2::colsplit(reshape2::colsplit(reshape2::colsplit(colnames(bb), "_", c(1,2))[,2], "_", c(1,2))[,1], "-", c(1,2))[,1] )
+  for (sample in unique(bb$sample)) {
+    if (sample %in% unique(peak.counts.meta.data$sample)) {
+      sample_bb_barcodes = bb_barcodes[which(bb_barcodes$sample == sample),]
+      colnames(peak.counts)[which(peak.counts.meta.data$sample == sample)] = sample_bb_barcodes$real[match(peak.counts.meta.data$barcode[which(peak.counts.meta.data$sample == sample)], sample_bb_barcodes$barcode)] 
+    }
+  }
+  peaks.seurat2 = NewPeakSeurat(peak.data = peak.counts, annot.info = peak.annotations, cell.idents = bb$seuratclusters15[which(bb$sample %in% c(paste0("b", pair), paste0("c", pair)))])
+  saveRDS(peaks.seurat2, paste0("~/scratch/brain/data/pair", pair, "_sierra.rds"))
+}
+
+AggregatePeakCounts(peak.sites.file = "~/scratch/brain/bs/JTS07/pbs/peak_coord.txt",
+                    count.dirs = unlist(my.count.dirs),
+                    exp.labels = names(my.count.dirs),
+                    output.dir = paste0("~/scratch/brain/bs/JTS07/pbs/all_counts/"))
+peak.counts = ReadPeakCounts(data.dir = paste0("~/scratch/brain/bs/JTS07/pbs/all_counts/"))
+peak.counts.meta.data = data.frame(barcode = reshape2::colsplit(colnames(peak.counts), "-", c(1,2))[,1], sample = reshape2::colsplit(colnames(peak.counts), "-", c(1,2))[,2])
+for (sample in unique(bb$sample)) {
+  if (sample %in% unique(peak.counts.meta.data$sample)) {
+    sample_bb_barcodes = bb_barcodes[which(bb_barcodes$sample == sample),]
+    colnames(peak.counts)[which(peak.counts.meta.data$sample == sample)] = sample_bb_barcodes$real[match(peak.counts.meta.data$barcode[which(peak.counts.meta.data$sample == sample)], sample_bb_barcodes$barcode)] 
+  }
+}
+peaks.seurat2 = NewPeakSeurat(peak.data = peak.counts, annot.info = peak.annotations, cell.idents = bb$seuratclusters15)
+
+# Load BB
+rna_path = "~/scratch/brain/"
+source(paste0(rna_path, "brain_scripts/all_f.R"))
+library("SeuratObject")
+bb = readRDS(paste0(rna_path, "data/bb_cc_04072021.RDS"))
+Idents(bb) = bb$seurat_clusters
+library(pacman)
+p_unload(SeuratDisk)
+p_unload(Seurat)
+p_load(Seurat)
+
+# peak.counts.b1 <- ReadPeakCounts(data.dir = "~/scratch/brain/bs/JTS07/pbs/b1_peak_counts/")
+# peak.counts.c1 <- ReadPeakCounts(data.dir = "~/scratch/brain/bs/JTS07/pbs/c1_peak_counts/")
+peak.counts = ReadPeakCounts(data.dir = "~/scratch/brain/bs/JTS07/pbs/all_counts_tmp/")
+peak.annotations <- read.table("~/scratch/brain/bs/JTS07/pbs/peak_annot.txt", header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
+peak.annotations$gene_id = sub("(.*).*:.*:.*-.*:.*", "\\1", rownames(peak.annotations))
+# rownames(peak.annotations) = str_replace_all(rownames(peak.annotations), "_", "-")
+
+peak.counts.meta.data = data.frame(barcode = reshape2::colsplit(colnames(peak.counts), "-", c(1,2))[,1], sample = reshape2::colsplit(colnames(peak.counts), "-", c(1,2))[,2])
+bb_barcodes = data.frame( sample = bb$sample, real = colnames(bb), barcode = reshape2::colsplit(reshape2::colsplit(reshape2::colsplit(colnames(bb), "_", c(1,2))[,2], "_", c(1,2))[,1], "-", c(1,2))[,1] )
+for (sample in unique(bb$sample)) {
+  if (sample %in% unique(peak.counts.meta.data$sample)) {
+    sample_bb_barcodes = bb_barcodes[which(bb_barcodes$sample == sample),]
+    colnames(peak.counts)[which(peak.counts.meta.data$sample == sample)] = sample_bb_barcodes$real[match(peak.counts.meta.data$barcode[which(peak.counts.meta.data$sample == sample)], sample_bb_barcodes$barcode)] 
+  }
+}
+# colnames(peak.counts) = bb_barcodes$real[match(colnames(peak.counts), bb_barcodes$barcode)]
+
+peaks.seurat2 = NewPeakSeurat(peak.data = peak.counts, 
+                              annot.info = peak.annotations, 
+                              cell.idents = bb$seuratclusters15[which(bb$sample %in% c("b1", "c1"))])
+saveRDS(peaks.seurat2, "~/scratch/brain/data/pair1_sierra.rds")
+
+# peaks.seurat <- PeakSeuratFromTransfer(peak.data = peak.counts, genes.seurat = bb, annot.info = peak.annotations)
+# saveRDS(peaks.seurat, "~/scratch/brain/data/pair1_sierra.rds")
+
+# Local
+# bbs = readRDS("~/scratch/brain/data/pair4_sierra.rds")
+bbs = readRDS("~/research/brain/data/pair1_sierra.rds")
+colnames_to_transfer = colnames(bb@meta.data)[-which(colnames(bb@meta.data) %in% c("orig.ident", "nCount_RNA", "nFeature_RNA", "geneLvlID"))]
+bbs@meta.data[, colnames_to_transfer] = bb@meta.data[match(colnames(bbs), colnames(bb)), colnames_to_transfer]
+bbs@reductions$umap = Seurat::CreateDimReducObject(embeddings = bb@reductions$umap@cell.embeddings[match(colnames(bbs), colnames(bb)),], key = "UMAP_", assay = "RNA")
+rownames(bbs@reductions$umap@cell.embeddings) = str_replace_all(rownames(bbs@reductions$umap@cell.embeddings), "\\.", "-")
+bbs$cond.clust15 = paste0(bbs$cond, ".", bbs$seuratclusters15)
+bbs$cond.clust53 = paste0(bbs$cond, ".", bbs$seuratclusters53)
+
+Idents(bbs) = bbs$cond
+bulk.res = DUTest(bbs, population.1 = "BHVE", population.2 = "CTRL", exp.thresh = 0.01, fc.thresh = 0)
+bulk.res$peak = rownames(bulk.res)
+
+Idents(bbs) = bbs$cond.clust15
+res15 = data.frame()
+for (clust15 in 11:14) {
+  print(clust15)
+  this.res15 = DUTest(bbs, population.1 = paste0("BHVE.", clust15), population.2 = paste0("CTRL.", clust15), exp.thresh = 0.01, fc.thresh = 0)
+  if (nrow(this.res15) > 0) {
+    this.res15$peak = rownames(this.res15)
+    this.res15$cluster = clust15
+    res15 = rbind(res15, this.res15)
+  }
+}
+
+bulk.res = list()
+bulk.res[[1]] = read.csv("~/research/brain/results/pair1_dtu_bulk.csv")
+bulk.res[[2]] = read.csv("~/research/brain/results/pair2_dtu_bulk.csv")
+bulk.res[[3]] = read.csv("~/research/brain/results/pair3_dtu_bulk.csv")
+bulk.res[[4]] = read.csv("~/research/brain/results/pair4_dtu_bulk.csv")
+bulk.res[[5]] = read.csv("~/research/brain/results/pair5_dtu_bulk.csv")
+common_res = bulk.res[[1]]$peak[which(bulk.res[[1]]$peak %in% bulk.res[[2]]$peak
+                                      & bulk.res[[1]]$peak %in% bulk.res[[3]]$peak
+                                      & bulk.res[[1]]$peak %in% bulk.res[[4]]$peak
+                                      & bulk.res[[1]]$peak %in% bulk.res[[5]]$peak)]
+table(table(c( bulk.res[[1]]$peak, bulk.res[[2]]$peak, bulk.res[[3]]$peak, bulk.res[[4]]$peak, bulk.res[[5]]$peak)))
+
+bulk.res.full = data.frame(i = 1:length(common_res))
+for (i in c(1, 5)) {
+  print(i)
+  colnames(bulk.res[[i]]) = paste0(colnames(bulk.res[[i]]), ".", i)
+  bulk.res[[i]] = bulk.res[[i]][which(bulk.res[[i]]$peak %in% common_res),]
+  bulk.res.full = cbind(bulk.res.full, bulk.res[[i]])
+}
+bulk.res.full = bulk.res.full
+bulk.res.full$consistent = unlist(sapply(1:nrow(bulk.res.full), function(x) sign(bulk.res.full$Log2_fold_change.1[x]) == sign(bulk.res.full$Log2_fold_change.5[x]) ))
+# bulk.res.full$consistent = unlist(sapply(1:nrow(bulk.res.full), function(x) sign(bulk.res.full$Log2_fold_change.1[x]) == sign(bulk.res.full$Log2_fold_change.2[x]) & sign(bulk.res.full$Log2_fold_change.1[x]) == sign(bulk.res.full$Log2_fold_change.2[x]) & sign(bulk.res.full$Log2_fold_change.3[x]) == sign(bulk.res.full$Log2_fold_change.4[x]) & sign(bulk.res.full$Log2_fold_change.1[x]) == sign(bulk.res.full$Log2_fold_change.5[x])))
+
+clust15.res = list()
+clust15.res[[1]] = read.csv("~/research/brain/results/pair1_dtu_15.csv")
+clust15.res[[2]] = read.csv("~/research/brain/results/pair2_dtu_15.csv")
+clust15.res[[3]] = read.csv("~/research/brain/results/pair3_dtu_15.csv")
+clust15.res[[4]] = read.csv("~/research/brain/results/pair4_dtu_15.csv")
+clust15.res[[5]] = read.csv("~/research/brain/results/pair5_dtu_15.csv")
+for (i in 0:14) {
+  print(i)
+  common_res = clust15.res[[1]]$peak[which(clust15.res[[1]]$peak[which(clust15.res[[1]]$cluster == i)] %in% clust15.res[[2]]$peak[which(clust15.res[[2]]$cluster == i)]
+                                        & clust15.res[[1]]$peak[which(clust15.res[[1]]$cluster == i)] %in% clust15.res[[3]]$peak[which(clust15.res[[3]]$cluster == i)]
+                                        & clust15.res[[1]]$peak[which(clust15.res[[1]]$cluster == i)] %in% clust15.res[[4]]$peak[which(clust15.res[[4]]$cluster == i)]
+                                        & clust15.res[[1]]$peak[which(clust15.res[[1]]$cluster == i)] %in% clust15.res[[5]]$peak[which(clust15.res[[5]]$cluster == i)])]
+  # print(length(common_res))
+  print(table(table(c( clust15.res[[1]]$peak[which(clust15.res[[1]]$cluster == i)], clust15.res[[2]]$peak[which(clust15.res[[2]]$cluster == i)], clust15.res[[3]]$peak[which(clust15.res[[3]]$cluster == i)], clust15.res[[4]]$peak[which(clust15.res[[4]]$cluster == i)], clust15.res[[5]]$peak[which(clust15.res[[5]]$cluster == i)]))))
+}
+
+clust53.res = list()
+clust53.res[[1]] = read.csv("~/research/brain/results/pair1_dtu_53.csv")
+clust53.res[[2]] = read.csv("~/research/brain/results/pair2_dtu_53.csv")
+clust53.res[[3]] = read.csv("~/research/brain/results/pair3_dtu_53.csv")
+clust53.res[[4]] = read.csv("~/research/brain/results/pair4_dtu_53.csv")
+clust53.res[[5]] = read.csv("~/research/brain/results/pair5_dtu_53.csv")
+for (i in 0:52) {
+  print(i)
+  common_res = clust53.res[[1]]$peak[which(clust53.res[[1]]$peak[which(clust53.res[[1]]$cluster == i)] %in% clust53.res[[2]]$peak[which(clust53.res[[2]]$cluster == i)]
+                                           & clust53.res[[1]]$peak[which(clust53.res[[1]]$cluster == i)] %in% clust53.res[[3]]$peak[which(clust53.res[[3]]$cluster == i)]
+                                           & clust53.res[[1]]$peak[which(clust53.res[[1]]$cluster == i)] %in% clust53.res[[4]]$peak[which(clust53.res[[4]]$cluster == i)]
+                                           & clust53.res[[1]]$peak[which(clust53.res[[1]]$cluster == i)] %in% clust53.res[[5]]$peak[which(clust53.res[[5]]$cluster == i)])]
+  # print(length(common_res))
+  print(table(table(c( clust53.res[[1]]$peak[which(clust53.res[[1]]$cluster == i)], clust53.res[[2]]$peak[which(clust53.res[[2]]$cluster == i)], clust53.res[[3]]$peak[which(clust53.res[[3]]$cluster == i)], clust53.res[[4]]$peak[which(clust53.res[[4]]$cluster == i)], clust53.res[[5]]$peak[which(clust53.res[[5]]$cluster == i)]))))
+}
+
+temp = rev(brewer.pal(11,"Spectral"))
+temp[6] = "gold" # this is what plotCytoTRACE uses
+pal = colorRampPalette(temp)
+# DimPlot(bbs)
+# PlotRelativeExpressionUMAP(bbs, row.names(this.res15)[c(1,3)])
+FeaturePlot(bbs, row.names(this.res15)[c(1,3)])
+myFeaturePlot(bbs, row.names(this.res15)[1], my.split.by = "cond", my.col.pal = pal, na.blank = T)
+
 #==========================================================================================
 # PS6 =====================================================================================
 #==========================================================================================
@@ -1333,7 +1512,8 @@ for (pair in 1:5) {
 # colnames(real)[1] = "gene"
 # real = left_join(data.frame(gene = rownames(bb)), real, by = "gene")
 # rownames(real) = real$gene
-real = read.csv("~/scratch/brain/results/py_ns_real.csv")
+# real = read.csv("~/scratch/brain/results/py_ns_real.csv")
+real = read.csv("~/scratch/brain/results/py_ns_real_abs.csv")
 rownames(real) = real$X
 real$X = NULL
 real = real[which(real$Dif != 0),]
@@ -1344,7 +1524,9 @@ for (i in 1:20) {
   # perm_small = read.csv(paste0("~/scratch/brain/results/cor_pr_perm/perm_", i, ".csv"))
   # colnames(perm_small)[1] = "gene"
   # perm = left_join(perm, perm_small, by = "gene")
-  perm_small = read.csv(paste0("~/scratch/brain/results/py_ns/perm_", i, ".csv"))
+  # perm_small = read.csv(paste0("~/scratch/brain/results/py_ns/perm_", i, ".csv"))
+  # perm_small = read.csv(paste0("~/scratch/brain/results/py_ns/perm_abs___", i, ".csv"))
+  perm_small = read.csv(paste0("~/scratch/brain/results/py_ns_ieg5/perm_abs_ieg5_", i, ".csv"))
   perm = cbind(perm, perm_small[,-c(1)])
 }
 rownames(perm) = perm$gene
@@ -1505,10 +1687,11 @@ dev.off()
 
 # Wrap a for loop around this
 library("rhdf5")
-h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluster15_1_cor_bhve.h5")
+# h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluster15_1_cor_bhve.h5")
+h5f = H5Fopen("~/scratch/brain/results/test/perm_abs.h5")
 b_cor = h5f$name
 h5closeAll()
-h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluster15_1_cor_ctrl.h5")
+h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluslster15_1_cor_ctrl.h5")
 c_cor = h5f$name
 h5closeAll()
 tf = read.csv("~/scratch/brain/data/tf_mouse_human_mzebra.csv")
@@ -1558,8 +1741,10 @@ node_df = data.frame(idx = clust_idx, gene = num_cells$gene[clust_idx], isTF = T
 node_df$isTF[which(! node_df$gene %in% tf_mz )] = F
 node_df$col[which(node_df$gene %in% clust1_sig$X & clust1_sig$Dif > 0)] = "#e8eb34"
 node_df$col[which(node_df$gene %in% clust1_sig$X & clust1_sig$Dif < 0)] = "#3295a8" 
-node_df$b_size = clust1_res$B[match(node_df$gene, clust1_res$X)]
-node_df$c_size = clust1_res$C[match(node_df$gene, clust1_res$X)]
+node_df$b_size = clust1_sig$B[match(node_df$gene, clust1_sig$X)]
+node_df$c_size = clust1_sig$C[match(node_df$gene, clust1_sig$X)]
+# node_df$b_size = clust1_res$B[match(node_df$gene, clust1_res$X)]
+# node_df$c_size = clust1_res$C[match(node_df$gene, clust1_res$X)]
 node_df$Id = gene_info$human[match(node_df$gene, gene_info$mzebra)]
 node_df$Id[which(is.na(node_df$Id))] = node_df$gene[which(is.na(node_df$Id))]
 node_df$Label = node_df$Id
@@ -1574,6 +1759,26 @@ write.csv(node_df, "~/scratch/brain/grn/cluster15_1_network/nodes_no_tf.csv", ro
 system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/b_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/cluster1_network"))
 system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/c_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/cluster1_network"))
 system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/nodes_no_tf.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/cluster1_network"))
+
+# Write Nodes and Edges to a file - Bulk
+colnames(b_tf_melt_hgnc) = c("Source", "Target", "Value")
+colnames(c_tf_melt_hgnc) = c("Source", "Target", "Value")
+write.csv(b_tf_melt_hgnc, "~/scratch/brain/grn/bulk_network/b_no_tf_edges.csv", row.names = F)
+write.csv(c_tf_melt_hgnc, "~/scratch/brain/grn/bulk_network/c_no_tf_edges.csv", row.names = F)
+write.csv(node_df, "~/scratch/brain/grn/bulk_network/nodes_no_tf.csv", row.names = F)
+system(paste0("rclone copy ~/scratch/brain/grn/bulk_network/b_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/bulk/bulk_network"))
+system(paste0("rclone copy ~/scratch/brain/grn/bulk_network/c_no_tf_edges.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/bulk/bulk_network"))
+system(paste0("rclone copy ~/scratch/brain/grn/bulk_network/nodes_no_tf.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/bulk/bulk_network"))
+
+bvc_tf = bvc[clust_idx, clust_idx]
+bvc_tf[which(upper.tri(bvc_tf, diag = T))] = NA
+bvc_tf_melt = reshape2::melt(bvc_tf)
+bvc_tf_melt = bvc_tf_melt[which(! is.na(bvc_tf_melt$value) ),]
+
+bvc_p_tf = bvc_p[clust_idx, clust_idx]
+bvc_p_tf[which(upper.tri(bvc_p_tf, diag = T))] = NA
+bvc_p_tf_melt = reshape2::melt(bvc_p_tf)
+bvc_p_tf_melt = bvc_p_tf_melt[which(! is.na(bvc_p_tf_melt$value) ),]
 
 # Make a big heatmap
 png("~/scratch/brain/grn/cluster15_1_network/b_tf_heatmap.png", width = nrow(b_tf)*33, height = ncol(b_tf)*33)
