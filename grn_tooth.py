@@ -166,11 +166,13 @@ def main():
     print("Finding Correlations")
     for i in range(0, num_perm):
         print("Perm: " + str(i))
+        perm_start = time.perf_counter()
         with multiprocessing.Pool(len(cluster_set)) as pool:
             pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
             for j in range(0, len(cluster_set)):
                 all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
-
+        print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
+    
     # Write results for each cluster to a file
     for cluster in cluster_set:
         Path(output_folder + "/" + base_name + "/").mkdir(parents=True, exist_ok=True)
