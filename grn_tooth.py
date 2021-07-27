@@ -18,7 +18,7 @@ global cluster_set
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Shuffle cluster labels and see if a gene has significantly greater node strength in the real vs perm.')
-    parser.add_argument("dataset", metavar="dataset", type=str, help="Dataset (ct, cj, mi, mim, hm)")
+    parser.add_argument("dataset", metavar="dataset", type=str, help="Dataset (ct, cj, mi, mie, mim, hm)")
     parser.add_argument('perm_num', metavar='perm_num', type = int, help='The current permutation number. This is used for the seed.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     parser.add_argument("-o", "--output_folder", help="Output Folder", nargs="?",
@@ -118,6 +118,10 @@ def main():
         data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/incsr_data_mat.npz")
         gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/incsr_names.csv").iloc[:, 1].to_numpy()
         cluster_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/incsr_clusters.csv").iloc[:, 1].to_numpy()
+    elif dataset == "mie":
+        data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/mie_data_mat.npz")
+        gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/mie_names.csv").iloc[:, 1].to_numpy()
+        cluster_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/mie_clusters.csv").iloc[:, 1].to_numpy()
     elif dataset == "mim":
         data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/im_data_mat.npz")
         gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/im_names.csv").iloc[:, 1].to_numpy()
@@ -127,7 +131,7 @@ def main():
         gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/hm_names.csv").iloc[:, 1].to_numpy()
         cluster_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/hm_clusters.csv").iloc[:, 1].to_numpy()
     else:
-        print("Invalid dataset, please select one of ct, cj, mi, mim, hm.")
+        print("Invalid dataset, please select one of ct, cj, mi, mie, mim, hm.")
         return
 
     cluster_set = list(set(cluster_labels))
