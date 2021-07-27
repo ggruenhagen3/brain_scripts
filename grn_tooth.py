@@ -18,13 +18,13 @@ global cluster_set
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Shuffle cluster labels and see if a gene has significantly greater node strength in the real vs perm.')
+    parser.add_argument("dataset", metavar="dataset", type=str, help="Dataset (ct, cj, mi, mim, hm)")
     parser.add_argument('perm_num', metavar='perm_num', type = int, help='The current permutation number. This is used for the seed.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     parser.add_argument("-o", "--output_folder", help="Output Folder", nargs="?",
                         default="/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/results/py_ns/",
                         const="/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/results/py_ns/")
     parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
-    parser.add_argument("-d", "--dataset", help="Dataset (ct, cj, mi, mim, hm)" , nargs="?", type=str, default="", const="")
     parser.add_argument("-a", "--do_abs", help="Take the absolute value of the correlations?", action="store_true")
     args = parser.parse_args()
     return args.perm_num, args.num_perm, args.output_folder, args.no_perm, args.dataset, args.do_abs
