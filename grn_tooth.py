@@ -133,7 +133,7 @@ def main():
     cluster_set = list(set(cluster_labels))
 
     # Change folder name based on input
-    base_name = dataset + "_perm"
+    base_name = dataset + "_perm_" + str(perm_num)
     if no_perm:
         base_name = dataset + "_real"
     if do_abs:
@@ -172,7 +172,7 @@ def main():
             for j in range(0, len(cluster_set)):
                 all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
-    
+
     # Write results for each cluster to a file
     for cluster in cluster_set:
         Path(output_folder + "/" + base_name + "/").mkdir(parents=True, exist_ok=True)
