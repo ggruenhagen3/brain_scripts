@@ -13,7 +13,6 @@ global data_mat
 global gene_labels
 global cluster_labels
 global do_abs
-global mat_idx
 global cluster_set
 
 def parseArgs():
@@ -38,15 +37,13 @@ def myShuffle(this_list):
     random.shuffle(this_list)
     return(this_list)
 
-def corAndNodeStrength(i, cluster):
+def corAndNodeStrength(this_idx):
     """
     Given idexes of cells, create a matrix, find correlations, and find node strengths
     :param i: i
     :param cluster: Cluster
     :return ns: Node Strength
     """
-    # Find Index of Cells Belonging to the Cluster
-    this_idx = mat_idx[i][cluster]
     # Find Correlations
     cor = pandas.DataFrame(data = sparse_corrcoef(data_mat[:, this_idx].todense()), index = gene_labels, columns = gene_labels)
     if do_abs:
@@ -101,7 +98,6 @@ def main():
     global gene_labels
     global cluster_labels
     global do_abs
-    global mat_idx
     global cluster_set
     perm_num, num_perm, output_folder, no_perm, dataset, do_abs = parseArgs()
 
@@ -172,9 +168,11 @@ def main():
         print("Perm: " + str(i))
         perm_start = time.perf_counter()
         with multiprocessing.Pool(len(cluster_set)) as pool:
-            pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
-            for j in range(0, len(cluster_set)):
-                all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
+            this_idx_list = mat_idx[i].values()
+            pool_ns = pool.map(corAndNodeStrength, this_idx_list)
+            # pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
+            # for j in range(0, len(cluster_set)):
+            #     all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
 
     # Write results for each cluster to a file
