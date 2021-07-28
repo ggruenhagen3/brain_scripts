@@ -170,7 +170,7 @@ def main():
         mat_idx[0] = small_dict
     else:
         print("Permuting Data " + str(num_perm) + " times.")
-        mat_idx = permuteLabels2(num_perm)
+        mat_idx = permuteLabels(num_perm)
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
 
     # Set up dataframes that store results
@@ -179,24 +179,24 @@ def main():
         all_cluster_df[cluster] = pandas.DataFrame(index = gene_labels, columns = list(range(1,num_perm+1)))
 
     # Find Correlations and Node Strengths
-    # print("Finding Correlations")
-    # for i in range(0, num_perm):
-    #     print("Perm: " + str(i))
-    #     perm_start = time.perf_counter()
-    #     this_idx_list = mat_idx[i].values()
-    #     with multiprocessing.Pool(len(cluster_set)) as pool:
-    #         pool_ns = pool.map(corAndNodeStrength, this_idx_list)
-    #         # pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
-    #         # for j in range(0, len(cluster_set)):
-    #         #     all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
-    #     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
     print("Finding Correlations")
-    for cluster in cluster_set:
+    for i in range(0, num_perm):
+        print("Perm: " + str(i))
         perm_start = time.perf_counter()
-        this_idx_list = mat_idx[cluster]  # TODO
-        with multiprocessing.Pool(24) as pool:
+        this_idx_list = mat_idx[i].values()
+        with multiprocessing.Pool(len(cluster_set)) as pool:
             pool_ns = pool.map(corAndNodeStrength, this_idx_list)
+            # pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
+            # for j in range(0, len(cluster_set)):
+            #     all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
+    # print("Finding Correlations")
+    # for cluster in cluster_set:
+    #     perm_start = time.perf_counter()
+    #     this_idx_list = mat_idx[cluster]  # TODO
+    #     with multiprocessing.Pool(24) as pool:
+    #         pool_ns = pool.map(corAndNodeStrength, this_idx_list)
+    #     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
     print(f"All Done. Elapsed Time: {time.perf_counter() - start_time:0.4f} seconds")
 
     # Write results for each cluster to a file
