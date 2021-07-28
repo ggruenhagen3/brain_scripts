@@ -192,6 +192,7 @@ def main():
     #     print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
     print("Finding Correlations")
     for cluster in cluster_set:
+        perm_start = time.perf_counter()
         this_idx_list = mat_idx[cluster]  # TODO
         with multiprocessing.Pool(24) as pool:
             pool_ns = pool.map(corAndNodeStrength, this_idx_list)
