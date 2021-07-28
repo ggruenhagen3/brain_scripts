@@ -1380,6 +1380,14 @@ for (i in 0:52) {
   print(table(table(c( clust53.res[[1]]$peak[which(clust53.res[[1]]$cluster == i)], clust53.res[[2]]$peak[which(clust53.res[[2]]$cluster == i)], clust53.res[[3]]$peak[which(clust53.res[[3]]$cluster == i)], clust53.res[[4]]$peak[which(clust53.res[[4]]$cluster == i)], clust53.res[[5]]$peak[which(clust53.res[[5]]$cluster == i)]))))
 }
 
+bbs = readRDS("~/research/brain/data/all_sierra.rds")
+all15 = read.csv("~/research/brain/results/all_dtu_15.csv")
+all53 = read.csv("~/research/brain/results/all_dtu_53.csv")
+all15 = all15[order(all15$padj, decreasing = F),]
+all53 = all53[order(all53$padj, decreasing = F),]
+FeaturePlot(bbs, all15$peak[2], label = T, order = T)
+FeaturePlot(bb, all15$gene_name[2], label = T, order = T)
+
 temp = rev(brewer.pal(11,"Spectral"))
 temp[6] = "gold" # this is what plotCytoTRACE uses
 pal = colorRampPalette(temp)
