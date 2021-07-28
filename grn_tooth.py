@@ -167,8 +167,8 @@ def main():
     for i in range(0, num_perm):
         print("Perm: " + str(i))
         perm_start = time.perf_counter()
+        this_idx_list = mat_idx[i].values()
         with multiprocessing.Pool(len(cluster_set)) as pool:
-            this_idx_list = mat_idx[i].values()
             pool_ns = pool.map(corAndNodeStrength, this_idx_list)
             # pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
             # for j in range(0, len(cluster_set)):
