@@ -221,14 +221,14 @@ ggplot(bvcbulk, aes(x = avg_logFC, y = -log10(p), color = Significant, size = ab
 dev.off()
 
 
+# Heatmap with Hierarchical Clustering for Bulk BVC DEGs
+pair1_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b1")], cells.2 = colnames(bb)[which(bb$sample == "c1")])
+pair2_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b2")], cells.2 = colnames(bb)[which(bb$sample == "c2")])
+pair3_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b3")], cells.2 = colnames(bb)[which(bb$sample == "c3")])
+pair4_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b4")], cells.2 = colnames(bb)[which(bb$sample == "c4")])
+pair5_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b5")], cells.2 = colnames(bb)[which(bb$sample == "c5")])
 
-# pair1_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b1")], cells.2 = colnames(bb)[which(bb$sample == "c1")])
-# pair2_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b2")], cells.2 = colnames(bb)[which(bb$sample == "c2")])
-# pair3_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b3")], cells.2 = colnames(bb)[which(bb$sample == "c3")])
-# pair4_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b4")], cells.2 = colnames(bb)[which(bb$sample == "c4")])
-# pair5_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b5")], cells.2 = colnames(bb)[which(bb$sample == "c5")])
-# 
-# bulk_common_genes = pair1_bulk_stats$genes[which( pair1_bulk_stats$genes %in% pair2_bulk_stats$genes & pair1_bulk_stats$genes %in% pair3_bulk_stats$genes & pair1_bulk_stats$genes %in% pair4_bulk_stats$genes & pair1_bulk_stats$genes %in% pair5_bulk_stats$genes )]
+bulk_common_genes = pair1_bulk_stats$genes[which( pair1_bulk_stats$genes %in% pair2_bulk_stats$genes & pair1_bulk_stats$genes %in% pair3_bulk_stats$genes & pair1_bulk_stats$genes %in% pair4_bulk_stats$genes & pair1_bulk_stats$genes %in% pair5_bulk_stats$genes )]
 all_pairs_bulk_stats = data.frame(genes = bulk_common_genes,
                                   pair1 = pair1_bulk_stats$avg_logFC[match(bulk_common_genes, pair1_bulk_stats$genes)],
                                   pair2 = pair2_bulk_stats$avg_logFC[match(bulk_common_genes, pair2_bulk_stats$genes)],
@@ -289,6 +289,102 @@ png("C:/Users/miles/Downloads/bvcbulk_sample_heatmap_logFC_viridis2.png", width 
 mat_breaks <- quantile_breaks(all_sample_logFC_mat_test, n = 11)
 # pheatmap::pheatmap(all_sample_logFC_mat_test, border_color = NA, angle_col = 0, show_rownames = F, color = viridis(length(mat_breaks) - 1), breaks = mat_breaks, legend = F, annotation_col = col_annot, annotation_colors = list(cond = c(CTRL = "#007C7D", BHVE = "gold")))
 pheatmap::pheatmap(all_sample_logFC_mat_test, clustering_callback = callback, border_color = "black", angle_col = 0, show_rownames = F, color = viridis(length(mat_breaks) - 1), breaks = mat_breaks, legend = F, annotation_col = col_annot, annotation_colors = list(cond = c(CTRL = "#007C7D", BHVE = "gold")))
+dev.off()
+
+# Heatmap with Hierarchical Clustering for 15 Cluster BVC DEGs
+heat15 = data.frame()
+for (i in 0:14) {
+  if ( length(which(bvc15_sig$cluster == i)) > 0 ) {
+    print(i)
+    pair1_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b1" & bb$seuratclusters15 == i)], cells.2 = colnames(bb)[which(bb$sample == "c1" & bb$seuratclusters15 == i)])
+    pair2_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b2" & bb$seuratclusters15 == i)], cells.2 = colnames(bb)[which(bb$sample == "c2" & bb$seuratclusters15 == i)])
+    pair3_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b3" & bb$seuratclusters15 == i)], cells.2 = colnames(bb)[which(bb$sample == "c3" & bb$seuratclusters15 == i)])
+    pair4_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b4" & bb$seuratclusters15 == i)], cells.2 = colnames(bb)[which(bb$sample == "c4" & bb$seuratclusters15 == i)])
+    pair5_bulk_stats = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$sample == "b5" & bb$seuratclusters15 == i)], cells.2 = colnames(bb)[which(bb$sample == "c5" & bb$seuratclusters15 == i)])
+    
+    bulk_common_genes = pair1_bulk_stats$genes[which( pair1_bulk_stats$genes %in% pair2_bulk_stats$genes & pair1_bulk_stats$genes %in% pair3_bulk_stats$genes & pair1_bulk_stats$genes %in% pair4_bulk_stats$genes & pair1_bulk_stats$genes %in% pair5_bulk_stats$genes )]
+    all_pairs_bulk_stats = data.frame(genes = bulk_common_genes,
+                                      pair1 = pair1_bulk_stats$avg_logFC[match(bulk_common_genes, pair1_bulk_stats$genes)],
+                                      pair2 = pair2_bulk_stats$avg_logFC[match(bulk_common_genes, pair2_bulk_stats$genes)],
+                                      pair3 = pair3_bulk_stats$avg_logFC[match(bulk_common_genes, pair3_bulk_stats$genes)],
+                                      pair4 = pair4_bulk_stats$avg_logFC[match(bulk_common_genes, pair4_bulk_stats$genes)],
+                                      pair5 = pair5_bulk_stats$avg_logFC[match(bulk_common_genes, pair5_bulk_stats$genes)])
+    all_sample_logFC = data.frame(genes = all_pairs_bulk_stats$genes)
+    all_sample_logFC[,c("b1", "c1")] = c(all_pairs_bulk_stats$pair1, -all_pairs_bulk_stats$pair1)
+    all_sample_logFC[,c("b2", "c2")] = c(all_pairs_bulk_stats$pair2, -all_pairs_bulk_stats$pair2)
+    all_sample_logFC[,c("b3", "c3")] = c(all_pairs_bulk_stats$pair3, -all_pairs_bulk_stats$pair3)
+    all_sample_logFC[,c("b4", "c4")] = c(all_pairs_bulk_stats$pair4, -all_pairs_bulk_stats$pair4)
+    all_sample_logFC[,c("b5", "c5")] = c(all_pairs_bulk_stats$pair5, -all_pairs_bulk_stats$pair5)
+    
+    rownames(all_sample_logFC) = all_sample_logFC$genes
+    all_sample_logFC$genes = NULL
+    all_sample_logFC_mat = as.matrix(all_sample_logFC)
+    all_sample_logFC_mat_test = all_sample_logFC_mat[unique(bvc15_sig$mzebra[which(bvc15_sig$cluster == i)]),] 
+    
+    if ( length(which(bvc15_sig$cluster == i)) == 1 ) {
+      heat15 = rbind(heat15, all_sample_logFC_mat_test)
+      rownames(heat15)[nrow(heat15)] = paste0(bvc15_sig$mzebra[which(bvc15_sig$cluster == i)], "_", i)
+    } else {
+      rownames(all_sample_logFC_mat_test) = paste0(rownames(all_sample_logFC_mat_test), "_", i)
+      heat15 = rbind(heat15, all_sample_logFC_mat_test)
+    }
+  
+  } # end if cluster has a sig hit
+} # end cluster for
+heat15 = as.matrix(heat15)
+# png("C:/Users/miles/Downloads/bvc15_sample_heatmap_logFC_viridis2.png", width = 1500, height = 2000, res = 300)
+heat15_myc = heat15
+heat15_myc = cbind(heat15_myc, rowSums(heat15_myc[,c(T,F)]) > rowSums(heat15_myc[, c(F,T)]))
+heat15_myc = cbind(heat15_myc, reshape2::colsplit(rownames(heat15), "_", c('a', 'b'))[,2])
+heat15_myc2 = data.frame()
+heat15_myc2_row_names = c()
+for (new.num in 1:15) {
+  i = convert15$old[which(convert15$new.num == new.num)]
+  this_rows = heat15_myc[which(heat15_myc[,11] == 1 & heat15_myc[,12] == i), 1:10]
+  heat15_myc2 = rbind(heat15_myc2, this_rows)
+  colnames(heat15_myc2) = c("b1", "c1", "b2", "c2", "b3", "c3", "b4", "c4", "b5", "c5")
+  heat15_myc2_row_names = c(heat15_myc2_row_names, rownames(heat15_myc)[which(heat15_myc[,11] == 1 & heat15_myc[,12] == i)])
+}
+for (new.num in 1:15) {
+  i = convert15$old[which(convert15$new.num == new.num)]
+  this_rows = heat15_myc[which(heat15_myc[,11] == 0 & heat15_myc[,12] == i), 1:10]
+  heat15_myc2 = rbind(heat15_myc2, this_rows)
+  heat15_myc2_row_names = c(heat15_myc2_row_names, rownames(heat15_myc)[which(heat15_myc[,11] == 0 & heat15_myc[,12] == i)])
+}
+rownames(heat15_myc2) = heat15_myc2_row_names
+
+callback = function(hc, mat){
+  if (length(hc$order) == 10) {
+    # dend = as.dendrogram(hc)
+    # tmp = dend[[2]][[2]][[2]][[1]]
+    # dend[[2]][[2]][[2]][[1]] = dend[[2]][[2]][[2]][[2]]
+    # dend[[2]][[2]][[2]][[2]] = tmp
+    # tmp = dend[[1]]
+    # dend[[1]] = dend[[2]]
+    # dend[[2]] = tmp
+    # as.hclust(dend)
+    dendsort(hc, isReverse = T)
+  }
+}
+
+png("C:/Users/miles/Downloads/bvc15_sample_heatmap_logFC_viridis2.png", width = 1000, height = 1500, res = 200)
+mat_breaks <- quantile_breaks(heat15, n = 11)
+col_annot = data.frame(cond = rep(c("BHVE", "CTRL"), 5), row.names = colnames(heat15))
+row_annot = data.frame(cluster = factor(reshape2::colsplit(rownames(heat15_myc2), "_", c('a', 'b'))[,2]), row.names = rownames(heat15_myc2))
+row_annot$cluster = convert15$new.full[match(row_annot$cluster, convert15$old)]
+row_annot$cluster = factor(row_annot$cluster, levels = c("1_Astro/MG", "4_GABA", "5_GABA", "6_GABA", "8_Glut", "9_Glut", "10_Glut", "11_Glut", "12_Glut", "15_GABA/Glut"))
+row_annot_color = setNames(convert15$col, convert15$new.full)
+pheatmap::pheatmap(heat15_myc2, clustering_callback = callback, border_color = NA, angle_col = 0, show_rownames = F, color = viridis(length(mat_breaks) - 1), breaks = mat_breaks, legend = F, annotation_col = col_annot, annotation_colors = list(cond = c(CTRL = "#007C7D", BHVE = "gold"), cluster = row_annot_color), annotation_row = row_annot, cluster_rows = F, annotation_names_row = F, annotation_names_col = T)
+dev.off()
+
+pdf("C:/Users/miles/Downloads/bvc15_sample_heatmap_logFC_viridis2.pdf")
+mat_breaks <- quantile_breaks(heat15, n = 11)
+col_annot = data.frame(cond = rep(c("BHVE", "CTRL"), 5), row.names = colnames(heat15))
+row_annot = data.frame(cluster = factor(reshape2::colsplit(rownames(heat15_myc2), "_", c('a', 'b'))[,2]), row.names = rownames(heat15_myc2))
+row_annot$cluster = convert15$new.full[match(row_annot$cluster, convert15$old)]
+row_annot$cluster = factor(row_annot$cluster, levels = c("1_Astro/MG", "4_GABA", "5_GABA", "6_GABA", "8_Glut", "9_Glut", "10_Glut", "11_Glut", "12_Glut", "15_GABA/Glut"))
+row_annot_color = setNames(convert15$col, convert15$new.full)
+pheatmap::pheatmap(heat15_myc2, clustering_callback = callback, border_color = NA, angle_col = 0, show_rownames = F, color = viridis(length(mat_breaks) - 1), breaks = mat_breaks, legend = F, annotation_col = col_annot, annotation_colors = list(cond = c(CTRL = "#007C7D", BHVE = "gold"), cluster = row_annot_color), annotation_row = row_annot, cluster_rows = F, annotation_names_row = F, annotation_names_col = T)
 dev.off()
 
 # 15 Cluster BVC DEGs UMAP

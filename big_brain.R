@@ -1410,21 +1410,51 @@ mat[which(mat > 1)] = 1
 bb$ieg_score = colSums(mat[ieg_genes, ])
 bb$ieg_score_norm = bb$ieg_score / bb$nFeature_RNA
 
-ieg_score_norm_95 = colnames(bb)[which(bb$ieg_score_norm >= quantile(bb$ieg_score_norm, 0.95))]
-ieg_score_3 = colnames(bb)[which(bb$ieg_score >= 7)]
-DimPlot(bb, cells.highlight = ieg_score_norm_95, order = T)
-DimPlot(bb, cells.highlight = ieg_score_3, order = T)
+# ieg_score_norm_95 = colnames(bb)[which(bb$ieg_score_norm >= quantile(bb$ieg_score_norm, 0.95))]
+# DimPlot(bb, cells.highlight = ieg_score_norm_95, order = T)
+ieg_score_95 = colnames(bb)[which(bb$ieg_score >= quantile(bb$ieg_score, 0.95))]
+DimPlot(bb, cells.highlight = ieg_score_9, order = T)
 
-bb$pos = F
-bb$pos[ieg_score_norm_95] = T
-Idents(bb) = bb$pos
-ieg_ps6 = FindMarkers(bb, ident.1 = T, ident.2 = F)
+ieg_ps6_full = data.frame()
+for (clust15 in c(1, 2, 3)) {
+  print(paste0("IEG, Cluster15 = ", clust15))
+  bb$pos = F
+  bb$pos[ieg_score_95] = T
+  bb$pos[which(bb$seuratclusters15 != clust15)] = F
+  Idents(bb) = bb$pos
+  ieg_ps6 = FindMarkers(bb, ident.1 = T, ident.2 = F, min.pct = 0.01, logfc.threshold = 0)
+  ieg_ps6$gene = rownames(ieg_ps6)
+  ieg_ps6$cluster = clust15
+  ieg_ps6$cat = "ieg"
+  ieg_ps6$n_1 = length(which(bb$pos == T))
+  ieg_ps6_full = rbind(ieg_ps6_full, ieg_ps6)
+}
+write.csv(ieg_ps6_full, "C:/Users/miles/Downloads/brain/results/bb/ps6_ieg_15.csv")
+
+ieg_ps6_full_clust53 = data.frame()
+for (clust53 in c()) {
+  print(paste0("IEG, Cluster53 = ", clust53))
+  bb$pos = F
+  bb$pos[ieg_score_95] = T
+  bb$pos[which(bb$seuratclusters53 != clust53)] = F
+  Idents(bb) = bb$pos
+  ieg_ps6 = FindMarkers(bb, ident.1 = T, ident.2 = F, min.pct = 0.01, logfc.threshold = 0)
+  ieg_ps6$gene = rownames(ieg_ps6)
+  ieg_ps6$cluster = clust53
+  ieg_ps6$cat = "ieg"
+  ieg_ps6$n_1 = length(which(bb$pos == T))
+  ieg_ps6_full_clust53 = rbind(ieg_ps6_full_clust53, ieg_ps6)
+}
+
+
 
 bb$prog_score = colSums(mat[prog_genes, ])
 bb$prog_score_norm = bb$prog_score / bb$nFeature_RNA
 
-prog_score_norm_95 = colnames(bb)[which(bb$prog_score_norm >= quantile(bb$prog_score_norm, 0.95))]
-DimPlot(bb, cells.highlight = prog_score_norm_95, order = T)
+# prog_score_norm_95 = colnames(bb)[which(bb$prog_score_norm >= quantile(bb$prog_score_norm, 0.95))]
+# DimPlot(bb, cells.highlight = prog_score_norm_95, order = T)
+prog_score_95 = colnames(bb)[which(bb$prog_score >= quantile(bb$prog_score, 0.95))]
+DimPlot(bb, cells.highlight = prog_score_95, order = T)
 
 #==========================================================================================
 # Depth and GSI Cor =======================================================================
@@ -1512,10 +1542,12 @@ perm$gene = NULL
 perm = data.matrix(perm)
 colnames(perm) = c(1:1000)
 
-gene = "kcna4"
+gene = "LOC101470450"
 png(paste0("~/scratch/brain/results/py_ns_bulk_", gene, ".png"), width = 600, height = 400)
-hist_df = data.frame(perm_dif = perm[gene,])
-print(ggplot(hist_df, aes(x=perm_dif)) + geom_histogram(color="black", fill="lightgray") + geom_vline(xintercept = real[gene,"Dif"]) + annotate(x=real[gene,"Dif"],y=+Inf,label="Real",vjust=2,geom="label") + ggtitle(paste0("NS Difference in Permutations Compared to Real for ", gene)) + xlab("NS Difference"))
+# hist_df = data.frame(perm_dif = perm[gene,])
+# print(ggplot(hist_df, aes(x=perm_dif)) + geom_histogram(color="black", fill="lightgray") + geom_vline(xintercept = real[gene,"Dif"]) + annotate(x=real[gene,"Dif"],y=+Inf,label="Real",vjust=2,geom="label") + ggtitle(paste0("NS Difference in Permutations Compared to Real for ", gene)) + xlab("NS Difference"))
+hist_df = data.frame(idx = 1:1000, perm_dif = unname(t(gene_res)))
+print(ggplot(hist_df, aes(x=perm_dif)) + geom_histogram(color="black", fill="lightgray") + geom_vline(xintercept = 273894.59160636) + annotate(x=273894.59160636,y=+Inf,label="Real",vjust=2,geom="label") + ggtitle(paste0("Sum of Absolute NS Difference in Permutations Compared to Real for ", gene)) + xlab("Sum of Abosulte NS Difference"))
 dev.off()
 
 test_stat = data.frame(gene = rownames(real), num_greater = 0, pct_greater = 0)
@@ -1579,7 +1611,8 @@ dev.off()
 #====================#
 for (i in 0:14) {
   print(i)
-  real = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, ".csv"))
+  # real = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, ".csv"))
+  real = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15_real_abs/real_abs_cluster15_", i, "_1.csv"))
   rownames(real) = real$X
   real$X = NULL
   real = real[which(real$Dif != 0),]
@@ -1587,7 +1620,8 @@ for (i in 0:14) {
   print("Reading in Permutations")
   perm = data.frame(gene = rownames(bb))
   for (j in 1:2) {
-    perm_small = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15/cluster15_", i, "_", j, ".csv"))
+    # perm_small = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15/cluster15_", i, "_", j, ".csv"))
+    perm_small = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15_abs/perm_abs_cluster15_", i, "_", j, ".csv"))
     perm = cbind(perm, perm_small[,-c(1)])
   }
   rownames(perm) = perm$gene
@@ -1607,28 +1641,33 @@ for (i in 0:14) {
   
   # Calculating the number of cells in the cluster
   print("Calculating the number of cells in the cluster")
-  mat = bb@assays$RNA@counts[,which(bb$seuratclusters15 == i)]
-  mat[which(mat > 0)] = 1
-  num_cells = rowSums(mat)
-  real$num_cells = num_cells[match(rownames(real), names(num_cells))]
+  b_mat = bb@assays$RNA@counts[,which(bb$seuratclusters15 == i & bb$cond == "BHVE")]
+  b_mat[which(b_mat > 0)] = 1
+  c_mat = bb@assays$RNA@counts[,which(bb$seuratclusters15 == i & bb$cond == "CTRL")]
+  c_mat[which(c_mat > 0)] = 1
+  num_cells = data.frame(B_n = rowSums(b_mat), C_n = rowSums(c_mat))
+  num_cells$num_cells = num_cells$B_n + num_cells$C_n
+  real[,c("B_n", "C_n", "n")] = num_cells[match(rownames(real), rownames(num_cells)),]
   real$num_greater = as.numeric(as.vector(real$num_greater))
   p_df = data.frame(low = 2*(abs(1000 - real$num_greater)/1000), high = 2* (1 - (abs(1000-real$num_greater)/1000)))
   real$two.tail.p = apply(p_df, 1, FUN=min)
   real$bh = p.adjust(real$two.tail.p, method = "BH")
-  write.csv(real, paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, "_res.csv"))
+  # write.csv(real, paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, "_res.csv"))
+  write.csv(real, paste0("~/scratch/brain/results/py_ns_cluster15_real_abs/cluster15_", i, "_res.csv"))
   
   print("Subsetting by significant hits")
   num_cells_in_cluster = length(which(bb$seuratclusters15 == i))
-  sig = real[which(real$bh <= 0.05 & real$num_cells > num_cells_in_cluster * 0.001),]
-  write.csv(sig, paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, "_res_sig.csv"))
-  system(paste0("rclone copy ~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, "_res_sig.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/"))
-  system(paste0("rclone copy ~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, "_res.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/"))
+  sig = real[which(real$bh <= 0.05 & real$B_n >= 5 & real$C_n >= 5),]
+  # write.csv(sig, paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, "_res_sig.csv"))
+  write.csv(sig, paste0("~/scratch/brain/results/py_ns_cluster15_real_abs/cluster15_", i, "_res_sig.csv"))
+  system(paste0("rclone copy ~/scratch/brain/results/py_ns_cluster15_real_abs/cluster15_", i, "_res_sig.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/cluster15/"))
+  system(paste0("rclone copy ~/scratch/brain/results/py_ns_cluster15_real_abs/cluster15_", i, "_res.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/cluster15/"))
 }
 
 big_df = data.frame()
 clust_stats = data.frame()
 for (i in 0:14) {
-  this_df = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15_real/cluster15_", i, "_res_sig.csv"))
+  this_df = read.csv(paste0("~/scratch/brain/results/py_ns_cluster15_real_abs/cluster15_", i, "_res_sig.csv"))
   colnames(this_df)[1] = "gene"
   this_df$cluster = i
   print(paste0("Cluster ", i, ": ", dim(this_df)))
@@ -1636,7 +1675,7 @@ for (i in 0:14) {
 }
 big_df$hgnc = gene_info$human[match(big_df$gene, gene_info$mzebra)]
 write.csv(big_df, "~/scratch/brain/results/py_ns_cluster15_all.csv")
-# system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/nodes_no_tf.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/cluster15/cluster1_network"))
+system(paste0("rclone copy ~/scratch/brain/results/py_ns_cluster15_all.csv dropbox:BioSci-Streelman/George/Brain/bb/results/py_ns/abs/cluster15"))
 
 big_df$cat = factor(big_df$cat)
 big_df_b_up = big_df[which(big_df$Dif > 0),]
@@ -1758,22 +1797,27 @@ system(paste0("rclone copy ~/scratch/brain/grn/cluster15_1_network/b_tf_heatmap.
 sig_tf_df =  read.csv("C:/Users/miles/Downloads/brain/results/bb/bb_all_interesting_genes_in_ns15.csv", stringsAsFactors = F)
 sig_tf = sig_tf_df$gene[which(sig_tf_df$class == "tf" | sig_tf_df$class2 == "tf")]
 
-in_path = "C:/Users/miles/Downloads/brain/results/bb/cluster15/"
+in_path = "~/scratch/brain/results/py_ns_cluster15_real_abs/"
+# in_path = "C:/Users/miles/Downloads/brain/results/bb/cluster15/"
 sig_tf_heat = data.frame()
-for (i in 0:14) {
-  ns_df = read.csv(paste0(in_path, "cluster15_", i, "_res.csv"), stringsAsFactors = F)
+for (i in convert15$new.full) {
+  j = convert15$old[which(convert15$new.full == i)]
+  ns_df = read.csv(paste0(in_path, "cluster15_", j, "_res.csv"), stringsAsFactors = F)
   ns_df = ns_df[which(ns_df$X %in% sig_tf),]
-  ns_df = ns_df[which(ns_df$num_cells >= 5),]
+  # ns_df = ns_df[which(ns_df$num_cells >= 5),]
+  ns_df = ns_df[which(ns_df$n >= 5),]
   ns_df$cluster = i
   ns_df$nMoreExtreme = 500-abs(ns_df$num_greater-500)
   sig_tf_heat = rbind(sig_tf_heat, ns_df)
 }
 sig_tf_mat = acast(sig_tf_heat, cluster ~ X, value.var = "num_greater")
+sig_tf_mat = sig_tf_mat[order(as.numeric(convert15$new.num), decreasing = T), ]
 colnames(sig_tf_mat) = sig_tf_df$label[match(colnames(sig_tf_mat), sig_tf_df$gene)]
 sig_tf_mat[which(is.na(sig_tf_mat))] = 500
 isSig = matrix("", nrow = nrow(sig_tf_mat), ncol = ncol(sig_tf_mat))
-isSig[which(sig_tf_mat < 2 | sig_tf_mat > 998)] = "*"
-pheatmap::pheatmap(sig_tf_mat, cellwidth = 20, cellheight = 20, cluster_rows = F, cluster_cols = T, angle_col = "315", display_numbers = isSig, number_color = "black", fontsize_number = 14, filename = "C:/Users/miles/Downloads/brain/results/bb/py_ns_cluster15_tf_sig_heat.pdf")
+isSig[which(sig_tf_mat <= 2 | sig_tf_mat > 998)] = "*"
+# pheatmap::pheatmap(sig_tf_mat, cellwidth = 20, cellheight = 20, cluster_rows = F, cluster_cols = T, angle_col = "315", display_numbers = isSig, number_color = "black", fontsize_number = 14, filename = "C:/Users/miles/Downloads/brain/results/bb/py_ns_cluster15_tf_sig_heat.pdf")
+pheatmap::pheatmap(sig_tf_mat, show_colnames = T, cellwidth = 20, cellheight = 20, cluster_rows = F, cluster_cols = T, angle_col = "315", display_numbers = isSig, number_color = "black", fontsize_number = 14, color = colorRampPalette(brewer.pal(n = 7, name = "RdYlBu"))(100), filename = "~/scratch/brain/results/py_ns_abs_cluster15_tf_sig_heat.pdf")
 
 # Plot num_greater vs Dif
 p_list = list()
@@ -2011,7 +2055,7 @@ for (gene_list in gene_lists) {
 #==========================================================================================
 all_p = read.csv("C:/Users/miles/Downloads/all_p.csv", header = F, stringsAsFactors = F)
 colnames(all_p) = c("barcode", "1", "2", "3", "4", "sample")
-substr_cells = substr(colnames(bb),6,23)
+# substr_cells = substr(colnames(bb),6,23)
 all_p$cell = sapply(1:nrow(all_p), function(x) colnames(bb)[which(bb$sample == all_p$sample[x] & substr_cells == all_p$barcode[x])])
 all_p$best = sapply(1:nrow(all_p), function(x) colnames(all_p)[which.max(as.numeric(as.vector(all_p[x,2:5])))+1] )
 all_p$best_p = sapply(1:nrow(all_p), function(x) max(as.numeric(as.vector(all_p[x,2:5]))) )
@@ -2508,6 +2552,31 @@ all_same$hgnc = gene_info$human[match(all_same$gene, gene_info$mzebra)]
 all_same = cbind(all_same, t_test[as.vector(all_same$feature),])
 write.table(all_same$feature[order(all_same$max_dif, decreasing = T)], "C:/Users/miles/Downloads/53_biased_genes.txt", quote = F, row.names = F, col.names = F)
 write.csv(all_same, "C:/Users/miles/Downloads/53_biased_data_table.csv")
+
+convert15$new.full = as.vector(convert15$new.full)
+convert15$new.full = factor(convert15$new.full, levels = convert15$new.full[order(as.numeric(convert15$new.num))])
+ggplot(convert15, aes(x=new.full, y = res_pct, color = col, fill = col)) + geom_bar(stat = "identity") + scale_color_identity() + scale_fill_identity()
+
+convert15_2 = data.frame()
+for (i in 0:14) {
+  n = convert15$res[which(convert15$old == i)]
+  # if (is.na(n)) { newRows = data.frame(old = i, new = convert15$new.full[which(convert15$old == i)], col = convert15$col[which(convert15$old == i)], num = 1:n) }
+  for ( j in 1:38 ) {
+    this_col = convert15$col[which(convert15$old == i)]
+    if ( is.na(n) ) { this_col = "lightgray"} else { 
+      if ( j > n ) { this_col = "gray" }
+    }
+    convert15_2 = rbind(convert15_2, data.frame(old = i, new = convert15$new.full[which(convert15$old == i)], col = this_col, num = j))
+  }
+  # newRows = data.frame(old = i, new = convert15$new.full[which(convert15$old == i)], col = convert15$col[which(convert15$old == i)], num = 1:n)
+  # convert15_2 = rbind(convert15_2, newRows)
+}
+pdf("C:/Users/miles/Downloads/clust15_ml_061021.pdf", width = 12, height = 5)
+ggplot(convert15_2, aes(x = new, y = num, color = col, fill = col)) + geom_tile(width = 0.6, linetype = "solid") + scale_color_identity() + scale_fill_identity() + theme_classic() + scale_y_continuous(expand = c(0, 0)) + xlab("") + ylab("Number of Correctly Predicted Individuals")
+dev.off()
+
+ggplot(convert15_2, aes(x = new, y = num, color = col, fill = col)) + geom_point(size = 3) + scale_color_identity() + scale_fill_identity() + theme_classic()
+ggplot(convert15_2, aes(xmin = old, xmax = old+1, ymin = num, ymax = num+0.5, color = col, fill = col)) + geom_rect(size = 2) + scale_color_identity() + scale_fill_identity() + theme_classic()
 
 #=======================================================================================
 # BHVE vs CTRL Correlation =============================================================
