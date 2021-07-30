@@ -186,8 +186,8 @@ def main():
         this_idx_list = mat_idx[i].values()
         with multiprocessing.Pool(len(cluster_set)) as pool:
             pool_ns = pool.map(corAndNodeStrength, this_idx_list)
-            print(length(pool_ns))
-            print(length(pool_ns[0]))
+            print(len(pool_ns))
+            print(len(pool_ns[0]))
             # pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
             for j in range(0, len(cluster_set)):
                 all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
