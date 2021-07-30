@@ -187,8 +187,8 @@ def main():
         with multiprocessing.Pool(len(cluster_set)) as pool:
             pool_ns = pool.map(corAndNodeStrength, this_idx_list)
             # pool_ns = pool.starmap(corAndNodeStrength, zip(repeat(i), cluster_set))
-            # for j in range(0, len(cluster_set)):
-            #     all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
+            for j in range(0, len(cluster_set)):
+                all_cluster_df[cluster_set[j]][i+1] = pool_ns[j]
         print(f"Done Permuting. Current Elapsed Time: {time.perf_counter() - perm_start:0.4f} seconds")
     # print("Finding Correlations")
     # for cluster in cluster_set:
