@@ -91,7 +91,6 @@ def readRealVcf(real_vcf, chrom_stats):
 
     # Snps that are multiallelic will be labelled as 9 still
     this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1) | (this_snps['GT'] == 2),]
-    print(this_snps)
     return(this_snps)
 
 def predictSubSampleML(snps, subs):
@@ -165,7 +164,7 @@ def main():
                                     ((pool_covered['1'] == 0) | (pool_covered['1'] == 2)) &
                                     ((pool_covered['2'] == 0) | (pool_covered['2'] == 2)) &
                                     ((pool_covered['3'] == 0) | (pool_covered['3'] == 2)) &
-                                    ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['0', '1', '2', '3', 'GT']]
+                                    ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['LG', 'Pos', '0', '1', '2', '3', 'GT']]
     print(super_inform)
     bool0 = super_inform['GT'] == super_inform['0']
     bool1 = super_inform['GT'] == super_inform['1']
