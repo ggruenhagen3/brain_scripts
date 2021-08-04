@@ -164,7 +164,7 @@ def main():
                                     ((pool_covered['1'] == 0) | (pool_covered['1'] == 2)) &
                                     ((pool_covered['2'] == 0) | (pool_covered['2'] == 2)) &
                                     ((pool_covered['3'] == 0) | (pool_covered['3'] == 2)) &
-                                    ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['LG', 'Pos', '0', '1', '2', '3', 'GT']]
+                                    ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
     print(super_inform)
     bool0 = super_inform['GT'] == super_inform['0']
     bool1 = super_inform['GT'] == super_inform['1']
