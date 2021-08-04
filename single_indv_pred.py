@@ -1,3 +1,4 @@
+# conda activate ccAf2
 import pandas
 import numpy
 import random
@@ -15,8 +16,8 @@ from matplotlib import pyplot as plt
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Predict a Single Individual based on scSplit results')
-    parser.add_argument('real_vcf', metavar='real_vcf', type = int, help='VCF from real sample')
-    parser.add_argument('pool', metavar='pool', type = int, help='Pool of the sample (b1-b5,c1-c5)')
+    parser.add_argument('real_vcf', metavar='real_vcf', type = str, help='VCF from real sample')
+    parser.add_argument('pool', metavar='pool', type = str, help='Pool of the sample (b1-b5,c1-c5)')
 
     args = parser.parse_args()
     return args.real_vcf, args.pool
