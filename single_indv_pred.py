@@ -102,15 +102,14 @@ def predictSubSampleML(snps, subs):
     :param subs: names possible subsamples
     :return test_score, train_score: testing (simulated) correctly predicted?
     """
-    xtrain = snps.loc[['Real_' + sub for sub in subs if sub in snps.index]]
-    xtest = snps.loc[[sub for sub in subs if sub in snps.index]]
-    ytrain = [sub for sub in subs if sub in snps.index]
-    ytest = ytrain
+    xtrain = snps.loc[subs,]
+    xtest = snps['GT',]
+    ytrain = subs
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
-    print(rc.predict(xtest))
-    test_score = rc.score(xtest, ytest)
-    return test_score
+    pred = rc.predict(xtest)
+    print(pred)
+    return pred
 
 
 def main():
@@ -150,14 +149,24 @@ def main():
     real_snps = readRealVcf(real_vcf, chrom_stats)
 
     # Find SNPs covered by real vcf
-    print(pool)
-    print(all_snps[pool])
-    print(real_snps['Raw_Pos'])
+    # print(pool)
+    # print(all_snps[pool])
+    # print(real_snps['Raw_Pos'])
     pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
-    print(pool_covered[pool_covered.columns[0:5]])
-    print(pool_covered[pool_covered.columns[5:10]])
-    print(pool_covered.shape)
+    pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 'GT']])
+    pool_covered = pool_covered.transpose().dropna(axis=1)
+
+    if pool == "b3" or pool == "c3":
+        predictSubSampleML(pool_covered, ['0', '1', '2'])
+    else:
+        predictSubSampleML(pool_covered, ['0', '1', '2', '3'])
+
+    # print(pool_covered[pool_covered.columns[0:5]])
+    # print(pool_covered[pool_covered.columns[5:10]])
+    # print(pool_covered.shape)
+
+
 
 if __name__ == '__main__':
     main()
