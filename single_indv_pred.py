@@ -103,7 +103,7 @@ def predictSubSampleML(snps, subs):
     """
     print(snps)
     xtrain = snps.loc[subs,]
-    xtest = snps.loc['GT',]
+    xtest = [snps.loc['GT',]]
     ytrain = subs
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
