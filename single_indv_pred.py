@@ -74,13 +74,8 @@ def predictSubSampleML(snps, subs):
 
 def main():
     start_time = time.perf_counter()  # start the timer
-    global read_length
-    global min_snp_prob
-    global depth
-    global relevant_reads
     real_vcf, pool = parseArgs()
-    random.seed(perm_num)
-    print("Depth: " + str(depth))
+    print("Pool: " + pool)
 
     # Read in Chromosome information and format it correctly
     chrom_stats = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt",
