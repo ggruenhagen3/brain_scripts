@@ -32,7 +32,7 @@ def formatSnps(sample, chrom_stats):
     Change Genotype information to 0,1,2. Keep only SNPs where genotype confidence meets the minimum for all subsamples.
 
     :param sample: this sample
-    :param chrom_stats: chromosome informtation
+    :param chrom_stats: chromosome information
     :return this_snps: snps that are correctly formatted
     """
     this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split/scSplit.vcf", sep="\s+", header=33)
@@ -51,11 +51,49 @@ def formatSnps(sample, chrom_stats):
             this_snps[col] = probs.idxmax(axis=1)  # highest probability allele
     snps_highest['Min'] = snps_highest.min(axis=1)  # the minimum probability (of the highest allele) for all subsamples
     this_snps = this_snps.loc[snps_highest['Min'] >= min_snp_prob]  # keep only snps where all subsamples reach the minimum probability threshold
+    print(this_snps)
     return this_snps
 
-def readRealVcf(real_vcf):
+def readRealVcf(real_vcf, chrom_stats):
+    """
+    :param real_vcf: VCF of real individual
+    :param chrom_stats: chromosome information
+    :return this_snps: snps that are correctly formatted
+    """
     this_snps = pandas.read_csv(real_vcf, sep="\s+", header=1714)
+    this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
+    this_snps.rename(columns={this_snps.columns[len(this_snps.columns)-2]: "GT_L001"}, inplace=True)
+    this_snps.rename(columns={this_snps.columns[len(this_snps.columns)-1]: "GT_L002"}, inplace=True)
+    this_snps = this_snps.merge(chrom_stats)
+    this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
+    this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 'GT_L001', 'GT_L002']]
+    this_snps['GT_L001'] = this_snps['GT_L001'].str[:3]
+    this_snps['GT_L002'] = this_snps['GT_L002'].str[:3]
+
+    # Change genotypes ('GT') to 0, 1, 2, 9
+    this_snps['GT_L001'] = this_snps['GT_L001'].replace('./.', 9)
+    this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/0', 0)
+    this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/1', 1)
+    this_snps['GT_L001'] = this_snps['GT_L001'].replace('1/1', 2)
+    this_snps['GT_L002'] = this_snps['GT_L002'].replace('./.', 9)
+    this_snps['GT_L002'] = this_snps['GT_L002'].replace('0/0', 0)
+    this_snps['GT_L002'] = this_snps['GT_L002'].replace('0/1', 1)
+    this_snps['GT_L002'] = this_snps['GT_L002'].replace('1/1', 2)
+
+    # Make a consensus column of the genotype of the individual from L001 and L002
+    this_snps['GT'] = 9
+    this_snps.loc[(this_snps['GT_L001'] == 0) & (this_snps['GT_L002'] == 0), 'GT'] = 0  # if both lanes are in agreement
+    this_snps.loc[(this_snps['GT_L001'] == 2) & (this_snps['GT_L002'] == 2), 'GT'] = 2
+    this_snps.loc[(this_snps['GT_L001'] == 0) & (this_snps['GT_L002'] == 2), 'GT'] = 1  # if lanes are in disagreement
+    this_snps.loc[(this_snps['GT_L001'] == 2) & (this_snps['GT_L002'] == 0), 'GT'] = 1
+    this_snps.loc[this_snps['GT_L001'] == 9, 'GT'] = this_snps.loc[this_snps['GT_L001'] == 9, 'GT_L002']  # if a lane has missing info, then use the lane with info
+    this_snps.loc[this_snps['GT_L002'] == 9, 'GT'] = this_snps.loc[this_snps['GT_L002'] == 9, 'GT_L001']
+    this_snps.loc[(this_snps['GT_L001'] == 1) | (this_snps['GT_L002'] == 1), 'GT'] = 1  # this line must be last
+
+    # Snps that are multiallelic will be labelled as 9 still
+    this_snps = this_snps.loc[this_snps['GT'] != 9,]
     print(this_snps)
+    return(this_snps)
 
 def predictSubSampleML(snps, subs):
     """
