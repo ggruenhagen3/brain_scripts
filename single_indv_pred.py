@@ -167,7 +167,14 @@ def main():
                                     ((pool_covered['3'] == 0) | (pool_covered['3'] == 2)) &
                                     ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['0', '1', '2', '3', 'GT']]
     print(super_inform)
-    print(super_inform['GT'] == super_inform['0'])
+    bool0 = super_inform['GT'] == super_inform['0']
+    bool1 = super_inform['GT'] == super_inform['1']
+    bool2 = super_inform['GT'] == super_inform['2']
+    bool3 = super_inform['GT'] == super_inform['3']
+    print(bool0.value_counts())
+    print(bool1.value_counts())
+    print(bool2.value_counts())
+    print(bool3.value_counts())
 
 
 if __name__ == '__main__':
