@@ -139,8 +139,8 @@ def main():
     # Read in predictive SNPs from scSplit
     samples = ['b1', 'b2', 'b3', 'b4', 'b5', 'c1', 'c2', 'c3', 'c4', 'c5']
     all_snps_pos = []
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        snps_data = pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as mp_pool:
+        snps_data = mp_pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
     all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
     for sample in samples:
         all_snps_pos.extend(all_snps[sample]['Raw_Pos'])
@@ -151,6 +151,8 @@ def main():
 
     # Find SNPs covered by real vcf
     pool_covered = all_snps[pool].loc[all_snps[pool].isin(real_snps['Raw_Pos']),]
+    print(pool_covered[pool_covered.columns[0:5]])
+    print(pool_covered[pool_covered.columns[5:10]])
     print(pool_covered.shape)
 
 if __name__ == '__main__':
