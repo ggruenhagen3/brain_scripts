@@ -151,7 +151,9 @@ def main():
 
     # Find SNPs covered by real vcf
     print(pool)
-    pool_covered_bool = all_snps[pool].isin(real_snps['Raw_Pos'])
+    print(all_snps[pool])
+    print(real_snps['Raw_Pos'])
+    pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
     print(pool_covered[pool_covered.columns[0:5]])
     print(pool_covered[pool_covered.columns[5:10]])
