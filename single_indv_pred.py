@@ -102,6 +102,7 @@ def predictSubSampleML(snps, subs):
     :param subs: names possible subsamples
     :return test_score, train_score: testing (simulated) correctly predicted?
     """
+    print(snps)
     xtrain = snps.loc[subs,]
     xtest = snps['GT',]
     ytrain = subs
