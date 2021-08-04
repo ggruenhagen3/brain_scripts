@@ -150,6 +150,7 @@ def main():
     real_snps = readRealVcf(real_vcf, chrom_stats)
 
     # Find SNPs covered by real vcf
+    print(pool)
     pool_covered = all_snps[pool].loc[all_snps[pool].isin(real_snps['Raw_Pos']),]
     print(pool_covered[pool_covered.columns[0:5]])
     print(pool_covered[pool_covered.columns[5:10]])
