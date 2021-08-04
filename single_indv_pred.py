@@ -54,7 +54,7 @@ def formatSnps(sample, chrom_stats):
     return this_snps
 
 def readRealVcf(real_vcf):
-    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=33)
+    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=1714)
     print(this_snps)
 
 def predictSubSampleML(snps, subs):
