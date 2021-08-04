@@ -90,7 +90,7 @@ def readRealVcf(real_vcf, chrom_stats):
     this_snps.loc[(this_snps['GT_L001'] == 1) | (this_snps['GT_L002'] == 1), 'GT'] = 1  # this line must be last
 
     # Snps that are multiallelic will be labelled as 9 still
-    this_snps = this_snps.loc[this_snps['GT'] != 9,]
+    this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1) | (this_snps['GT'] == 2),]
     print(this_snps)
     return(this_snps)
 
@@ -149,9 +149,6 @@ def main():
     real_snps = readRealVcf(real_vcf, chrom_stats)
 
     # Find SNPs covered by real vcf
-    # print(pool)
-    # print(all_snps[pool])
-    # print(real_snps['Raw_Pos'])
     pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
     pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 'GT']])
@@ -161,10 +158,6 @@ def main():
         predictSubSampleML(pool_covered, ['0', '1', '2'])
     else:
         predictSubSampleML(pool_covered, ['0', '1', '2', '3'])
-
-    # print(pool_covered[pool_covered.columns[0:5]])
-    # print(pool_covered[pool_covered.columns[5:10]])
-    # print(pool_covered.shape)
 
 
 
