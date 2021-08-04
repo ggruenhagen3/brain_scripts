@@ -51,7 +51,6 @@ def formatSnps(sample, chrom_stats):
             this_snps[col] = probs.idxmax(axis=1)  # highest probability allele
     snps_highest['Min'] = snps_highest.min(axis=1)  # the minimum probability (of the highest allele) for all subsamples
     this_snps = this_snps.loc[snps_highest['Min'] >= min_snp_prob]  # keep only snps where all subsamples reach the minimum probability threshold
-    print(this_snps)
     return this_snps
 
 def readRealVcf(real_vcf, chrom_stats):
@@ -104,7 +103,7 @@ def predictSubSampleML(snps, subs):
     """
     print(snps)
     xtrain = snps.loc[subs,]
-    xtest = snps['GT',]
+    xtest = snps.loc['GT',]
     ytrain = subs
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
