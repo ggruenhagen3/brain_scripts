@@ -13,14 +13,17 @@ import argparse
 from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
 
+global min_snp_prob
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='Predict a Single Individual based on scSplit results')
     parser.add_argument('real_vcf', metavar='real_vcf', type = str, help='VCF from real sample')
     parser.add_argument('pool', metavar='pool', type = str, help='Pool of the sample (b1-b5,c1-c5)')
+    parser.add_argument("-m", "--min_snp_prob", help="Minimum Probability for any Individual in any SNP", nargs="?",
+                        type=float, default=0.65, const=0.65)
 
     args = parser.parse_args()
-    return args.real_vcf, args.pool
+    return args.real_vcf, args.pool, args.min_snp_prob
 
 
 def formatSnps(sample, chrom_stats):
@@ -74,7 +77,8 @@ def predictSubSampleML(snps, subs):
 
 def main():
     start_time = time.perf_counter()  # start the timer
-    real_vcf, pool = parseArgs()
+    global min_snp_prob
+    real_vcf, pool, min_snp_prob = parseArgs()
     print("Pool: " + pool)
 
     # Read in Chromosome information and format it correctly
