@@ -147,9 +147,11 @@ def main():
     print(f"Time to read and format SNPs: {time.perf_counter() - start_time:0.4f} seconds")
 
     # Reading Real VCF
-    readRealVcf(real_vcf)
+    real_snps = readRealVcf(real_vcf, crhom_stats)
 
     # Find SNPs covered by real vcf
+    pool_covered = all_snps.loc[all_snps[pool].isin(real_snps['Raw_Pos']),]
+    print(pool_covered.shape)
 
 if __name__ == '__main__':
     main()
