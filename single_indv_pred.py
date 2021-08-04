@@ -108,8 +108,10 @@ def predictSubSampleML(snps, subs):
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
     pred = rc.predict(xtest)
+    prob = rc.predict_proba(xtest)
     print(pred)
-    return pred
+    print(prob)
+    return pred, prob
 
 
 def main():
@@ -152,13 +154,20 @@ def main():
     pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
     pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 'GT']])
-    pool_covered = pool_covered.transpose().dropna(axis=1)
+    # pool_covered = pool_covered.transpose().dropna(axis=1)
 
     if pool == "b3" or pool == "c3":
-        predictSubSampleML(pool_covered, ['0', '1', '2'])
+        predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2'])
     else:
-        predictSubSampleML(pool_covered, ['0', '1', '2', '3'])
+        predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2', '3'])
 
+    super_inform = pool_covered.loc[((pool_covered['0'] == 0) | (pool_covered['0'] == 2)) &
+                                    ((pool_covered['1'] == 0) | (pool_covered['1'] == 2)) &
+                                    ((pool_covered['2'] == 0) | (pool_covered['2'] == 2)) &
+                                    ((pool_covered['3'] == 0) | (pool_covered['3'] == 2)) &
+                                    ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['0', '1', '2', '3', 'GT']]
+    print(super_inform)
+    print(super_inform['GT'] == super_inform['0'])
 
 
 if __name__ == '__main__':
