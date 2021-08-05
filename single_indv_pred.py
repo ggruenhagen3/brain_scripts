@@ -155,7 +155,7 @@ def main():
     pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 'GT']])
     # pool_covered = pool_covered.transpose().dropna(axis=1)
 
-    if pool == "b3" or pool == "c3":
+    if pool == "b4" or pool == "c4":
         predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2'])
     else:
         predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2', '3'])
