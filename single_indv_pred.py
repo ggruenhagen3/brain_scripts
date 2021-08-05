@@ -175,6 +175,11 @@ def main():
     print(bool2.value_counts())
     print(bool3.value_counts())
 
+    # pool_covered_name = real_vcf.split(".")[0] + "_"
+    pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
+    super_inform.to_csv("pool_covered_super_inform.vcf", sep="\t")
+
+
 
 if __name__ == '__main__':
     main()
