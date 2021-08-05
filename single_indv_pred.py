@@ -71,13 +71,13 @@ def readRealVcf(real_vcf, chrom_stats):
 
     # Change genotypes ('GT') to 0, 1, 2, 9
     this_snps['GT_L001'] = this_snps['GT_L001'].replace('./.', 9)
-    this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/0', 0)
+    this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/0', 2)
     this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/1', 1)
-    this_snps['GT_L001'] = this_snps['GT_L001'].replace('1/1', 2)
+    this_snps['GT_L001'] = this_snps['GT_L001'].replace('1/1', 0)
     this_snps['GT_L002'] = this_snps['GT_L002'].replace('./.', 9)
-    this_snps['GT_L002'] = this_snps['GT_L002'].replace('0/0', 0)
+    this_snps['GT_L002'] = this_snps['GT_L002'].replace('0/0', 2)
     this_snps['GT_L002'] = this_snps['GT_L002'].replace('0/1', 1)
-    this_snps['GT_L002'] = this_snps['GT_L002'].replace('1/1', 2)
+    this_snps['GT_L002'] = this_snps['GT_L002'].replace('1/1', 0)
 
     # Make a consensus column of the genotype of the individual from L001 and L002
     this_snps['GT'] = 9
