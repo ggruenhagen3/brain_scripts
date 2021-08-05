@@ -177,7 +177,7 @@ def main():
 
     super_inform = pool_covered[['0', '1', '2', '3']]
     super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
-    super_inform = pool_covered.loc[super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
+    super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
     print(super_inform)
 
     # pool_covered_name = real_vcf.split(".")[0] + "_"
