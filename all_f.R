@@ -2782,7 +2782,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   print(p)
   dev.off()
   pdf(pdf3_name,  width = 2.5*length(dfs)+.50, height = 2.5*length(dfs), version = "1.6", bg = "white")
-  print(ggdraw(myCowplot::switch_axis_position(p + theme_gray(), axis = 'y')))
+  ggdraw(myCowplot::switch_axis_position(p, axis = 'y'))
   dev.off()
   print("finished plot 3")
   
