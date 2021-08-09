@@ -26,6 +26,12 @@ httr::set_config(config(ssl_verifypeer = FALSE))
 # Helper Functions #
 ####################
 
+clipboard <- function(x, sep="\t", row.names=FALSE, col.names=TRUE){
+  con <- pipe("xclip -selection clipboard -i", open="w")
+  write.table(x, con, sep=sep, row.names=row.names, col.names=col.names, quote = F)
+  close(con)
+}
+
 pct_dif_avg_logFC = function(obj, cells.1, cells.2) {
   #' Find the Average Log FC and Percent Difference for Every Gene
   #' @param obj Seurat object
@@ -479,9 +485,9 @@ myFeaturePlot = function(obj, feature, cells.use = NULL, myslot = "data", alpha_
     
   
   onePlot = function(df, mymin, mymax) {
-    print(head(df))
     if ( is.null(alpha_vect) ) {
       df = df[order(df$value, na.last = F, decreasing = F),]
+      print(head(df))
       # p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradient2(midpoint=(mymax-mymin)/2 + mymin, low = "blue", mid = "gold", high = "red", space = "Lab", limits=c(mymin, mymax)) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
       p = ggplot(df, aes(UMAP_1, UMAP_2, col = value)) + geom_point(size = my.pt.size) + scale_color_gradientn(limits = c(mymin, mymax), colors = c("lightgrey", "blue"), na.value=my.na.value) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
       if (!is.null(my.col.pal))
@@ -2977,7 +2983,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
     png(paste(filepath, filename, "_pct_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
     dev.off()
-    png(paste(filepath, filename, "_pct_same_dir.pdf", sep=""), width = df1_num_clusters*1.00 + 0.5, height = df2_num_clusters*1.00, unit = "px", res = 100)
+    pdf(paste(filepath, filename, "_pct_same_dir.pdf", sep=""), width = df1_num_clusters*1.00 + 0.5, height = df2_num_clusters*1.00, unit = "px", res = 100)
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
     dev.off()
   } else {
