@@ -2745,7 +2745,8 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
     png4_title = paste("% Best Guess", with_correction)
   }
   
-  df$df1_cluster = factor(df$df1_cluster, levels = rev(unique(df$df1_cluster)))
+  # df$df1_cluster = factor(df$df1_cluster, levels = rev(unique(df$df1_cluster)))
+  df$df1_cluster = factor(df$df1_cluster, levels = unique(df$df1_cluster))
   df$df2_cluster = factor(df$df2_cluster, levels = unique(df$df2_cluster))
   print("Right before plotting")
   
@@ -2775,7 +2776,7 @@ heatmapComparisonMulti = function(dfs, samples, filename, filepath, correction_f
   png(png3_name,  width = 250*length(dfs)+50, height = 250*length(dfs), unit = "px", res = 110)
   p = ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + ggtitle(png3_title) + guides(color = FALSE) + theme_classic() + coord_fixed() + theme(axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   if (labels)
-    p = p + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) 
+    p = p + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_y_continuous(position = "right") + scale_colour_manual(values=c("#FFFFFF", "#000000")) 
   if (! xlab)
     p = p + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank())
   print(p)
@@ -2983,6 +2984,7 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
     png(paste(filepath, filename, "_pct_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
     dev.off()
+    pdf_df =
     pdf(paste(filepath, filename, "_pct_same_dir.pdf", sep=""), width = df1_num_clusters*1.00 + 0.5, height = df2_num_clusters*1.00)
     print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
     dev.off()
