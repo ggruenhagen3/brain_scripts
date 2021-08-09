@@ -158,25 +158,35 @@ def main():
     pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 'GT']])
     # pool_covered = pool_covered.transpose().dropna(axis=1)
 
-    if pool == "b3" or pool == "c3":
+    if pool == "b4" or pool == "c4":
         predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2'])
     else:
         predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2', '3'])
 
-    super_inform = pool_covered.loc[((pool_covered['0'] == 0) | (pool_covered['0'] == 2)) &
-                                    ((pool_covered['1'] == 0) | (pool_covered['1'] == 2)) &
-                                    ((pool_covered['2'] == 0) | (pool_covered['2'] == 2)) &
-                                    ((pool_covered['3'] == 0) | (pool_covered['3'] == 2)) &
-                                    ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
+    # super_inform = pool_covered.loc[((pool_covered['0'] == 0) | (pool_covered['0'] == 2)) &
+    #                                 ((pool_covered['1'] == 0) | (pool_covered['1'] == 2)) &
+    #                                 ((pool_covered['2'] == 0) | (pool_covered['2'] == 2)) &
+    #                                 ((pool_covered['3'] == 0) | (pool_covered['3'] == 2)) &
+    #                                 ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
+    # print(super_inform)
+    # bool0 = super_inform['GT'] == super_inform['0']
+    # bool1 = super_inform['GT'] == super_inform['1']
+    # bool2 = super_inform['GT'] == super_inform['2']
+    # bool3 = super_inform['GT'] == super_inform['3']
+    # print(bool0.value_counts())
+    # print(bool1.value_counts())
+    # print(bool2.value_counts())
+    # print(bool3.value_counts())
+
+    super_inform = pool_covered[['0', '1', '2', '3']]
+    super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
+    super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
     print(super_inform)
-    bool0 = super_inform['GT'] == super_inform['0']
-    bool1 = super_inform['GT'] == super_inform['1']
-    bool2 = super_inform['GT'] == super_inform['2']
-    bool3 = super_inform['GT'] == super_inform['3']
-    print(bool0.value_counts())
-    print(bool1.value_counts())
-    print(bool2.value_counts())
-    print(bool3.value_counts())
+
+    # pool_covered_name = real_vcf.split(".")[0] + "_"
+    pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
+    super_inform.to_csv("pool_covered_super_inform.vcf", sep="\t")
+
 
 
 if __name__ == '__main__':
