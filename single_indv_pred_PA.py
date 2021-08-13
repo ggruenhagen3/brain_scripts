@@ -144,8 +144,10 @@ def main():
     all_snps = {}
     all_snps['b1'] = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/brain_scripts/test.txt",header=0)
     all_snps['b1'].rename(columns={all_snps['b1'].columns[0]: "LG"}, inplace=True)
+    all_snps['b1'][['LG', 'POS']] = all_snps['b1'].LG.str.split(":", expand=True)
     all_snps['b1'] = all_snps['b1'].merge(chrom_stats)
     all_snps['b1']['Raw_Pos'] = all_snps['b1']['Start'] + all_snps['b1']['POS']
+    print(all_snps['b1'])
     # with multiprocessing.Pool(multiprocessing.cpu_count()) as mp_pool:
     #     snps_data = mp_pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
     # all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
