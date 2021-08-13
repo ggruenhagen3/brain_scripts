@@ -35,25 +35,12 @@ def formatSnps(sample, chrom_stats):
     :param chrom_stats: chromosome information
     :return this_snps: snps that are correctly formatted
     """
-    if sample == "b1":
-        this_snps = pandas.read_csv(
-            "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split2/scSplit.vcf",sep="\s+", header=33)
-    this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split/scSplit.vcf", sep="\s+", header=33)
-    this_snps.rename(columns={ this_snps.columns[0]: "LG" }, inplace = True)
+    this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/" + upper(pool) + "_dist_PA.csv",header=0)
+    this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
+    this_snps[['LG', 'POS']] = this_snps.LG.str.split(":", expand=True)
+    this_snps['POS'] = pandas.to_numeric(this_snps['POS'])
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
-    snps_highest = this_snps[['Raw_Pos', 'LG', 'POS']]
-    # snps_geno = this_snps['Raw_Pos']
-    for col in ['0', '1', '2', '3']:
-        if col in this_snps.columns:
-            probs = this_snps[col].str.split(',', expand=True)
-            probs[2] = probs[2].str.split(':', expand=True)[0]
-            probs = probs.loc[:, [0, 1, 2]].astype('float')
-            snps_highest[col] = probs.max(axis=1)  # probability of the highest probability allele
-            # snps_geno[col] = this_snps.idxmax(axis=1)  # highest probability allele
-            this_snps[col] = probs.idxmax(axis=1)  # highest probability allele
-    snps_highest['Min'] = snps_highest.min(axis=1)  # the minimum probability (of the highest allele) for all subsamples
-    this_snps = this_snps.loc[snps_highest['Min'] >= min_snp_prob]  # keep only snps where all subsamples reach the minimum probability threshold
     return this_snps
 
 def readRealVcf(real_vcf, chrom_stats):
@@ -141,17 +128,9 @@ def main():
 
     # Read in predictive SNPs from scSplit
     samples = ['b1', 'b2', 'b3', 'b4', 'b5', 'c1', 'c2', 'c3', 'c4', 'c5']
-    all_snps = {}
-    all_snps['b1'] = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/brain_scripts/test.txt",header=0)
-    all_snps['b1'].rename(columns={all_snps['b1'].columns[0]: "LG"}, inplace=True)
-    all_snps['b1'][['LG', 'POS']] = all_snps['b1'].LG.str.split(":", expand=True)
-    all_snps['b1']['POS'] = pandas.to_numeric(all_snps['b1']['POS'])
-    all_snps['b1'] = all_snps['b1'].merge(chrom_stats)
-    all_snps['b1']['Raw_Pos'] = all_snps['b1']['Start'] + all_snps['b1']['POS']
-    print(all_snps['b1'])
-    # with multiprocessing.Pool(multiprocessing.cpu_count()) as mp_pool:
-    #     snps_data = mp_pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
-    # all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as mp_pool:
+        snps_data = mp_pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
+    all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
     # for sample in samples:
     #     all_snps_pos.extend(all_snps[sample]['Raw_Pos'])
     print(f"Time to read and format SNPs: {time.perf_counter() - start_time:0.4f} seconds")
@@ -163,7 +142,6 @@ def main():
     pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
     pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 'GT']])
-    print(pool_covered)
     # pool_covered = pool_covered.transpose().dropna(axis=1)
 
     if pool == "b4" or pool == "c4":
