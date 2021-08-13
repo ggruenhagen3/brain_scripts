@@ -93,7 +93,7 @@ def readRealVcf(real_vcf, chrom_stats):
     this_snps.loc[(this_snps['GT_L001'] == 1) | (this_snps['GT_L002'] == 1), 'GT'] = 1  # this line must be last
 
     # Snps that are multiallelic will be labelled as 9 still
-    this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1)),]
+    this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1),]
     return(this_snps)
 
 def predictSubSampleML(snps, subs):
