@@ -57,8 +57,8 @@ def main():
         idx2 = 1+ i*num_same + len(vcf_df_new.columns)
         col1 = vcf_df.columns[idx1]
         col2 = vcf_df.columns[idx2]
-        vcf_df_new[col1] = vcf_df_new[col1].str[:3]
-        vcf_df_new[col2] = vcf_df_new[col2].str[:3]
+        vcf_df[col1] = vcf_df[col1].str[:3]
+        vcf_df[col2] = vcf_df[col2].str[:3]
 
         # Rules for merging
         vcf_df_new[str(i)] = "./."
