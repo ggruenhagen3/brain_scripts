@@ -35,7 +35,7 @@ def formatSnps(sample, chrom_stats):
     :param chrom_stats: chromosome information
     :return this_snps: snps that are correctly formatted
     """
-    this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/" + pool.upper() + "_dist_PA.csv",header=0)
+    this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/" + sample.upper() + "_dist_PA.csv",header=0)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps[['LG', 'POS']] = this_snps.LG.str.split(":", expand=True)
     this_snps['POS'] = pandas.to_numeric(this_snps['POS'])
