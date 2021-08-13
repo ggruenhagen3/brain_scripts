@@ -30,6 +30,7 @@ def main():
     # Read VCF
     print("Reading VCF")
     vcf_df = pandas.read_csv(vcf, sep="\s+", header=header_line_num)
+    vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
     print("Done")
 
     # Check Input
@@ -49,7 +50,6 @@ def main():
 
     # Do the merging
     print("Merging Columns")
-    vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
     valid_rows = vcf_df.index
     for i in range(0, num_col_to_merge//num_same):
         # Find the correct columns to merge
