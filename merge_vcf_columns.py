@@ -43,8 +43,8 @@ def main():
     new_names_dict = {} # key is old column name and value is new column name
     for i in range(0, num_col_to_merge):
         idx = i + 9
-        new_names_dict[vcf_df.columns[idx]] = i
-    vcf_df.rename(new_names_dict, axis="columns")
+        new_names_dict[vcf_df.columns[idx]] = str(i)
+    vcf_df = vcf_df.rename(new_names_dict, axis="columns")
     print(vcf_df)
 
     # Do the merging
