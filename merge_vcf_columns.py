@@ -9,7 +9,7 @@ def parseArgs():
                         const="out.vcf")
     parser.add_argument("-n", "--num_same", help="Number of columns that are from the same sample", nargs="?",
                         type=int, default=2, const=2)
-    parser.add_argument("-h", "--header_line_num", help="Line number of the header (0-based)", nargs="?",
+    parser.add_argument("-hln", "--header_line_num", help="Line number of the header (0-based)", nargs="?",
                         type=int, default=1714, const=1714)
 
     args = parser.parse_args()
