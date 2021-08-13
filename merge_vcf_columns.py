@@ -19,15 +19,19 @@ def main():
     vcf, output, num_same, header_line_num = parseArgs()
 
     # Read Header of VCF
+    print("Reading Header...")
     with open(vcf) as myfile:
         head = [next(myfile) for x in range(header_line_num)]
     f = open(output, "w+")
     f.writelines(head)
     f.close()
+    print("Done")
 
     # Read VCF
+    print("Reading VCF")
     vcf_df = pandas.read_csv(vcf, sep="\s+", header=header_line_num)
     vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
+    print("Done")
 
     # Check Input
     num_col_to_merge = len(vcf_df.columns) - len(vcf_df_new.columns)
@@ -36,7 +40,16 @@ def main():
     if num_col_to_merge % num_same != 0:
         print("Number of genotype columns is not a multiple of num_same: ", str(num_col_to_merge), " ", str(num_same))
 
+    # Rename columns
+    new_names_dict = {} # key is old column name and value is new column name
+    for i in range(0, num_col_to_merge):
+        idx = i + len(vcf_df_new.columns)
+        new_names_dict[vcf_df.columns[idx]] = i
+    vcf_df.rename(new_names_dict, axis="columns")
+    print(vcf_df)
+
     # Do the merging
+    print("Merging Columns")
     for i in range(0, num_col_to_merge//num_same):
         # Find the correct columns to merge
         idx1 = i*num_same + len(vcf_df_new.columns)
@@ -56,10 +69,13 @@ def main():
         vcf_df_new.loc[vcf_df_new[col2] == "./.", str(i)] = vcf_df_new.loc[vcf_df_new[col2] == "./.", col1]
         vcf_df_new.loc[(vcf_df_new[col1] == "0/1") | (vcf_df_new[col2] == "0/1"), str(i)] = "0/1"  # this line must be last
         vcf_df_new = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")]
+    print("Done")
 
     # Write to output
+    print("Writing Output")
     vcf_df_new.to_csv(output, sep="\t", mode='a')
-
+    print("Done")
+    print("All Done")
 
 if __name__ == '__main__':
     main()
