@@ -30,11 +30,10 @@ def main():
     # Read VCF
     print("Reading VCF")
     vcf_df = pandas.read_csv(vcf, sep="\s+", header=header_line_num)
-    vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
     print("Done")
 
     # Check Input
-    num_col_to_merge = len(vcf_df.columns) - len(vcf_df_new.columns)
+    num_col_to_merge = len(vcf_df.columns) - 9
     if num_same != 2:
         print("The code actually doesn't support num_same != 2")
     if num_col_to_merge % num_same != 0:
@@ -50,6 +49,7 @@ def main():
 
     # Do the merging
     print("Merging Columns")
+    vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
     valid_rows = vcf_df.index
     for i in range(0, num_col_to_merge//num_same):
         # Find the correct columns to merge
@@ -62,13 +62,13 @@ def main():
 
         # Rules for merging
         vcf_df_new[str(i)] = "./."
-        vcf_df_new.loc[(vcf_df_new[col1] == vcf_df_new[col2]), str(i)] = vcf_df_new.loc[(vcf_df_new[col1] == vcf_df_new[col2]), col1]  # if both lanes are in agreement
-        vcf_df_new.loc[(vcf_df_new[col1] == "1/1") & (vcf_df_new[col2] == "1/1"), str(i)] = "1/1"
-        vcf_df_new.loc[(vcf_df_new[col1] == "0/0") & (vcf_df_new[col2] == "1/1"), str(i)] = "0/1"  # if lanes are in disagreement
-        vcf_df_new.loc[(vcf_df_new[col1] == 1) & (vcf_df_new[col2] == 0), str(i)] = 1
-        vcf_df_new.loc[vcf_df_new[col1] == "./.", str(i)] = vcf_df_new.loc[vcf_df_new[col1] == "./.", col2]  # if a lane has missing info, then use the lane with info
-        vcf_df_new.loc[vcf_df_new[col2] == "./.", str(i)] = vcf_df_new.loc[vcf_df_new[col2] == "./.", col1]
-        vcf_df_new.loc[(vcf_df_new[col1] == "0/1") | (vcf_df_new[col2] == "0/1"), str(i)] = "0/1"  # this line must be last
+        vcf_df_new.loc[(vcf_df[col1] == vcf_df[col2]), str(i)] = vcf_df_new.loc[(vcf_df[col1] == vcf_df[col2]), col1]  # if both lanes are in agreement
+        vcf_df_new.loc[(vcf_df[col1] == "1/1") & (vcf_df[col2] == "1/1"), str(i)] = "1/1"
+        vcf_df_new.loc[(vcf_df[col1] == "0/0") & (vcf_df[col2] == "1/1"), str(i)] = "0/1"  # if lanes are in disagreement
+        vcf_df_new.loc[(vcf_df[col1] == 1) & (vcf_df[col2] == 0), str(i)] = 1
+        vcf_df_new.loc[vcf_df[col1] == "./.", str(i)] = vcf_df_new.loc[vcf_df[col1] == "./.", col2]  # if a lane has missing info, then use the lane with info
+        vcf_df_new.loc[vcf_df[col2] == "./.", str(i)] = vcf_df_new.loc[vcf_df[col2] == "./.", col1]
+        vcf_df_new.loc[(vcf_df[col1] == "0/1") | (vcf_df[col2] == "0/1"), str(i)] = "0/1"  # this line must be last
         this_valid_rows = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")].index
         valid_rows = valid_rows[valid_rows.isin(this_valid_rows)]
         # vcf_df_new = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")]
