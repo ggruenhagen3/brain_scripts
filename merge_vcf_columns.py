@@ -47,7 +47,7 @@ def main():
         vcf_df_new[col2] = vcf_df_new[col2].str[:3]
 
         # Rules for merging
-        vcf_df_new[, str(i)] = "./."
+        vcf_df_new[str(i)] = "./."
         vcf_df_new.loc[(vcf_df_new[col1] == vcf_df_new[col2]), str(i)] = vcf_df_new.loc[(vcf_df_new[col1] == vcf_df_new[col2]), col1]  # if both lanes are in agreement
         vcf_df_new.loc[(vcf_df_new[col1] == "1/1") & (vcf_df_new[col2] == "1/1"), str(i)] = "1/1"
         vcf_df_new.loc[(vcf_df_new[col1] == "0/0") & (vcf_df_new[col2] == "1/1"), str(i)] = "0/1"  # if lanes are in disagreement
@@ -56,7 +56,7 @@ def main():
         vcf_df_new.loc[vcf_df_new[col2] == "./.", str(i)] = vcf_df_new.loc[vcf_df_new[col2] == "./.", col1]
         vcf_df_new.loc[(vcf_df_new[col1] == "0/1") | (vcf_df_new[col2] == "0/1"), str(i)] = "0/1"  # this line must be last
         vcf_df_new = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")]
-    
+
     # Write to output
     vcf_df_new.to_csv(output, sep="\t", mode='a')
 
