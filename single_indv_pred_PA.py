@@ -145,6 +145,7 @@ def main():
     all_snps['b1'] = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/brain_scripts/test.txt",header=0)
     all_snps['b1'].rename(columns={all_snps['b1'].columns[0]: "LG"}, inplace=True)
     all_snps['b1'][['LG', 'POS']] = all_snps['b1'].LG.str.split(":", expand=True)
+    all_snps['b1']['POS'] = pandas.to_numeric(all_snps['b1']['POS'])
     all_snps['b1'] = all_snps['b1'].merge(chrom_stats)
     all_snps['b1']['Raw_Pos'] = all_snps['b1']['Start'] + all_snps['b1']['POS']
     print(all_snps['b1'])
