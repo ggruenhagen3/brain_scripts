@@ -62,12 +62,12 @@ def main():
 
         # Rules for merging
         vcf_df_new[str(i)] = "./."
-        vcf_df_new.loc[(vcf_df[col1] == vcf_df[col2]), str(i)] = vcf_df_new.loc[(vcf_df[col1] == vcf_df[col2]), col1]  # if both lanes are in agreement
+        vcf_df_new.loc[(vcf_df[col1] == vcf_df[col2]), str(i)] = vcf_df.loc[(vcf_df[col1] == vcf_df[col2]), col1]  # if both lanes are in agreement
         vcf_df_new.loc[(vcf_df[col1] == "1/1") & (vcf_df[col2] == "1/1"), str(i)] = "1/1"
         vcf_df_new.loc[(vcf_df[col1] == "0/0") & (vcf_df[col2] == "1/1"), str(i)] = "0/1"  # if lanes are in disagreement
         vcf_df_new.loc[(vcf_df[col1] == 1) & (vcf_df[col2] == 0), str(i)] = 1
-        vcf_df_new.loc[vcf_df[col1] == "./.", str(i)] = vcf_df_new.loc[vcf_df[col1] == "./.", col2]  # if a lane has missing info, then use the lane with info
-        vcf_df_new.loc[vcf_df[col2] == "./.", str(i)] = vcf_df_new.loc[vcf_df[col2] == "./.", col1]
+        vcf_df_new.loc[vcf_df[col1] == "./.", str(i)] = vcf_df.loc[vcf_df[col1] == "./.", col2]  # if a lane has missing info, then use the lane with info
+        vcf_df_new.loc[vcf_df[col2] == "./.", str(i)] = vcf_df.loc[vcf_df[col2] == "./.", col1]
         vcf_df_new.loc[(vcf_df[col1] == "0/1") | (vcf_df[col2] == "0/1"), str(i)] = "0/1"  # this line must be last
         this_valid_rows = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")].index
         valid_rows = valid_rows[valid_rows.isin(this_valid_rows)]
