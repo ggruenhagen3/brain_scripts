@@ -19,7 +19,7 @@ def main():
     vcf, output, num_same, header_line_num = parseArgs()
 
     # Read Header of VCF
-    print("Reading Header...")
+    print("Reading Header")
     with open(vcf) as myfile:
         head = [next(myfile) for x in range(header_line_num)]
     f = open(output, "w+")
@@ -30,7 +30,6 @@ def main():
     # Read VCF
     print("Reading VCF")
     vcf_df = pandas.read_csv(vcf, sep="\s+", header=header_line_num)
-    vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
     print("Done")
 
     # Check Input
@@ -50,6 +49,8 @@ def main():
 
     # Do the merging
     print("Merging Columns")
+    vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
+    valid_rows = vcf_df.index
     for i in range(0, num_col_to_merge//num_same):
         # Find the correct columns to merge
         idx1 = i*num_same + len(vcf_df_new.columns)
@@ -68,7 +69,10 @@ def main():
         vcf_df_new.loc[vcf_df_new[col1] == "./.", str(i)] = vcf_df_new.loc[vcf_df_new[col1] == "./.", col2]  # if a lane has missing info, then use the lane with info
         vcf_df_new.loc[vcf_df_new[col2] == "./.", str(i)] = vcf_df_new.loc[vcf_df_new[col2] == "./.", col1]
         vcf_df_new.loc[(vcf_df_new[col1] == "0/1") | (vcf_df_new[col2] == "0/1"), str(i)] = "0/1"  # this line must be last
-        vcf_df_new = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")]
+        this_valid_rows = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")].index
+        valid_rows = valid_rows[valid_rows.isin(this_valid_rows)]
+        # vcf_df_new = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")]
+    vcf_df_new = vcf_df_new.iloc[valid_rows,]
     print("Done")
 
     # Write to output
