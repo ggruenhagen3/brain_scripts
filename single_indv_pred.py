@@ -177,14 +177,19 @@ def main():
     # print(bool1.value_counts())
     # print(bool2.value_counts())
     # print(bool3.value_counts())
-
-    super_inform = pool_covered[['0', '1', '2', '3']]
-    super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
-    super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
+    if pool == "b4" or pool == "c4":
+        super_inform = pool_covered[['0', '1', '2']]
+        super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
+        super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', 'GT']]
+        pool_covered[['LG', 'POS', '0', '1', '2', 'GT']].to_csv("pool_covered.vcf", sep="\t")
+    else:
+        super_inform = pool_covered[['0', '1', '2', '3']]
+        super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
+        super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
+    pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
     print(super_inform)
 
     # pool_covered_name = real_vcf.split(".")[0] + "_"
-    pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
     super_inform.to_csv("pool_covered_super_inform.vcf", sep="\t")
 
 
