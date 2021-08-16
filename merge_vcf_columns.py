@@ -77,7 +77,7 @@ def main():
 
     # Write to output
     print("Writing Output")
-    vcf_df_new.to_csv(output, sep="\t", mode='a')
+    vcf_df_new.to_csv(output, sep="\t", mode='a', index = False)
     print("Done")
     print("All Done")
 
