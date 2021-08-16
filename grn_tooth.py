@@ -5,6 +5,7 @@ import numpy as np
 import time
 import random
 import argparse
+import h5py
 import multiprocessing
 from pathlib import Path
 from itertools import repeat
@@ -27,6 +28,24 @@ def parseArgs():
     parser.add_argument("-a", "--do_abs", help="Take the absolute value of the correlations?", action="store_true")
     args = parser.parse_args()
     return args.perm_num, args.num_perm, args.output_folder, args.no_perm, args.dataset, args.do_abs
+
+def corOnlyAndWrite(this_idx, output_path):
+    """
+    Given idexes of cells, create a matrix and find correlations only
+    :param this_idx: Indexes of columns
+    :param output_path: Output path of h5 correlation matrix file
+    :return success: Function completed? True/False
+    """
+    cor = pandas.DataFrame(data=sparse_corrcoef(data_mat[:, this_idx].todense()), index=gene_labels, columns=gene_labels)
+    if do_abs:
+        print("Taking absolute value of correlations")
+        cor = cor.abs()
+    else:
+        print("NOT taking absolute value of correlations. Using raw values.")
+    h5f = h5py.File(output_path, 'w')
+    h5f.create_dataset('name', data=cor)
+    h5f.close()
+    return True
 
 def myShuffle(this_list):
     """
@@ -158,6 +177,15 @@ def main():
     # Set random seed so all the permutations are different
     print("Seed = " + str(perm_num))
     random.seed(perm_num)
+
+    # If necessary, find the correlations only (and don't do node strength stuff) and do no permutations
+    if cor_only:
+        print("Finding Correlations Only")
+        base_name = base_name + "_cor"
+        cor_output = output_folder + "/" + base_name + "_bhve.h5"
+        cor_success = corOnlyAndWrite(np.array(range(0, data_mat.shape[1])), cor_output)
+        print("Done")
+        return
 
     # Permute Cluster Labels
     if no_perm:
