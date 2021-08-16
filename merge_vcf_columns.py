@@ -39,7 +39,7 @@ def main():
         print("The code actually doesn't support num_same != 2")
     if num_col_to_merge % num_same != 0:
         print("Number of genotype columns is not a multiple of num_same: ", str(num_col_to_merge), " ", str(num_same))
-        num_new_cols = num_new_cols - 1
+        # num_new_cols = num_new_cols - 1
 
     # Rename columns
     new_names_dict = {} # key is old column name and value is new column name
