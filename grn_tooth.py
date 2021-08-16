@@ -183,7 +183,7 @@ def main():
     if cor_only:
         print("Finding Correlations Only")
         base_name = base_name + "_cor"
-        cor_output = output_folder + "/" + base_name + "_bhve.h5"
+        cor_output = output_folder + "/" + base_name + ".h5"
         cor_success = corOnlyAndWrite(np.array(range(0, data_mat.shape[1])), cor_output)
         print("Done")
         return
