@@ -34,10 +34,12 @@ def main():
 
     # Check Input
     num_col_to_merge = len(vcf_df.columns) - 9
+    num_new_cols = num_col_to_merge//num_same
     if num_same != 2:
         print("The code actually doesn't support num_same != 2")
     if num_col_to_merge % num_same != 0:
         print("Number of genotype columns is not a multiple of num_same: ", str(num_col_to_merge), " ", str(num_same))
+        num_new_cols = num_new_cols - 1
 
     # Rename columns
     new_names_dict = {} # key is old column name and value is new column name
@@ -51,7 +53,7 @@ def main():
     print("Merging Columns")
     vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
     valid_rows = vcf_df.index
-    for i in range(0, num_col_to_merge//num_same):
+    for i in range(0, num_new_cols):
         # Find the correct columns to merge
         idx1 = i*num_same + len(vcf_df_new.columns)
         idx2 = 1+ i*num_same + len(vcf_df_new.columns)
@@ -72,6 +74,9 @@ def main():
         this_valid_rows = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")].index
         valid_rows = valid_rows[valid_rows.isin(this_valid_rows)]
         # vcf_df_new = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")]
+    # Add any remaining odd columns
+    if num_col_to_merge % num_same != 0:
+        vcf_df_new[vcf_df.columns[len(vcf_df.columns)]] = vcf_df[vcf_df.columns[len(vcf_df.columns)]]
     vcf_df_new = vcf_df_new.iloc[valid_rows,]
     print("Done")
 
