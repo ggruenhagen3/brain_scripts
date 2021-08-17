@@ -61,8 +61,8 @@ def main():
     for i in range(0, num_new_cols):
         print(i)
         # Find the correct columns to merge
-        idx1 = i*num_same + len(vcf_df_new.columns)
-        idx2 = 1+ i*num_same + len(vcf_df_new.columns)
+        idx1 = i*num_same + 9
+        idx2 = 1+ i*num_same + 9
         print(idx1)
         print(idx2)
         col1 = vcf_df.columns[idx1]
