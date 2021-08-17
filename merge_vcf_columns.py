@@ -48,6 +48,10 @@ def main():
         new_names_dict[vcf_df.columns[idx]] = str(i)
     vcf_df = vcf_df.rename(new_names_dict, axis="columns")
 
+    # Keep only Genotype info
+    for new_name in new_names_dict.values():
+        vcf_df[new_name] = vcf_df[new_name].str[:3]
+
     # Do the merging
     print("Merging Columns")
     vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
@@ -58,8 +62,6 @@ def main():
         idx2 = 1+ i*num_same + 9
         col1 = vcf_df.columns[idx1]
         col2 = vcf_df.columns[idx2]
-        vcf_df[col1] = vcf_df[col1].str[:3]
-        vcf_df[col2] = vcf_df[col2].str[:3]
 
         # Rules for merging
         vcf_df_new[str(i)] = "./."
