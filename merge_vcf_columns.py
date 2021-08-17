@@ -47,24 +47,15 @@ def main():
         idx = i + 9
         new_names_dict[vcf_df.columns[idx]] = str(i)
     vcf_df = vcf_df.rename(new_names_dict, axis="columns")
-    print(vcf_df)
-
-    print(vcf_df.columns)
-    print(len(vcf_df.columns))
-    print(vcf_df.columns[17])
-    print("Onto the for loop")
 
     # Do the merging
     print("Merging Columns")
     vcf_df_new = vcf_df[['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']]
     valid_rows = vcf_df.index
     for i in range(0, num_new_cols):
-        print(i)
         # Find the correct columns to merge
         idx1 = i*num_same + 9
         idx2 = 1+ i*num_same + 9
-        print(idx1)
-        print(idx2)
         col1 = vcf_df.columns[idx1]
         col2 = vcf_df.columns[idx2]
         vcf_df[col1] = vcf_df[col1].str[:3]
