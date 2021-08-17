@@ -51,7 +51,7 @@ def main():
 
     print(vcf_df.columns)
     print(len(vcf_df.columns))
-    print(vcf_df.coumns[17])
+    print(vcf_df.columns[17])
     print("Onto the for loop")
 
     # Do the merging
