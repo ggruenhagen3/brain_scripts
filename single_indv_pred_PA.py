@@ -35,25 +35,12 @@ def formatSnps(sample, chrom_stats):
     :param chrom_stats: chromosome information
     :return this_snps: snps that are correctly formatted
     """
-    if sample == "b1":
-        this_snps = pandas.read_csv(
-            "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split2/scSplit.vcf",sep="\s+", header=33)
-    this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split/scSplit.vcf", sep="\s+", header=33)
-    this_snps.rename(columns={ this_snps.columns[0]: "LG" }, inplace = True)
+    this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/" + sample.upper() + "_dist_PA.csv",header=0)
+    this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
+    this_snps[['LG', 'POS']] = this_snps.LG.str.split(":", expand=True)
+    this_snps['POS'] = pandas.to_numeric(this_snps['POS'])
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
-    snps_highest = this_snps[['Raw_Pos', 'LG', 'POS']]
-    # snps_geno = this_snps['Raw_Pos']
-    for col in ['0', '1', '2', '3']:
-        if col in this_snps.columns:
-            probs = this_snps[col].str.split(',', expand=True)
-            probs[2] = probs[2].str.split(':', expand=True)[0]
-            probs = probs.loc[:, [0, 1, 2]].astype('float')
-            snps_highest[col] = probs.max(axis=1)  # probability of the highest probability allele
-            # snps_geno[col] = this_snps.idxmax(axis=1)  # highest probability allele
-            this_snps[col] = probs.idxmax(axis=1)  # highest probability allele
-    snps_highest['Min'] = snps_highest.min(axis=1)  # the minimum probability (of the highest allele) for all subsamples
-    this_snps = this_snps.loc[snps_highest['Min'] >= min_snp_prob]  # keep only snps where all subsamples reach the minimum probability threshold
     return this_snps
 
 def readRealVcf(real_vcf, chrom_stats):
@@ -76,24 +63,24 @@ def readRealVcf(real_vcf, chrom_stats):
     this_snps['GT_L001'] = this_snps['GT_L001'].replace('./.', 9)
     this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/0', 0)
     this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/1', 1)
-    this_snps['GT_L001'] = this_snps['GT_L001'].replace('1/1', 2)
+    this_snps['GT_L001'] = this_snps['GT_L001'].replace('1/1', 1)
     this_snps['GT_L002'] = this_snps['GT_L002'].replace('./.', 9)
     this_snps['GT_L002'] = this_snps['GT_L002'].replace('0/0', 0)
     this_snps['GT_L002'] = this_snps['GT_L002'].replace('0/1', 1)
-    this_snps['GT_L002'] = this_snps['GT_L002'].replace('1/1', 2)
+    this_snps['GT_L002'] = this_snps['GT_L002'].replace('1/1', 1)
 
     # Make a consensus column of the genotype of the individual from L001 and L002
     this_snps['GT'] = 9
     this_snps.loc[(this_snps['GT_L001'] == 0) & (this_snps['GT_L002'] == 0), 'GT'] = 0  # if both lanes are in agreement
-    this_snps.loc[(this_snps['GT_L001'] == 2) & (this_snps['GT_L002'] == 2), 'GT'] = 2
-    this_snps.loc[(this_snps['GT_L001'] == 0) & (this_snps['GT_L002'] == 2), 'GT'] = 1  # if lanes are in disagreement
-    this_snps.loc[(this_snps['GT_L001'] == 2) & (this_snps['GT_L002'] == 0), 'GT'] = 1
+    this_snps.loc[(this_snps['GT_L001'] == 1) & (this_snps['GT_L002'] == 1), 'GT'] = 1
+    this_snps.loc[(this_snps['GT_L001'] == 0) & (this_snps['GT_L002'] == 1), 'GT'] = 1  # if lanes are in disagreement
+    this_snps.loc[(this_snps['GT_L001'] == 1) & (this_snps['GT_L002'] == 0), 'GT'] = 1
     this_snps.loc[this_snps['GT_L001'] == 9, 'GT'] = this_snps.loc[this_snps['GT_L001'] == 9, 'GT_L002']  # if a lane has missing info, then use the lane with info
     this_snps.loc[this_snps['GT_L002'] == 9, 'GT'] = this_snps.loc[this_snps['GT_L002'] == 9, 'GT_L001']
     this_snps.loc[(this_snps['GT_L001'] == 1) | (this_snps['GT_L002'] == 1), 'GT'] = 1  # this line must be last
 
     # Snps that are multiallelic will be labelled as 9 still
-    this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1) | (this_snps['GT'] == 2),]
+    this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1),]
     return(this_snps)
 
 def predictSubSampleML(snps, subs):
@@ -141,12 +128,11 @@ def main():
 
     # Read in predictive SNPs from scSplit
     samples = ['b1', 'b2', 'b3', 'b4', 'b5', 'c1', 'c2', 'c3', 'c4', 'c5']
-    all_snps_pos = []
     with multiprocessing.Pool(multiprocessing.cpu_count()) as mp_pool:
         snps_data = mp_pool.starmap(formatSnps, zip(samples, repeat(chrom_stats, len(samples))))
     all_snps = dict(zip(samples, snps_data))  # key is the sample and value is the subsample SNPs from scSplit
-    for sample in samples:
-        all_snps_pos.extend(all_snps[sample]['Raw_Pos'])
+    # for sample in samples:
+    #     all_snps_pos.extend(all_snps[sample]['Raw_Pos'])
     print(f"Time to read and format SNPs: {time.perf_counter() - start_time:0.4f} seconds")
 
     # Reading Real VCF
@@ -177,19 +163,14 @@ def main():
     # print(bool1.value_counts())
     # print(bool2.value_counts())
     # print(bool3.value_counts())
-    if pool == "b4" or pool == "c4":
-        super_inform = pool_covered[['0', '1', '2']]
-        super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
-        super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', 'GT']]
-        pool_covered[['LG', 'POS', '0', '1', '2', 'GT']].to_csv("pool_covered.vcf", sep="\t")
-    else:
-        super_inform = pool_covered[['0', '1', '2', '3']]
-        super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
-        super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
-    pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
+
+    super_inform = pool_covered[['0', '1', '2', '3']]
+    super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
+    super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
     print(super_inform)
 
     # pool_covered_name = real_vcf.split(".")[0] + "_"
+    pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
     super_inform.to_csv("pool_covered_super_inform.vcf", sep="\t")
 
 
