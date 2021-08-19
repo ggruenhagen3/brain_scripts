@@ -53,7 +53,7 @@ def main():
     # Subset sites meeting the minimum read threshold
     read_df = pandas.DataFrame(0, index = vcf_df.index, columns = [x + "_reads" for x in new_names_dict.values()])
     for new_name in new_names_dict.values():
-        col_split = int(vcf_df[new_name].str.split(':').str[2])
+        col_split = pandas.to_numeric(vcf_df[new_name].str.split(':').str[2])
         read_df[new_name + "_reads"] = col_split
     print(vcf_df)
     print(len(vcf_df.index))
