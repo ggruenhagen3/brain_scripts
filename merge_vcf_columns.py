@@ -90,12 +90,10 @@ def main():
         this_valid_rows = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")].index
         valid_rows = valid_rows[valid_rows.isin(this_valid_rows)]
         # vcf_df_new = vcf_df_new.loc[(vcf_df_new[str(i)] == "0/0") | (vcf_df_new[str(i)] == "0/1") | (vcf_df_new[str(i)] == "1/1")]
-    print(vcf_df_new)
-    print(vcf_df)
     # Add any remaining odd columns
     if num_col_to_merge % num_same != 0:
         vcf_df_new[vcf_df.columns[len(vcf_df.columns)-1]] = vcf_df[vcf_df.columns[len(vcf_df.columns)-1]]
-    vcf_df_new = vcf_df_new.iloc[valid_rows,]
+    vcf_df_new = vcf_df_new.loc[valid_rows,]
     print("Done")
 
     # Write to output
