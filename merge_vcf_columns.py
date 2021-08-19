@@ -56,12 +56,11 @@ def main():
     for new_name in new_names_dict.values():
         col_split = pandas.to_numeric(vcf_df[new_name].str.split(':').str[2])
         read_df[new_name + "_reads"] = col_split
-    print(vcf_df)
-    print(len(vcf_df.index))
+    print( "Number of Sites Before Filtering: " + str(len(vcf_df.index)) )
     print(read_df)
     vcf_df = vcf_df[(read_df >= min_read).all(1)]
-    print(vcf_df)
-    print(len(vcf_df.index))
+    print(read_df[(read_df >= min_read).all(1)])
+    print("Number of Sites Before Filtering: " + str(len(vcf_df.index)) )
 
     # Keep only Genotype info
     for new_name in new_names_dict.values():
