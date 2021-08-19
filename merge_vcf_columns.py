@@ -15,7 +15,7 @@ def parseArgs():
                         type=int, default=1714, const=1714)
 
     args = parser.parse_args()
-    return args.vcf, args.output, args.num_same, aregs.min_read, args.header_line_num
+    return args.vcf, args.output, args.num_same, args.min_read, args.header_line_num
 
 def main():
     vcf, output, num_same, min_read, header_line_num = parseArgs()
@@ -56,9 +56,11 @@ def main():
         col_split = int(vcf_df[new_name].str.split(':').str[2])
         read_df[new_name + "_reads"] = col_split
     print(vcf_df)
+    print(len(vcf_df.index))
     print(read_df)
     vcf_df = vcf_df[(read_df > 95).all(1)]
     print(vcf_df)
+    print(len(vcf_df.index))
 
     # Keep only Genotype info
     for new_name in new_names_dict.values():
