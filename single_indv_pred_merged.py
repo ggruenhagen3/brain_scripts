@@ -62,24 +62,33 @@ def readRealVcf(real_vcf, chrom_stats):
     :param chrom_stats: chromosome information
     :return this_snps: snps that are correctly formatted
     """
-    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=1714)
+    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=None)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
-    this_snps.rename(columns={this_snps.columns[len(this_snps.columns)-1]: "GT_L001"}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
-    this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 'GT_L001']]
+    this_snps = this_snps[['Raw_Pos', 'LG', 'POS', '9', '10', '11', '12']]
 
     # Change genotypes ('GT') to 0, 1, 2, 9
-    this_snps['GT_L001'] = this_snps['GT_L001'].replace('./.', 9)
-    this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/0', 0)
-    this_snps['GT_L001'] = this_snps['GT_L001'].replace('0/1', 1)
-    this_snps['GT_L001'] = this_snps['GT_L001'].replace('1/1', 2)
+    this_snps['9'] = this_snps['9'].replace('./.', 9)
+    this_snps['9'] = this_snps['9'].replace('0/0', 0)
+    this_snps['9'] = this_snps['9'].replace('0/1', 1)
+    this_snps['9'] = this_snps['9'].replace('1/1', 2)
+    this_snps['10'] = this_snps['10'].replace('./.', 9)
+    this_snps['10'] = this_snps['10'].replace('0/0', 0)
+    this_snps['10'] = this_snps['10'].replace('0/1', 1)
+    this_snps['10'] = this_snps['10'].replace('1/1', 2)
+    this_snps['11'] = this_snps['11'].replace('./.', 9)
+    this_snps['11'] = this_snps['11'].replace('0/0', 0)
+    this_snps['11'] = this_snps['11'].replace('0/1', 1)
+    this_snps['11'] = this_snps['11'].replace('1/1', 2)
+    this_snps['12'] = this_snps['12'].replace('./.', 9)
+    this_snps['12'] = this_snps['12'].replace('0/0', 0)
+    this_snps['12'] = this_snps['12'].replace('0/1', 1)
+    this_snps['12'] = this_snps['12'].replace('1/1', 2)
 
-    # Make a consensus column of the genotype of the individual from L001 and L002
-    this_snps['GT'] = this_snps['GT_L001']
-    print(this_snps)
     # Snps that are multiallelic will be labelled as 9 still
-    this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1) | (this_snps['GT'] == 2),]
+    this_snps = this_snps.loc[((this_snps['9'] == 0) | (this_snps['9'] == 1) | (this_snps['9'] == 2)) & ((this_snps['10'] == 0) | (this_snps['10'] == 1) | (this_snps['10'] == 2)) & ((this_snps['11'] == 0) | (this_snps['11'] == 1) | (this_snps['11'] == 2)) & ((this_snps['12'] == 0) | (this_snps['12'] == 1) | (this_snps['12'] == 2)),]
+    print(this_snps)
     return(this_snps)
 
 def predictSubSampleML(snps, subs):
@@ -91,7 +100,7 @@ def predictSubSampleML(snps, subs):
     """
     print(snps)
     xtrain = snps.loc[subs,]
-    xtest = [snps.loc['GT',]]
+    xtest = snps.loc[['9', '10', '11', '12'],]
     ytrain = subs
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
@@ -141,7 +150,7 @@ def main():
     # Find SNPs covered by real vcf
     pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
-    pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 'GT']])
+    pool_covered = pool_covered.merge(real_snps[['Raw_Pos', '9', '10', '11', '12']])
     # pool_covered = pool_covered.transpose().dropna(axis=1)
 
     if pool == "b4" or pool == "c4":
@@ -149,20 +158,6 @@ def main():
     else:
         predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2', '3'])
 
-    # super_inform = pool_covered.loc[((pool_covered['0'] == 0) | (pool_covered['0'] == 2)) &
-    #                                 ((pool_covered['1'] == 0) | (pool_covered['1'] == 2)) &
-    #                                 ((pool_covered['2'] == 0) | (pool_covered['2'] == 2)) &
-    #                                 ((pool_covered['3'] == 0) | (pool_covered['3'] == 2)) &
-    #                                 ((pool_covered['GT'] == 0) | (pool_covered['GT'] == 2)), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
-    # print(super_inform)
-    # bool0 = super_inform['GT'] == super_inform['0']
-    # bool1 = super_inform['GT'] == super_inform['1']
-    # bool2 = super_inform['GT'] == super_inform['2']
-    # bool3 = super_inform['GT'] == super_inform['3']
-    # print(bool0.value_counts())
-    # print(bool1.value_counts())
-    # print(bool2.value_counts())
-    # print(bool3.value_counts())
     if pool == "b4" or pool == "c4":
         super_inform = pool_covered[['0', '1', '2']]
         super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
