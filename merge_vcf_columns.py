@@ -69,8 +69,8 @@ def main():
     print( "Number of Sites Before Filtering: " + str(len(vcf_df.index)) )
     print(read_df)
     print(read_df_sum)
-    vcf_df = vcf_df[(read_df >= min_read).all(1)]
-    print(read_df[(read_df >= min_read).all(1)])
+    vcf_df = vcf_df[(read_df_sum >= min_read).all(1)]
+    print(read_df[(read_df_sum >= min_read).all(1)])
     print("Number of Sites After Filtering: " + str(len(vcf_df.index)) )
 
     # Keep only Genotype info
