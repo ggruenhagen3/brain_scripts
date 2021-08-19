@@ -37,7 +37,7 @@ def formatSnps(sample, chrom_stats):
     """
     if sample == "b1":
         this_snps = pandas.read_csv(
-            "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split4/scSplit.vcf",sep="\s+", header=33)
+            "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split/scSplit.vcf",sep="\s+", header=33)
     this_snps = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/ffm/JTS07-" + sample.upper() + "/outs/split/scSplit.vcf", sep="\s+", header=33)
     this_snps.rename(columns={ this_snps.columns[0]: "LG" }, inplace = True)
     this_snps = this_snps.merge(chrom_stats)
