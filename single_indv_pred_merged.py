@@ -77,7 +77,7 @@ def readRealVcf(real_vcf, chrom_stats):
 
     # Make a consensus column of the genotype of the individual from L001 and L002
     this_snps['GT'] = this_snps['GT_L001']
-
+    print(this_snps)
     # Snps that are multiallelic will be labelled as 9 still
     this_snps = this_snps.loc[(this_snps['GT'] == 0) | (this_snps['GT'] == 1) | (this_snps['GT'] == 2),]
     return(this_snps)
