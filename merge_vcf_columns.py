@@ -67,10 +67,7 @@ def main():
     read_df_sum[read_df.columns[len(read_df.columns) - 1]] = read_df[read_df.columns[len(read_df.columns) - 1]]
     read_df_sum = read_df_sum.drop(columns=["Empty"])
     print( "Number of Sites Before Filtering: " + str(len(vcf_df.index)) )
-    print(read_df)
-    print(read_df_sum)
     vcf_df = vcf_df[(read_df_sum >= min_read).all(1)]
-    print(read_df[(read_df_sum >= min_read).all(1)])
     print("Number of Sites After Filtering: " + str(len(vcf_df.index)) )
 
     # Keep only Genotype info
@@ -103,6 +100,9 @@ def main():
     # Add any remaining odd columns
     if num_col_to_merge % num_same != 0:
         vcf_df_new[vcf_df.columns[len(vcf_df.columns)-1]] = vcf_df[vcf_df.columns[len(vcf_df.columns)-1]]
+    print(len(valid_rows))
+    print(valid_rows[0:5])
+    print(vcf_df_new)
     vcf_df_new = vcf_df_new.loc[valid_rows,]
     print("Done")
 
