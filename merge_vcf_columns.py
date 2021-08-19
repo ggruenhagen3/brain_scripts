@@ -50,6 +50,16 @@ def main():
         new_names_dict[vcf_df.columns[idx]] = str(i)
     vcf_df = vcf_df.rename(new_names_dict, axis="columns")
 
+    # Subset sites meeting the minimum read threshold
+    read_df = pandas.DataFrame(0, index = vcf_df.index)
+    for new_name in new_names_dict.values():
+        col_split = int(vcf_df[new_name].str.split(':').str[2])
+        read_df[new_name + "_reads"] = col_split
+    print(vcf_df)
+    print(read_df)
+    vcf_df = vcf_df[(read_df > 95).all(1)]
+    print(vcf_df)
+
     # Keep only Genotype info
     for new_name in new_names_dict.values():
         vcf_df[new_name] = vcf_df[new_name].str[:3]
