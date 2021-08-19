@@ -71,25 +71,25 @@ def readRealVcf(real_vcf, chrom_stats):
     this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 9, 10, 11, 12]]
 
     # Change genotypes ('GT') to 0, 1, 2, 9
-    this_snps['9'] = this_snps['9'].replace('./.', 9)
-    this_snps['9'] = this_snps['9'].replace('0/0', 0)
-    this_snps['9'] = this_snps['9'].replace('0/1', 1)
-    this_snps['9'] = this_snps['9'].replace('1/1', 2)
-    this_snps['10'] = this_snps['10'].replace('./.', 9)
-    this_snps['10'] = this_snps['10'].replace('0/0', 0)
-    this_snps['10'] = this_snps['10'].replace('0/1', 1)
-    this_snps['10'] = this_snps['10'].replace('1/1', 2)
-    this_snps['11'] = this_snps['11'].replace('./.', 9)
-    this_snps['11'] = this_snps['11'].replace('0/0', 0)
-    this_snps['11'] = this_snps['11'].replace('0/1', 1)
-    this_snps['11'] = this_snps['11'].replace('1/1', 2)
-    this_snps['12'] = this_snps['12'].replace('./.', 9)
-    this_snps['12'] = this_snps['12'].replace('0/0', 0)
-    this_snps['12'] = this_snps['12'].replace('0/1', 1)
-    this_snps['12'] = this_snps['12'].replace('1/1', 2)
+    this_snps[9] = this_snps[9].replace('./.', 9)
+    this_snps[9] = this_snps[9].replace('0/0', 0)
+    this_snps[9] = this_snps[9].replace('0/1', 1)
+    this_snps[9] = this_snps[9].replace('1/1', 2)
+    this_snps[10] = this_snps[10].replace('./.', 9)
+    this_snps[10] = this_snps[10].replace('0/0', 0)
+    this_snps[10] = this_snps[10].replace('0/1', 1)
+    this_snps[10] = this_snps[10].replace('1/1', 2)
+    this_snps[11] = this_snps[11].replace('./.', 9)
+    this_snps[11] = this_snps[11].replace('0/0', 0)
+    this_snps[11] = this_snps[11].replace('0/1', 1)
+    this_snps[11] = this_snps[11].replace('1/1', 2)
+    this_snps[12] = this_snps[12].replace('./.', 9)
+    this_snps[12] = this_snps[12].replace('0/0', 0)
+    this_snps[12] = this_snps[12].replace('0/1', 1)
+    this_snps[12] = this_snps[12].replace('1/1', 2)
 
     # Snps that are multiallelic will be labelled as 9 still
-    this_snps = this_snps.loc[((this_snps['9'] == 0) | (this_snps['9'] == 1) | (this_snps['9'] == 2)) & ((this_snps['10'] == 0) | (this_snps['10'] == 1) | (this_snps['10'] == 2)) & ((this_snps['11'] == 0) | (this_snps['11'] == 1) | (this_snps['11'] == 2)) & ((this_snps['12'] == 0) | (this_snps['12'] == 1) | (this_snps['12'] == 2)),]
+    this_snps = this_snps.loc[((this_snps[9] == 0) | (this_snps[9] == 1) | (this_snps[9] == 2)) & ((this_snps[10] == 0) | (this_snps[10] == 1) | (this_snps[10] == 2)) & ((this_snps[11] == 0) | (this_snps[11] == 1) | (this_snps[11] == 2)) & ((this_snps[12] == 0) | (this_snps[12] == 1) | (this_snps[12] == 2)),]
     print(this_snps)
     return(this_snps)
 
@@ -102,7 +102,7 @@ def predictSubSampleML(snps, subs):
     """
     print(snps)
     xtrain = snps.loc[subs,]
-    xtest = snps.loc[['9', '10', '11', '12'],]
+    xtest = snps.loc[[9, 10, 11, 12],]
     ytrain = subs
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
@@ -152,7 +152,7 @@ def main():
     # Find SNPs covered by real vcf
     pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
-    pool_covered = pool_covered.merge(real_snps[['Raw_Pos', '9', '10', '11', '12']])
+    pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 9, 10, 11, 12]])
     # pool_covered = pool_covered.transpose().dropna(axis=1)
 
     if pool == "b4" or pool == "c4":
