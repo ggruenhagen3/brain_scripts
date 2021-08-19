@@ -9,14 +9,16 @@ def parseArgs():
                         const="out.vcf")
     parser.add_argument("-n", "--num_same", help="Number of columns that are from the same sample", nargs="?",
                         type=int, default=2, const=2)
+    parser.add_argument("-m", "--min_read", help="Minimum read threshold", nargs="?",
+                        type=int, default=10, const=10)
     parser.add_argument("-hln", "--header_line_num", help="Line number of the header (0-based)", nargs="?",
                         type=int, default=1714, const=1714)
 
     args = parser.parse_args()
-    return args.vcf, args.output, args.num_same, args.header_line_num
+    return args.vcf, args.output, args.num_same, aregs.min_read, args.header_line_num
 
 def main():
-    vcf, output, num_same, header_line_num = parseArgs()
+    vcf, output, num_same, min_read, header_line_num = parseArgs()
 
     # Read Header of VCF
     print("Reading Header")
