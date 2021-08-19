@@ -64,6 +64,7 @@ def readRealVcf(real_vcf, chrom_stats):
     """
     this_snps = pandas.read_csv(real_vcf, sep="\s+", header=None)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
+    this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
     this_snps = this_snps[['Raw_Pos', 'LG', 'POS', '9', '10', '11', '12']]
