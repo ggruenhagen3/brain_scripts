@@ -60,7 +60,7 @@ def main():
     print(read_df)
     vcf_df = vcf_df[(read_df >= min_read).all(1)]
     print(read_df[(read_df >= min_read).all(1)])
-    print("Number of Sites Before Filtering: " + str(len(vcf_df.index)) )
+    print("Number of Sites After Filtering: " + str(len(vcf_df.index)) )
 
     # Keep only Genotype info
     for new_name in new_names_dict.values():
