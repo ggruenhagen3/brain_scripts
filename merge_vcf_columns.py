@@ -51,6 +51,7 @@ def main():
     vcf_df = vcf_df.rename(new_names_dict, axis="columns")
 
     # Subset sites meeting the minimum read threshold
+    print("Minimum read threshold is " + str(min_read) + ". Subsetting by sites where all individuals are greater than or equal to the threshold.")
     read_df = pandas.DataFrame(0, index = vcf_df.index, columns = [x + "_reads" for x in new_names_dict.values()])
     for new_name in new_names_dict.values():
         col_split = pandas.to_numeric(vcf_df[new_name].str.split(':').str[2])
