@@ -41,7 +41,6 @@ def main():
         print("The code actually doesn't support num_same != 2")
     if num_col_to_merge % num_same != 0:
         print("Number of genotype columns is not a multiple of num_same: ", str(num_col_to_merge), " ", str(num_same))
-        # num_new_cols = num_new_cols - 1
 
     # Rename columns
     new_names_dict = {} # key is old column name and value is new column name
@@ -53,11 +52,23 @@ def main():
     # Subset sites meeting the minimum read threshold
     print("Minimum read threshold is " + str(min_read) + ". Subsetting by sites where all individuals are greater than or equal to the threshold.")
     read_df = pandas.DataFrame(0, index = vcf_df.index, columns = [x + "_reads" for x in new_names_dict.values()])
+    read_df_sum = pandas.DataFrame(0, index=vcf_df.index, columns=["Empty"])
     for new_name in new_names_dict.values():
         col_split = pandas.to_numeric(vcf_df[new_name].str.split(':').str[2])
         read_df[new_name + "_reads"] = col_split
+    for i in range(0, num_new_cols):
+        # Find the correct columns to merge
+        idx1 = i*num_same + 0
+        idx2 = 1+ i*num_same + 0
+        col1 = read_df.columns[idx1]
+        col2 = read_df.columns[idx2]
+        # Sum
+        read_df_sum[str(i)] = read_df[col1] + read_df[col2]
+    read_df_sum[read_df.columns[len(read_df.columns) - 1]] = read_df[read_df.columns[len(read_df.columns) - 1]]
+    read_df_sum = read_df_sum.drop(columns=["Empty"])
     print( "Number of Sites Before Filtering: " + str(len(vcf_df.index)) )
     print(read_df)
+    print(read_df_sum)
     vcf_df = vcf_df[(read_df >= min_read).all(1)]
     print(read_df[(read_df >= min_read).all(1)])
     print("Number of Sites After Filtering: " + str(len(vcf_df.index)) )
