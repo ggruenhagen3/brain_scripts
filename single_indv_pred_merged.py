@@ -56,7 +56,7 @@ def formatSnps(sample, chrom_stats):
     this_snps = this_snps.loc[snps_highest['Min'] >= min_snp_prob]  # keep only snps where all subsamples reach the minimum probability threshold
     return this_snps
 
-def readRealVcf(real_vcf, chrom_stats):
+def readRealVcf(real_vcf, chrom_stats, pool):
     """
     :param real_vcf: VCF of real individual
     :param chrom_stats: chromosome information
@@ -68,7 +68,10 @@ def readRealVcf(real_vcf, chrom_stats):
     print(this_snps)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
-    this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 9, 10, 11, 12]]
+    if pool == "b4" or pool == "c4":
+        this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 9, 10, 11]]
+    else:
+        this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 9, 10, 11, 12]]
 
     # Change genotypes ('GT') to 0, 1, 2, 9
     this_snps[9] = this_snps[9].replace('./.', 9)
@@ -83,13 +86,17 @@ def readRealVcf(real_vcf, chrom_stats):
     this_snps[11] = this_snps[11].replace('0/0', 0)
     this_snps[11] = this_snps[11].replace('0/1', 1)
     this_snps[11] = this_snps[11].replace('1/1', 2)
-    this_snps[12] = this_snps[12].replace('./.', 9)
-    this_snps[12] = this_snps[12].replace('0/0', 0)
-    this_snps[12] = this_snps[12].replace('0/1', 1)
-    this_snps[12] = this_snps[12].replace('1/1', 2)
+    if pool != "b4" and pool != "c4":
+        this_snps[12] = this_snps[12].replace('./.', 9)
+        this_snps[12] = this_snps[12].replace('0/0', 0)
+        this_snps[12] = this_snps[12].replace('0/1', 1)
+        this_snps[12] = this_snps[12].replace('1/1', 2)
 
     # Snps that are multiallelic will be labelled as 9 still
-    this_snps = this_snps.loc[((this_snps[9] == 0) | (this_snps[9] == 1) | (this_snps[9] == 2)) & ((this_snps[10] == 0) | (this_snps[10] == 1) | (this_snps[10] == 2)) & ((this_snps[11] == 0) | (this_snps[11] == 1) | (this_snps[11] == 2)) & ((this_snps[12] == 0) | (this_snps[12] == 1) | (this_snps[12] == 2)),]
+    if pool == "b4" or pool == "c4":
+        this_snps = this_snps.loc[((this_snps[9] == 0) | (this_snps[9] == 1) | (this_snps[9] == 2)) & ((this_snps[10] == 0) | (this_snps[10] == 1) | (this_snps[10] == 2)) & ((this_snps[11] == 0) | (this_snps[11] == 1) | (this_snps[11] == 2)) & ((this_snps[12] == 0) | (this_snps[12] == 1) | (this_snps[12] == 2)),]
+    else:
+        this_snps = this_snps.loc[((this_snps[9] == 0) | (this_snps[9] == 1) | (this_snps[9] == 2)) & ((this_snps[10] == 0) | (this_snps[10] == 1) | (this_snps[10] == 2)) & ((this_snps[11] == 0) | (this_snps[11] == 1) | (this_snps[11] == 2)) & ((this_snps[12] == 0) | (this_snps[12] == 1) | (this_snps[12] == 2)),]
     print(this_snps)
     return(this_snps)
 
@@ -102,7 +109,10 @@ def predictSubSampleML(snps, subs):
     """
     print(snps)
     xtrain = snps.loc[subs,]
-    xtest = snps.loc[[9, 10, 11, 12],]
+    if pool == "b4" or pool == "c4":
+        xtest = snps.loc[[9, 10, 11],]
+    else:
+        xtest = snps.loc[[9, 10, 11, 12],]
     ytrain = subs
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
@@ -152,28 +162,29 @@ def main():
     # Find SNPs covered by real vcf
     pool_covered_bool = all_snps[pool]['Raw_Pos'].isin(real_snps['Raw_Pos'])
     pool_covered = all_snps[pool].loc[pool_covered_bool,]
-    pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 9, 10, 11, 12]])
     # pool_covered = pool_covered.transpose().dropna(axis=1)
 
     if pool == "b4" or pool == "c4":
+        pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 9, 10, 11]])
         predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2'])
     else:
+        pool_covered = pool_covered.merge(real_snps[['Raw_Pos', 9, 10, 11, 12]])
         predictSubSampleML(pool_covered.transpose().dropna(axis=1), ['0', '1', '2', '3'])
 
-    if pool == "b4" or pool == "c4":
-        super_inform = pool_covered[['0', '1', '2']]
-        super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
-        super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', 'GT']]
-        pool_covered[['LG', 'POS', '0', '1', '2', 'GT']].to_csv("pool_covered.vcf", sep="\t")
-    else:
-        super_inform = pool_covered[['0', '1', '2', '3']]
-        super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
-        super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
-    pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
-    print(super_inform)
-
-    # pool_covered_name = real_vcf.split(".")[0] + "_"
-    super_inform.to_csv("pool_covered_super_inform.vcf", sep="\t")
+    # if pool == "b4" or pool == "c4":
+    #     super_inform = pool_covered[['0', '1', '2']]
+    #     super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
+    #     super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', 'GT']]
+    #     pool_covered[['LG', 'POS', '0', '1', '2', 'GT']].to_csv("pool_covered.vcf", sep="\t")
+    # else:
+    #     super_inform = pool_covered[['0', '1', '2', '3']]
+    #     super_inform = super_inform.eq(super_inform.iloc[:, 0], axis=0)
+    #     super_inform = pool_covered.loc[~super_inform.eq(super_inform.iloc[:, 0], axis=0).all(1), ['LG', 'POS', '0', '1', '2', '3', 'GT']]
+    # pool_covered[['LG', 'POS', '0', '1', '2', '3', 'GT']].to_csv("pool_covered.vcf", sep="\t")
+    # print(super_inform)
+    #
+    # # pool_covered_name = real_vcf.split(".")[0] + "_"
+    # super_inform.to_csv("pool_covered_super_inform.vcf", sep="\t")
 
 
 
