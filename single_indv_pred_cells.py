@@ -107,6 +107,8 @@ def predictSubSampleML(snps, pool):
         ytrain = ['1', '2', '3', '4']
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
+    print(xtest)
+    print(xtest.reshape(-1, 1))
     pred = rc.predict(xtest.reshape(-1, 1))
     prob = rc.predict_proba(xtest.reshape(-1, 1))
     print(pred)
