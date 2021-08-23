@@ -90,7 +90,7 @@ def readRealVcf(real_vcf, chrom_stats, pool):
         this_snps = this_snps.loc[((this_snps[9] == 0) | (this_snps[9] == 1) | (this_snps[9] == 2)) & ((this_snps[10] == 0) | (this_snps[10] == 1) | (this_snps[10] == 2)) & ((this_snps[11] == 0) | (this_snps[11] == 1) | (this_snps[11] == 2)) & ((this_snps[12] == 0) | (this_snps[12] == 1) | (this_snps[12] == 2)),]
     return(this_snps)
 
-def predictSubSampleML(snps):
+def predictSubSampleML(snps, pool):
     """
     Use machine learning to predict what scSplit individuals the simulated/sequenced individuals correspond to.
     :param snps: predictive snps with simulated and real samples as rows and snps as columns
@@ -145,7 +145,7 @@ def main():
     real_covered = real_snps.loc[real_covered_bool,]
     print(real_covered)
     real_covered = real_covered.merge(query_snps[['Raw_Pos', 'Query']])
-    predictSubSampleML(real_covered.transpose().dropna(axis=1))
+    predictSubSampleML(real_covered.transpose().dropna(axis=1), pool)
 
 
 if __name__ == '__main__':
