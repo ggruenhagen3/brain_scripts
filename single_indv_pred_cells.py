@@ -83,8 +83,8 @@ def predictSubSampleML(snps, pool):
     """
     print(snps)
     xtest = numpy.array(snps.loc['Query',])
-    xtrain = snps.loc[snps.index[4:],]
-    ytrain = snps.index[4:]
+    xtrain = snps.loc[snps.index[3:(len(snps.index)-1)],]
+    ytrain = snps.index[3:(len(snps.index)-1)]
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
     pred = rc.predict(xtest.reshape(1, -1))
