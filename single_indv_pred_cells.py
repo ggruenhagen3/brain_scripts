@@ -52,10 +52,6 @@ def readRealVcf(real_vcf, chrom_stats, pool):
     this_snps = pandas.read_csv(real_vcf, sep="\s+", header=14)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
-    # this_snps.rename(columns={this_snps.columns[9]: 9}, inplace=True)
-    # this_snps.rename(columns={this_snps.columns[10]: 10}, inplace=True)
-    # this_snps.rename(columns={this_snps.columns[11]: 11}, inplace=True)
-    # this_snps.rename(columns={this_snps.columns[12]: 12}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
     if pool == "b4" or pool == "c4":
@@ -64,18 +60,18 @@ def readRealVcf(real_vcf, chrom_stats, pool):
         this_snps = this_snps[['Raw_Pos', 'LG', 'POS', this_snps.columns[9], this_snps.columns[10], this_snps.columns[11], this_snps.columns[12]]]
 
     # Change genotypes ('GT') to 0, 1, 2, 9
-    for col_idx in range(4, len(this_snps.columns)):
+    for col_idx in range(3, len(this_snps.columns)):
         this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('./.', 9)
         this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('0/0', 0)
         this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('0/1', 1)
         this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('1/1', 2)
 
     # Snps that are multiallelic will be labelled as 9 still
-    this_snps = this_snps.loc[((this_snps[this_snps.columns[9]] == 0)  | (this_snps[this_snps.columns[9]] == 1)  | (this_snps[this_snps.columns[9]] == 2))  &
-                              ((this_snps[this_snps.columns[10]] == 0) | (this_snps[this_snps.columns[10]] == 1) | (this_snps[this_snps.columns[10]] == 2)) &
-                              ((this_snps[this_snps.columns[11]] == 0) | (this_snps[this_snps.columns[11]] == 1) | (this_snps[this_snps.columns[11]] == 2)),]
+    this_snps = this_snps.loc[((this_snps[this_snps.columns[3]] == 0) | (this_snps[this_snps.columns[3]] == 1) | (this_snps[this_snps.columns[3]] == 2)) &
+                              ((this_snps[this_snps.columns[4]] == 0) | (this_snps[this_snps.columns[4]] == 1) | (this_snps[this_snps.columns[4]] == 2)) &
+                              ((this_snps[this_snps.columns[5]] == 0) | (this_snps[this_snps.columns[5]] == 1) | (this_snps[this_snps.columns[5]] == 2)),]
     if pool != "b4" and pool != "c4":
-        this_snps = this_snps.loc[((this_snps[this_snps.columns[12]] == 0) | (this_snps[this_snps.columns[12]] == 1) | (this_snps[this_snps.columns[12]] == 2)),]
+        this_snps = this_snps.loc[((this_snps[this_snps.columns[6]] == 0) | (this_snps[this_snps.columns[6]] == 1) | (this_snps[this_snps.columns[6]] == 2)),]
     return(this_snps)
 
 def predictSubSampleML(snps, pool):
