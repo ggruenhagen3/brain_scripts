@@ -25,7 +25,6 @@ def parseArgs():
 
 def readQueryVcf(query_vcf, chrom_stats):
     this_snps = pandas.read_csv(query_vcf, sep="\s+", header=1714)
-    print(this_snps)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[9]: "Query"}, inplace=True)
@@ -34,13 +33,13 @@ def readQueryVcf(query_vcf, chrom_stats):
     this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 'Query']]
 
     # Change genotypes ('GT') to 0, 1, 2, 9
+    this_snps['Query'] = this_snps['Query'].str[:3]
     this_snps['Query'] = this_snps['Query'].replace('./.', 9)
     this_snps['Query'] = this_snps['Query'].replace('0/0', 0)
     this_snps['Query'] = this_snps['Query'].replace('0/1', 1)
     this_snps['Query'] = this_snps['Query'].replace('1/1', 2)
 
     # Snps that are multiallelic will be labelled as 9 still
-
     this_snps = this_snps.loc[(this_snps['Query'] == 0) | (this_snps['Query'] == 1) | (this_snps['Query'] == 2),]
     print(this_snps)
     return (this_snps)
