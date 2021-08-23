@@ -19,9 +19,12 @@ def parseArgs():
     parser.add_argument('real_vcf', metavar='real_vcf', type = str, help='VCF from real sample')
     parser.add_argument('query_vcf', metavar='query_vcf', type = str, help='Query vcf')
     parser.add_argument('pool', metavar='pool', type=str, help='Pool of the sample (b1-b5,c1-c5)')
+    parser.add_argument("-l", "--header_line", help="Header Line for Real VCF", nargs="?",
+                        type=int, default=14, const=14)
+
 
     args = parser.parse_args()
-    return args.real_vcf, args.query_vcf, args.pool
+    return args.real_vcf, args.query_vcf, args.pool, args.header_line
 
 def readQueryVcf(query_vcf, chrom_stats):
     this_snps = pandas.read_csv(query_vcf, sep="\s+", header=1714)
@@ -43,13 +46,13 @@ def readQueryVcf(query_vcf, chrom_stats):
     this_snps = this_snps.loc[(this_snps['Query'] == 0) | (this_snps['Query'] == 1) | (this_snps['Query'] == 2),]
     return (this_snps)
 
-def readRealVcf(real_vcf, chrom_stats, pool):
+def readRealVcf(real_vcf, chrom_stats, pool, header_line):
     """
     :param real_vcf: VCF of real individual
     :param chrom_stats: chromosome information
     :return this_snps: snps that are correctly formatted
     """
-    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=14)
+    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=header_line)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
@@ -93,7 +96,7 @@ def predictSubSampleML(snps, pool):
 
 def main():
     start_time = time.perf_counter()  # start the timer
-    real_vcf, query_vcf, pool = parseArgs()
+    real_vcf, query_vcf, pool, header_line = parseArgs()
     print("Pool: " + pool)
 
     # Read in Chromosome information and format it correctly
@@ -112,7 +115,7 @@ def main():
 
     # Reading Real VCF
     print("Reading Real VCF")
-    real_snps = readRealVcf(real_vcf, chrom_stats, pool)
+    real_snps = readRealVcf(real_vcf, chrom_stats, pool, header_line)
     print("Done")
 
     # Read Query VCF
@@ -130,7 +133,8 @@ def main():
     num_homo = num_homo + real_covered.loc[(real_covered[pred[0]] == 0) & (real_covered['Query'] == 2),].shape[0]
     num_pa = real_covered.loc[(real_covered[pred[0]] > 0) & (real_covered['Query'] == 0),].shape[0]
     num_pa = num_pa + real_covered.loc[(real_covered[pred[0]] == 0) & (real_covered['Query'] > 0),].shape[0]
-    print("ML gives a ", str(numpy.max(numpy.array(prob))), " probability that the query vcf is ", pred[0])
+    print(pred)
+    print("\nML gives a ", ' ({:.1%})'.format(numpy.max(numpy.array(prob))), " probability that the query vcf is ", pred[0])
     print("Number of Distinguishing Sites: " + str(num_sites))
     print("Number of times matched individual is homozygous and query is homozygous opposite: " + str(num_homo) + ' ({:.1%})'.format(num_homo/num_sites))
     print("Number of times matched individual presence/absence of alt doesn't match query: " + str(num_pa) + ' ({:.1%})'.format(num_pa/num_sites))
