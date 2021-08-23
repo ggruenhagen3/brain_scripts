@@ -54,6 +54,10 @@ def readRealVcf(real_vcf, chrom_stats, pool):
     this_snps = pandas.read_csv(real_vcf, sep="\s+", header=14)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
+    this_snps.rename(columns={this_snps.columns[9]: 9}, inplace=True)
+    this_snps.rename(columns={this_snps.columns[10]: 10}, inplace=True)
+    this_snps.rename(columns={this_snps.columns[11]: 11}, inplace=True)
+    this_snps.rename(columns={this_snps.columns[12]: 12}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
     if pool == "b4" or pool == "c4":
