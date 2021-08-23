@@ -98,7 +98,7 @@ def predictSubSampleML(snps, pool):
     :return test_score, train_score: testing (simulated) correctly predicted?
     """
     print(snps)
-    xtest = snps.loc['Query',]
+    xtest = numpy.array(snps.loc['Query',])
     if pool == "b4" or pool == "c4":
         xtrain = snps.loc[[9, 10, 11],]
         ytrain = ['1', '2', '3']
