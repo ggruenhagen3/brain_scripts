@@ -134,7 +134,7 @@ def main():
     num_pa = real_covered.loc[(real_covered[pred[0]] > 0) & (real_covered['Query'] == 0),].shape[0]
     num_pa = num_pa + real_covered.loc[(real_covered[pred[0]] == 0) & (real_covered['Query'] > 0),].shape[0]
     print(pred)
-    print("\nML gives a ", ' ({:.1%})'.format(numpy.max(numpy.array(prob))), " probability that the query vcf is ", pred[0])
+    print("\nML gives a ", '{:.1%}'.format(numpy.max(numpy.array(prob))), " probability that the query vcf is ", pred[0])
     print("Number of Distinguishing Sites: " + str(num_sites))
     print("Number of times matched individual is homozygous and query is homozygous opposite: " + str(num_homo) + ' ({:.1%})'.format(num_homo/num_sites))
     print("Number of times matched individual presence/absence of alt doesn't match query: " + str(num_pa) + ' ({:.1%})'.format(num_pa/num_sites))
