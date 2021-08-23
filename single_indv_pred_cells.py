@@ -41,7 +41,6 @@ def readQueryVcf(query_vcf, chrom_stats):
 
     # Snps that are multiallelic will be labelled as 9 still
     this_snps = this_snps.loc[(this_snps['Query'] == 0) | (this_snps['Query'] == 1) | (this_snps['Query'] == 2),]
-    print(this_snps)
     return (this_snps)
 
 def readRealVcf(real_vcf, chrom_stats, pool):
@@ -53,35 +52,23 @@ def readRealVcf(real_vcf, chrom_stats, pool):
     this_snps = pandas.read_csv(real_vcf, sep="\s+", header=14)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
-    this_snps.rename(columns={this_snps.columns[9]: 9}, inplace=True)
-    this_snps.rename(columns={this_snps.columns[10]: 10}, inplace=True)
-    this_snps.rename(columns={this_snps.columns[11]: 11}, inplace=True)
-    this_snps.rename(columns={this_snps.columns[12]: 12}, inplace=True)
+    # this_snps.rename(columns={this_snps.columns[9]: 9}, inplace=True)
+    # this_snps.rename(columns={this_snps.columns[10]: 10}, inplace=True)
+    # this_snps.rename(columns={this_snps.columns[11]: 11}, inplace=True)
+    # this_snps.rename(columns={this_snps.columns[12]: 12}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
     if pool == "b4" or pool == "c4":
-        this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 9, 10, 11]]
+        this_snps = this_snps[['Raw_Pos', 'LG', 'POS', this_snps.columns[9], this_snps.columns[10], this_snps.columns[11]]]
     else:
-        this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 9, 10, 11, 12]]
+        this_snps = this_snps[['Raw_Pos', 'LG', 'POS', this_snps.columns[9], this_snps.columns[10], this_snps.columns[11], this_snps.columns[12]]]
 
     # Change genotypes ('GT') to 0, 1, 2, 9
-    this_snps[9] = this_snps[9].replace('./.', 9)
-    this_snps[9] = this_snps[9].replace('0/0', 0)
-    this_snps[9] = this_snps[9].replace('0/1', 1)
-    this_snps[9] = this_snps[9].replace('1/1', 2)
-    this_snps[10] = this_snps[10].replace('./.', 9)
-    this_snps[10] = this_snps[10].replace('0/0', 0)
-    this_snps[10] = this_snps[10].replace('0/1', 1)
-    this_snps[10] = this_snps[10].replace('1/1', 2)
-    this_snps[11] = this_snps[11].replace('./.', 9)
-    this_snps[11] = this_snps[11].replace('0/0', 0)
-    this_snps[11] = this_snps[11].replace('0/1', 1)
-    this_snps[11] = this_snps[11].replace('1/1', 2)
-    if pool != "b4" and pool != "c4":
-        this_snps[12] = this_snps[12].replace('./.', 9)
-        this_snps[12] = this_snps[12].replace('0/0', 0)
-        this_snps[12] = this_snps[12].replace('0/1', 1)
-        this_snps[12] = this_snps[12].replace('1/1', 2)
+    for col_idx in range(4, len(this_snps.columns)):
+        this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('./.', 9)
+        this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('0/0', 0)
+        this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('0/1', 1)
+        this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('1/1', 2)
 
     # Snps that are multiallelic will be labelled as 9 still
     if pool == "b4" or pool == "c4":
@@ -99,16 +86,10 @@ def predictSubSampleML(snps, pool):
     """
     print(snps)
     xtest = numpy.array(snps.loc['Query',])
-    if pool == "b4" or pool == "c4":
-        xtrain = snps.loc[[9, 10, 11],]
-        ytrain = ['1', '2', '3']
-    else:
-        xtrain = snps.loc[[9, 10, 11, 12],]
-        ytrain = ['1', '2', '3', '4']
+    xtrain = snps.loc[snps.index[4:],]
+    ytrain = snps.index[4:]
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
-    print(xtest)
-    print(xtest.reshape(1, -1))
     pred = rc.predict(xtest.reshape(1, -1))
     prob = rc.predict_proba(xtest.reshape(1, -1))
     print(pred)
@@ -146,7 +127,6 @@ def main():
 
     real_covered_bool = real_snps['Raw_Pos'].isin(query_snps['Raw_Pos'])
     real_covered = real_snps.loc[real_covered_bool,]
-    print(real_covered)
     real_covered = real_covered.merge(query_snps[['Raw_Pos', 'Query']])
     predictSubSampleML(real_covered.transpose().dropna(axis=1), pool)
 
