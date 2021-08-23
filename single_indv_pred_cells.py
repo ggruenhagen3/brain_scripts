@@ -129,7 +129,7 @@ def main():
     chrom_stats['End'] = [chrom_stats.loc[0:this_row, 'Length'].sum() for this_row in range(0, chrom_stats.shape[0])]
 
     # Reading Real VCF
-    real_snps = readRealVcf(real_vcf, chrom_stats)
+    real_snps = readRealVcf(real_vcf, chrom_stats, pool)
 
     # Read Query VCF
     query_snps = readQueryVcf(query_vcf, chrom_stats)
