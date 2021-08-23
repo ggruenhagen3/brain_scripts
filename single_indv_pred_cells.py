@@ -71,10 +71,11 @@ def readRealVcf(real_vcf, chrom_stats, pool):
         this_snps[this_snps.columns[col_idx]] = this_snps[this_snps.columns[col_idx]].replace('1/1', 2)
 
     # Snps that are multiallelic will be labelled as 9 still
-    if pool == "b4" or pool == "c4":
-        this_snps = this_snps.loc[((this_snps[9] == 0) | (this_snps[9] == 1) | (this_snps[9] == 2)) & ((this_snps[10] == 0) | (this_snps[10] == 1) | (this_snps[10] == 2)) & ((this_snps[11] == 0) | (this_snps[11] == 1) | (this_snps[11] == 2)) & ((this_snps[12] == 0) | (this_snps[12] == 1) | (this_snps[12] == 2)),]
-    else:
-        this_snps = this_snps.loc[((this_snps[9] == 0) | (this_snps[9] == 1) | (this_snps[9] == 2)) & ((this_snps[10] == 0) | (this_snps[10] == 1) | (this_snps[10] == 2)) & ((this_snps[11] == 0) | (this_snps[11] == 1) | (this_snps[11] == 2)) & ((this_snps[12] == 0) | (this_snps[12] == 1) | (this_snps[12] == 2)),]
+    this_snps = this_snps.loc[((this_snps[this_snps.columns[9]] == 0)  | (this_snps[this_snps.columns[9]] == 1)  | (this_snps[this_snps.columns[9]] == 2))  &
+                              ((this_snps[this_snps.columns[10]] == 0) | (this_snps[this_snps.columns[10]] == 1) | (this_snps[this_snps.columns[10]] == 2)) &
+                              ((this_snps[this_snps.columns[11]] == 0) | (this_snps[this_snps.columns[11]] == 1) | (this_snps[this_snps.columns[11]] == 2)),]
+    if pool != "b4" and pool != "c4":
+        this_snps = this_snps.loc[((this_snps[this_snps.columns[12]] == 0) | (this_snps[this_snps.columns[12]] == 1) | (this_snps[this_snps.columns[12]] == 2)),]
     return(this_snps)
 
 def predictSubSampleML(snps, pool):
