@@ -51,7 +51,7 @@ def readRealVcf(real_vcf, chrom_stats, pool):
     :param chrom_stats: chromosome information
     :return this_snps: snps that are correctly formatted
     """
-    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=None)
+    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=14)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
