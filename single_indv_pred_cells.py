@@ -24,7 +24,7 @@ def parseArgs():
     return args.real_vcf, args.query_vcf, args.pool
 
 def readQueryVcf(query_vcf, chrom_stats):
-    this_snps = pandas.read_csv(real_vcf, sep="\s+", header=1714)
+    this_snps = pandas.read_csv(query_vcf, sep="\s+", header=1714)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[9]: "Query"}, inplace=True)
