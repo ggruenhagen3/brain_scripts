@@ -30,8 +30,7 @@ def readQueryVcf(query_vcf, chrom_stats):
     this_snps.rename(columns={this_snps.columns[9]: "Query"}, inplace=True)
     this_snps = this_snps.merge(chrom_stats)
     this_snps['Raw_Pos'] = this_snps['Start'] + this_snps['POS']
-    if pool == "b4" or pool == "c4":
-        this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 'Query']]
+    this_snps = this_snps[['Raw_Pos', 'LG', 'POS', 'Query']]
 
     # Change genotypes ('GT') to 0, 1, 2, 9
     this_snps['Query'] = this_snps['Query'].replace('./.', 9)
