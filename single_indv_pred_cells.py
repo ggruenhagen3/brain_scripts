@@ -89,8 +89,6 @@ def predictSubSampleML(snps, pool):
     a = rc.fit(xtrain, ytrain)
     pred = rc.predict(xtest.reshape(1, -1))
     prob = rc.predict_proba(xtest.reshape(1, -1))
-    print(pred)
-    print(prob)
     return pred, prob
 
 def main():
@@ -125,8 +123,17 @@ def main():
     real_covered_bool = real_snps['Raw_Pos'].isin(query_snps['Raw_Pos'])
     real_covered = real_snps.loc[real_covered_bool,]
     real_covered = real_covered.merge(query_snps[['Raw_Pos', 'Query']])
-    predictSubSampleML(real_covered.transpose().dropna(axis=1), pool)
+    pred, prob = predictSubSampleML(real_covered.transpose().dropna(axis=1), pool)
 
+    num_sites = real_covered.shape[0]
+    num_homo = real_covered.loc[(real_covered[pred[0]] == 2) & (real_covered['Query'] == 0),].shape[0]
+    num_homo = num_homo + real_covered.loc[(real_covered[pred[0]] == 0) & (real_covered['Query'] == 2),].shape[0]
+    num_pa = real_covered.loc[(real_covered[pred[0]] > 0) & (real_covered['Query'] == 0),].shape[0]
+    num_pa = num_pa + real_covered.loc[(real_covered[pred[0]] == 0) & (real_covered['Query'] > 0),].shape[0]
+    print("ML gives a ", str(numpy.max(numpy.array(prob))), " probability that the query vcf is ", pred[0])
+    print("Number of Distinguishing Sites: " + str(num_sites))
+    print("Number of times matched individual is homozygous and query is homozygous opposite: " + str(num_homo) + ' ({:.1%})'.format(num_homo/num_sites))
+    print("Number of times matched individual presence/absence of alt doesn't match query: " + str(num_pa) + ' ({:.1%})'.format(num_pa/num_sites))
 
 if __name__ == '__main__':
     main()
