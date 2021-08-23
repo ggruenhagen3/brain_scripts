@@ -25,6 +25,7 @@ def parseArgs():
 
 def readQueryVcf(query_vcf, chrom_stats):
     this_snps = pandas.read_csv(query_vcf, sep="\s+", header=1714)
+    print(this_snps)
     this_snps.rename(columns={this_snps.columns[0]: "LG"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[1]: "POS"}, inplace=True)
     this_snps.rename(columns={this_snps.columns[9]: "Query"}, inplace=True)
@@ -139,7 +140,7 @@ def main():
 
     real_covered_bool = real_snps['Raw_Pos'].isin(query_snps['Raw_Pos'])
     real_covered = real_snps['Raw_Pos'].loc[real_covered_bool,]
-
+    print(real_covered)
     real_covered = real_covered.merge(query_snps[['Raw_Pos', 'Query']])
     predictSubSampleML(real_covered.transpose().dropna(axis=1))
 
