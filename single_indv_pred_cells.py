@@ -132,13 +132,17 @@ def main():
     chrom_stats['End'] = [chrom_stats.loc[0:this_row, 'Length'].sum() for this_row in range(0, chrom_stats.shape[0])]
 
     # Reading Real VCF
+    print("Reading Real VCF")
     real_snps = readRealVcf(real_vcf, chrom_stats, pool)
+    print("Done")
 
     # Read Query VCF
+    print("Reading Query VCF")
     query_snps = readQueryVcf(query_vcf, chrom_stats)
+    print("Done")
 
     real_covered_bool = real_snps['Raw_Pos'].isin(query_snps['Raw_Pos'])
-    real_covered = real_snps['Raw_Pos'].loc[real_covered_bool,]
+    real_covered = real_snps.loc[real_covered_bool,]
     print(real_covered)
     real_covered = real_covered.merge(query_snps[['Raw_Pos', 'Query']])
     predictSubSampleML(real_covered.transpose().dropna(axis=1))
