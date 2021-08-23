@@ -98,12 +98,13 @@ def predictSubSampleML(snps, pool):
     :return test_score, train_score: testing (simulated) correctly predicted?
     """
     print(snps)
+    xtest = snps.loc['Query',]
     if pool == "b4" or pool == "c4":
         xtrain = snps.loc[[9, 10, 11],]
+        ytrain = ['1', '2', '3']
     else:
         xtrain = snps.loc[[9, 10, 11, 12],]
-    xtest = snps.loc['Query',]
-    ytrain = subs
+        ytrain = ['1', '2', '3', '4']
     rc = LogisticRegression(C=1)
     a = rc.fit(xtrain, ytrain)
     pred = rc.predict(xtest)
