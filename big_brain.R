@@ -4,7 +4,7 @@ setwd(rna_path)
 # rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
-bb = readRDS(paste0(rna_path, "data/bb_cc_04072021.RDS"))
+bb = readRDS(paste0(rna_path, "data/bb_demux_083121.rds"))
 Idents(bb) = bb$seurat_clusters
 
 
@@ -1210,6 +1210,196 @@ print(ggplot(p_bvc_df, aes(Cluster1, Cluster2, fill = bh)) + geom_tile() + scale
 dev.off()
 
 #******************************************************************************************
+# Demux Matching===========================================================================
+#******************************************************************************************
+demux = read.table("~/scratch/brain/ffm/JTS07-C1/outs/demux/c1_demux.best", header = T)
+df_b1 = df[which(df$sample == "c1"),]
+df_b1$demux = demux$SNG.1ST[match(df_b1$sub_sub, demux$BARCODE)]
+all_combos = expand.grid(unique(df_b1$demux), unique(df_b1$sub))
+all_combos = paste0(all_combos[,1], "-", all_combos[,2])
+all_combos = sort(all_combos)
+real_paste = paste0(df_b1$demux, "-", df_b1$sub)
+real_paste = factor(real_paste, levels = all_combos)
+df_b1_p = data.frame(table(real_paste))
+df_b1_p[,c("demux", "scsplit")] = colsplit(df_b1_p$real_paste, pattern = "-", names = c("demux", "scsplit"))
+png("~/scratch/brain/results/c1_scsplit_to_demux.png", width = 700, height = 500, res = 90)
+ggplot(df_b1_p, aes(x = scsplit, y = Freq, fill = demux, color = demux)) + geom_bar(stat = "identity", position = "dodge")
+dev.off()
+
+df = bb@meta.data
+df$sub = colsplit(rownames(df), pattern = "_", names = c("1", "2"))[,2]
+df$sub_sub = colsplit(df$sub, pattern = "_", names = c("1", "2"))[,1]
+df$demux = "idk"
+for (sample in c("b1", "b2", "b3", "b4", "b5", "c1", "c2", "c3", "c4", "c5")) {
+  sample_caps = toupper(sample)
+  demux = read.table(paste0("~/scratch/brain/ffm/JTS07-", sample_caps, "/outs/demux/", sample, "_demux.best"), header = T)
+  df$demux[which(df$sample == sample)] = demux$SNG.1ST[match(df$sub_sub[which(df$sample == sample)], demux$BARCODE)]
+}
+
+subsample_demux = c( "1B18" = "b1.1", "1B4"  = "b1.2", "1B5"  = "b1.3", "1B11" = "b1.4",
+                     "2B10" = "b2.1", "2B13" = "b2.2", "2B17" = "b2.3", "2B19" = "b2.4",
+                     "3B7"  = "b3.1", "3B6"  = "b3.2", "3B2"  = "b3.3", "3B9"  = "b3.4",
+                     "4B12" = "b4.1", "4B14" = "b4.2", "4B25" = "b4.3",
+                     "5B26" = "b5.1", "5B24" = "b5.2", "5B22" = "b5.3", "5B23" = "b5.4",
+                     "1C5"  = "c1.1", "1C11" = "c1.2", "1C4"  = "c1.3", "1C17" = "c1.4",
+                     "2C19" = "c2.1", "2C10" = "c2.2", "2C14" = "c2.3", "2C18" = "c2.4",
+                     "3C7"  = "c3.1", "3C9"  = "c3.2", "3C6"  = "c3.3", "3C2"  = "c3.4",
+                     "4C25" = "c4.1", "4C12" = "c4.2", "4C13" = "c4.3",
+                     "5C26" = "c5.1", "5C22" = "c5.2", "5C23" = "c5.3", "5C24" = "c5.4" )
+df$subsample = plyr::revalue(df$demux, replace = subsample_demux)
+bb$demux = df$demux
+bb$subsample = df$subsample
+
+#******************************************************************************************
+# Neuron Time==============================================================================
+#******************************************************************************************
+library("SeuratWrappers")
+library("monocle3")
+ieg_like25 = read.csv("~/research/brain//data/ieg_like_fos_egr1_npas4_detected_011521.csv")[,1]
+ieg_like61 = read.csv("~/research/brain/results/IEG61_list_for_GG_081021.csv")[,1]
+ieg_like450 = read.csv("~/research/brain/results/IEG450_list_for_GG_081221.csv")[,1]
+# ieg_like = read.csv("~/research/brain//data/ieg_like_fos_egr1_npas4_detected_011521.csv")[,1]
+# ieg_like = read.csv("~/research/brain/results/IEG61_list_for_GG_081021.csv")[,1]
+# ieg_like = read.csv("~/research/brain/results/IEG450_list_for_GG_081221.csv")[,1]
+bb_neuron = subset(bb, cells = colnames(bb)[which(! bb$seuratclusters15 %in% c(4, 9,13) )])
+ieg_like_mat = bb_neuron@assays$RNA@counts[ieg_like25,]
+ieg_like_mat[which( ieg_like_mat > 1 )] = 1
+# bb.cds = as.cell_data_set(bb_neuron)
+Seurat_Object_Diet <- DietSeurat(bb_neuron, graphs = "umap")
+bb.cds = as.cell_data_set(Seurat_Object_Diet)
+bb.cds = preprocess_cds(bb.cds, num_dim = 100, use_genes = ieg_like61) # "You're computing too large a percentage of total singular values, use a standard svd instead."
+# bb.cds = align_cds(bb.cds, alignment_group = "batch")
+bb.cds <- reduce_dimension(bb.cds)
+bb.cds <- cluster_cells(bb.cds)
+bb.cds <- learn_graph(bb.cds, use_partition = F)
+bb.cds <- order_cells(bb.cds, root_cells=colnames(bb_neuron)[which(colSums(ieg_like_mat) == 0)])
+# # Programtically pick root
+# get_earliest_principal_node <- function(cds, time_bin="130-170"){
+#   cell_ids <- which(colData(cds)[, "embryo.time.bin"] == time_bin)
+#   
+#   closest_vertex <-
+#     cds@principal_graph_aux[["UMAP"]]$pr_graph_cell_proj_closest_vertex
+#   closest_vertex <- as.matrix(closest_vertex[colnames(cds), ])
+#   root_pr_nodes <-
+#     igraph::V(principal_graph(cds)[["UMAP"]])$name[as.numeric(names
+#                                                               (which.max(table(closest_vertex[cell_ids,]))))]
+#   
+#   root_pr_nodes
+# }
+# bb.cds <- order_cells(bb.cds, root_pr_nodes=get_earliest_principal_node(bb.cds))
+
+png("~/scratch/brain/results/bb_neuron_monocle450.png", width = 1000, height = 900, res = 100)
+plot_cells(bb.cds, color_cells_by = "pseudotime", label_cell_groups=FALSE, label_leaves=FALSE, label_branch_points=FALSE, graph_label_size=0)
+dev.off()
+write.csv(bb.cds@principal_graph_aux@listData$UMAP$pseudotime, "~/scratch/brain/results/bb_neuron_monocle450.csv")
+
+# bb <- Seurat::AddMetaData(object = bb, metadata = bb.cds@principal_graph_aux@listData$UMAP$pseudotime, col.name = "n_time")
+# bb$n_time[which(! is.finite(bb$n_time) )] = NA
+# myFeaturePlot(bb, feature = "n_time", na.blank = T, my.col.pal = colorRampPalette(inferno(100)))
+n_time = read.csv("~/research/brain/results/bb_neuron_monocle450.csv")[,2]
+# bb_neuron = Seurat::AddMetaData(object = bb_neuron, metadata = bb.cds@principal_graph_aux@listData$UMAP$pseudotime, col.name = "n_time")
+bb_neuron = Seurat::AddMetaData(object = bb_neuron, metadata = n_time, col.name = "n_time")
+bb_neuron$n_time[which(! is.finite(bb_neuron$n_time) )] = NA
+myFeaturePlot(bb_neuron, feature = "n_time", na.blank = T, my.col.pal = colorRampPalette(inferno(100)))
+
+# write.csv(bb_neuron$n_time, "~/research/brain/results/bb_neuron_ntime_ieg61_root025.csv")
+
+# Create a dataframe with a column for cell, the pseudotime, and the data for each IEG
+time_df = data.frame(cell = colnames(bb_neuron), time = bb_neuron$n_time)
+for (ieg in ieg_like25) {
+  time_df[,ieg] = bb_neuron@assays$RNA@data[ieg,]
+}
+write.csv(time_df, "~/research/brain/results/bb_neuron_ntime_df_ieg61_root025.csv")
+write.csv(time_df, "~/research/brain/results/bb_neuron_ntime_df_ieg450_root025.csv")
+
+# time_df = read.csv("~/research/brain/results/bb_neuron_ntime_61_1.csv")
+time_df$sum = rowSums(time_df[,3:ncol(time_df)])
+
+ggplot(time_df, aes(time, npas4, color = time)) + geom_point() + geom_smooth(formula = y ~ x, method='loess') + theme_bw()
+
+# Do Loess Smoothing
+time_df_p = data.frame()
+for (ieg in ieg_like25) {
+  print(which(ieg_like25 == ieg))
+  loessMod75 <- loess(time_df[,ieg] ~ time_df[,"time"], span=0.75)
+  smoothed75 <- predict(loessMod75)
+  this_df = time_df[,c("cell", "time")]
+  this_df$ieg = ieg
+  this_df$smooth = smoothed75
+  time_df_p = rbind(time_df_p, this_df)
+}
+time_df_p$label = gene_info$human[match(time_df_p$ieg, gene_info$mzebra)]
+time_df_p$label[which(time_df_p$ieg == "egr1")] = "EGR1A"
+time_df_p$label[which(time_df_p$ieg == "LOC101475150")] = "EGR1B"
+time_df_p$label[which(time_df_p$ieg == "LOC101487312")] = "FOSA"
+time_df_p$label[which(time_df_p$ieg == "LOC101487601")] = "FOSB"
+time_df_p$label[which(time_df_p$ieg == "LOC101486758")] = "RTN4RL2A"
+time_df_p$label[which(time_df_p$ieg == "LOC101465305")] = "RTN4RL2B"
+time_df_p = time_df_p[order(time_df_p$time),]
+ggplot(time_df_p, aes(time, smooth, color = label)) + geom_line() + geom_label_repel(data=time_df_p[tail(which(time_df_p$label == "JUND"), 1),], aes(label = label), nudge_x = 1, na.rm = TRUE)
+
+# Find time of peak
+ieg_peaks = unlist(lapply(ieg_like25, function(x) { 
+  this_time_df_p = time_df_p[which(time_df_p$ieg == x),]
+  this_time_df_p$time[which.max(this_time_df_p$smooth)] 
+}))
+ieg_peaks = data.frame(ieg = ieg_like25, hgnc = gene_info$human[match(ieg_like25, gene_info$mzebra)], time_of_peak = ieg_peaks)
+write.csv(ieg_peaks, "~/research/brain/results/bb_neuron_time_peaks_ieg450_root025")
+
+# mono_umap = as.data.frame(reducedDim(bb.cds, "UMAP"))
+# mono_umap$cluster = bb_neuron$seuratclusters15
+# ggplot(mono_umap, aes(x = V1, y = V2, color = cluster)) + geom_point(size = 0.5) + theme_classic()
+# mono_umap$ieg_sum = colSums(ieg_like_mat)
+# mono_umap$ieg_sum_nonzero = mono_umap$ieg_sum > 0
+# ggplot(mono_umap, aes(x = V1, y = V2, color = ieg_sum)) + geom_point() + theme_classic()
+# ggplot(mono_umap, aes(x = V1, y = V2, color = ieg_sum_nonzero)) + geom_point() + theme_classic()
+
+#******************************************************************************************
+# BHVE Time================================================================================
+#******************************************************************************************
+subsample_time = c("b1.1" = 1,  "b1.2" = 2,  "b1.3" = 3,  "b1.4" = 4,
+                   "b2.1" = 5,  "b2.2" = 6,  "b2.3" = 7,  "b2.4" = 8,
+                   "b3.1" = 9,  "b3.2" = 10, "b3.3" = 11, "b3.4" = 12,
+                   "b4.1" = 13, "b4.2" = 14, "b4.3" = 15,
+                   "b5.1" = 16, "b5.2" = 17, "b5.3" = 18, "b5.4" = 19,
+                   "c1.1" = 20, "c1.2" = 21, "c1.3" = 22, "c1.4" = 23,
+                   "c2.1" = 24, "c2.2" = 25, "c2.3" = 26, "c2.4" = 27,
+                   "c3.1" = 28, "c3.2" = 29, "c3.3" = 30, "c3.4" = 31,
+                   "c4.1" = 32, "c4.2" = 33, "c4.3" = 34,
+                   "c5.1" = 35, "c5.2" = 36, "c5.3" = 37, "c5.4" = 38)
+subsample_time = c("b1.1" = 1,  "b1.2" = 2,  "b1.3" = 3,  "b1.4" = 4,
+                   "b2.1" = 5,  "b2.2" = 6,  "b2.3" = 7,  "b2.4" = 8,
+                   "b3.1" = 9,  "b3.2" = 10, "b3.3" = 11, "b3.4" = 12,
+                   "b4.1" = 13, "b4.2" = 14, "b4.3" = 15,
+                   "b5.1" = 16, "b5.2" = 17, "b5.3" = 18, "b5.4" = 00,
+                   "c1.1" = 00, "c1.2" = 00, "c1.3" = 00, "c1.4" = 00,
+                   "c2.1" = 00, "c2.2" = 00, "c2.3" = 00, "c2.4" = 00,
+                   "c3.1" = 00, "c3.2" = 00, "c3.3" = 00, "c3.4" = 00,
+                   "c4.1" = 00, "c4.2" = 00, "c4.3" = 00,
+                   "c5.1" = 00, "c5.2" = 00, "c5.3" = 00, "c5.4" = 00)
+bb$time = as.numeric(as.vector(plyr::revalue(bb$subsample, subsample_time)))
+
+red_pal = c("#431313", "#f75656")
+yellow_pal = c("#434313","#f7f456")
+green_pal = c("#13431b", "#56f76e")
+gene_time_df = data.frame(data = bb@assays$RNA@data["fosb",], time = bb$time)
+# loess_mod <- loess(data ~ time, gene_time_df)
+# pred <- predict(loess_mod, gene_time_df, se=TRUE)
+# gene_time_df$lwl <- pred$fit-1.96*pred$se.fit
+# gene_time_df$upl <- pred$fit+1.96*pred$se.fit
+ggplot(gene_time_df, aes(time, data, color = time)) + geom_point() + geom_smooth(formula = y ~ x, method='loess', color = green_pal[1]) + theme_bw() + scale_color_gradientn(colors = green_pal) + ggtitle("fosb")
+ggplot(gene_time_df, aes(time, data, color = time)) + geom_point() + geom_smooth(formula = y ~ x, method='loess') + theme_bw() + ggtitle("EGR1")
+ggplot(gene_time_df, aes(time, data)) + geom_boxplot() + geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.01)
+
+#
+#
+#
+all_r = read.table("~/Downloads/all_no_cr_relate.relatedness2", header = T)
+all_r$isFirst = all_r$RELATEDNESS_PHI > 0.225 & all_r$RELATEDNESS_PHI < 0.48
+ggplot(all_r, aes(INDV1, INDV2, fill = RELATEDNESS_PHI)) + geom_raster() + scale_fill_viridis_c() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
+ggplot(all_r, aes(INDV1, INDV2, fill = isFirst)) + geom_raster() + scale_fill_viridis_d() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
+
+#******************************************************************************************
 # Sierra ==================================================================================
 #******************************************************************************************
 library("Sierra")
@@ -1381,12 +1571,197 @@ for (i in 0:52) {
 }
 
 bbs = readRDS("~/research/brain/data/all_sierra.rds")
+peak_info = Tool(bbs, "Sierra")
+peak_info$Peak_number_num = reshape2::colsplit(peak_info$Peak_number, "Peak", c(1,2))[,2]
+Peak_number_num_max = aggregate(Peak_number_num ~ Gene_name, peak_info, max)
+peak_info$Peak_number_num_max = Peak_number_num_max[match(peak_info$Gene_name, Peak_number_num_max[,1]),2]
 all15 = read.csv("~/research/brain/results/all_dtu_15.csv")
 all53 = read.csv("~/research/brain/results/all_dtu_53.csv")
 all15 = all15[order(all15$padj, decreasing = F),]
 all53 = all53[order(all53$padj, decreasing = F),]
+all15$pct_dif = all15$population1_pct - all15$population2_pct
+all15 = all15[which(all15$Log2_fold_change > 0 & all15$pct_dif > 0),]
+all53$pct_dif = all53$population1_pct - all53$population2_pct
+all53 = all53[which(all53$Log2_fold_change > 0 & all53$pct_dif > 0),]
 FeaturePlot(bbs, all15$peak[2], label = T, order = T)
 FeaturePlot(bb, all15$gene_name[2], label = T, order = T)
+
+# Find DTU Hits where Peaks have different expression profiles
+deg15 = read.csv("~/research/brain/results/bb_all_markers_15clusters_102820_more_info.csv")
+deg53 = read.csv("~/research/brain/results/bb_all_markers_53clusters_102720_more_info.csv")
+int_dtu15 = data.frame()
+int_dtu53 = data.frame()
+for (clust15 in 0:14) {
+  this_dtu = all15[which(all15$cluster == clust15),]
+  this_deg = deg15[which(deg15$cluster == clust15),]
+  int_dtu15 = rbind(int_dtu15, this_dtu[which(! this_dtu$gene_name %in% this_deg$gene & this_dtu$Log2_fold_change > 0 & this_dtu$population1_pct > this_dtu$population2_pct ),])
+}
+for (clust53 in 0:52) {
+  this_dtu = all53[which(all53$cluster == clust53),]
+  this_deg = deg53[which(deg53$cluster == clust53),]
+  int_dtu53 = rbind(int_dtu53, this_dtu[which(! this_dtu$gene_name %in% this_deg$gene & this_dtu$Log2_fold_change > 0 & this_dtu$population1_pct > this_dtu$population2_pct ),])
+}
+int_dtu15$hgnc = gene_info$human[match(int_dtu15$gene_name, gene_info$mzebra)]
+int_dtu53$hgnc = gene_info$human[match(int_dtu53$gene_name, gene_info$mzebra)]
+
+int_dtu15_hgnc = unique(int_dtu15$hgnc[which(! is.na(int_dtu15$hgnc) )])
+clipboard(int_dtu15_hgnc)
+clipboard(unique(int_dtu53$hgnc[which(! is.na(int_dtu53$hgnc) )]))
+FeaturePlot(bbs, int_dtu15$peak[1], label = T, order = T)
+FeaturePlot(bb, int_dtu15$gene_name[1], label = T, order = T)
+
+total_gene_counts_test = data.frame(peak = rownames(peak_info), gene = peak_info$Gene_name, count = unname(bbs@assays$RNA@counts[,1]))
+total_gene_counts_test = aggregate(count ~ gene, total_gene_counts_test, sum)
+bb@assays$RNA@counts[total_gene_counts_test$gene[1:5],1]
+
+# The DTUTest from Sierra doesn't do exactly what I'm looking for.
+# A peak could be a DTU even if it matches closesly with the gene expression profile.
+# For example, a peak could be a DTU for cluster 3, but if the parent gene is
+# a DEG for cluster 3, then that peak isn't so interesting anymore.
+# I'm interested in cases where the expression profiles of the peaks are distinct
+# from one another. Like where one peak is expressed only in cluster 3 and another
+# peak from the same parent gene is expressed only in cluster 7. That would be
+# an extreme example, but that's what I'm looking for.
+# Helper Functions
+peaksSimilarRange = function(gene) {
+  #' For a gene, find peaks that are less than standard deviations away from the
+  #' mean number of counts per peak.
+  idx_remove = 1 # required to enter while loop
+  idx = which(min_peak_info$Gene_name == gene)
+  while(length(idx_remove) > 0) {
+    idx_remove = c()
+    mean_value = mean(min_peak_info$count[idx])
+    values = abs(min_peak_info$count[idx] - mean_value) / mean_value
+    idx_remove = which(values >= 0.75 | values <= -0.75)
+    # values = scale(min_peak_info$count[idx])
+    # idx_remove = which(values >= 1 | values <= -1)
+    if (length(idx_remove) > 0) {
+      idx = idx[-idx_remove]
+    }
+  }
+  rownames(min_peak_info)[idx]
+}
+myDTU = function(gene, cluster) {
+  # names = clust15_peak_gene_ratio$peak[which(clust15_peak_gene_ratio$gene == gene)]
+  values = scale(clust15_peak_gene_ratio[which(clust15_peak_gene_ratio$gene == gene),cluster])[,1]
+  values
+}
+myDTU2 = function(peak) {
+  # names = clust15_peak_gene_ratio$peak[which(clust15_peak_gene_ratio$gene == gene)]
+  values = scale(t(clust15_peak_gene_ratio[which(clust15_peak_gene_ratio$peak == peak), as.character(0:14)]))[,1]
+  values
+}
+
+# Ensure that peaks express a minimum number of counts
+min_count = 50
+min_count_sample = 5
+min_peaks = rownames(bbs)[which(rowSums(bbs@assays$RNA@counts) >= min_count)]
+
+sample_above_min = list()
+for (this_sample in unique(bbs$sample)) {
+  sample_above_min[[this_sample]] = rownames(bbs)[which(rowSums(bbs@assays$RNA@counts[,which(bb$sample == this_sample)]) >= min_count_sample)]
+}
+sample_above_min_df = as.data.frame(table(unlist(sample_above_min)))
+min_peaks = min_peaks[which(min_peaks %in% sample_above_min_df$Var1[which(sample_above_min_df$Freq == 10)])]
+min_peak_info = peak_info[which(rownames(peak_info) %in% min_peaks),]
+min_peak_info$count = rowSums(bbs@assays$RNA@counts[min_peaks,])
+
+# Ensure that peaks have similar levels of expression
+library(parallel)
+num.cores = detectCores()
+similarPeaks = unlist(mclapply(unique(min_peak_info$Gene_name), peaksSimilarRange, mc.cores = num.cores/3))
+min_peak_info = min_peak_info[similarPeaks,]
+min_Peak_number_num_max = aggregate(Peak_number ~ Gene_name, min_peak_info, length)
+min_peak_info$Num_parts = min_Peak_number_num_max[match(min_peak_info$Gene_name, min_Peak_number_num_max[,1]),2]
+
+# Calculate the percent of cells expressing each peak per cluster
+clust15_cells = list()
+clust15_peak_pct = data.frame(peak = rownames(min_peak_info), gene = min_peak_info$Gene_name)
+for (clust15 in 0:14) {
+  print(clust15)
+  clust_cells = colnames(bbs)[which(bbs$seuratclusters15 == clust15)]
+  
+  mat1 = bbs@assays$RNA@counts[rownames(min_peak_info), clust_cells]
+  mat1[which(mat1 > 1)] = 1
+  num_pos_cells1 = rowSums(mat1)
+  pct_pos_cells1 = (num_pos_cells1/length(clust_cells)) * 100
+  
+  clust15_peak_pct = cbind(clust15_peak_pct, pct_pos_cells1)
+}
+colnames(clust15_peak_pct) = c("peak", "gene", 0:14)
+
+# Divide that number by the total percent for all peaks belonging to the same parent gene
+clust15_gene_pct = as.data.frame(lapply(0:14, function(x) { 
+  this_df = clust15_peak_pct[, c("gene", as.character(x))]
+  colnames(this_df) = c("gene", "cluster")
+  this_res = aggregate(cluster ~ gene, this_df, sum)[,2]
+}))
+colnames(clust15_gene_pct) = 0:14
+rownames(clust15_gene_pct) = sort(unique(clust15_peak_pct$gene))
+clust15_peak_gene_ratio = as.data.frame(lapply(as.character(0:14), function(x) clust15_peak_pct[,x] / clust15_gene_pct[match(clust15_peak_pct$gene, rownames(clust15_gene_pct)),x]))
+colnames(clust15_peak_gene_ratio) = 0:14
+rownames(clust15_peak_gene_ratio) = clust15_peak_pct$peak
+clust15_peak_gene_ratio$peak = clust15_peak_pct$peak
+clust15_peak_gene_ratio$gene = clust15_peak_pct$gene
+
+# Scale values by cluster to find how many standard deviations a peak is from the other peaks
+parent_genes = unique(clust15_peak_gene_ratio$gene)
+clust15_scale = data.frame(peak = unlist(lapply(parent_genes, function(gene) clust15_peak_gene_ratio$peak[which(clust15_peak_gene_ratio$gene == gene)])))
+clust15_scale$gene = min_peak_info$Gene_name[match(clust15_scale$peak, rownames(min_peak_info))]
+for (clust15 in as.character(0:14)) {
+  print(clust15)
+  scaled_values = unlist(mcmapply(myDTU, parent_genes, rep(clust15, length(parent_genes)), mc.cores = num.cores))
+  clust15_scale = cbind(clust15_scale, scaled_values)
+}
+colnames(clust15_scale) = c("peak", "gene", 0:14)
+clust15_scale$num_parts = min_peak_info$Num_parts[match(clust15_scale$peak, rownames(min_peak_info))]
+clust15_scale$gene_part = min_peak_info$Gene_part[match(clust15_scale$peak, rownames(min_peak_info))]
+
+# Experimenting
+test = unlist(mclapply(clust15_peak_pct$peak, myDTU2, mc.cores = num.cores/3))
+test2 = as.data.frame(matrix(test, ncol = 15))
+colnames(test2) = 0:14
+test2$peak = clust15_peak_pct$peak
+test2$gene = clust15_peak_pct$gene
+test2$sum = unlist(mclapply(test2$peak, scaleDif, mc.cores = num.cores/3))
+test2$num_parts = min_peak_info$Num_parts[match(test2$peak, rownames(min_peak_info))]
+test2$gene_part = min_peak_info$Gene_part[match(test2$peak, rownames(min_peak_info))]
+scaleDif = function(peak) {
+  gene = test2$gene[which(test2$peak == peak)]
+  dif = sum(abs(test2[which(test2$peak == peak), as.character(0:14)] - colMeans(test2[which(test2$gene == gene), as.character(0:14)], na.rm = T)), na.rm = T)
+  dif
+}
+
+neuronal_clusters = as.character(0:14)[which(! as.character(0:14) %in% c(4, 9,13) )]
+clust15_scale2 = clust15_scale[,as.character(0:14)]
+clust15_scale2[clust15_scale2 < 0] = 0
+clust15_scale_abs = abs(clust15_scale2[,as.character(0:14) ])
+clust15_scale_abs$sum = rowSums(clust15_scale_abs, na.rm = T)
+clust15_scale_abs$peak = clust15_scale$peak
+clust15_scale_abs$gene = clust15_scale$gene
+clust15_scale_abs$num_parts = clust15_scale$num_parts
+clust15_scale_abs$gene_part = clust15_scale$gene_part
+clust15_scale_abs$count = min_peak_info$count[match(clust15_scale_abs$peak, rownames(min_peak_info))]
+clust15_scale_abs = clust15_scale_abs[order(clust15_scale_abs$sum, decreasing = T)[1:10000],]
+ggplot(clust15_scale_abs, aes(x = count, y = sum, color = sum)) + geom_point() + scale_color_viridis_c()
+
+# plot
+clust15_scale[which(clust15_scale[,"0"] > 3 & clust15_peak_pct[match(clust15_scale$peak, clust15_peak_pct$peak),"0"] > 3)[1:5], c("peak", "gene", "0", "num_parts", "gene_part")]
+for (i in as.character(0:14)) {
+  df0 = clust15_scale[which(clust15_scale[,i] > 0.5), c("peak", "gene", i, "num_parts", "gene_part")]
+  colnames(df0)[which(colnames(df0) == i)] = "cluster_z_score"
+  df0$pct = clust15_peak_pct[match(df0$peak, clust15_peak_pct$peak),i]
+  pdf(paste0("~/research/brain/results/sierra_cluster/", i, ".pdf"), width = 5, height = 5)
+  print(ggplot(df0, aes(x = cluster_z_score, y = pct)) + geom_point(alpha = 0.4) + geom_text_repel(data=df0[which(df0$cluster_z_score >= 2.5 & df0$pct >= 5),], aes(label = gene_part), color = "red") + ggtitle(paste0("Cluster ", i, ": Scaled(Peak/Total) vs Percent of cells [Only Keep Peaks in Similar Range Per Gene]")))
+  dev.off()
+}
+
+clust15_scale[which(clust15_scale[,"14"] > 8 & clust15_peak_pct[match(clust15_scale$peak, clust15_peak_pct$peak),"14"] > 3)[1:5], c("peak", "gene", "14", "num_parts", "gene_part")]
+
+# DotPlot
+gene = "LOC101477058"
+DotPlot(bbs, features = rownames(min_peak_info)[which(min_peak_info$Gene_name == gene)])  + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_x_discrete(labels = min_peak_info$Gene_part[which(min_peak_info$Gene_name == gene)])
+FeaturePlot(bbs, rownames(min_peak_info)[which(min_peak_info$Gene_name == gene)], order = T, label = T, pt.size = 1)
 
 temp = rev(brewer.pal(11,"Spectral"))
 temp[6] = "gold" # this is what plotCytoTRACE uses
@@ -2394,6 +2769,108 @@ for (i in 1:length(bri_clean)) {
 #==========================================================================================
 # BHVE vs CTRL Prediction =================================================================
 #==========================================================================================
+library(glmnet)
+mat = bb@assays$RNA@counts
+mat[which(mat > 1)] = 1
+mat_rowsums = rowSums(mat)
+high_count_genes = names(mat_rowsums)[which(mat_rowsums >= 100)]
+bhve_ctrl_PA_diff = abs(rowSums(mat[,which(bb$cond == "BHVE")]) - rowSums(mat[,which(bb$cond == "CTRL")]))
+high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= 750)]
+bb = ScaleData(bb, features = high_count_genes)
+
+big_df = data.frame()
+for (i in 1:5) {
+  print(i)
+  test_samples = unique(bb$subsample)[which( substr(unique(bb$subsample), 2, 2) == i )]
+  train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
+  test = subsample_exp_avgs[,test_samples]
+  train = as.data.frame(t(train))
+  test = as.data.frame(t(test))
+  colnames(test) = colnames(train)
+  rownames(test) = test_samples
+  lambdas <- 10^seq(4, -3, by = -.1)
+  ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
+  cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], alpha = 0, lambda = lambdas)
+  optimal_lambda <- cv_ridge$lambda.min
+  predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
+  print(eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"], predictions_test, test))
+  big_df = rbind(big_df, data.frame(subsample = rownames(test), pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"]))
+}
+ggplot(big_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample))
+
+test_samples = c("b1.1", "b1.2", "b1.3", "b1.4", "c1.1", "c1.2", "c1.3", "c1.4")
+Idents(bb) = bb$subsample
+subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot = "data")
+train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
+test = subsample_exp_avgs[,test_samples]
+
+subsample_meta = unique(bb@meta.data[,c("subsample", "gsi", "depth", "build_events", "spawn_events")])
+train = as.data.frame(t(train))
+test = as.data.frame(t(test))
+colnames(test) = colnames(train)
+rownames(test) = test_samples
+train[, "build_events"] = subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"]
+test[, "build_events"] = subsample_meta[match(rownames(test), subsample_meta$subsample), "build_events"]
+# train[, colnames(subsample_meta)[2:ncol(subsample_meta)]] = subsample_meta[match(rownames(train), subsample_meta$subsample), colnames(subsample_meta)[2:ncol(subsample_meta)]]
+# test[, colnames(subsample_meta)[2:ncol(subsample_meta)]] = subsample_meta[match(rownames(test), subsample_meta$subsample), colnames(subsample_meta)[2:ncol(subsample_meta)]]
+my_model = glm(build_events ~ ., data = train)
+predict(my_model, newdata=test, type="response")
+
+lambdas <- 10^seq(4, -3, by = -.1)
+ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
+cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], alpha = 0, lambda = lambdas)
+optimal_lambda <- cv_ridge$lambda.min
+eval_results <- function(true, predicted, df) {
+  SSE <- sum((predicted - true)^2)
+  SST <- sum((true - mean(true))^2)
+  R_square <- 1 - SSE / SST
+  RMSE = sqrt(SSE/nrow(df))
+  
+  
+  # Model performance metrics
+  data.frame(
+    RMSE = RMSE,
+    Rsquare = R_square
+  )
+  
+}
+# Prediction and evaluation on train data
+predictions_train <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(train))
+eval_results(subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], predictions_train, train)
+# Prediction and evaluation on test data
+predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
+eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "build_events"], predictions_test, test)
+
+p_df = data.frame(pred = unname(predictions_train), real = subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], subsample = rownames(train))
+ggplot(p_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Train") + geom_text_repel(aes(label = subsample))
+p_df = data.frame(pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), "build_events"], subsample = rownames(test))
+ggplot(p_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample))
+
+# cv.lasso <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], alpha=1, parallel=TRUE, standardize=TRUE, type.measure='auc')
+# plot(cv.lasso)
+lasso_reg <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], alpha = 1, lambda = lambdas, standardize = TRUE, nfolds = 5)
+lambda_best <- lasso_reg$lambda.min 
+lasso_model <- glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], alpha = 1, lambda = lambda_best, standardize = TRUE)
+predictions_train <- predict(lasso_model, s = lambda_best, newx = as.matrix(train))
+eval_results(subsample_meta[match(rownames(train), subsample_meta$subsample), "build_events"], predictions_train, train)
+predictions_test <- predict(lasso_model, s = lambda_best, newx = as.matrix(test))
+eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "build_events"], predictions_test, test)
+
+
+
+train = t(bb@assays$RNA@data[high_count_genes, which(bb$subsample != "b1.1")])
+test = t(bb@assays$RNA@data[high_count_genes, which(bb$subsample == "b1.1")])
+# train_sparse = sparse.model.matrix(~.,train)
+fit = glmnet(train, bb$build_events[which(bb$subsample != "b1.1")])
+cv <- cv.glmnet(train,bb$build_events[which(bb$subsample != "b1.1")],nfolds=3)
+pred_train <- predict(fit, train, type="response",s=cv$lambda.min)
+pred_test <- predict(fit, test, type="response",s=cv$lambda.min)
+mean(abs(pred_train - bb$build_events[which(bb$subsample != "b1.1")]))
+mean(abs(pred_test - bb$build_events[which(bb$subsample == "b1.1")]))
+
+p_df = data.frame(pred = pred_train, real = bb$build_events[which(bb$subsample != "b1.1")])
+ggplot(p_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Train")
+
 bhve_samples = c("b1", "b2", "b3", "b4", "b5")
 ctrl_samples = c("c1", "c2", "c3", "c4", "c5")
 
