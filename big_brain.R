@@ -19,6 +19,36 @@ p_load(Seurat)
 rna_path = "C:/Users/miles/Downloads/brain/"
 bb = readRDS(paste0(rna_path, "data/bb_clustered_102820.rds"))
 
+loop_samples =  c("b1", "b2", "b3", "b4", "b5", "c1", "c2", "c3", "c4", "c5")
+loop_samples = c("c5")
+for (s in loop_samples) {
+  print(s)
+  soup = read.table(paste0("~/scratch/brain/ffm/JTS07-", toupper(s), "/outs/soup_end.tsv"), header = F, sep = "\t")
+  colnames(soup)[1:2] = c("cell", "best")
+  soup$demux = bb$demux[which(bb$sample == s)]
+  soup$best_demux = paste0(soup$best, "_", soup$demux)
+  sd_df = as.data.frame(table(soup$best_demux))
+  sd_df[,c("soup", "demux")] = reshape2::colsplit(sd_df[,1], "_", c("1", "2"))
+  print(sd_df)
+  
+  all_soup_max_num = 0
+  all_soup_other_num = 0
+  for (soup_s in unique(sd_df$soup)) {
+    print(soup_s)
+    max_num = max(sd_df$Freq[which(sd_df$soup == soup_s)])
+    other_num = sum(sd_df$Freq[which(sd_df$soup == soup_s & sd_df$Freq != max_num)])
+    print(max_num/(max_num+other_num))
+    all_soup_max_num = all_soup_max_num + max_num
+    all_soup_other_num = all_soup_other_num + other_num
+  }
+  print(paste("All Soup #:", all_soup_max_num))
+  print(paste("All Soup %:", all_soup_max_num/(all_soup_max_num+all_soup_other_num)))
+  
+  # png(paste0("~/scratch/brain/results/soup_to_demux", s, ".png"), width = 500, height = 400)
+  # print(ggplot(sd_df, aes(x=soup, y = Freq, color = demux, fill = demux)) + geom_bar() + ggtitle(s))
+  # dev.off()
+}
+
 # Add Depth Change
 bb$depth = 0
 bb$depth[which(bb$sample == "b1")] = 70.7531187
@@ -2775,8 +2805,10 @@ mat[which(mat > 1)] = 1
 mat_rowsums = rowSums(mat)
 high_count_genes = names(mat_rowsums)[which(mat_rowsums >= 100)]
 bhve_ctrl_PA_diff = abs(rowSums(mat[,which(bb$cond == "BHVE")]) - rowSums(mat[,which(bb$cond == "CTRL")]))
-high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= 750)]
+high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= 500)]
 bb = ScaleData(bb, features = high_count_genes)
+Idents(bb) = bb$subsample
+subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot = "data")
 
 big_df = data.frame()
 for (i in 1:5) {
@@ -2788,15 +2820,23 @@ for (i in 1:5) {
   test = as.data.frame(t(test))
   colnames(test) = colnames(train)
   rownames(test) = test_samples
-  lambdas <- 10^seq(4, -3, by = -.1)
-  ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
-  cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], alpha = 0, lambda = lambdas)
-  optimal_lambda <- cv_ridge$lambda.min
-  predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
+  train[, "depth"] = subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"]
+  test[, "depth"] = subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"]
+  
+  # lambdas <- 10^seq(4, -3, by = -.1)
+  # ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
+  # cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], alpha = 0, lambda = lambdas)
+  # optimal_lambda <- cv_ridge$lambda.min
+  # predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
+  library("rpart")
+  m <- caret::train(depth ~ ., data = train, method = "ranger")
+  predictions_test <- predict(m, test)
+  
   print(eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"], predictions_test, test))
   big_df = rbind(big_df, data.frame(subsample = rownames(test), pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"]))
 }
 ggplot(big_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample))
+
 
 test_samples = c("b1.1", "b1.2", "b1.3", "b1.4", "c1.1", "c1.2", "c1.3", "c1.4")
 Idents(bb) = bb$subsample
@@ -2804,7 +2844,7 @@ subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot =
 train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
 test = subsample_exp_avgs[,test_samples]
 
-subsample_meta = unique(bb@meta.data[,c("subsample", "gsi", "depth", "build_events", "spawn_events")])
+subsample_meta = unique(bb@meta.data[,c("subsample", "gsi", "depth", "build_events", "spawn_events", "standard_length")])
 train = as.data.frame(t(train))
 test = as.data.frame(t(test))
 colnames(test) = colnames(train)
