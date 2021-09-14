@@ -4,7 +4,7 @@ setwd(rna_path)
 # rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
-bb = readRDS(paste0(rna_path, "data/bb_demux_083121.rds"))
+bb = readRDS(paste0(rna_path, "data/bb_demux_090121.rds"))
 Idents(bb) = bb$seurat_clusters
 
 
@@ -1306,14 +1306,14 @@ bb.cds <- order_cells(bb.cds, root_cells=colnames(bb_neuron)[which(colSums(ieg_l
 # # Programtically pick root
 # get_earliest_principal_node <- function(cds, time_bin="130-170"){
 #   cell_ids <- which(colData(cds)[, "embryo.time.bin"] == time_bin)
-#   
+# 
 #   closest_vertex <-
 #     cds@principal_graph_aux[["UMAP"]]$pr_graph_cell_proj_closest_vertex
 #   closest_vertex <- as.matrix(closest_vertex[colnames(cds), ])
 #   root_pr_nodes <-
 #     igraph::V(principal_graph(cds)[["UMAP"]])$name[as.numeric(names
 #                                                               (which.max(table(closest_vertex[cell_ids,]))))]
-#   
+# 
 #   root_pr_nodes
 # }
 # bb.cds <- order_cells(bb.cds, root_pr_nodes=get_earliest_principal_node(bb.cds))
@@ -2837,6 +2837,8 @@ for (i in 1:5) {
 }
 ggplot(big_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample))
 
+rPartMod <- caret::train(depth ~ ., data=train, method="RRF")
+rpartImp <- varImp(rPartMod)
 
 test_samples = c("b1.1", "b1.2", "b1.3", "b1.4", "c1.1", "c1.2", "c1.3", "c1.4")
 Idents(bb) = bb$subsample
