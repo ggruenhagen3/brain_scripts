@@ -2809,7 +2809,10 @@ high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= 500)]
 bb = ScaleData(bb, features = high_count_genes)
 Idents(bb) = bb$subsample
 subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot = "data")
+subsample_exp_avgs = as.data.frame(lapply(levels(Idents(bb)), function(x) rowSums(mat[high_count_genes,which(bb$subsample == x)])/length(which(bb$subsample == x))))
+colnames(subsample_exp_avgs) = levels(Idents(bb))
 
+doScale = T
 big_df = data.frame()
 for (i in 1:5) {
   print(i)
@@ -2820,6 +2823,11 @@ for (i in 1:5) {
   test = as.data.frame(t(test))
   colnames(test) = colnames(train)
   rownames(test) = test_samples
+  
+  if(doScale) {
+    test = as.data.frame(scale(test))
+    train = as.data.frame(scale(train))
+  }
   train[, "depth"] = subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"]
   test[, "depth"] = subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"]
   
@@ -2832,11 +2840,91 @@ for (i in 1:5) {
   m <- caret::train(depth ~ ., data = train, method = "ranger")
   predictions_test <- predict(m, test)
   
-  print(eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"], predictions_test, test))
+  # print(eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"], predictions_test, test))
   big_df = rbind(big_df, data.frame(subsample = rownames(test), pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"]))
 }
+# big_df$cond = startsWith(big_df$subsample, "b")
+# (length(which(big_df$cond == T & big_df$pred == "BHVE")) + length(which(big_df$cond == F & big_df$pred == "CTRL"))) / 38
+png("~/scratch/brain/results/bvc_pred_demux_scale.png", width = 1000, height = 800, res = 120)
 ggplot(big_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample))
+dev.off()
 
+input_thresh = c(400, 450, 500, 550, 600, 650, 700, 750, 800)
+input_thresh = seq(700, 800, by = 5)
+all_runs_df = as.data.frame(mclapply(input_thresh, singleRun, mc.cores = 24))
+colnames(all_runs_df) = input_thresh
+rownames(all_runs_df) = c("mean_b", "mean_c", "sd_b", "sd_c", "min_b", "min_c", "max_b", "max_c")
+all_runs_df
+test = mclapply(input_thresh, singleRun, mc.cores = 24)
+all_runs_df = ldply(test, data.frame)
+png(paste0("~/scratch/brain/results/bvc_pred_demux_scale_std_depth_small2.png"), width = 2000, height = 1600, res = 120)
+print(ggplot(all_runs_df, aes(x = cond, y = pred, color = abs(cond))) + geom_boxplot() + geom_point(stat = "identity", position = position_jitterdodge()) + ggtitle("Test") + facet_wrap(unique(all_runs_df$thresh)))
+dev.off()
+
+other_method_res = singleRun(760, bhve_metric = "depth")
+png(paste0("~/scratch/brain/results/bvc_pred_demux_test.png"), width = 800, height = 600, res = 120)
+print(ggplot(other_method_res, aes(x = cond, y = pred, color = abs(cond))) + geom_boxplot() + geom_point(stat = "identity", position = position_jitterdodge()) + ggtitle("Test"))
+dev.off()
+png(paste0("~/scratch/brain/results/bvc_pred_demux_test1.png"), width = 1000, height = 800, res = 120)
+print(ggplot(other_method_res, aes(x = real, y = pred, color = abs(cond))) + geom_point() + ggtitle("Test")) + geom_text_repel(aes(label = subsample))
+dev.off()
+
+singleRun = function(thresh, doScale = T, doPlot = F, bhve_metric = "std_depth") {
+  high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= thresh)]
+  Idents(bb) = bb$subsample
+  subsample_exp_avgs = as.data.frame(lapply(levels(Idents(bb)), function(x) rowSums(mat[high_count_genes,which(bb$subsample == x)])/length(which(bb$subsample == x))))
+  colnames(subsample_exp_avgs) = levels(Idents(bb))
+  all_pair_df = data.frame()
+  for (i in 1:5) {
+    test_samples = unique(bb$subsample)[which( substr(unique(bb$subsample), 2, 2) == i )]
+    train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
+    test = subsample_exp_avgs[,test_samples]
+    train = as.data.frame(t(train))
+    test = as.data.frame(t(test))
+    colnames(test) = colnames(train)
+    rownames(test) = test_samples
+    
+    if(doScale) {
+      test = as.data.frame(scale(test))
+      train = as.data.frame(scale(train))
+    }
+    train[, bhve_metric] = subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric]
+    test[, bhve_metric] = subsample_meta[match(rownames(test), subsample_meta$subsample), bhve_metric]
+    
+    lambdas <- 10^seq(4, -3, by = -.1)
+    ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
+    cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], alpha = 0, lambda = lambdas)
+    optimal_lambda <- cv_ridge$lambda.min
+    predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
+    # library("rpart")
+    # myFormula = as.formula(paste(bhve_metric, "~ ."))
+    # m <- caret::train(myFormula, data = train, method = "ranger")
+    # predictions_test <- predict(m, test)
+    
+    # print(eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"], predictions_test, test))
+    all_pair_df = rbind(all_pair_df, data.frame(subsample = rownames(test), pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), bhve_metric]))
+  }
+  all_pair_df$cond = startsWith(all_pair_df$subsample, "b")
+  all_pair_df$thresh = thresh
+  
+  if (doPlot) {
+    print("plotting")
+    png(paste0("~/scratch/brain/results/bvc_pred_demux_scale", thresh, ".png"), width = 1000, height = 800, res = 120)
+    print(ggplot(all_pair_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample)))
+    dev.off()
+  }
+  
+  mean_b = mean(all_pair_df$pred[which(all_pair_df$cond)])
+  mean_c = mean(all_pair_df$pred[which(all_pair_df$cond == F)])
+  sd_b = sd(all_pair_df$pred[which(all_pair_df$cond)])
+  sd_c = sd(all_pair_df$pred[which(all_pair_df$cond == F)])
+  min_b = min(all_pair_df$pred[which(all_pair_df$cond)])
+  min_c = min(all_pair_df$pred[which(all_pair_df$cond == F)])
+  max_b = max(all_pair_df$pred[which(all_pair_df$cond)])
+  max_c = max(all_pair_df$pred[which(all_pair_df$cond == F)])
+  return(all_pair_df)
+  # return(c(mean_b, mean_c, sd_b, sd_c, min_b, min_c, max_b, max_c))
+}
 
 test_samples = c("b1.1", "b1.2", "b1.3", "b1.4", "c1.1", "c1.2", "c1.3", "c1.4")
 Idents(bb) = bb$subsample
@@ -2844,7 +2932,8 @@ subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot =
 train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
 test = subsample_exp_avgs[,test_samples]
 
-subsample_meta = unique(bb@meta.data[,c("subsample", "gsi", "depth", "build_events", "spawn_events", "standard_length")])
+subsample_meta = unique(bb@meta.data[,c("subsample", "gsi", "depth", "build_events", "spawn_events", "standard_length", "cond")])
+subsample_meta$std_depth = subsample_meta$depth/(subsample_meta$standard_length^3)
 train = as.data.frame(t(train))
 test = as.data.frame(t(test))
 colnames(test) = colnames(train)
@@ -3744,3 +3833,15 @@ scaled = scale(raw)
 hist(scaled, breaks = 50)
 mean(scaled)
 z_scores = lapply(1:nrow(df_bvc_plot3), function(x) scale(as.numeric(as.vector(df_bvc_plot3[x, c("bvc", paste0("X",1:1000))]))) )
+
+# PCA
+library("factoextra")
+Idents(bb) = bb$subsample
+subsample_avg = t(myAverageExpression(bb, slot = "data"))
+test = subsample_avg[,which(colSums(subsample_avg) != 0)]
+test = test[, names(sum_dif[order(sum_dif, decreasing = T)[1:200]])]
+res.pca <- prcomp(test, scale = T)
+groups = factor(c(rep("Behave", 19), rep("Control", 19)))
+groups2 = factor(colsplit(as.vector(unique(bb$subsample)), pattern = "\\.", names = c('1', "2"))[,1])
+fviz_pca_ind(res.pca, col.ind = groups, palette = c("#00AFBB",  "#FC4E07"), addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
+# fviz_pca_ind(res.pca, col.ind = groups2, addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
