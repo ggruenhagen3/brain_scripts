@@ -26,6 +26,32 @@ httr::set_config(config(ssl_verifypeer = FALSE))
 # Helper Functions #
 ####################
 
+lgConverter <- function(input_vect) {
+  #' Convert LG to NCBI etc
+  #' @param input_vect: input vector of lg or NCBI chrom names
+  if (startsWith(getwd(), "/storage/scratch1/6/ggruenhagen3/")) {
+    pat <- read.table("~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt", sep = "\t", header = FALSE, fill = TRUE)
+  } else if (startsWith(getwd(), "C:/Users/")) {
+    ar = read.table("C:/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt", sep = "\t", header = FALSE, fill = TRUE)
+  } else if (startsWith(getwd(), "~/research/")) {
+    #TODO
+  } else {
+    print("Error unknown directory.")
+    return()
+  }
+  
+  if ( startsWith(toupper(input_vect[1]), "LG") ) {
+    print("Detected LG format. Now converting to NCBI format.")
+    new_vect = ar$V7[match(toupper(input_vect), ar$V3)]
+  } else if ( startsWith(input_vect[1], "NC_") | startsWith(input_vect[1], "NW_") ) {
+    print("Detected NCBI format. Now converting to LG format.")
+    new_vect = ar$V3[match(toupper(input_vect), ar$V7)]
+  } else {
+    print("Error: didn't detect a known format. Is this a list of chromosomes?")
+  }
+  return(new_vect)
+}
+
 clipboard <- function(x, sep="\t", row.names=FALSE, col.names=TRUE){
   con <- pipe("xclip -selection clipboard -i", open="w")
   write.table(x, con, sep=sep, row.names=row.names, col.names=col.names, quote = F)

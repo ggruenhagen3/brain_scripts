@@ -4,7 +4,7 @@ setwd(rna_path)
 # rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
-bb = readRDS(paste0(rna_path, "data/bb_demux_090121.rds"))
+bb = readRDS(paste0(rna_path, "data/bb_demux_090321.rds"))
 Idents(bb) = bb$seurat_clusters
 
 

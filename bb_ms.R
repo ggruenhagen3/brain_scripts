@@ -436,6 +436,46 @@ png("C:/Users/miles/Downloads/bvc15_umap_rdylbu.png", width = 2000, height = 100
 plot_grid(plotlist=p_list, ncol = 2)
 dev.off()
 
+#************************************************************************
+# Demux DEG =============================================================
+#************************************************************************
+ddeg = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_gsi_control_pair_subject_pool_subject_random_091821_q.csv")
+ddeg[, c("new.full", "col")] = convert15[match(ddeg$cluster, convert15$old), c("new.full", "col")]
+ddeg$neg_log_cond_p = -log10(ddeg$P_cond)
+ddeg$neg_log_gsi_p = -log10(ddeg$P_gsi)
+ddeg$neg_log_cond_q = -log10(ddeg$q_cond)
+ddeg$neg_log_gsi_q = -log10(ddeg$q_gsi)
+ddeg$col2 = ddeg$col
+ddeg$col2[which(ddeg$q_cond >= 0.05)] = "darkgray"
+ddeg$cond_is_sig = ddeg$q_cond < 0.05
+ddeg$hgnc = gene_info$human[match(ddeg$X, gene_info$mzebra)]
+ddeg$label = ddeg$hgnc
+ddeg$label[which( is.na(ddeg$label) )] = ddeg$X[which( is.na(ddeg$label) )]
+
+# Cond -Log10P vs GSI -Log10P
+ggplot(ddeg, aes(x = neg_log_gsi_p, y = neg_log_cond_p, color = col)) + geom_point() + scale_color_identity()
+ggplot(ddeg, aes(x = neg_log_gsi_p, y = neg_log_cond_p, color = col)) + geom_point() + scale_color_identity() + ylab(expression(-Log["10"]*" P of Condition")) + xlab(expression(-Log["10"]*" P of GSI")) + scale_y_sqrt() + scale_x_sqrt() + theme_light() 
+pdf("C:/Users/miles/Downloads/bb_demux_clust15_deg.pdf", width = 8, height = 6)
+ggplot(ddeg[which(ddeg$q_gsi > 0.05),], aes(x = neg_log_gsi_p, y = neg_log_cond_p, color = col2, alpha = cond_is_sig)) + geom_point(size = 3) + scale_color_identity() + ylab(expression(-Log["10"]*" P of Condition")) + xlab(expression(-Log["10"]*" P of GSI")) + scale_y_sqrt() + scale_x_sqrt() + scale_alpha_manual(values = c(0.3, 0.8), guide = F) + theme_light()
+dev.off()
+
+# Calculate pct and avg_logFC dif for each cluster
+ddeg[,c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = 0
+pct_fc_df = data.frame()
+for (this_clust in 0:14) {
+  print(this_clust)
+  this_res = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")], cells.2 = colnames(bb)[which(bb$seuratclusters15 == this_clust & bb$cond == "CTRL")])
+  this_res$old = this_clust
+  ddeg[which(ddeg$cluster == this_clust),c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = this_res[match(ddeg$X[which(ddeg$cluster == this_clust)], this_res$genes), c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")]
+  pct_fc_df = rbind(pct_fc_df, this_res)
+}
+
+# Volcano Plot
+pdf("C:/Users/miles/Downloads/bb_demux_clust15_deg_volcano.pdf", height = 6, width = 5)
+ggplot(ddeg, aes(x = avg_logFC, y = neg_log_cond_p, color = col2)) + geom_point() + scale_y_sqrt() + scale_color_identity() + geom_text_repel(data=ddeg[which(ddeg$cond_is_sig & (ddeg$neg_log_cond_q > 25 | ddeg$avg_logFC > 0.26)),], aes(label =  label)) + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" P")) + theme_light()
+dev.off()
+ggplot(ddeg, aes(x = avg_logFC, y = neg_log_cond_p, color = col2)) + geom_point() + scale_y_log10() + scale_color_identity() + geom_text_repel(data=ddeg[which(ddeg$cond_is_sig & (ddeg$neg_log_cond_q > 25 | ddeg$avg_logFC > 0.26)),], aes(label =  label)) + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" P")) + theme_light()
+
 # *************************************************************************************************************
 # Circular Figure =============================================================================================
 # *************************************************************************************************************
