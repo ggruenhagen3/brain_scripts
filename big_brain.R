@@ -4,6 +4,10 @@ setwd(rna_path)
 # rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
+<<<<<<< HEAD
+=======
+# bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
+>>>>>>> 25cdd0ea1e5bc51a39ddc4100670cc9b23480899
 bb = readRDS(paste0(rna_path, "data/bb_demux_090321.rds"))
 Idents(bb) = bb$seurat_clusters
 
@@ -1279,6 +1283,132 @@ subsample_demux = c( "1B18" = "b1.1", "1B4"  = "b1.2", "1B5"  = "b1.3", "1B11" =
 df$subsample = plyr::revalue(df$demux, replace = subsample_demux)
 bb$demux = df$demux
 bb$subsample = df$subsample
+
+#******************************************************************************************
+# Receptor Diff ===========================================================================
+#******************************************************************************************
+int_df = read.csv("~/research/brain/data/markers/bb_all_interesting_genes_final_3count_051021.csv")
+int_df$gene[which(int_df$gene == "slac17a6")] = "slc17a6"
+intBHVECTRL = function(gene) {
+  gene_pos_cells = colnames(bb)[which(bb@assays$RNA@counts[gene,] > 0)]
+  bhve_cells = colnames(bb)[which(bb$cond == "BHVE")]
+  ctrl_cells = colnames(bb)[which(bb$cond == "CTRL")]
+  gene_pos_bhve_cells = gene_pos_cells[which(gene_pos_cells %in% bhve_cells)]
+  gene_pos_ctrl_cells = gene_pos_cells[which(gene_pos_cells %in% ctrl_cells)]
+  res = pct_dif_avg_logFC(bb, cells.1 = gene_pos_bhve_cells, cells.2 = gene_pos_ctrl_cells)
+  res$pct_dif = res$pct.1 - res$pct.2
+  res$abs_pct_dif = abs(res$pct_dif)
+  res$abs_avg_logFC = abs(res$avg_logFC)
+  res = res[order(res$abs_avg_logFC, decreasing = T),]
+  logFC_sum = sum(res$abs_avg_logFC[1:100])
+  pct_sum = sum(res$abs_pct_dif[1:100])
+  return(list(logFC_sum, pct_sum))
+}
+
+
+
+library(parallel)
+test = mclapply(int_df$gene, intBHVECTRL, mc.cores = 24)
+test = c()
+for (i in 1:nrow(int_df)) {
+  print(i)
+  this_sum = intBHVECTRL(int_df$gene[i])
+  test = c(test, this_sum)
+}
+
+zfp36_deg = read.csv("~/research/brain/results/zfp36_bvc.csv")
+FeaturePlot(bb, "LOC101486937", order = T)
+
+prokr2_deg = read.csv("~/research/brain/results/prokr2_bvc.csv")
+FeaturePlot(bb, "LOC101465959", order = T)
+
+#******************************************************************************************
+# BHVE DEG Module==========================================================================
+#******************************************************************************************
+library(WGCNA)
+bb15_deg = read.csv("~/research/brain/results/bb15_glmmseq_cond_gsi_control_and_cond_spawn_control_sig_genes_q_by_cluster_100521.csv")
+deg_clusters = sort(unique(bb15_deg$cluster))
+
+mat = bb@assays$RNA@counts
+mat[which(mat > 1)] = 1
+
+for (this_clust in deg_clusters) {
+  pos_clust_deg = bb15_deg$X[which(bb15_deg$cluster == this_clust & bb15_deg$condCTRL < 0 & bb15_deg$condCTRL.1 < 0)]
+  neg_clust_deg = bb15_deg$X[which(bb15_deg$cluster == this_clust & bb15_deg$condCTRL > 0 & bb15_deg$condCTRL.1 > 0)]
+  
+  if (length(pos_clust_deg) > 0) {
+    pos_score = colSums(mat[pos_clust_deg, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")])
+    
+    exp = bb@assays$RNA@data[pos_clust_deg, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")]
+    pheatmap::pheatmap(exp, show_rownames = F, scale = "row", show_colnames = F, filename = "test.pdf", width = 10, height = 10)
+    
+    r_mat = cor(x = as.matrix(t(exp)))
+    diag(r_mat) = 0
+    # r_mat[which(upper.tri(r_mat, diag = T))] = NA
+    pheatmap::pheatmap(r_mat, show_rownames = F, show_colnames = F, filename = "test2.pdf", width = 10, height = 10)
+    
+    powers = c(c(1:10), seq(from = 12, to=20, by=2))
+    sft = pickSoftThreshold(r_mat, powerVector = powers, verbose = 5)
+    sft = min(sft$fitIndices$Power[which(sft$fitIndices$SFT.R.sq >= 0.9)])
+    # sft = 6
+    # r_mat = abs(r_mat) ** sft
+    adj_mat = adjacency.fromSimilarity(r_mat)
+    TOM = TOMsimilarity(adj_mat)
+    dissTOM = 1-TOM
+    geneTree = hclust(as.dist(dissTOM), method = "average")
+    plot(geneTree, xlab="", sub="", main = "Gene clustering on TOM-based dissimilarity", labels = FALSE, hang = 0.04)
+    minModuleSize = 10;
+    dynamicMods = cutreeDynamic(dendro = geneTree, distM = dissTOM,
+                                deepSplit = 2, pamRespectsDendro = FALSE,
+                                minClusterSize = minModuleSize);
+    table(dynamicMods)
+    df = data.frame(module = dynamicMods, row.names = rownames(r_mat))
+    my_cols = brewer.pal(max(df$module)+1, "Set2")
+    names(my_cols) = sort(unique(df$module))
+    my_cols = list(module = my_cols)
+    # hcl = "none"
+    # my_callback = function(hcl, mat) { print(hcl); hcl <<- hcl; return(hcl) }
+    test =pheatmap::pheatmap(r_mat, show_rownames = F, show_colnames = F, cutree_rows = 4, annotation_row = df, filename = "test4.pdf", width = 10, height = 10, annotation_colors = my_cols)
+    hcl = test$tree_col
+    dend = as.dendrogram(hcl)
+    clust1 = dend[[1]] %>% labels
+    df = data.frame(module = rep("High", length(clust1)), row.names = clust1)
+    df = rbind(df, data.frame(module = rep("none", length(which( !rownames(r_mat) %in% clust1 ))), row.names = rownames(r_mat)[which( !rownames(r_mat) %in% clust1 )]))
+    test = pheatmap::pheatmap(r_mat, show_rownames = F, show_colnames = F, cutree_rows = 2, cutree_cols = 2, annotation_row = df, annotation_col = df, filename = "test5.pdf", width = 10, height = 10)
+    
+    pos_score2 = colSums(mat[clust1, which(bb$seuratclusters15 == this_clust & bb$cond == "CTRL")])
+    hist(pos_score2, breaks = 50, main = "CTRL Cells, High Module Score, Cluster 0")
+    pos_score2 = colSums(mat[clust1, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")])
+    hist(pos_score2, breaks = 50, main = "BHVE Cells, High Module Score, Cluster 0")
+    exp = bb@assays$RNA@data[clust1, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")]
+    pheatmap::pheatmap(exp, show_rownames = F, show_colnames = F, filename = "test6.pdf", width = 10, height = 10)
+    myFeaturePlot(bb, "tmp", my.col.pal = pal, cells.use = colnames(bb)[which(bb$seuratclusters15 == 0 & bb$cond == "BHVE")])
+    df = bb@meta.data[which(bb$seuratclusters15 == 0 & bb$cond == "BHVE"),]
+    ggplot(df, aes(x = seuratclusters53, y = tmp, color = tmp)) + geom_violin() + geom_boxplot(width = 0.2) + geom_point(position = position_jitter(), alpha = 0.1) + scale_color_gradientn(colors = pal(50)) + ylab("High Module Score") + ggtitle("High Module in BHVE Cells in Cluster 0")
+  }
+}
+
+# baDEG
+badeg = read.csv("~/research/brain/results/deg_depth_build_badeg_glmmseq_demux_all_clusters_all_tests_pair_subjectinpair_pool_subjectinpool_sig_all_genes_100821_q_hgnc.csv")
+badeg_tg = read.csv("~/Downloads/badeg_most_significantly_enriched_pathways_results_100821.csv")
+badeg_gene_converter = read.csv("~/Downloads/all_clusters_cond_deg_list_alt_names.csv")
+
+badeg$cluster_hgnc = paste0(badeg$cluster, "_", badeg$hgnc)
+badeg_gene_converter$cluster[which(badeg_gene_converter$cluster == "8_Glut")] = 0
+# badeg_gene_converter$cluster_num = convert15$old[match(badeg_gene_converter$cluster, convert15$new.full)]
+badeg_gene_converter$cluster_hgnc = paste0(badeg_gene_converter$cluster, "_", badeg_gene_converter$hgnc)
+badeg$hgnc2 = badeg_gene_converter$final[match(badeg$cluster_hgnc, badeg_gene_converter$cluster_hgnc)]
+
+tg1_hgnc = unlist(strsplit(badeg_tg$Hit.in.Query.List[1], ","))
+badeg_tg1 = badeg$mzebra[which( badeg$cluster == badeg_tg$cluster[1] & badeg$hgnc2 %in% tg1_hgnc )]
+exp = bb@assays$RNA@data[badeg_tg1, which(bb$seuratclusters15 == badeg_tg$cluster[1] & bb$cond == "BHVE")]
+pheatmap::pheatmap(exp, show_rownames = F, show_colnames = F, filename = "test.pdf", width = 10, height = 10)
+
+bb$tmp = colSums(bb@assays$RNA@data[badeg_tg1,])
+df = bb@meta.data[which(bb$seuratclusters15 == 0 & bb$cond == "BHVE"),]
+ggplot(df, aes(x = seuratclusters53, y = tmp, color = tmp)) + geom_violin() + geom_boxplot(width = 0.2) + geom_point(position = position_jitter(), alpha = 0.1) + scale_color_gradientn(colors = pal(50)) + ylab("High Module Score") + ggtitle("Neurexin Module in BHVE Cells in Cluster 0")
+df = bb@meta.data[which(bb$seuratclusters15 == 0),]
+ggplot(df, aes(x = seuratclusters53, y = tmp, color = cond)) + geom_violin() + geom_boxplot(width = 0.2, position = position_dodge(width = 0.9), alpha = 0.6, color = "black", outlier.size = 0, aes(fill = cond)) + geom_point(position = position_jitterdodge(), alpha = 0.1) + ylab("Neurexin Module Score") + ggtitle("Neurexin Module in Cluster 0")
 
 #******************************************************************************************
 # Neuron Time==============================================================================
@@ -2803,51 +2933,102 @@ library(glmnet)
 mat = bb@assays$RNA@counts
 mat[which(mat > 1)] = 1
 mat_rowsums = rowSums(mat)
-high_count_genes = names(mat_rowsums)[which(mat_rowsums >= 100)]
-bhve_ctrl_PA_diff = abs(rowSums(mat[,which(bb$cond == "BHVE")]) - rowSums(mat[,which(bb$cond == "CTRL")]))
-high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= 500)]
-bb = ScaleData(bb, features = high_count_genes)
+# high_count_genes = names(mat_rowsums)[which(mat_rowsums >= 100)]
+# bhve_ctrl_PA_diff = abs(rowSums(mat[,which(bb$cond == "BHVE")]) - rowSums(mat[,which(bb$cond == "CTRL")]))
+# high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= 500)]
+# bb = ScaleData(bb, features = high_count_genes)
 Idents(bb) = bb$subsample
-subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot = "data")
-subsample_exp_avgs = as.data.frame(lapply(levels(Idents(bb)), function(x) rowSums(mat[high_count_genes,which(bb$subsample == x)])/length(which(bb$subsample == x))))
-colnames(subsample_exp_avgs) = levels(Idents(bb))
+# subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot = "data")
+# colnames(subsample_exp_avgs) = levels(Idents(bb))
+# all_exp_avgs = myAverageExpression(bb, cells = colnames(bb)[which(bb$seuratclusters15 == 0)], slot = "data")
+all_exp_avgs = as.data.frame(lapply(levels(Idents(bb)), function(x) rowSums(mat[,which(bb$subsample == x & bb$seuratclusters15 == 0)])/length(which(bb$subsample == x & bb$seuratclusters15 == 0))))
+colnames(all_exp_avgs) = levels(Idents(bb))
+# subsample_meta = unique(bb@meta.data[,which(!colnames(bb@meta.data) %in% c("nCount_RNA", "nFeature_RNA", "pct_mt", "RNA_snn_res.1.3", "seurat_clusters", "seuratclusters53", "RNA_snn_res.0.02", "seuratclusters15", "RNA_snn_res.0.018", "RNA_snn_res.0.015", "seuratclusters14"))])
+subsample_meta = unique(bb@meta.data[,c("subsample", "pair", "pool", "gsi", "standard_length", "cond", colnames(bb@meta.data)[which(startsWith(colnames(bb@meta.data), "build"))], colnames(bb@meta.data)[which(startsWith(colnames(bb@meta.data), "depth"))], colnames(bb@meta.data)[which(startsWith(colnames(bb@meta.data), "spawn"))] )])
+rownames(subsample_meta) = subsample_meta$subsample
+subsample_meta$depth_adj_gsi = subsample_meta$depth/(subsample_meta$gsi)
 
-doScale = T
-big_df = data.frame()
-for (i in 1:5) {
-  print(i)
-  test_samples = unique(bb$subsample)[which( substr(unique(bb$subsample), 2, 2) == i )]
-  train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
-  test = subsample_exp_avgs[,test_samples]
-  train = as.data.frame(t(train))
-  test = as.data.frame(t(test))
-  colnames(test) = colnames(train)
-  rownames(test) = test_samples
-  
-  if(doScale) {
-    test = as.data.frame(scale(test))
-    train = as.data.frame(scale(train))
-  }
-  train[, "depth"] = subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"]
-  test[, "depth"] = subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"]
-  
-  # lambdas <- 10^seq(4, -3, by = -.1)
-  # ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
-  # cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), "depth"], alpha = 0, lambda = lambdas)
-  # optimal_lambda <- cv_ridge$lambda.min
-  # predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
-  library("rpart")
-  m <- caret::train(depth ~ ., data = train, method = "ranger")
-  predictions_test <- predict(m, test)
-  
-  # print(eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"], predictions_test, test))
-  big_df = rbind(big_df, data.frame(subsample = rownames(test), pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"]))
+nums_fine = c(15, 20, 25, 30, 35, 40, 50)
+nums_coarse = c(10, 50, 100, 200, 500, 1000)
+for (j in nums_coarse) {
+  clust0Pred(j)
 }
-# big_df$cond = startsWith(big_df$subsample, "b")
-# (length(which(big_df$cond == T & big_df$pred == "BHVE")) + length(which(big_df$cond == F & big_df$pred == "CTRL"))) / 38
-png("~/scratch/brain/results/bvc_pred_demux_scale.png", width = 1000, height = 800, res = 120)
-ggplot(big_df, aes(pred, real, color = abs(pred - real))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample))
-dev.off()
+
+clust0Pred = function(num_genes, doScale = T, doPCA = F, this_model = "rf", bhve_metric = "depth") {
+  if (! this_model %in% c("rf", "lasso", "cv")) { print("Not a valid model. Exiting."); return(NULL) }
+  big_df = data.frame()
+  this_cluster = 0
+  # for (i in 1:5) {
+  for (i in subsample_meta$subsample) {
+    print(i)
+    # test_samples = unique(bb$subsample)[which( substr(unique(bb$subsample), 2, 2) == i )]
+    test_samples = i
+    train = all_exp_avgs[,which( ! colnames(all_exp_avgs) %in% test_samples )]
+    test = all_exp_avgs[,test_samples]
+    
+    train = as.data.frame(t(train))
+    test = as.data.frame(t(test))
+    colnames(test) = colnames(train)
+    rownames(test) = test_samples
+    
+    train_bvc_mean_dif = colMeans(train[rownames(train)[which( startsWith(rownames(train), "b") )],]) - colMeans(train[rownames(train)[which( startsWith(rownames(train), "c") )],])
+    # bhve_up = unlist(lapply(colnames(train), function(x) max(train[rownames(train)[which( startsWith(rownames(train), "c") )],x]) - min(train[rownames(train)[which( startsWith(rownames(train), "b") )],x]) ))
+    # non_zero_i = which(sapply(colnames(train), function(x) min(train[,x]) != 0))
+    # non_zero_values = bhve_up[non_zero_i]
+    # non_zero_values = names(non_zero_i)[order(non_zero_values)][1:25]
+    # train = train[,non_zero_values]
+    # test = test[,non_zero_values]
+    # bhve_up = unlist(lapply(colnames(train), function(x) min(train[rownames(train)[which( startsWith(rownames(train), "b") )],x]) > max(train[rownames(train)[which( startsWith(rownames(train), "c") )],x])))
+    # ctrl_up = unlist(lapply(colnames(train), function(x) min(train[rownames(train)[which( startsWith(rownames(train), "c") )],x]) > max(train[rownames(train)[which( startsWith(rownames(train), "b") )],x])))
+    high_count_genes = names(train_bvc_mean_dif[order(abs(train_bvc_mean_dif), decreasing = T)])[1:num_genes]
+    train = train[,high_count_genes]
+    test = test[,high_count_genes]
+    # non_zero_i = which(colSums(train) != 0 & colSums(test) != 0)
+    # train = train[,non_zero_i]
+    # test = test[,non_zero_i]
+    colnames(train) = str_replace(colnames(train), "-", "_")
+    colnames(test) = str_replace(colnames(test), "-", "_")
+    
+    if (doPCA) {
+      train.pca <- prcomp(train, center = F, scale = F)
+      test.pca = predict(train.pca, test)
+      train = as.data.frame(train.pca$x)
+      test = as.data.frame(test.pca)
+    }
+    
+    if(doScale) {
+      print("Not Scaling bc Predicting 1 Ind.")
+      # test = as.data.frame(scale(test))
+      # train = as.data.frame(scale(train))
+    }
+  
+    lambdas <- 10^seq(4, -3, by = -.1)
+    if (this_model == "cv") {
+      ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
+      cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], alpha = 0, lambda = lambdas)
+      optimal_lambda <- cv_ridge$lambda.min
+      predictions_test <- predict(cv_ridge, s = optimal_lambda, newx = as.matrix(test))
+    } 
+    if (this_model == "lasso") {
+      lasso_reg <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], alpha = 1, lambda = lambdas, standardize = TRUE, nfolds = 5)
+      lambda_best <- lasso_reg$lambda.min
+      lasso_model <- glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], alpha = 1, lambda = lambda_best, standardize = TRUE)
+      predictions_test <- predict(lasso_model, s = lambda_best, newx = as.matrix(test))  
+    } 
+    if (this_model == "rf") {
+      train[, bhve_metric] = subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric]
+      test[, bhve_metric] = subsample_meta[match(rownames(test), subsample_meta$subsample), bhve_metric]
+      myFormula = as.formula(paste(bhve_metric, "~ ."))
+      m <- caret::train(myFormula, data = train, method = "ranger")
+      predictions_test <- predict(m, test)
+    }
+    big_df = rbind(big_df, data.frame(subsample = rownames(test), pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), bhve_metric]))
+  } # end pair for
+  big_df$cond = startsWith(big_df$subsample, "b")
+  print(ggplot(big_df, aes(pred, real, color = abs(cond))) + geom_point() + ggtitle("Test") + geom_text_repel(aes(label = subsample)) + ggtitle(paste("Number of Genes:", num_genes)))
+  print(ggplot(big_df, aes(x = cond, y = pred, color = abs(cond))) + geom_boxplot() + geom_point(stat = "identity", position = position_jitterdodge()) + ggtitle(paste("Number of Genes:", num_genes)))
+}
+
 
 input_thresh = c(400, 450, 500, 550, 600, 650, 700, 750, 800)
 input_thresh = seq(700, 800, by = 5)
@@ -2861,6 +3042,10 @@ png(paste0("~/scratch/brain/results/bvc_pred_demux_scale_std_depth_small2.png"),
 print(ggplot(all_runs_df, aes(x = cond, y = pred, color = abs(cond))) + geom_boxplot() + geom_point(stat = "identity", position = position_jitterdodge()) + ggtitle("Test") + facet_wrap(unique(all_runs_df$thresh)))
 dev.off()
 
+input_thresh = seq(5, 100, by = 5)
+test = mclapply(input_thresh, singleRun, mc.cores = 24)
+all_runs_df = as.data.frame(mclapply(input_thresh, singleRun, mc.cores = 24))
+
 other_method_res = singleRun(760, bhve_metric = "depth")
 png(paste0("~/scratch/brain/results/bvc_pred_demux_test.png"), width = 800, height = 600, res = 120)
 print(ggplot(other_method_res, aes(x = cond, y = pred, color = abs(cond))) + geom_boxplot() + geom_point(stat = "identity", position = position_jitterdodge()) + ggtitle("Test"))
@@ -2869,14 +3054,28 @@ png(paste0("~/scratch/brain/results/bvc_pred_demux_test1.png"), width = 1000, he
 print(ggplot(other_method_res, aes(x = real, y = pred, color = abs(cond))) + geom_point() + ggtitle("Test")) + geom_text_repel(aes(label = subsample))
 dev.off()
 
+test = optimize(singleRun, interval = c(5, 100))
+
 singleRun = function(thresh, doScale = T, doPlot = F, bhve_metric = "std_depth") {
-  high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= thresh)]
+  # high_count_genes = names(bhve_ctrl_PA_diff)[which(bhve_ctrl_PA_diff >= thresh)]
   Idents(bb) = bb$subsample
-  subsample_exp_avgs = as.data.frame(lapply(levels(Idents(bb)), function(x) rowSums(mat[high_count_genes,which(bb$subsample == x)])/length(which(bb$subsample == x))))
-  colnames(subsample_exp_avgs) = levels(Idents(bb))
+  # subsample_exp_avgs = as.data.frame(lapply(levels(Idents(bb)), function(x) rowSums(mat[high_count_genes,which(bb$subsample == x)])/length(which(bb$subsample == x))))
+  # colnames(subsample_exp_avgs) = levels(Idents(bb))
+  # all_exp_avgs = as.data.frame(lapply(levels(Idents(bb)), function(x) rowSums(mat[,which(bb$subsample == x)])/length(which(bb$subsample == x))))
+  all_exp_avgs = myAverageExpression(bb, slot = "data")
+  colnames(all_exp_avgs) = levels(Idents(bb))
+  
   all_pair_df = data.frame()
   for (i in 1:5) {
+    # print("Finding PA diff")
     test_samples = unique(bb$subsample)[which( substr(unique(bb$subsample), 2, 2) == i )]
+    this_bhve_ctrl_PA_diff = abs(rowSums(mat[,which(bb$cond == "BHVE" & ! bb$subsample %in% test_samples)]) - rowSums(mat[,which(bb$cond == "CTRL" & ! bb$subsample %in% test_samples)]))
+    # high_count_genes = names(this_bhve_ctrl_PA_diff)[which(this_bhve_ctrl_PA_diff >= thresh)]
+    this_bhve_ctrl_PA_diff = this_bhve_ctrl_PA_diff[order(this_bhve_ctrl_PA_diff, decreasing = T)[1:thresh]]
+    high_count_genes = names(this_bhve_ctrl_PA_diff)
+    subsample_exp_avgs = all_exp_avgs[high_count_genes,]
+    # print(length(high_count_genes))
+    # print("Done")
     train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
     test = subsample_exp_avgs[,test_samples]
     train = as.data.frame(t(train))
@@ -2891,15 +3090,15 @@ singleRun = function(thresh, doScale = T, doPlot = F, bhve_metric = "std_depth")
     train[, bhve_metric] = subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric]
     test[, bhve_metric] = subsample_meta[match(rownames(test), subsample_meta$subsample), bhve_metric]
     
-    lambdas <- 10^seq(4, -3, by = -.1)
-    ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
-    cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], alpha = 0, lambda = lambdas)
-    optimal_lambda <- cv_ridge$lambda.min
-    predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
+    # lambdas <- 10^seq(4, -3, by = -.1)
+    # ridge_reg = glmnet(train, subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], nlambda = 25, alpha = 0, family = 'gaussian', lambda = lambdas)
+    # cv_ridge <- cv.glmnet(as.matrix(train), subsample_meta[match(rownames(train), subsample_meta$subsample), bhve_metric], alpha = 0, lambda = lambdas)
+    # optimal_lambda <- cv_ridge$lambda.min
+    # predictions_test <- predict(ridge_reg, s = optimal_lambda, newx = as.matrix(test))
     # library("rpart")
-    # myFormula = as.formula(paste(bhve_metric, "~ ."))
-    # m <- caret::train(myFormula, data = train, method = "ranger")
-    # predictions_test <- predict(m, test)
+    myFormula = as.formula(paste(bhve_metric, "~ ."))
+    m <- caret::train(myFormula, data = train, method = "ranger")
+    predictions_test <- predict(m, test)
     
     # print(eval_results(subsample_meta[match(rownames(test), subsample_meta$subsample), "depth"], predictions_test, test))
     all_pair_df = rbind(all_pair_df, data.frame(subsample = rownames(test), pred = unname(predictions_test), real = subsample_meta[match(rownames(test), subsample_meta$subsample), bhve_metric]))
@@ -2922,9 +3121,12 @@ singleRun = function(thresh, doScale = T, doPlot = F, bhve_metric = "std_depth")
   min_c = min(all_pair_df$pred[which(all_pair_df$cond == F)])
   max_b = max(all_pair_df$pred[which(all_pair_df$cond)])
   max_c = max(all_pair_df$pred[which(all_pair_df$cond == F)])
+  # rss = sum((all_pair_df$pred - all_pair_df$real)^2)
+  # return(rss)
   return(all_pair_df)
   # return(c(mean_b, mean_c, sd_b, sd_c, min_b, min_c, max_b, max_c))
 }
+
 rPartMod <- caret::train(depth ~ ., data=train, method="RRF")
 rpartImp <- varImp(rPartMod)
 
@@ -2934,8 +3136,6 @@ subsample_exp_avgs = myAverageExpression(bb, features = high_count_genes, slot =
 train = subsample_exp_avgs[,which( ! colnames(subsample_exp_avgs) %in% test_samples )]
 test = subsample_exp_avgs[,test_samples]
 
-subsample_meta = unique(bb@meta.data[,c("subsample", "gsi", "depth", "build_events", "spawn_events", "standard_length", "cond")])
-subsample_meta$std_depth = subsample_meta$depth/(subsample_meta$standard_length^3)
 train = as.data.frame(t(train))
 test = as.data.frame(t(test))
 colnames(test) = colnames(train)

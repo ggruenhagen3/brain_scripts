@@ -81,7 +81,7 @@ pct_dif_avg_logFC = function(obj, cells.1, cells.2) {
   # Seurat
   mean_exp1 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.1]))
   mean_exp2 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.2]))
-  avg_logFC = log(mean_exp1 + 1) - log(mean_exp2 + 1)
+  avg_logFC = log(mean_exp1 + 1, base = 2) - log(mean_exp2 + 1, base = 2)
   
   # # Zack 
   # mean_exp1 = rowSums(bb@assays$RNA@counts[non_zero_genes,cells.1]) / sum(bb$nCount_RNA[cells.1])
