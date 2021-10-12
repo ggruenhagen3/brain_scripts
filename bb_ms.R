@@ -818,6 +818,23 @@ dev.off()
 # })
 # dev.off()
 
+#*******************************************************************************
+# baDEGS =======================================================================
+#*******************************************************************************
+badeg = read.csv("~/research/brain/results/deg_depth_build_badeg_glmmseq_demux_all_clusters_all_tests_pair_subjectinpair_pool_subjectinpool_sig_all_genes_100821_q_hgnc.csv")
+bhve_cells = colnames(bb)[which(bb$cond == "BHVE")]
+ctrl_cells = colnames(bb)[which(bb$cond == "CTRL")]
+all_pct_fc = data.frame()
+for (this_clust in 0:14) {
+  this_clust_cells = colnames(bb)[which(bb$seuratclusters15 == this_clust)]
+  this_res = pct_dif_avg_logFC(bb, cells.1 = this_clust_cells[which(this_clust_cells %in% bhve_cells)], cells.2 = this_clust_cells[which(this_clust_cells %in% ctrl_cells)])
+  this_res$cluster = this_clust
+  all_pct_fc = rbind(all_pct_fc, this_res)
+}
+all_pct_fc$cluster_gene = paste0(all_pct_fc$cluster, "_", all_pct_fc$genes)
+badeg$cluster_gene = paste0(badeg$cluster, "_", badeg$mzebra)
+badeg[,colnames(all_pct_fc)] = all_pct_fc[match(badeg$cluster_gene, all_pct_fc$cluster_gene),]
+
 ###################################################################
 # Replicate #######################################################
 ###################################################################
@@ -920,4 +937,28 @@ circos.yaxis(at=track3_breaks, sector.index = "1", track.index = 3, side = "righ
 dev.off()
 circos.clear()
 
+#*******************************************************************************
+# Supplemental =================================================================
+#*******************************************************************************
+bb$good15 = convert15$new.full[match(bb$seuratclusters15, convert15$old)]
+bb$col15 = convert15$col[match(bb$seuratclusters15, convert15$old)]
+df = bb@meta.data
+pdf("~/research/brain/results/bb_clust15_nCount.pdf", width = 12, height = 5)
+ggplot(df, aes(x = good15_names, y = nCount_RNA, color = col15)) + geom_violin() + geom_boxplot(width = 0.1) + scale_color_identity() + xlab("")
+dev.off()
+pdf("~/research/brain/results/bb_clust15_nFeature.pdf", width = 12, height = 5)
+ggplot(df, aes(x = good15_names, y = nFeature_RNA, color = col15)) + geom_violin() + geom_boxplot(width = 0.1) + scale_color_identity() + xlab("")
+dev.off()
+pdf("~/research/brain/results/bb_pool_nCount.pdf", width = 10, height = 5)
+ggplot(df, aes(x = sample, y = nCount_RNA, color = sample)) + geom_violin() + geom_boxplot(width = 0.1) + xlab("") + scale_color_manual(values = hue_pal()(10), guide = "none")
+dev.off()
+pdf("~/research/brain/results/bb_pool_nFeature.pdf", width = 10, height = 5)
+ggplot(df, aes(x = sample, y = nFeature_RNA, color = sample)) + geom_violin() + geom_boxplot(width = 0.1) + xlab("") + scale_color_manual(values = hue_pal()(10), guide = "none")
+dev.off()
 
+subsample_df[,c("pool", "num")] = colsplit(subsample_df$subsample, "\\.", c("1", "2"))
+subsample_df$num_nuc = as.numeric(subsample_df$num_nuc)
+subsample_df$num = factor(subsample_df$num, levels = unique(subsample_df$num))
+pdf("~/research/brain/results/bb_subsample_num_nuc.pdf", width = 3, height = 6)
+ggplot(subsample_df, aes(x = num, y = pool, size = num_nuc, color = num)) + geom_point() + theme_classic() + xlab("") + ylab("") + scale_color_manual(values = c(pal(4)), guide = "none") + theme(axis.ticks.x = element_blank(), axis.line.x.bottom = element_blank(), axis.text.x = element_blank())
+dev.off()

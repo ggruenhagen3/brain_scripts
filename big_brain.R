@@ -4,6 +4,7 @@ setwd(rna_path)
 # rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
+# bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
 bb = readRDS(paste0(rna_path, "data/bb_demux_090321.rds"))
 Idents(bb) = bb$seurat_clusters
 
@@ -1279,6 +1280,132 @@ subsample_demux = c( "1B18" = "b1.1", "1B4"  = "b1.2", "1B5"  = "b1.3", "1B11" =
 df$subsample = plyr::revalue(df$demux, replace = subsample_demux)
 bb$demux = df$demux
 bb$subsample = df$subsample
+
+#******************************************************************************************
+# Receptor Diff ===========================================================================
+#******************************************************************************************
+int_df = read.csv("~/research/brain/data/markers/bb_all_interesting_genes_final_3count_051021.csv")
+int_df$gene[which(int_df$gene == "slac17a6")] = "slc17a6"
+intBHVECTRL = function(gene) {
+  gene_pos_cells = colnames(bb)[which(bb@assays$RNA@counts[gene,] > 0)]
+  bhve_cells = colnames(bb)[which(bb$cond == "BHVE")]
+  ctrl_cells = colnames(bb)[which(bb$cond == "CTRL")]
+  gene_pos_bhve_cells = gene_pos_cells[which(gene_pos_cells %in% bhve_cells)]
+  gene_pos_ctrl_cells = gene_pos_cells[which(gene_pos_cells %in% ctrl_cells)]
+  res = pct_dif_avg_logFC(bb, cells.1 = gene_pos_bhve_cells, cells.2 = gene_pos_ctrl_cells)
+  res$pct_dif = res$pct.1 - res$pct.2
+  res$abs_pct_dif = abs(res$pct_dif)
+  res$abs_avg_logFC = abs(res$avg_logFC)
+  res = res[order(res$abs_avg_logFC, decreasing = T),]
+  logFC_sum = sum(res$abs_avg_logFC[1:100])
+  pct_sum = sum(res$abs_pct_dif[1:100])
+  return(list(logFC_sum, pct_sum))
+}
+
+
+
+library(parallel)
+test = mclapply(int_df$gene, intBHVECTRL, mc.cores = 24)
+test = c()
+for (i in 1:nrow(int_df)) {
+  print(i)
+  this_sum = intBHVECTRL(int_df$gene[i])
+  test = c(test, this_sum)
+}
+
+zfp36_deg = read.csv("~/research/brain/results/zfp36_bvc.csv")
+FeaturePlot(bb, "LOC101486937", order = T)
+
+prokr2_deg = read.csv("~/research/brain/results/prokr2_bvc.csv")
+FeaturePlot(bb, "LOC101465959", order = T)
+
+#******************************************************************************************
+# BHVE DEG Module==========================================================================
+#******************************************************************************************
+library(WGCNA)
+bb15_deg = read.csv("~/research/brain/results/bb15_glmmseq_cond_gsi_control_and_cond_spawn_control_sig_genes_q_by_cluster_100521.csv")
+deg_clusters = sort(unique(bb15_deg$cluster))
+
+mat = bb@assays$RNA@counts
+mat[which(mat > 1)] = 1
+
+for (this_clust in deg_clusters) {
+  pos_clust_deg = bb15_deg$X[which(bb15_deg$cluster == this_clust & bb15_deg$condCTRL < 0 & bb15_deg$condCTRL.1 < 0)]
+  neg_clust_deg = bb15_deg$X[which(bb15_deg$cluster == this_clust & bb15_deg$condCTRL > 0 & bb15_deg$condCTRL.1 > 0)]
+  
+  if (length(pos_clust_deg) > 0) {
+    pos_score = colSums(mat[pos_clust_deg, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")])
+    
+    exp = bb@assays$RNA@data[pos_clust_deg, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")]
+    pheatmap::pheatmap(exp, show_rownames = F, scale = "row", show_colnames = F, filename = "test.pdf", width = 10, height = 10)
+    
+    r_mat = cor(x = as.matrix(t(exp)))
+    diag(r_mat) = 0
+    # r_mat[which(upper.tri(r_mat, diag = T))] = NA
+    pheatmap::pheatmap(r_mat, show_rownames = F, show_colnames = F, filename = "test2.pdf", width = 10, height = 10)
+    
+    powers = c(c(1:10), seq(from = 12, to=20, by=2))
+    sft = pickSoftThreshold(r_mat, powerVector = powers, verbose = 5)
+    sft = min(sft$fitIndices$Power[which(sft$fitIndices$SFT.R.sq >= 0.9)])
+    # sft = 6
+    # r_mat = abs(r_mat) ** sft
+    adj_mat = adjacency.fromSimilarity(r_mat)
+    TOM = TOMsimilarity(adj_mat)
+    dissTOM = 1-TOM
+    geneTree = hclust(as.dist(dissTOM), method = "average")
+    plot(geneTree, xlab="", sub="", main = "Gene clustering on TOM-based dissimilarity", labels = FALSE, hang = 0.04)
+    minModuleSize = 10;
+    dynamicMods = cutreeDynamic(dendro = geneTree, distM = dissTOM,
+                                deepSplit = 2, pamRespectsDendro = FALSE,
+                                minClusterSize = minModuleSize);
+    table(dynamicMods)
+    df = data.frame(module = dynamicMods, row.names = rownames(r_mat))
+    my_cols = brewer.pal(max(df$module)+1, "Set2")
+    names(my_cols) = sort(unique(df$module))
+    my_cols = list(module = my_cols)
+    # hcl = "none"
+    # my_callback = function(hcl, mat) { print(hcl); hcl <<- hcl; return(hcl) }
+    test =pheatmap::pheatmap(r_mat, show_rownames = F, show_colnames = F, cutree_rows = 4, annotation_row = df, filename = "test4.pdf", width = 10, height = 10, annotation_colors = my_cols)
+    hcl = test$tree_col
+    dend = as.dendrogram(hcl)
+    clust1 = dend[[1]] %>% labels
+    df = data.frame(module = rep("High", length(clust1)), row.names = clust1)
+    df = rbind(df, data.frame(module = rep("none", length(which( !rownames(r_mat) %in% clust1 ))), row.names = rownames(r_mat)[which( !rownames(r_mat) %in% clust1 )]))
+    test = pheatmap::pheatmap(r_mat, show_rownames = F, show_colnames = F, cutree_rows = 2, cutree_cols = 2, annotation_row = df, annotation_col = df, filename = "test5.pdf", width = 10, height = 10)
+    
+    pos_score2 = colSums(mat[clust1, which(bb$seuratclusters15 == this_clust & bb$cond == "CTRL")])
+    hist(pos_score2, breaks = 50, main = "CTRL Cells, High Module Score, Cluster 0")
+    pos_score2 = colSums(mat[clust1, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")])
+    hist(pos_score2, breaks = 50, main = "BHVE Cells, High Module Score, Cluster 0")
+    exp = bb@assays$RNA@data[clust1, which(bb$seuratclusters15 == this_clust & bb$cond == "BHVE")]
+    pheatmap::pheatmap(exp, show_rownames = F, show_colnames = F, filename = "test6.pdf", width = 10, height = 10)
+    myFeaturePlot(bb, "tmp", my.col.pal = pal, cells.use = colnames(bb)[which(bb$seuratclusters15 == 0 & bb$cond == "BHVE")])
+    df = bb@meta.data[which(bb$seuratclusters15 == 0 & bb$cond == "BHVE"),]
+    ggplot(df, aes(x = seuratclusters53, y = tmp, color = tmp)) + geom_violin() + geom_boxplot(width = 0.2) + geom_point(position = position_jitter(), alpha = 0.1) + scale_color_gradientn(colors = pal(50)) + ylab("High Module Score") + ggtitle("High Module in BHVE Cells in Cluster 0")
+  }
+}
+
+# baDEG
+badeg = read.csv("~/research/brain/results/deg_depth_build_badeg_glmmseq_demux_all_clusters_all_tests_pair_subjectinpair_pool_subjectinpool_sig_all_genes_100821_q_hgnc.csv")
+badeg_tg = read.csv("~/Downloads/badeg_most_significantly_enriched_pathways_results_100821.csv")
+badeg_gene_converter = read.csv("~/Downloads/all_clusters_cond_deg_list_alt_names.csv")
+
+badeg$cluster_hgnc = paste0(badeg$cluster, "_", badeg$hgnc)
+badeg_gene_converter$cluster[which(badeg_gene_converter$cluster == "8_Glut")] = 0
+# badeg_gene_converter$cluster_num = convert15$old[match(badeg_gene_converter$cluster, convert15$new.full)]
+badeg_gene_converter$cluster_hgnc = paste0(badeg_gene_converter$cluster, "_", badeg_gene_converter$hgnc)
+badeg$hgnc2 = badeg_gene_converter$final[match(badeg$cluster_hgnc, badeg_gene_converter$cluster_hgnc)]
+
+tg1_hgnc = unlist(strsplit(badeg_tg$Hit.in.Query.List[1], ","))
+badeg_tg1 = badeg$mzebra[which( badeg$cluster == badeg_tg$cluster[1] & badeg$hgnc2 %in% tg1_hgnc )]
+exp = bb@assays$RNA@data[badeg_tg1, which(bb$seuratclusters15 == badeg_tg$cluster[1] & bb$cond == "BHVE")]
+pheatmap::pheatmap(exp, show_rownames = F, show_colnames = F, filename = "test.pdf", width = 10, height = 10)
+
+bb$tmp = colSums(bb@assays$RNA@data[badeg_tg1,])
+df = bb@meta.data[which(bb$seuratclusters15 == 0 & bb$cond == "BHVE"),]
+ggplot(df, aes(x = seuratclusters53, y = tmp, color = tmp)) + geom_violin() + geom_boxplot(width = 0.2) + geom_point(position = position_jitter(), alpha = 0.1) + scale_color_gradientn(colors = pal(50)) + ylab("High Module Score") + ggtitle("Neurexin Module in BHVE Cells in Cluster 0")
+df = bb@meta.data[which(bb$seuratclusters15 == 0),]
+ggplot(df, aes(x = seuratclusters53, y = tmp, color = cond)) + geom_violin() + geom_boxplot(width = 0.2, position = position_dodge(width = 0.9), alpha = 0.6, color = "black", outlier.size = 0, aes(fill = cond)) + geom_point(position = position_jitterdodge(), alpha = 0.1) + ylab("Neurexin Module Score") + ggtitle("Neurexin Module in Cluster 0")
 
 #******************************************************************************************
 # Neuron Time==============================================================================
