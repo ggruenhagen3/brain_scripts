@@ -859,9 +859,17 @@ dev.off()
 # dev.off()
 
 #*******************************************************************************
-# baDEGS =======================================================================
+# bDEGS ========================================================================
 #*******************************************************************************
-badeg = read.csv("~/research/brain/results/deg_depth_build_badeg_glmmseq_demux_all_clusters_all_tests_pair_subjectinpair_pool_subjectinpool_sig_all_genes_100821_q_hgnc.csv")
+# badeg = read.csv("~/research/brain/results/deg_depth_build_badeg_glmmseq_demux_all_clusters_all_tests_pair_subjectinpair_pool_subjectinpool_sig_all_genes_100821_q_hgnc.csv")
+all_deg_gsi = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_gsi_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster.csv")
+all_deg_spawn = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster.csv")
+all_deg_spawn = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster (1).csv")
+bdeg = read.csv("C:/Users/miles/Downloads/bb15_glmmseq_cond_gsi_control_and_cond_spawn_control_sig_genes_q_by_cluster_100521.csv")
+all_deg_gsi$cluster_gene = paste0(all_deg_gsi$cluster, "_", all_deg_gsi$mzebra)
+all_deg_spawn$cluster_gene = paste0(all_deg_spawn$cluster, "_", all_deg_spawn$mzebra)
+bdeg$cluster_gene = paste0(bdeg$cluster, "_", bdeg$mzebra)
+
 bhve_cells = colnames(bb)[which(bb$cond == "BHVE")]
 ctrl_cells = colnames(bb)[which(bb$cond == "CTRL")]
 all_pct_fc = data.frame()
@@ -872,8 +880,13 @@ for (this_clust in 0:14) {
   all_pct_fc = rbind(all_pct_fc, this_res)
 }
 all_pct_fc$cluster_gene = paste0(all_pct_fc$cluster, "_", all_pct_fc$genes)
-badeg$cluster_gene = paste0(badeg$cluster, "_", badeg$mzebra)
-badeg[,colnames(all_pct_fc)] = all_pct_fc[match(badeg$cluster_gene, all_pct_fc$cluster_gene),]
+bdeg[,colnames(all_pct_fc)] = all_pct_fc[match(bdeg$cluster_gene, all_pct_fc$cluster_gene),]
+all_deg_gsi[,colnames(all_pct_fc)] = all_pct_fc[match(all_deg_gsi$cluster_gene, all_pct_fc$cluster_gene),]
+all_deg_spawn[,colnames(all_deg_spawn)] = all_pct_fc[match(all_deg_spawn$cluster_gene, all_pct_fc$cluster_gene),]
+
+pdf("C:/Users/miles/Downloads/bb_bdeg.pdf", height = 6, width = 5)
+ggplot(bdeg, aes(x = avg_logFC, y = neg_log_cond_p, color = col2)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" P")) + theme_light()
+dev.off()
 
 ###################################################################
 # Replicate #######################################################
