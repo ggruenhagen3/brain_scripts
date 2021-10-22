@@ -45,15 +45,15 @@ combosRes = function(perm, cluster_level) {
 # Load BB Dataset
 # rna_path = "C:/Users/miles/Downloads/brain/"
 rna_path = "~/scratch/brain/"
-bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
+bb = readRDS(paste0(rna_path, "data/bb_subsample_102021.RDS"))
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 set.seed(156)
 
 # Load IEG and IEG Like Genes
 ieg_cons = c("LOC101487312", "egr1", "npas4", "jun", "homer1")
 # ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,2]
-ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_fos_egr1_npas4_detected_011521.csv"), stringsAsFactors = F)[,"ieg_like"]
-ieg_like = c(ieg_like, "jun")
+ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
+# ieg_like = c(ieg_like, "jun")
 bb$ieg_like_score <- colSums(bb@assays$RNA@data[ieg_like,])
 
 # Setup Permutations
