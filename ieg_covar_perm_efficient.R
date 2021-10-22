@@ -77,8 +77,8 @@ all_combos[bad_idx] = NULL
 
 # Merge List of Combos into One Dataframe
 perm_bvc_df = data.frame(t(plyr::ldply(all_combos, rbind))) # merge by name
-perm_bvc_df = perm_bvc_df[,1:n_perm]
-colnames(perm_bvc_df) = 1:n_perm
+perm_bvc_df = perm_bvc_df[,1:ncol(perm_bvc_df)]
+colnames(perm_bvc_df) = 1:ncol(perm_bvc_df)
 combos = colsplit(rownames(perm_bvc_df), pattern = "\\_", names = c('cluster1', 'cluster2')) # split combos vector into two columns
 perm_bvc_df = cbind(combos, perm_bvc_df)
 
