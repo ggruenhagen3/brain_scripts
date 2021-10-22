@@ -47,7 +47,7 @@ combosRes = function(perm, cluster_level) {
 rna_path = "~/scratch/brain/"
 bb = readRDS(paste0(rna_path, "data/bb_subsample_102021.RDS"))
 source(paste0(rna_path, "brain_scripts/all_f.R"))
-set.seed(156)
+set.seed(156) # seed for the script
 
 # Load IEG and IEG Like Genes
 ieg_cons = c("LOC101487312", "egr1", "npas4", "jun", "homer1")
