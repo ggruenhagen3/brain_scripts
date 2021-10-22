@@ -45,7 +45,7 @@ combosRes = function(perm, cluster_level) {
 # Load BB Dataset
 # rna_path = "C:/Users/miles/Downloads/brain/"
 rna_path = "~/scratch/brain/"
-bb = readRDS(paste0(rna_path, "data/bb_subsample_102021.RDS"))
+bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 set.seed(156) # seed for the script
 
