@@ -6,8 +6,8 @@ library("parallel")
 # Set Paths
 global_path <- "/storage/coda1/p-js585/0/ggruenhagen3/George/rich_project_pb1/data/9_brain/all/"
 setwd(global_path)
-regions = c("Pallidus", "Hippocampus", "Striatum")
-tissue = c("GP", "HC", "STR")
+regions = c("Pallidus", "Striatum")
+tissue = c("GP", "STR")
 
 # Read Objects
 obj_list = lapply(regions, function(x) readRDS(paste0(x, "_clean.RDS")))
@@ -25,7 +25,7 @@ myFindAllMarkersParallel = function(obj) {
 }
 
 print("Finding DEGs")
-all_deg_list = mclapply(obj_list, function(x) myFindAllMarkersParallel(obj), mc.cores = detectCores())
+all_deg_list = mclapply(1:length(obj_list), function(x) myFindAllMarkersParallel(obj_list[[x]]), mc.cores = detectCores())
 print("Done")
 
 print("Writing DEGs")
