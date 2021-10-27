@@ -45,15 +45,15 @@ combosRes = function(perm, cluster_level) {
 # Load BB Dataset
 # rna_path = "C:/Users/miles/Downloads/brain/"
 rna_path = "~/scratch/brain/"
-bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
+bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
 source(paste0(rna_path, "brain_scripts/all_f.R"))
-set.seed(156)
+set.seed(156) # seed for the script
 
 # Load IEG and IEG Like Genes
 ieg_cons = c("LOC101487312", "egr1", "npas4", "jun", "homer1")
 # ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,2]
-ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_fos_egr1_npas4_detected_011521.csv"), stringsAsFactors = F)[,"ieg_like"]
-ieg_like = c(ieg_like, "jun")
+ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
+# ieg_like = c(ieg_like, "jun")
 bb$ieg_like_score <- colSums(bb@assays$RNA@data[ieg_like,])
 
 # Setup Permutations
@@ -77,8 +77,8 @@ all_combos[bad_idx] = NULL
 
 # Merge List of Combos into One Dataframe
 perm_bvc_df = data.frame(t(plyr::ldply(all_combos, rbind))) # merge by name
-perm_bvc_df = perm_bvc_df[,1:n_perm]
-colnames(perm_bvc_df) = 1:n_perm
+perm_bvc_df = perm_bvc_df[,1:ncol(perm_bvc_df)]
+colnames(perm_bvc_df) = 1:ncol(perm_bvc_df)
 combos = colsplit(rownames(perm_bvc_df), pattern = "\\_", names = c('cluster1', 'cluster2')) # split combos vector into two columns
 perm_bvc_df = cbind(combos, perm_bvc_df)
 
