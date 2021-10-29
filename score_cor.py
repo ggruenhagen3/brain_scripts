@@ -232,9 +232,9 @@ def main():
     cond_labels = pandas.read_csv(
         "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_real_cond_labels.csv").iloc[:, 1].to_numpy()
     cluster15_labels = pandas.read_csv(
-        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters15.csv").iloc[:, 0].to_numpy()
+        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters15.csv").iloc[:, 1].to_numpy()
     cluster53_labels = pandas.read_csv(
-        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters53.csv").iloc[:, 0].to_numpy()
+        "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_seuratclusters53.csv").iloc[:, 1].to_numpy()
 
     # Read in list of genes to create score with
     if gene_list == "ieg":
