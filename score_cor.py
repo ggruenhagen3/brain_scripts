@@ -13,9 +13,10 @@ def parseArgs():
     parser.add_argument('gene_list', metavar='gene_list', type = str, help='List of genes to create a score for. Options are ieg, neurogen, prog, and pcrclg11.')
     parser.add_argument('num_perm', metavar='num_perm', type = int, help='The number of permutations to complete.')
     parser.add_argument("-n", "--no_perm", help="Do no permutations?", action="store_true")
+    parser.add_argument("-a", "--use_all", help="Use all cells instead of BHVE and CTRL separately", action="store_true")
     parser.add_argument("-f", "--full", help="Full Results (ie include BHVE and CTRL correlations on 15 and 53 cluster levels)?", action="store_true")
     args = parser.parse_args()
-    return args.gene_list, args.num_perm, args.no_perm, args.full
+    return args.gene_list, args.num_perm, args.no_perm, args.use_all, args.full
 
 def generate_correlation_map(x, y):
     """Correlate each n with each m.
@@ -69,6 +70,35 @@ def myShuffle(this_list):
     """
     random.shuffle(this_list)
     return(this_list)
+
+def singleRunNewUseAll():
+    score2 = np.array([score, score])
+    bulk_res = {}
+    bulk_res["ALL"] = generate_correlation_map(score2, data_mat.toarray())[0, :]
+    bulk_df = pandas.DataFrame(bulk_res, index=gene_labels)
+
+    # 15 Cluster Level
+    clust15_res = {}
+    print("Finding Correlations on 15 Cluster Level Permutations")
+    for clust15 in range(0, 15):
+        clust_idx = np.where(cluster15_labels == clust15)[0]
+        clust15_res[str(clust15)] = generate_correlation_map(score2[:, clust_idx], data_mat[:, clust_idx].toarray())[0, :]
+    clust15_df = pandas.DataFrame(clust15_res, index=gene_labels)
+    if full:
+        clust15_df = pandas.DataFrame(clust15_res, index=gene_labels)
+
+    # 53 Cluster Level
+    clust53_res = {}
+    clust53_dif_res = {}
+    print("Finding Correlations on 53 Cluster Level Permutations")
+    for clust53 in range(0, 53):
+        clust_idx = np.where(cluster53_labels == clust53)[0]
+        clust53_res[str(clust53)] = generate_correlation_map(score2[:, clust_idx], data_mat[:, clust_idx].toarray())[0,:]
+    clust53_df = pandas.DataFrame(clust53_res, index=gene_labels)
+    if full:
+        clust53_df = pandas.DataFrame(clust53_res, index=gene_labels)
+
+    return bulk_df, clust15_df, clust53_df
 
 def singleRunNew():
     score2 = np.array([score, score])
@@ -189,7 +219,11 @@ def main():
 
     # Start timer and read input
     start_time = time.perf_counter()
-    gene_list, num_perm, no_perm, full = parseArgs()
+    gene_list, num_perm, no_perm, use_all, full = parseArgs()
+
+    if use_all:
+        print("Since the use_all option was set to TRUE, no_perm will also be set to TRUE")
+        no_perm = True
 
     # Read Data
     data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_data_mat.npz")
@@ -206,7 +240,8 @@ def main():
     if gene_list == "ieg":
         score_genes = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/ieg_like_fos_egr1_npas4_detected_011521.csv").iloc[:, 0].to_numpy()
     elif gene_list == "neurogen":
-        score_genes = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/neurogen_genes_final_050621.csv").iloc[:, 0].to_numpy()
+        # score_genes = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/neurogen_genes_final_050621.csv").iloc[:, 0].to_numpy()
+        score_genes = np.array(list(set(pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/conserved_neurogenesis_positive_zfish_mouse_cichlid.csv").iloc[:, 3])))
     elif gene_list == "prog":
         score_genes = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/progenitor_sox2_nes_coexpress_051721.csv").iloc[:, 0].to_numpy()
     elif gene_list == "pcrclg11":
@@ -229,14 +264,20 @@ def main():
 
     if no_perm:
         print("Doing a real run with no permutations.")
-        # Real BHVE and CTRL labels
-        bhve_idx = np.where(cond_labels == "BHVE")[0]
-        ctrl_idx = np.where(cond_labels == "CTRL")[0]
+        if use_all:
+            perm_bulk, perm_clust15, perm_clust53 = singleRunNewUseAll()
+            perm_greater_bulk = perm_bulk
+            perm_greater_clust15 = perm_clust15
+            perm_greater_clust53 = perm_clust53
+        else:
+            # Real BHVE and CTRL labels
+            bhve_idx = np.where(cond_labels == "BHVE")[0]
+            ctrl_idx = np.where(cond_labels == "CTRL")[0]
 
-        perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
-        perm_greater_bulk = perm_bulk
-        perm_greater_clust15 = perm_clust15
-        perm_greater_clust53 = perm_clust53
+            perm_bulk, perm_clust15, perm_clust53 = singleRunNew()
+            perm_greater_bulk = perm_bulk
+            perm_greater_clust15 = perm_clust15
+            perm_greater_clust53 = perm_clust53
 
     else:
         # Read in Real Data
