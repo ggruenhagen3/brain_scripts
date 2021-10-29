@@ -91,7 +91,7 @@ perm_bvc_df = read.csv("~/scratch/brain/results/ieg_covar_c15_p100k_bvc.csv")
 rownames(perm_bvc_df) = perm_bvc_df$X
 perm_bvc_df$X = NULL
 perm_bvc_df$X100001 = NULL
-colnames(perm_bvc_df) = c("cluster1", "cluster2", 1:n_perm)
+colnames(perm_bvc_df) = c("cluster1", "cluster2", 1:(ncol(perm_bvc_df)-2))
 
 # Real Results
 perm_labels = list()
@@ -101,13 +101,13 @@ real_combos = combosRes(n_perm+1)
 df_bvc_plot3 = perm_bvc_df
 df_bvc_plot3$bvc = 0
 df_bvc_plot3[names(real_combos),"bvc"] = real_combos
-perm_greater_boolean = df_bvc_plot3[,as.character(c(1:n_perm))] > df_bvc_plot3$bvc
+perm_greater_boolean = df_bvc_plot3[,as.character(c(1:(n_perm-1)))] > df_bvc_plot3$bvc
 df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
 
 df_bvc_plot3$cluster1 = factor(df_bvc_plot3$cluster1, levels = 0:14)
 df_bvc_plot3$cluster2 = factor(df_bvc_plot3$cluster2, levels = 0:14)
 
-perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:n_perm))]) > abs(df_bvc_plot3$bvc)
+perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
 df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
 
 png("~/scratch/brain/results/ieg_covar_c15_p100k_r_bvc_perm_greater_raw.png", width = 850, height = 800, res = 90)
