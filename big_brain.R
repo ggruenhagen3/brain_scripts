@@ -5,7 +5,7 @@ setwd(rna_path)
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
 # bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
-bb = readRDS(paste0(rna_path, "data/bb_demux_090321.rds"))
+bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
 Idents(bb) = bb$seurat_clusters
 
 
@@ -806,6 +806,37 @@ png("~/scratch/brain/results/bb_interesting_genes_cor_all.png", width = 20000, h
 pheatmap::pheatmap(p_all_cor, cellwidth = 15, cellheight = 15, cluster_rows = T, cluster_cols = F, border_color = NA, angle_col = "315")
 dev.off()
 system(paste0("rclone copy ~/scratch/brain/results/bb_interesting_genes_cor_all.png dropbox:BioSci-Streelman/George/Brain/bb/results/coexp/"))
+
+df = aggregate(seuratclusters15 ~ subsample, bb@meta.data, length)
+df$sample = substr(df$subsample, 1, 2)
+df$num = substr(df$subsample, 4, 5)
+pal = c("#9d0208", "#dc2f02", "#e85d04", "#f48c06")
+ggplot(df, aes(x = sample, y = seuratclusters15, fill = num, color = num)) + geom_bar(stat = "identity") + xlab("") + ylab("") + scale_fill_manual(values = pal) + scale_color_manual(values = pal) + theme_classic() + scale_y_continuous(expand = c(0,0))
+
+clust_nums = aggregate(nCount_RNA ~ seuratclusters15, bb@meta.data, length)
+sample_nums = aggregate(nCount_RNA ~ sample, bb@meta.data, length)
+df = aggregate(nCount_RNA ~ subsample + seuratclusters15, bb@meta.data, length)
+df$sample = substr(df$subsample, 1, 2)
+df$num = substr(df$subsample, 4, 5)
+df$clust_nums = clust_nums$nCount_RNA[match(df$seuratclusters15, clust_nums$seuratclusters15)]
+df$sample_nums = sample_nums$nCount_RNA[match(df$sample, sample_nums$sample)]
+df$prop = df$nCount_RNA / df$clust_nums * 100
+df$prop2 = df$nCount_RNA / df$sample_nums * 100
+df$good_names = factor(convert15$new.full[match(df$seuratclusters15, convert15$old)], levels = convert15$new.full)
+df$col = factor(convert15$col[match(df$seuratclusters15, convert15$old)], levels = convert15$col)
+pal = c("#9d0208", "#d00000", "#dc2f02", "#e85d04", "#f48c06", "#03045e", "#023e8a", "#0077b6", "#0096c7", "#00b4d8")
+ggplot(df, aes(x = seuratclusters15, y = nCount_RNA, fill = sample, color = sample)) + geom_bar(stat = "identity") + xlab("") + ylab("") + scale_fill_manual(values = pal) + scale_color_manual(values = pal) + theme_classic() + scale_y_continuous(expand = c(0,0))
+ggplot(df, aes(x = good_names, y = nCount_RNA, fill = sample, color = sample)) + geom_bar(stat = "identity") + xlab("") + ylab("") + scale_fill_manual(values = pal) + scale_color_manual(values = pal) + theme_classic() + scale_y_continuous(expand = c(0,0))
+
+ggplot(df, aes(x = seuratclusters15, y = prop, fill = sample, color = sample)) + geom_bar(stat = "identity") + xlab("") + ylab("Cluster Proportion") + scale_fill_manual(values = pal) + scale_color_manual(values = pal) + theme_classic() + scale_y_continuous(expand = c(0,0))
+ggplot(df, aes(x = good_names, y = prop, fill = sample, color = sample)) + geom_bar(stat = "identity") + xlab("") + ylab("Cluster Proportion") + scale_fill_manual(values = pal) + scale_color_manual(values = pal) + theme_classic() + scale_y_continuous(expand = c(0,0))
+ggplot(df, aes(x = sample, y = prop2, fill = col, color = col)) + geom_bar(stat = "identity") + xlab("") + ylab("Cluster Proportion") + theme_classic() + scale_y_continuous(expand = c(0,0)) + scale_color_identity() + scale_fill_identity()
+
+
+ggplot(df, aes(x = good_names, y = prop, fill = subsample, color = subsample)) + geom_bar(stat = "identity") + xlab("") + ylab("Cluster Proportion") + theme_classic() + scale_y_continuous(expand = c(0,0))
+ggplot(df, aes(x = good_names, y = nCount_RNA, fill = subsample, color = subsample)) + geom_bar(stat = "identity") + xlab("") + ylab("") + theme_classic() + scale_y_continuous(expand = c(0,0))
+
+
 
 #==========================================================================================
 # BHVE v CTRL
@@ -3534,6 +3565,134 @@ qobj = qvalue(cluster_deg$p_val)
 cluster_deg$qvalue = qobj$qvalues
 nrow(cluster_deg[which(cluster_deg$q < 0.05),])
 
+#*****************************************************************************************
+# Neurogenesis ===========================================================================
+#*****************************************************************************************
+ieg = read.csv("~/research/brain/data/ieg_like_fos_egr1_npas4_detected_011521.csv")[,1]
+neurogen = read.csv("~/research/brain/data/conserved_neurogenesis_positive_zfish_mouse_cichlid.csv")[,4]
+fst = read.csv("~/research/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
+non_zero_genes = rownames(bb)[which(rowSums(bb@assays$RNA@counts) > 0)]
+
+mat = bb@assays$RNA@counts
+mat[which(mat > 1)] = 1
+
+bb$ieg = colSums(mat[ieg,])
+bb$neurogen = colSums(mat[neurogen,])
+bb$fst = colSums(mat[fst,])
+real_df = data.frame(ieg = bb$ieg, neurogen = bb$neurogen, fst = bb$fst, subsample = bb$subsample)
+real_df_agr = aggregate(. ~ subsample, data = real_df, mean)
+cor(real_df_agr$ieg, real_df_agr$neurogen)
+cor(real_df_agr$fst, real_df_agr$neurogen)
+cor(bb$ieg, bb$neurogen)
+cor(bb$fst, bb$neurogen)
+
+real_df$cluster15 = bb$seuratclusters15
+real_df$cluster53 = bb$seuratclusters53
+real_df_agr = aggregate(. ~ subsample + cluster15, data = real_df, mean)
+real_clust15_res = data.frame()
+for (i in 0:14) {
+  real_clust15_res = rbind(real_clust15_res, t(c(i, cor(real_df_agr$fst[which(real_df_agr$cluster15 == i)], real_df_agr$neurogen[which(real_df_agr$cluster15 == i)]))))
+}
+real_clust15_res$V1 = factor(real_clust15_res$V1, levels = real_clust15_res$V1)
+ggplot(real_clust15_res, aes(x = V1, y = V2, color = V1, fill = V1)) + geom_bar(stat = 'identity', alpha = 0.8) + xlab("Cluster 15 Level") + ylab("Real Correlation") + scale_y_continuous(limits = c(0,1), expand = c(0, 0)) + theme_bw()
+real_df_agr = aggregate(. ~ subsample + cluster53, data = real_df, mean)
+real_clust53_res = data.frame()
+for (i in 0:52) {
+  real_clust53_res = rbind(real_clust53_res, t(c(i, cor(real_df_agr$fst[which(real_df_agr$cluster53 == i)], real_df_agr$neurogen[which(real_df_agr$cluster53 == i)]))))
+}
+real_clust53_res$V1 = factor(real_clust53_res$V1, levels = real_clust53_res$V1)
+ggplot(real_clust53_res, aes(x = V1, y = V2, color = V1, fill = V1)) + geom_bar(stat = 'identity', alpha = 0.8) + xlab("Cluster 53 Level") + ylab("Real Correlation") + scale_y_continuous(limits = c(0,1), expand = c(0, 0)) + theme_bw()
+
+permNeurogenCor = function(x, clust_level = "bulk", useNuc = T, num_genes = 51, useNonZero = T) {
+  # Set Seed
+  set.seed(x)
+  
+  # Check Input
+  if (useNuc != T & useNuc != F) { print("useNuc must be T or F."); return(NULL); }
+  if (clust_level != "bulk" & clust_level != "15" & clust_level != "53") { print("clust_level must be 'bulk', '15', or '53'."); return(NULL); }
+  if (! is.numeric(num_genes) )          { print("num_genes must be numeric");  return(NULL); }
+  if (useNonZero != T & useNonZero != F) { print("useNonZero must be T or F."); return(NULL); }
+  
+  # Create Permutation Gene Set
+  if (useNonZero) {
+    perm_genes = sample(non_zero_genes, num_genes)
+  } else {
+    perm_genes = sample(rownames(bb),   num_genes)
+  }
+  
+  # Calculate Score
+  perm_score = colSums(mat[perm_genes,])
+
+  # Find Correlation
+  if (! useNuc ) {
+    # Finding Correlations b/w Subsamples
+    perm_meta = data.frame(neurogen = bb$neurogen, perm = perm_score, subsample = bb$subsample)
+    num_clust = 0
+    if (clust_level == "15") {
+      perm_meta$cluster = bb$seuratclusters15
+      num_clust = 14
+    } else if (clust_level == "53") {
+      perm_meta$cluster = bb$seuratclusters53
+      num_clust = 52
+    }
+
+    if (num_clust != 0) {
+      perm_meta_agr = aggregate(. ~ subsample + cluster, data = perm_meta, mean)
+      perm_clust_res = data.frame()
+      for ( i in 0:num_clust ) {
+        perm_clust_res = rbind(perm_clust_res, t(c(i, cor(perm_meta_agr$perm[which(perm_meta_agr$cluster == i)], perm_meta_agr$neurogen[which(perm_meta_agr$cluster == i)]) )))
+      } 
+      perm_cor = perm_clust_res[,2]
+    } else {
+      perm_meta_agr = aggregate(. ~ subsample, data = perm_meta, mean)
+      perm_cor = cor(perm_meta_agr$perm, perm_meta_agr$neurogen)
+    }
+  } else {
+    # Finding Correlations in Nuclei
+    perm_cor = cor(bb$neurogen, perm_score)
+  }
+  
+  return(perm_cor)
+}
+
+library("parallel")
+num_perms = 10000
+
+# 10k Perm FST w/ Neurogen: Bulk, Nuc, NonZero
+perm_cors = unlist(mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = 'bulk', useNuc = T, num_genes = 51, useNonZero = F), mc.cores = detectCores() ))
+perm_df = data.frame(perm_num = 1:num_perms, perm_cor = perm_cors)
+perm_df$isAbove = cor(bb$fst, bb$neurogen) > perm_df$perm_cor
+ggplot(perm_df, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
+perm_df_bulk_nuc_nonzero = perm_df
+
+# 10k Perm FST w/ Neurogen: Bulk, Subsample, NonZero
+perm_cors = unlist(mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = 'bulk', useNuc = F, num_genes = 51, useNonZero = F), mc.cores = 2 ))
+perm_df = data.frame(perm_num = 1:num_perms, perm_cor = perm_cors)
+perm_df$isAbove = cor(real_df_agr$fst, real_df_agr$neurogen) > perm_df$perm_cor
+perm_df_bulk_sub_nonzero = perm_df
+ggplot(perm_df_bulk_sub_nonzero, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
+
+# 10k Perm FST w/ Neurogen: 15, Subsample, NonZero
+perm_cors = mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = '15', useNuc = F, num_genes = 51, useNonZero = F), mc.cores = 4 )
+perm_df = as.data.frame(t(as.data.frame(perm_cors)))
+real_clust15_res$num_above = sapply(1:ncol(perm_df), function(x) num_perms - length(which(real_clust15_res[x,2] > perm_df[,x])) )
+real_clust15_res$isSig = real_clust15_res$num_above < 50
+perm_df_15_sub_nonzero = perm_df
+ggplot(real_clust15_res, aes(x=V1, y = num_above, fill = isSig, color = isSig)) + geom_bar(alpha = 0.5, stat = 'identity') + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms Greater than Real") + xlab("Cluster") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R by 15 Cluster") + geom_hline(yintercept = 50, lty = 2) + scale_color_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + scale_fill_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + geom_text(aes(label = num_above), vjust = -0.2)
+
+# 10k Perm FST w/ Neurogen: 53, Subsample, NonZero
+perm_cors = mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = '53', useNuc = F, num_genes = 51, useNonZero = F), mc.cores = 4 )
+perm_df = as.data.frame(t(as.data.frame(perm_cors)))
+real_clust53_res$num_above = sapply(1:ncol(perm_df), function(x) num_perms - length(which(real_clust53_res[x,2] > perm_df[,x])) )
+real_clust53_res$isSig = real_clust53_res$num_above < 50
+perm_df_53_sub_nonzero = perm_df
+ggplot(real_clust53_res, aes(x=V1, y = num_above, fill = isSig, color = isSig)) + geom_bar(alpha = 0.5, stat = 'identity') + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms Greater than Real") + xlab("Cluster") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R by 53 Cluster") + geom_hline(yintercept = 50, lty = 2) + scale_color_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + scale_fill_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + geom_text(aes(label = num_above), vjust = -0.2)
+
+# Couple of sig Effects
+perm_df = data.frame(perm_num = 1:num_perms, perm_cor = perm_df_53_sub_nonzero[,34])
+perm_df$isAbove = real_clust53_res[34,2] > perm_df$perm_cor
+ggplot(perm_df, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R - Cluster 33 (53)", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
+
 #==========================================================================================
 # Initial Clustering ======================================================================
 #==========================================================================================
@@ -4044,3 +4203,236 @@ groups = factor(c(rep("Behave", 19), rep("Control", 19)))
 groups2 = factor(colsplit(as.vector(unique(bb$subsample)), pattern = "\\.", names = c('1', "2"))[,1])
 fviz_pca_ind(res.pca, col.ind = groups, palette = c("#00AFBB",  "#FC4E07"), addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
 # fviz_pca_ind(res.pca, col.ind = groups2, addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
+
+#*******************************************************************************
+# Vole and Clown ===============================================================
+#*******************************************************************************
+vole = readRDS("~/Downloads/vole_101421.rds")
+clown = readRDS("~/Downloads/anenomefish_clustered_061821.rds")
+
+# Vole Bulk OXTR DEGs
+Idents(vole) = vole$oxtr
+oxtr.deg = FindMarkers(vole, ident.1 = "high", ident.2 = "low")
+oxtr.deg$gene = rownames(oxtr.deg)
+oxtr.deg$isSig = oxtr.deg$p_val_adj < 0.05
+oxtr.deg$neg_log_p = -log10(oxtr.deg$p_val)
+this_thresh = min(oxtr.deg$neg_log_p[which(oxtr.deg$isSig)])
+ggplot(oxtr.deg, aes(x = avg_log2FC, y = neg_log_p, color = isSig)) + geom_point(alpha = 0.5) + geom_hline(yintercept = this_thresh, lty = 2) + geom_text_repel(data = oxtr.deg[which(oxtr.deg$isSig & (oxtr.deg$neg_log_p > 90 | abs(oxtr.deg$avg_log2FC) > 200)),], aes(label = gene)) + scale_color_manual(values = c("gray40", "#6a040f")) + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression("-"*Log["10"]*" P")) + ggtitle("Vole Oxytocin Receptor DEG Volcano Plot") + theme_bw()
+
+# Vole Bulk Sex DEGs
+Idents(vole) = vole$sex
+vole.sex.deg = FindMarkers(vole, ident.1 = "f", ident.2 = "m")
+vole.sex.deg$gene = rownames(vole.sex.deg)
+vole.sex.deg$isSig = vole.sex.deg$p_val_adj < 0.05
+vole.sex.deg$neg_log_p = -log10(vole.sex.deg$p_val)
+this_thresh = min(vole.sex.deg$neg_log_p[which(vole.sex.deg$isSig)])
+ggplot(vole.sex.deg, aes(x = avg_log2FC, y = neg_log_p, color = isSig)) + geom_point(alpha = 0.5) + geom_hline(yintercept = this_thresh, lty = 2) + geom_text_repel(data = vole.sex.deg[which(vole.sex.deg$isSig & (vole.sex.deg$neg_log_p > 75 | abs(vole.sex.deg$avg_log2FC) > 200)),], aes(label = gene)) + scale_color_manual(values = c("gray40", "#1a759f")) + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression("-"*Log["10"]*" P")) + ggtitle("Vole Sex DEG Volcano Plot") + theme_bw()
+
+# Comparison of Vole Bulk DEGs
+vole.deg.combined = oxtr.deg[which(oxtr.deg$gene %in% vole.sex.deg$gene),]
+colnames(vole.deg.combined) = paste0(colnames(vole.deg.combined), "_oxtr")
+vole.deg.combined[,paste0(colnames(vole.sex.deg), "_sex")] = vole.sex.deg[match(vole.deg.combined$gene, vole.sex.deg$gene),]
+vole.deg.combined$Significant = "None"
+vole.deg.combined$Significant[which(vole.deg.combined$p_val_adj_oxtr < 0.05)] = "Oxtr"
+vole.deg.combined$Significant[which(vole.deg.combined$p_val_adj_sex < 0.05)] = "Sex"
+vole.deg.combined$Significant[which(vole.deg.combined$p_val_adj_oxtr < 0.05 & vole.deg.combined$p_val_adj_sex < 0.05)] = "Both"
+vole.deg.combined$Significant = factor(vole.deg.combined$Significant, levels = c("Both", "Oxtr", "Sex", "None"))
+ggplot(vole.deg.combined, aes(x = neg_log_p_oxtr, y = neg_log_p_sex, color = Significant)) + geom_point(alpha = 0.5) + scale_color_manual(values = c("goldenrod3", "#6a040f", "#1a759f", "gray40")) + xlab(expression("Oxytocin Receptor -"*Log["10"]*" P")) + ylab(expression("Sex -"*Log["10"]*" P")) + ggtitle("Correlation of Oxtr DEGs and Sex DEGs", subtitle = paste0("R = ", cor(vole.deg.combined$neg_log_p_oxtr, vole.deg.combined$neg_log_p_sex))) + geom_text_repel(data = vole.deg.combined[which(vole.deg.combined$neg_log_p_oxtr > 100 | vole.deg.combined$neg_log_p_sex > 100),], aes(label = gene_oxtr)) + theme_bw()
+ggplot(vole.deg.combined, aes(x = avg_log2FC_oxtr, y = avg_log2FC_sex, color = Significant)) + geom_point(alpha = 0.5) + scale_color_manual(values = c("goldenrod3", "#6a040f", "#1a759f", "gray40")) + xlab(expression("Oxytocin Receptor "*Log["2"]*" Fold Change")) + ylab(expression("Sex "*Log["2"]*" Fold Change")) + ggtitle("Correlation of Oxtr DEGs and Sex DEGs", subtitle = paste0("R = ", cor(vole.deg.combined$avg_log2FC_oxtr[which(is.finite(vole.deg.combined$avg_log2FC_oxtr) & is.finite(vole.deg.combined$avg_log2FC_sex))], vole.deg.combined$avg_log2FC_sex[which(is.finite(vole.deg.combined$avg_log2FC_oxtr) & is.finite(vole.deg.combined$avg_log2FC_sex))]))) + geom_text_repel(data = vole.deg.combined[which(abs(vole.deg.combined$avg_log2FC_oxtr) > 225 | abs(vole.deg.combined$avg_log2FC_sex) > 225),], aes(label = gene_oxtr)) + theme_bw()
+
+# Violin / BoxPlot for Voles by Subsample
+vgene = "Lsamp"
+cond = "oxtr"
+vole$vgene = vole@assays$RNA@data[vgene,]
+vdf = aggregate(vgene ~ subsample + sample + sex + oxtr, data = vole@meta.data, mean)
+valid_combos = expand.grid(unique(vole$sample), c(0,1,2,3))
+valid_combos = paste0(valid_combos[,1], "_", valid_combos[,2])
+vdf = vdf[which(vdf$subsample %in% valid_combos),]
+vdf$sex = plyr::revalue(vdf$sex, replace = c("f" = "Female", "m" = "Male"))
+vdf$oxtr = plyr::revalue(vdf$oxtr, replace = c("high" = "High", "low" = "Low"))
+vdf$subsample = factor(vdf$subsample, levels = vdf$subsample[order(vdf[, cond])])
+vdf$cond = vdf[, cond]
+if (cond == "oxtr") { my_pal = c("#6a040f", "gray40") }
+if (cond == "sex")  { my_pal = c("#1a759f", "gray40") }
+ggplot(vdf, aes(x = cond, y = vgene, color = cond, fill = cond)) + geom_violin(alpha = 0.3) + geom_boxplot(width = 0.3, alpha =0.75) + geom_point(position = position_jitter(width = 0.1)) + ylab("Normalized Expression") + xlab("") + ggtitle(vgene) + scale_color_manual(values = my_pal, guide = 'none') + scale_fill_manual(values = my_pal, guide = 'none') + theme_bw()
+
+# Clown Bulk Sex DEGs
+Idents(clown) = clown$sex
+clown.sex.deg = FindMarkers(clown, ident.1 = "f", ident.2 = "m")
+clown.sex.deg$gene = rownames(clown.sex.deg)
+clown.sex.deg$isSig = clown.sex.deg$p_val_adj < 0.05
+clown.sex.deg$neg_log_p = -log10(clown.sex.deg$p_val)
+this_thresh = min(clown.sex.deg$neg_log_p[which(clown.sex.deg$isSig)])
+ggplot(clown.sex.deg, aes(x = avg_log2FC, y = neg_log_p, color = isSig)) + geom_point(alpha = 0.5) + geom_hline(yintercept = this_thresh, lty = 2) + geom_text_repel(data = clown.sex.deg[which(clown.sex.deg$isSig & (clown.sex.deg$neg_log_p > 75 | abs(clown.sex.deg$avg_log2FC) > 200)),], aes(label = gene)) + scale_color_manual(values = c("gray40", "goldenrod3")) + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression("-"*Log["10"]*" P")) + ggtitle("Clown Sex DEG Volcano Plot")
+
+# UMAP Plot of Clown Gene
+p = FeaturePlot(clown, "clu", split.by = 'subsample2', order = T, ncol = 3, by.col = T)
+p_list = list(p[[1]], p[[2]], p[[3]], p[[4]], p[[5]], p[[6]], p[[7]], p[[8]], p[[9]], p[[10]], p[[11]])
+cowplot::plot_grid(plotlist=p_list, nrow = 3)
+
+# Violin / BoxPlot for Clown by Subsample
+clown$subsample2 = paste0(clown$sample, "_", clown$subsample)
+cgene = "adcy5"
+clown$cgene = clown@assays$RNA@data[cgene,]
+cdf = aggregate(cgene ~ subsample2 + sample + sex, data = clown@meta.data, mean)
+cdf$sex = plyr::revalue(cdf$sex, replace = c("f" = "Female", "m" = "Male"))
+cdf$subsample = factor(cdf$subsample, levels = cdf$subsample[order(cdf$sex)])
+my_pal = c("#6a040f", "#1a759f")
+ggplot(cdf, aes(x = sex, y = cgene, color = sex, fill = sex)) + geom_violin(alpha = 0.3) + geom_boxplot(width = 0.3, alpha =0.75) + geom_point(position = position_jitter(width = 0.1)) + ylab("Normalized Expression") + xlab("") + ggtitle(cgene) + scale_color_manual(values = my_pal, guide = 'none') + scale_fill_manual(values = my_pal, guide = 'none') + theme_bw()
+
+# Clown Cluster Sex DEGs
+library("scales")
+clust.cols = gc.ramp <- hue_pal()(max(as.numeric(clown$seurat_clusters))+1)
+names(clust.cols) = 0:max(as.numeric(clown$seurat_clusters))
+clown$clust_sex = paste0(clown$seurat_clusters, "_", clown$sex)
+Idents(clown) = clown$clust_sex
+clown.sex.clust.deg = data.frame()
+for (this_clust in 0:(max(as.numeric(clown$seurat_clusters))-1)) {
+  print(this_clust)
+  this_deg = FindMarkers(clown, ident.1 = paste0(this_clust, "_f"), ident.2 = paste0(this_clust, "_m"))
+  this_deg$gene = rownames(this_deg)
+  this_deg$cluster = this_clust
+  clown.sex.clust.deg = rbind(clown.sex.clust.deg, this_deg)
+}
+clown.sex.clust.deg$isSig = clown.sex.clust.deg$p_val_adj < 0.05
+clown.sex.clust.deg$neg_log_p = -log10(clown.sex.clust.deg$p_val)
+clown.sex.clust.deg$clust_sig = as.numeric(clown.sex.clust.deg$cluster)
+clown.sex.clust.deg$clust_sig[which(clown.sex.clust.deg$p_val_adj > 0.05)] = 'none'
+clown.sex.clust.deg$clust_sig = factor(clown.sex.clust.deg$clust_sig, levels = c(0:max(as.numeric(clown$seurat_clusters)), 'none'))
+# clown.sex.clust.deg$col = clust.cols[as.character(clown.sex.clust.deg$cluster)]
+# clown.sex.clust.deg$col[which(clown.sex.clust.deg$p_val_adj > 0.05)] = 'gray60'
+this_thresh = min(clown.sex.clust.deg$neg_log_p[which(clown.sex.clust.deg$isSig)])
+ggplot(clown.sex.clust.deg, aes(x = avg_log2FC, y = neg_log_p, color = isSig)) + geom_point(alpha = 0.5) + geom_hline(yintercept = this_thresh, lty = 2) + geom_text_repel(data = clown.sex.clust.deg[which(clown.sex.clust.deg$isSig & (clown.sex.clust.deg$neg_log_p > 15 | abs(clown.sex.clust.deg$avg_log2FC) > 2)),], aes(label = gene)) + scale_color_manual(values = c("gray40", "goldenrod3")) + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression("-"*Log["10"]*" P")) + ggtitle("Clown Sex Cluster DEG Volcano Plot")
+# ggplot(clown.sex.clust.deg, aes(x = avg_log2FC, y = neg_log_p, color = col)) + geom_point(alpha = 0.5) + geom_hline(yintercept = this_thresh, lty = 2) + geom_text_repel(data = clown.sex.clust.deg[which(clown.sex.clust.deg$isSig & (clown.sex.clust.deg$neg_log_p > 15 | abs(clown.sex.clust.deg$avg_log2FC) > 2)),], aes(label = gene)) + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression("-"*Log["10"]*" P")) + ggtitle("Clown Sex Cluster DEG Volcano Plot")
+ggplot(clown.sex.clust.deg, aes(x = avg_log2FC, y = neg_log_p, color = clust_sig)) + geom_point(alpha = 0.5) + geom_hline(yintercept = this_thresh, lty = 2) + geom_text_repel(data = clown.sex.clust.deg[which(clown.sex.clust.deg$isSig & (clown.sex.clust.deg$neg_log_p > 15 | abs(clown.sex.clust.deg$avg_log2FC) > 2)),], aes(label = gene)) + scale_color_manual(values = clust.cols) + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression("-"*Log["10"]*" P")) + ggtitle("Clown Sex Cluster DEG Volcano Plot") 
+
+ss_means = list()
+for (ss in sort(unique(clown$subsample2))) {
+  ss_means[[ss]] = rowMeans(clown@assays$RNA@data[,which(clown$subsample2 == ss)])
+}
+ss_means = as.data.frame(ss_means)
+sep_cgenes = sapply(1:nrow(ss_means), function(x) all(outer(X = as.numeric(ss_means[x,1:6]), Y = as.numeric(ss_means[x,7:12]), FUN = '>')) | all(outer(X = as.numeric(ss_means[x,1:6]), Y = as.numeric(ss_means[x,7:12]), FUN = '<')) )
+up_cgenes = sapply(rownames(ss_means)[which(sep_cgenes)], function(x) ss_means[x, 1] > ss_means[x, 7] )
+big_cgenes = sapply(rownames(ss_means)[which(sep_cgenes)], function(x) abs(sum(ss_means[x, 1:6]) - sum(ss_means[x, 7:12])) )
+names(big_cgenes) = rownames(ss_means)[which(sep_cgenes)]
+# big_cgenes = sort(big_cgenes, decreasing = T)
+sd_cgenes = sapply(rownames(ss_means)[which(sep_cgenes)], function(x) sum(sd(ss_means[x, 1:6]), sd(ss_means[x, 7:12])) )
+names(sd_cgenes) = rownames(ss_means)[which(sep_cgenes)]
+cgenes_df = data.frame(gene = names(big_cgenes), mean_dif = big_cgenes, sd_sum = sd_cgenes, up_in_f = up_cgenes)
+cgenes_df$up_in_f = plyr::revalue(as.character(cgenes_df$up_in_f), replace = c("TRUE" = "Female", "FALSE" = "Male"))
+ggplot(cgenes_df, aes(x = mean_dif, y = sd_sum, color = mean_dif)) + geom_point() + geom_text_repel(data = cgenes_df[which(cgenes_df$mean_dif > 1),], aes(label = gene), color = "black") + scale_color_viridis_c() + xlab("Difference in Female Mean of Avg Expression - Male Mean of Avg Expression") + ylab("Sum of Female and Male Standard Deviation") + theme_bw()
+
+clust_sub_num = aggregate(nCount_RNA ~ subsample2 + seurat_clusters, data = clown@meta.data, length)
+clust_big = sapply(0:max(as.numeric(clown$seurat_clusters)), function(x) all(clust_sub_num$nCount_RNA[which(clust_sub_num$seurat_clusters == x)] > 10) )
+clust_big = seq(0, max(as.numeric(clown$seurat_clusters)))[which(clust_big)]
+
+clust_sep_cgenes = c()
+clust_cgenes_df = data.frame()
+for (this_clust in clust_big) {
+  print(this_clust)
+  ss_means = list()
+  for (ss in sort(unique(clown$subsample2))) {
+    ss_means[[ss]] = rowMeans(clown@assays$RNA@data[,which(clown$subsample2 == ss & clown$seurat_clusters == this_clust)])
+  }
+  ss_means = as.data.frame(ss_means)
+  this_sep_cgenes = sapply(1:nrow(ss_means), function(x) all(outer(X = as.numeric(ss_means[x,1:6]), Y = as.numeric(ss_means[x,7:12]), FUN = '>')) | all(outer(X = as.numeric(ss_means[x,1:6]), Y = as.numeric(ss_means[x,7:12]), FUN = '<')) )
+  this_up_cgenes = sapply(rownames(ss_means)[which(this_sep_cgenes)], function(x) ss_means[x, 1] > ss_means[x, 7] )
+  this_big_cgenes = sapply(rownames(ss_means)[which(this_sep_cgenes)], function(x) abs(sum(ss_means[x, 1:6]) - sum(ss_means[x, 7:12])) )
+  names(this_big_cgenes) = rownames(ss_means)[which(this_sep_cgenes)]
+  sd_cgenes = sapply(rownames(ss_means)[which(this_sep_cgenes)], function(x) sum(sd(ss_means[x, 1:6]), sd(ss_means[x, 7:12])) )
+  names(sd_cgenes) = rownames(ss_means)[which(this_sep_cgenes)]
+  this_cgenes_df = data.frame(gene = names(this_big_cgenes), mean_dif = this_big_cgenes, sd_sum = sd_cgenes, up_in_f = this_up_cgenes, cluster = rep(this_clust, length(this_big_cgenes)))
+  clust_cgenes_df = rbind(clust_cgenes_df, this_cgenes_df)
+}
+clust_cgenes_df$human = clown_coverter$human[match(clust_cgenes_df$gene, clown_coverter$cgene)]
+clust_cgenes_df$cluster = factor(clust_cgenes_df$cluster, levels = 0:max(as.numeric(clown$seurat_clusters)))
+ggplot(clust_cgenes_df, aes(x = mean_dif, y = sd_sum, color = up_in_f)) + geom_point(alpha = 0.75) + geom_text_repel(data = clust_cgenes_df[which(clust_cgenes_df$mean_dif > 3.4),], aes(label = gene), color = "black") + scale_color_manual(values = c("#6a040f", "#1a759f")) + xlab("Difference in Female Mean of Avg Expression - Male Mean of Avg Expression") + ylab("Sum of Female and Male Standard Deviation") + theme_bw() + theme(legend.title = element_blank())
+ggplot(clust_cgenes_df, aes(x = mean_dif, y = sd_sum, color = cluster)) + geom_point(alpha = 0.75) + geom_text_repel(data = clust_cgenes_df[which(clust_cgenes_df$mean_dif > 3.4),], aes(label = gene), color = "black") + scale_color_manual(values = clust.cols)              + xlab("Difference in Female Mean of Avg Expression - Male Mean of Avg Expression") + ylab("Sum of Female and Male Standard Deviation") + theme_bw() + theme(legend.title = element_blank())
+write.csv(clust_cgenes_df, "~/research/brain/results/clown/clust_sex_segregating.csv")
+
+# Number of Sex Segregating Genes per Cluster
+ggplot(as.data.frame(table(clust_cgenes_df$cluster)), aes(Var1, Freq, color = Var1, fill = Var1)) + geom_bar(stat = "identity") + scale_color_manual(values = clust.cols) + scale_fill_manual(values = clust.cols) + theme_bw() + xlab("Cluster") + ylab("Number of Sex DEGs") + scale_y_continuous(expand = c(0,0)) + theme(legend.title=element_blank())
+
+
+# Clown Converter
+censembl = useEnsembl("ensembl", mirror = "uswest", dataset = "apercula_gene_ensembl")
+human =  useEnsembl("ensembl", mirror = "uswest", dataset = "hsapiens_gene_ensembl")
+ex_gene_converter = getLDS(attributes = c("external_gene_name", 'description'), filters = "external_gene_name", values = rownames(clown) , mart = censembl, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
+ens_converter = getLDS(attributes = c("ensembl_gene_id", 'description'), filters = "ensembl_gene_id", values = rownames(clown) , mart = censembl, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
+colnames(ens_converter)[1] = "Gene.name"
+clown_coverter = rbind(ex_gene_converter, ens_converter)
+clown_coverter = data.frame(cgene = rownames(clown), human = clown_coverter$HGNC.symbol[match(rownames(clown), clown_coverter$Gene.name)], description = clown_coverter$Gene.description[match(rownames(clown), clown_coverter$Gene.name)])
+write.csv(clown_coverter, "~/research/brain/results/clown/clown_gene_converter.csv")
+
+# Number of Sex DEGs per Cluster
+ggplot(as.data.frame(table(clown.sex.clust.deg$cluster[which(clown.sex.clust.deg$isSig)])), aes(Var1, Freq, color = Var1, fill = Var1)) + geom_bar(stat = "identity") + scale_color_manual(values = clust.cols) + scale_fill_manual(values = clust.cols) + theme_bw() + xlab("Cluster") + ylab("Number of Sex DEGs") + scale_y_continuous(expand = c(0,0)) + theme(legend.title=element_blank())
+
+# Violin / BoxPlot for Clown by Cluster Subsample
+clown$subsample2 = paste0(clown$sample, "_", clown$subsample)
+cgene = "whrna"
+this_clust = 2
+clown$cgene = clown@assays$RNA@data[cgene,which(clown$seurat_clusters == this_clust)]
+cdf = aggregate(cgene ~ subsample2 + sample + sex, data = clown@meta.data, mean)
+cdf$sex = plyr::revalue(cdf$sex, replace = c("f" = "Female", "m" = "Male"))
+cdf$subsample = factor(cdf$subsample, levels = cdf$subsample[order(cdf$sex)])
+my_pal = c("#6a040f", "#1a759f")
+ggplot(cdf, aes(x = sex, y = cgene, color = sex, fill = sex)) + geom_violin(alpha = 0.3) + geom_boxplot(width = 0.3, alpha =0.75) + geom_point(position = position_jitter(width = 0.1)) + ylab("Normalized Expression") + xlab("") + ggtitle(paste(cgene, "in Cluster", this_clust)) + scale_color_manual(values = my_pal, guide = 'none') + scale_fill_manual(values = my_pal, guide = 'none') + theme_bw()
+
+clown_meta = clown@meta.data
+ggplot(clown_meta, aes(x = subsample2, y = nCount_RNA, color = subsample2, fill = subsample2)) + geom_violin(alpha = 0.4) + geom_boxplot(width = 0.2, alpha = 0.2) + xlab("") + ylab("Number of UMIs")
+ggplot(clown_meta, aes(x = subsample2, y = nFeature_RNA, color = subsample2, fill = subsample2)) + geom_violin(alpha = 0.4) + geom_boxplot(width = 0.2, alpha = 0.2) + xlab("") + ylab("Number of Features")
+ggplot(clown_meta, aes(x = nCount_RNA, y = nFeature_RNA, color = subsample2)) + geom_point()
+FeaturePlot(clown, 'nCount_RNA', order = T, label = T)
+clown_meta_agr = aggregate(nCount_RNA ~ seurat_clusters + subsample2, data = clown_meta, length)
+clown_meta_agr$sex = startsWith(clown_meta_agr$subsample2, "f")
+clown_meta_agr$sex = plyr::revalue(as.character(clown_meta_agr$sex), replace = c("TRUE" = "Female", "FALSE" = "Male"))
+ggplot(clown_meta_agr, aes(x = seurat_clusters, y = nCount_RNA, fill = sex, color = sex)) + geom_boxplot(alpha = 0.3) + geom_point(position = position_jitterdodge(), width = 0.05, alpha = 0.6) + scale_color_manual(values = my_pal) + scale_fill_manual(values = my_pal) + ylab("Number of Cells")
+
+#*******************************************************************************
+# Brianna Markers ==============================================================
+#*******************************************************************************
+gtf = read.delim("~/research/all_research/GCF_000238955.4_M_zebra_UMD2a_genomic.gtf", header = F)
+gtf = gtf[which(gtf$V3 == "gene"),]
+# gtf = gtf[5:nrow(gtf),]
+# gtf = gtf[which(gtf$V1 != "###"),]
+gtf$gene_name = unlist(str_split(as.character(gtf$V9),';', n = 2))[c(TRUE, FALSE)]
+gtf$gene_name = unlist(str_split(as.character(gtf$gene_name),' ', n = 2))[c(FALSE, TRUE)]
+gtf$loc = unlist(str_split(as.character(gtf$V9),'db_xref'))[c(FALSE, TRUE)]
+gtf$loc = unlist(str_split(as.character(gtf$loc),';', n = 2))[c(TRUE, FALSE)]
+gtf$loc = paste0("LOC", unlist(str_split(as.character(gtf$loc),'GeneID:', n = 2))[c(FALSE, TRUE)])
+gtf$loc = trimws(gtf$loc, which = "both")
+gene_info = read.table(paste0("~/research/all_research/gene_info.txt"), sep="\t", header = T, stringsAsFactors = F)
+brainna_gene_key = xlsx::read.xlsx("~/Downloads/brain_gene_marker_key_draft2.xlsx", sheetIndex = 3, endRow = 89)
+brianna15 = xlsx::read.xlsx("~/Downloads/brain_gene_marker_key_draft2.xlsx", sheetIndex = 1, startRow = 4, endRow = 19)
+bb$good15_names = factor(convert15$new.full[match(bb$seuratclusters15, convert15$old)], levels = convert15$new.full)
+Idents(bb) = bb$good15_names
+gene15_df = data.frame(unlist(brianna15[,2:5]), c(rep('id', 15), rep('anat', 15), rep('mod', 15), rep('modr', 15)))
+# unlist(unname(sapply(gene15_df[,1], function(x) unlist(strsplit(x, ",")))))
+gene15_df_vect = unlist(sapply(1:nrow(gene15_df), function(x) { tmp = unlist(strsplit(gene15_df[x,1], ",")); names(tmp) = rep(gene15_df[x,2], length(tmp)); return(tmp)} ))
+gene15_df = data.frame(bname = unname(gene15_df_vect), cat = names(gene15_df_vect))
+gene15_df$bname = str_replace(gene15_df$bname, "\\*", "")
+gene15_df$bname = str_replace_all(trimws(gene15_df$bname, which = "both"), "[^[:alnum:]]", "")
+gene15_df = gene15_df[which( !is.na(gene15_df$bname) & ! duplicated(gene15_df$bname) ),]
+
+# Special Cases
+gene15_df$bname[which(gene15_df$bname == "lhx2b")] = "lhx2"
+gene15_df$bname[which(gene15_df$bname == "dlx5")] = "dlx5a"
+gene15_df$bname[which(gene15_df$bname == "pax6b")] = "pax6"
+gene15_df$bname[which(gene15_df$bname == "zic2")] = "zic2a"
+gene15_df$bname[which(gene15_df$bname == "her42")] = "her4.2"
+gene15_df$bname[which(gene15_df$bname == "nkx21")] = "nkx2-1"
+gene15_df$bname[which(gene15_df$bname == "gpr54")] = "GPR54"  # same LOC as slc18a2
+gene15_df$bname[which(gene15_df$bname == "crhbp")] = "crh-bp"
+gene15_df = gene15_df[which(gene15_df$bname != "lhx1"),] # not in brianna's key!
+
+# Get LOC
+gene15_df$loc1 = brainna_gene_key$M..zebra.ID[match(gene15_df$bname, brainna_gene_key$Gene)]
+gene15_df$loc1 = str_replace_all(trimws(gene15_df$loc1, which = "both"), "[^[:alnum:]]", "")
+gene15_df$loc2 = brainna_gene_key$M..zebra.ID[match(gene15_df$bname, brainna_gene_key$Alias.es.)]
+gene15_df$loc2 = str_replace_all(trimws(gene15_df$loc2, which = "both"), "[^[:alnum:]]", "")
+gene15_df$loc_final = gene15_df$loc1
+gene15_df$loc_final[which(is.na(gene15_df$loc1))] = gene15_df$loc2[which(is.na(gene15_df$loc1))]
+gene15_df$clean = gtf$gene_name[match(gene15_df$loc_final, gtf$loc)]
+gene15_df$use = ! is.na(gene15_df$clean) & ! duplicated(gene15_df$clean)
+gene15_df$col = plyr::revalue(gene15_df$cat, replace = c("id" = "#003049", "anat" = "#d62828", "mod" = "#f77f00", "modr" = "#fcbf49"))
+DotPlot(bb, features = gene15_df$clean[which(gene15_df$use)]) + scale_x_discrete(labels = gene15_df$bname[which(gene15_df$use)]) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, colour = gene15_df$col[which(gene15_df$use)], face = "italic")) + ylab("")
