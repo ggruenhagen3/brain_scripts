@@ -170,7 +170,7 @@ def main():
     if replicate_match:
         base_name = base_name + "replicate"
     if no_bvc:
-
+        base_name = base_name + "no_bvc_"
     if ieg > 0:
         base_name = base_name + "ieg" + str(ieg)
 
@@ -197,6 +197,7 @@ def main():
         ctrl_output_path = output_folder + "/" + base_name + "_ctrl.h5"
         no_bvc_output_path = output_folder + "/" + base_name + "_all.h5"
         if no_bvc:
+            print("Find Cor in ALL Cells, Not BHVE vs CTRL.")
             all_cor_success = corOnlyAndWrite(range(0, data_mat.shape[1]), no_bvc_output_path)
         else:
             bhve_cor_success = corOnlyAndWrite(np.flatnonzero(cond_labels == "BHVE"), bhve_output_path)
