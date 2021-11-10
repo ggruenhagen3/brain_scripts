@@ -31,8 +31,9 @@ def parseArgs():
     parser.add_argument("-s", "--sum_ns", help="Sum absolute value of node strength difference?", action="store_true")
     parser.add_argument("-m", "--replicate_match", help="Does the NS Dif match for all replicates?", action="store_true")
     parser.add_argument("-i", "--ieg", help="Run on cells that express at least X IEGs.", nargs="?", type=int, default=0, const=0)
+    parser.add_argument("-n", "--no_bvc", help="Find cor in all cells instead of BHVE vs CTRL?", action="store_true")
     args = parser.parse_args()
-    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns, args.replicate_match, args.ieg
+    return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns, args.replicate_match, args.ieg, args.no_bvc
 
 
 def corOnlyAndWrite(this_idx, output_path):
@@ -127,7 +128,7 @@ def main():
 
     # Read Inputs
     global do_abs
-    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs, sum_ns, replicate_match, ieg = parseArgs()
+    perm_num, num_perm, cluster15, cluster53, gene, output_folder, no_perm, cor_only, do_abs, sum_ns, replicate_match, ieg, no_bvc = parseArgs()
 
     # Read BB data
     global data_mat
@@ -168,6 +169,8 @@ def main():
         base_name = base_name + str(gene)
     if replicate_match:
         base_name = base_name + "replicate"
+    if no_bvc:
+
     if ieg > 0:
         base_name = base_name + "ieg" + str(ieg)
 
@@ -192,8 +195,12 @@ def main():
         base_name = base_name + "_cor"
         bhve_output_path = output_folder + "/" + base_name + "_bhve.h5"
         ctrl_output_path = output_folder + "/" + base_name + "_ctrl.h5"
-        bhve_cor_success = corOnlyAndWrite(np.flatnonzero(cond_labels == "BHVE"), bhve_output_path)
-        ctrl_cor_success = corOnlyAndWrite(np.flatnonzero(cond_labels == "CTRL"), ctrl_output_path)
+        no_bvc_output_path = output_folder + "/" + base_name + "_all.h5"
+        if no_bvc:
+            all_cor_success = corOnlyAndWrite(range(0, data_mat.shape[1]), no_bvc_output_path)
+        else:
+            bhve_cor_success = corOnlyAndWrite(np.flatnonzero(cond_labels == "BHVE"), bhve_output_path)
+            ctrl_cor_success = corOnlyAndWrite(np.flatnonzero(cond_labels == "CTRL"), ctrl_output_path)
         print("Done")
         return
 
@@ -259,7 +266,7 @@ def main():
     perm_ns_dif = pandas.DataFrame.from_dict(ns_dict,orient='index').transpose()
     if replicate_match:
         perm_ns_dif.columns = ["NS_Dif_1", "NS_Dif_2", "NS_Dif_3", "NS_Dif_4", "NS_Dif_5"]
-    perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(perm_num) + ".csv")
+    perm_ns_dif.to_csv(output_folder + "/" + base_name + "_" + str(num_perm) + ".csv")
 
 if __name__ == '__main__':
     main()
