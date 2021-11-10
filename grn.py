@@ -31,7 +31,7 @@ def parseArgs():
     parser.add_argument("-s", "--sum_ns", help="Sum absolute value of node strength difference?", action="store_true")
     parser.add_argument("-m", "--replicate_match", help="Does the NS Dif match for all replicates?", action="store_true")
     parser.add_argument("-i", "--ieg", help="Run on cells that express at least X IEGs.", nargs="?", type=int, default=0, const=0)
-    parser.add_argument("-n", "--no_bvc", help="Find cor in all cells instead of BHVE vs CTRL?", action="store_true")
+    parser.add_argument("-e", "--no_bvc", help="Find cor in all cells instead of BHVE vs CTRL?", action="store_true")
     args = parser.parse_args()
     return args.perm_num, args.num_perm, args.cluster15, args.cluster53, args.gene, args.output_folder, args.no_perm, args.cor_only, args.do_abs, args.sum_ns, args.replicate_match, args.ieg, args.no_bvc
 
