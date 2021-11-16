@@ -24,20 +24,20 @@ singleRun = function(markers, returnP = T) {
     return(cluster_d)
 }
 
-singleRunGeneDefined = function(markers, returnP = T) {
+singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
   avg_exp = colSums(exp[markers,])
   avg_exp = avg_exp/bb$nFeature_RNA
   cluster_p = c()
   cluster_d = c()
-  for (cluster in clusters) {
-    cluster_cells <- WhichCells(bb, idents = cluster)
-    clust_exp = avg_exp[cluster_cells]
-    other_exp = avg_exp[which(! colnames(bb) %in% cluster_cells)]
+  for (gene in genePops) {
+    gene_pop_cells <- colnames(bb)[which(exp[gene,] > 0)]
+    gene_pop_exp = avg_exp[gene_pop_cells]
+    other_exp = avg_exp[which(! colnames(bb) %in% gene_pop_cells)]
     
-    p = z.test(clust_exp, other_exp, sigma.x = sd(clust_exp), sigma.y = sd(other_exp), alternative = "greater")$p.value
+    p = z.test(gene_pop_exp, other_exp, sigma.x = sd(gene_pop_exp), sigma.y = sd(other_exp), alternative = "greater")$p.value
     
-    all_exp = c(clust_exp, other_exp)
-    test= effsize::cohen.d(all_exp, c(rep("cluster", length(clust_exp)), rep("other",   length(other_exp))))
+    all_exp = c(gene_pop_exp, other_exp)
+    test= effsize::cohen.d(all_exp, c(rep("cluster", length(gene_pop_exp)), rep("other",   length(other_exp))))
     d=test$estimate
     
     cluster_p = c(cluster_p, p)
@@ -62,6 +62,7 @@ nperm = 10000
 
 # Load in Real PCRC List
 pcrc = read.csv("~/scratch/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
+zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_090921.csv")[,2]
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -104,16 +105,21 @@ perm_res = lapply(1:nperm, function(x) singleRun(ran_lists[[x]], returnP = F))
 real_res = singleRun(pcrc, returnP = F)
 # real_res_log = -log10(real_res)
 
-# Visualize Results
+perm_res = lapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], returnP = F))
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
-colnames(perm_df) = clusters
+colnames(perm_df) = zGenePops
+
+# Visualize Results
+# perm_df = as.data.frame(t(as.data.frame(perm_res)))
+# rownames(perm_df) = 1:nperm
+# colnames(perm_df) = clusters
 # perm_df_melt = melt(perm_df)
 # perm_df_melt$neg_log_p = -log10(perm_df_melt$value)
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
   
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_d15.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_dgene.csv")
 
 # p_df = data.frame()
 # perm_df_log = -log10(perm_df)
