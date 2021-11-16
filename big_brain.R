@@ -1312,6 +1312,32 @@ df$subsample = plyr::revalue(df$demux, replace = subsample_demux)
 bb$demux = df$demux
 bb$subsample = df$subsample
 
+demux_res
+demux_sing2 = read.delim("~/Downloads/b2_demux_merge.sing2")
+demux_res2$S1 = demux_res2$S2 = demux_res2$S3 = demux_res2$S4 = ""
+for (barcode in demux_res2$BARCODE) {
+  this_rows = demux_sing2[which(demux_sing2$BARCODE == barcode),]
+  demux_res2[which(demux_res2$BARCODE == barcode), c("S1", "S2", "S3", "S4")] = this_rows$LLK1
+}
+demux_res2$BS1 = demux_res2$BS2 = demux_res2$BS3 = demux_res2$BS4 = ""
+for (barcode in demux_res2$BARCODE) {
+  demux_res2[which(demux_res2$BARCODE == barcode), c("BS1", "BS2", "BS3", "BS4")] = names(sort(demux_res2[which(demux_res2$BARCODE == barcode), c("S1", "S2", "S3", "S4")]))
+}
+demux_res2$BS1_BS2 = sapply(1:nrow(demux_res2), function(x) as.numeric(demux_res2[x,demux_res2$BS1[x]]) / as.numeric(demux_res2[x,demux_res2$BS2[x]]))
+demux_res2$BS1_BS3 = sapply(1:nrow(demux_res2), function(x) as.numeric(demux_res2[x,demux_res2$BS1[x]]) / as.numeric(demux_res2[x,demux_res2$BS3[x]]))
+demux_res2$BS1_BS4 = sapply(1:nrow(demux_res2), function(x) as.numeric(demux_res2[x,demux_res2$BS1[x]]) / as.numeric(demux_res2[x,demux_res2$BS4[x]]))
+
+ggplot(demux_res2, aes(x = is1B4, y = BS1_BS4, color = is1B4, fill = is1B4)) + geom_boxplot(alpha = 0.6)
+
+demux_res3 = melt(demux_res2, id.vars = colnames(demux_res2)[which(! colnames(demux_res2) %in% c("BS1_BS2", "BS1_BS3", "BS1_BS4"))])
+demux_res3$variable = paste(demux_res3$variable, demux_res3$is1B4)
+demux_res3$variable = factor(demux_res3$variable, levels = c("BS1_BS2 FALSE", "BS1_BS3 FALSE", "BS1_BS4 FALSE", "BS1_BS2 TRUE", "BS1_BS3 TRUE", "BS1_BS4 TRUE"))
+demux_res3$variable = plyr::revalue(demux_res3$variable, replace = c("BS1_BS2 FALSE" = "BS1/BS2 Real", "BS1_BS3 FALSE" = "BS1/BS3 Real", "BS1_BS4 FALSE" = "BS1/BS4 Real", "BS1_BS2 TRUE" = "BS1/BS2 B1", "BS1_BS3 TRUE" = "BS1/BS3 B1", "BS1_BS4 TRUE" = "BS1/BS4 B1"))
+my_pal = c("#57CC99", "#38A3A5", "#22577A", "#FCD2D1", "#FE8F8F", "#FF5C58")
+ggplot(demux_res3, aes(x = value, color = variable, fill = variable)) + geom_density(alpha = 0.6) + scale_color_manual(values = my_pal) + scale_fill_manual(values = my_pal)
+library(ggridges)
+ggplot(demux_res3, aes(x = value, y = variable, color = variable, fill = variable)) + geom_density_ridges(alpha = 0.9) + scale_color_manual(values = my_pal) + scale_fill_manual(values = my_pal) + theme_ridges() + theme(legend.position = "none")
+
 #******************************************************************************************
 # Receptor Diff ===========================================================================
 #******************************************************************************************
