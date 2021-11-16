@@ -58,7 +58,7 @@ bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
 Idents(bb) = bb$seuratclusters15
 
 # Set Number of Permutations
-nperm = 10000
+nperm = 1000
 
 # Load in Real PCRC List
 pcrc = read.csv("~/scratch/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
