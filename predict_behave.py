@@ -256,6 +256,8 @@ results2.iloc[:, best_idx[0:4]]
 pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_subsample_data.txt",sep="\s")
 pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_subsample_counts.txt",sep="\s")
 pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_subsample_counts_15.txt",sep="\s")
+pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_demux_data_avg.csv", index_col = 0)
+pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/bb_demux_data_avg.csv", index_col = 0)
 pd_df_orig = pd_df
 
 # TODO: Change my filter back
@@ -313,12 +315,12 @@ def singleRun(i, j):
     pairs = ["1", "2", "3", "4", "5"]
     for pair in pairs:
         # Split Data into Train and Test
-        sub_pair = [x for x in list(pd_df.index) if x[2:3] == pair]  # the subsamples that are in the test pair
-        not_sub_pair = [x for x in list(pd_df.index) if x[2:3] != pair]  # the subsamples that are not in the test pair
+        sub_pair = [x for x in list(pd_df.index) if x[1:2] == pair]  # the subsamples that are in the test pair
+        not_sub_pair = [x for x in list(pd_df.index) if x[1:2] != pair]  # the subsamples that are not in the test pair
         xtrain = pd_df.loc[not_sub_pair]
         xtest = pd_df.loc[sub_pair]
-        ytrain = numpy.multiply([x[1:2] == "b" for x in not_sub_pair], 1)  # behave is 1 and control is 0
-        ytest = numpy.multiply([x[1:2] == "b" for x in sub_pair], 1)  # behave is 1 and control is 0
+        ytrain = numpy.multiply([x[0:1] == "b" for x in not_sub_pair], 1)  # behave is 1 and control is 0
+        ytest = numpy.multiply([x[0:1] == "b" for x in sub_pair], 1)  # behave is 1 and control is 0
         # My Feature Selection
         # 1. Pick features that are in a consistent direction across subsamples
         # greater_df = numpy.array([xtrain.iloc[x, :] > xtrain.iloc[x + int(xtrain.shape[0] / 2), :] for x in range(0, int(xtrain.shape[0] / 2))])

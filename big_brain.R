@@ -170,9 +170,11 @@ subsample_avg = read.table("~/research/brain/data/bb_subsample_data.txt")
 test = subsample_avg[,which(colSums(subsample_avg) != 0)]
 res.pca <- prcomp(test, scale = T)
 groups = factor(c(rep("Behave", 19), rep("Control", 19)))
-groups2 = factor(colsplit(as.vector(unique(bb$subsample)), pattern = "\\.", names = c('1', "2"))[,1])
+groups2 = factor(colsplit(as.vector(rownames(res.pca$x)), pattern = "\\.", names = c('1', "2"))[,1])
+groups3 = factor(substr(groups2, 2, 2))
 fviz_pca_ind(res.pca, col.ind = groups, palette = c("#00AFBB",  "#FC4E07"), addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
 fviz_pca_ind(res.pca, col.ind = groups2, addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
+fviz_pca_ind(res.pca, col.ind = groups3, addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
 
 lg11 = read.table("~/research/brain/data/markers/LG11_highFST_genes_umd2a_120920.txt", stringsAsFactors = F)[,1]
 mat = as.matrix(bb@assays$RNA@counts[lg11,])
@@ -933,6 +935,21 @@ p1 = p[[1]] + scale_color_gradientn(limits = c(min(bb$ieg_like_score), max(bb$ie
 p2 = p[[2]] + scale_color_gradientn(limits = c(min(bb$ieg_like_score), max(bb$ieg_like_score)), colors = rev(brewer.pal(11, "Spectral")))
 plot_grid(plotlist=list(p1, p2), ncol = 2)
 
+z_ieg15_res = read.csv("C:/Users/miles/Downloads/bb15_bbmm_demux_combined_diff_ieg_score_cond_hmp_q_by_cluster_102221.csv")
+z_ieg15_res$neg_log_q = -log10(z_ieg15_res$q_hmp)
+Idents(bb) = bb$seuratclusters15
+bb$tmp = z_ieg15_res$neg_log_q[match(bb$seuratclusters15, z_ieg15_res$cluster)]
+# Idents(bb) = plyr::revalue(Idents(bb), replace = c())
+FeaturePlot(bb, feature = "tmp", label = T) + scale_color_viridis_c()
+
+ggplot(bb@meta.data, aes(x = seuratclusters15, y = ieg_like_score, color = cond)) + geom_boxplot(alpha = 0.6) + geom_point(position = position_jitterdodge(), alpha = 0.01)
+ggplot(bb@meta.data, aes(x = good15_names, y = ieg_like_score, color = cond, fill = cond)) + geom_split_violin(alpha = 0.3, scale = "width") + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.25, position = position_dodge(width = .25))
+
+ieg_like = read.csv(paste0(rna_path, "/data/markers/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
+p_df = aggregate(ieg_like_score ~ subsample + seuratclusters15, data = bb@meta.data, mean)
+p_df$cond = startsWith(p_df$subsample, "b")
+ggplot(p_df, aes(x = seuratclusters15, y = ieg_like_score, color = cond, fill = cond)) + geom_boxplot(alpha = 0.6) + geom_point(position=position_jitterdodge(jitter.width = 0.2), alpha = 0.4)
+
 bb$cyto = read.table("C:/Users/miles/Downloads/brain/results/bb/bb_cyto.txt")[,1]
 Idents(bb) = bb$seuratclusters15
 bb_0 = subset(bb, idents = 0)
@@ -1094,8 +1111,8 @@ hist(b, breaks = 50)
 library("ggpmisc")
 library("hrbrthemes")
 ieg_cons = c("LOC101487312", "egr1", "npas4", "jun", "homer1")
-ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,2]
-ieg_like = c(ieg_like, "jun")
+ieg_like = read.csv("C:/Users/miles/Downloads/brain/data/markers/ieg_like_011521.txt", stringsAsFactors = F)[,1]
+# ieg_like = c(ieg_like, "jun")
 bb$ieg_like_score = colSums(bb@assays$RNA@data[ieg_like,])
 
 # Find the mean ieg_like_score in each cluster
@@ -1269,6 +1286,25 @@ p_bvc_df$Cluster1 = factor(p_bvc_df$Cluster1, levels = levels(bb@meta.data[,c(cl
 p_bvc_df$Cluster2 = factor(p_bvc_df$Cluster2, levels = levels(bb@meta.data[,c(cluster_level)]))
 png("C:/Users/miles/Downloads/brain/results/bb/ieg_covariance_bvc_bh_15.png", width = 800, height = 750, res = 90)
 print(ggplot(p_bvc_df, aes(Cluster1, Cluster2, fill = bh)) + geom_tile() + scale_fill_viridis(begin = 1, end = 0) + theme_classic() + ggtitle("Behave vs Control Fisher's Z Transformation") + labs(fill = "BH"))
+dev.off()
+
+r_dif_mat = r_behave_mat - r_control_mat
+r_abs_dif_mat = abs(r_behave_mat - r_control_mat)
+r_dif_mat[upper.tri(r_dif_mat)] = NA
+r_abs_dif_mat[upper.tri(r_abs_dif_mat)] = NA
+r_dif_df = na.omit( melt(r_dif_mat) )
+r_abs_dif_df = na.omit( melt(r_abs_dif_mat) )
+r_dif_df$Var1 = factor(r_dif_df$Var1, levels = 0:14)
+r_dif_df$Var2 = factor(r_dif_df$Var2, levels = 0:14)
+r_abs_dif_df$Var1 = factor(r_abs_dif_df$Var1, levels = 0:14)
+r_abs_dif_df$Var2 = factor(r_abs_dif_df$Var2, levels = 0:14)
+p_r_bvc = ggplot(r_dif_df, aes(Var1, Var2, fill = value)) + geom_tile() + scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(11,"Spectral")))(50), limits=c(-max(abs(r_dif_df$value), na.rm = T), max(abs(r_dif_df$value), na.rm = T))) + theme_classic() + ggtitle("Behave vs Control Correlation Difference") + labs(fill = "R Dif") + xlab("Cluster 1") + ylab("Cluster 2")
+p_r_abs_bvc = ggplot(r_abs_dif_df, aes(Var1, Var2, fill = value)) + geom_tile() + scale_fill_viridis(discrete = F) + theme_classic() + ggtitle("Absolute Behave vs Control Correlation Difference") + labs(fill = "Abs R Dif") + xlab("Cluster 1") + ylab("Cluster 2")
+png("C:/Users/miles/Downloads/brain/results/bb/ieg_covariance_bvc_r.png", width = 800, height = 750, res = 90)
+print(p_r_bvc)
+dev.off()
+png("C:/Users/miles/Downloads/brain/results/bb/ieg_covariance_abs_bvc_r.png", width = 800, height = 750, res = 90)
+print(p_r_abs_bvc)
 dev.off()
 
 #******************************************************************************************
@@ -4230,6 +4266,42 @@ groups2 = factor(colsplit(as.vector(unique(bb$subsample)), pattern = "\\.", name
 fviz_pca_ind(res.pca, col.ind = groups, palette = c("#00AFBB",  "#FC4E07"), addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
 # fviz_pca_ind(res.pca, col.ind = groups2, addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T)
 
+pdf("C:/Users/miles/Downloads/test3.pdf", width = 8, height = 8)
+print(test)
+dev.off()
+
+library(sp)
+# test = mySingleGeneHull(bb, "dlx5")
+ggplot(test$data, aes(UMAP_1, UMAP_2)) + geom_point(size = 0.9, colour = test$data$col, alpha = 0.9) + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + stat_density2d(data = test$data[which(test$data$gene == 'nkx2-1'),], alpha = 0.5, geom="polygon", contour_var = "count", position="identity", bins = 2, size = 0.9, contour = T, show.legend = T)
+ggbld <- ggplot_build(test)
+gdata <- ggbld$data[[3]]
+gdata %>% ggplot() + geom_point(aes(x, y, color = level))
+test1 = gdata[which(gdata$level == levels(gdata$level)[2]),]
+SpatialPolygons(lapply(levels(gdata$level)[2], function(x) {
+  pts <- test1[test1$level == x,]
+  Polygons(list(Polygon(as.matrix(data.frame(x=pts$x, y=pts$y)))), as.character(x))
+})) -> polys
+polys_dat <- SpatialPolygonsDataFrame(polys, 
+                                      data.frame(id=sapply(slot(polys, "polygons"), slot, "ID"),
+                                                 row.names=sapply(slot(polys, "polygons"), slot, "ID"),
+                                                 stringsAsFactors=FALSE))
+plot(polys)
+# test1 = test1[order( test1$y ),]
+# ggplot(test1, aes(x, y, color = level)) + geom_point()
+
+#***********************************************************************************
+# scGNN ============================================================================
+#***********************************************************************************
+emb = read.csv("C:/Users/miles/Downloads/CichlidDataFolder_embedding.csv")
+res = read.csv("C:/Users/miles/Downloads/CichlidDataFolder_results.txt")
+ggplot(emb, aes(x = embedding0, y = embedding2)) + geom_point() + theme_classic()
+
+bb$scgnn = factor(res$Celltype, levels = sort(unique(res$Celltype)))
+Idents(bb) = bb$scgnn
+DimPlot(bb, label = T)
+
+brianna15 = xlsx::read.xlsx("C:/Users/miles")
+
 #*******************************************************************************
 # Vole and Clown ===============================================================
 #*******************************************************************************
@@ -4462,3 +4534,4 @@ gene15_df$clean = gtf$gene_name[match(gene15_df$loc_final, gtf$loc)]
 gene15_df$use = ! is.na(gene15_df$clean) & ! duplicated(gene15_df$clean)
 gene15_df$col = plyr::revalue(gene15_df$cat, replace = c("id" = "#003049", "anat" = "#d62828", "mod" = "#f77f00", "modr" = "#fcbf49"))
 DotPlot(bb, features = gene15_df$clean[which(gene15_df$use)]) + scale_x_discrete(labels = gene15_df$bname[which(gene15_df$use)]) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, colour = gene15_df$col[which(gene15_df$use)], face = "italic")) + ylab("")
+
