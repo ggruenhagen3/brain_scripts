@@ -3601,6 +3601,15 @@ qobj = qvalue(cluster_deg$p_val)
 cluster_deg$qvalue = qobj$qvalues
 nrow(cluster_deg[which(cluster_deg$q < 0.05),])
 
+all_coef = read.csv("C:/Users/miles/Downloads/scgnn_bin_pred_coef.csv")
+all_coef_melt = melt(all_coef)
+all_coef$mean = rowMeans(all_coef[2:ncol(all_coef)])
+head(all_coef[order(all_coef$mean, decreasing = T), c("X", "mean")])
+hist(all_coef$mean, breaks = 50)
+
+all_coef_melt$X = factor(all_coef_melt$X, levels = all_coef$X[order(abs(all_coef$mean), decreasing = T)])
+ggplot(all_coef_melt[which(all_coef_melt$X %in% all_coef$X[order(abs(all_coef$mean), decreasing = T)[1:50]]),], aes(x = X, y = value, color = X, fill = X)) + geom_boxplot(alpha = 0.7) + geom_point(alpha = 0.2, position = position_jitter()) + theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("Importance to Model")
+
 #*****************************************************************************************
 # Neurogenesis ===========================================================================
 #*****************************************************************************************
@@ -3639,7 +3648,7 @@ for (i in 0:52) {
 real_clust53_res$V1 = factor(real_clust53_res$V1, levels = real_clust53_res$V1)
 ggplot(real_clust53_res, aes(x = V1, y = V2, color = V1, fill = V1)) + geom_bar(stat = 'identity', alpha = 0.8) + xlab("Cluster 53 Level") + ylab("Real Correlation") + scale_y_continuous(limits = c(0,1), expand = c(0, 0)) + theme_bw()
 
-permNeurogenCor = function(x, clust_level = "bulk", useNuc = T, num_genes = 51, useNonZero = T) {
+permNeurogenCor = function(x, clust_level = "bulk", useNuc = T, num_genes = 51) {
   # Set Seed
   set.seed(x)
   
@@ -3647,14 +3656,9 @@ permNeurogenCor = function(x, clust_level = "bulk", useNuc = T, num_genes = 51, 
   if (useNuc != T & useNuc != F) { print("useNuc must be T or F."); return(NULL); }
   if (clust_level != "bulk" & clust_level != "15" & clust_level != "53") { print("clust_level must be 'bulk', '15', or '53'."); return(NULL); }
   if (! is.numeric(num_genes) )          { print("num_genes must be numeric");  return(NULL); }
-  if (useNonZero != T & useNonZero != F) { print("useNonZero must be T or F."); return(NULL); }
-  
+
   # Create Permutation Gene Set
-  if (useNonZero) {
-    perm_genes = sample(non_zero_genes, num_genes)
-  } else {
-    perm_genes = sample(rownames(bb),   num_genes)
-  }
+  perm_genes = ran_lists[x]
   
   # Calculate Score
   perm_score = colSums(mat[perm_genes,])
@@ -3695,7 +3699,7 @@ library("parallel")
 num_perms = 10000
 
 # 10k Perm FST w/ Neurogen: Bulk, Nuc, NonZero
-perm_cors = unlist(mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = 'bulk', useNuc = T, num_genes = 51, useNonZero = F), mc.cores = detectCores() ))
+perm_cors = unlist(mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = 'bulk', useNuc = T, num_genes = 51), mc.cores = detectCores() ))
 perm_df = data.frame(perm_num = 1:num_perms, perm_cor = perm_cors)
 perm_df$isAbove = cor(bb$fst, bb$neurogen) > perm_df$perm_cor
 ggplot(perm_df, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
@@ -4274,8 +4278,6 @@ bb$scgnn = factor(res$Celltype, levels = sort(unique(res$Celltype)))
 Idents(bb) = bb$scgnn
 DimPlot(bb, label = T)
 
-brianna15 = xlsx::read.xlsx("C:/Users/miles")
-
 #*******************************************************************************
 # Vole and Clown ===============================================================
 #*******************************************************************************
@@ -4478,13 +4480,13 @@ brainna_gene_key = xlsx::read.xlsx("~/Downloads/brain_gene_marker_key_draft2.xls
 brianna15 = xlsx::read.xlsx("~/Downloads/brain_gene_marker_key_draft2.xlsx", sheetIndex = 1, startRow = 4, endRow = 19)
 bb$good15_names = factor(convert15$new.full[match(bb$seuratclusters15, convert15$old)], levels = convert15$new.full)
 Idents(bb) = bb$good15_names
-gene15_df = data.frame(unlist(brianna15[,2:5]), c(rep('id', 15), rep('anat', 15), rep('mod', 15), rep('modr', 15)))
-# unlist(unname(sapply(gene15_df[,1], function(x) unlist(strsplit(x, ",")))))
-gene15_df_vect = unlist(sapply(1:nrow(gene15_df), function(x) { tmp = unlist(strsplit(gene15_df[x,1], ",")); names(tmp) = rep(gene15_df[x,2], length(tmp)); return(tmp)} ))
-gene15_df = data.frame(bname = unname(gene15_df_vect), cat = names(gene15_df_vect))
+gene15_df = data.frame(unlist(brianna15[,2:5]), c(rep('id', 15), rep('anat', 15), rep('mod', 15), rep('modr', 15)), rep(convert15$new.full, 4))
+gene15_df_list = lapply(1:nrow(gene15_df), function(x) { tmp = unlist(strsplit(gene15_df[x,1], ",")); tmp_df = data.frame(bname = tmp, cat = rep(gene15_df[x,2], length(tmp)), cluster = rep(gene15_df[x,3], length(tmp))); return(tmp_df)} )
+gene15_df <- do.call("rbind", gene15_df_list)
 gene15_df$bname = str_replace(gene15_df$bname, "\\*", "")
 gene15_df$bname = str_replace_all(trimws(gene15_df$bname, which = "both"), "[^[:alnum:]]", "")
-gene15_df = gene15_df[which( !is.na(gene15_df$bname) & ! duplicated(gene15_df$bname) ),]
+# gene15_df = gene15_df[which( !is.na(gene15_df$bname) & ! duplicated(gene15_df$bname) ),]
+gene15_df = gene15_df[which( !is.na(gene15_df$bname) ),]
 
 # Special Cases
 gene15_df$bname[which(gene15_df$bname == "lhx2b")] = "lhx2"
@@ -4506,6 +4508,202 @@ gene15_df$loc_final = gene15_df$loc1
 gene15_df$loc_final[which(is.na(gene15_df$loc1))] = gene15_df$loc2[which(is.na(gene15_df$loc1))]
 gene15_df$clean = gtf$gene_name[match(gene15_df$loc_final, gtf$loc)]
 gene15_df$use = ! is.na(gene15_df$clean) & ! duplicated(gene15_df$clean)
-gene15_df$col = plyr::revalue(gene15_df$cat, replace = c("id" = "#003049", "anat" = "#d62828", "mod" = "#f77f00", "modr" = "#fcbf49"))
-DotPlot(bb, features = gene15_df$clean[which(gene15_df$use)]) + scale_x_discrete(labels = gene15_df$bname[which(gene15_df$use)]) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, colour = gene15_df$col[which(gene15_df$use)], face = "italic")) + ylab("")
+gene15_df$col = plyr::revalue(gene15_df$cat, replace = c("id" = "#00E7EC", "anat" = "#FDD615", "mod" = "#FE04FF", "modr" = "#002DD1"))
+# DotPlot(bb, features = gene15_df$clean[which(gene15_df$use)]) + scale_x_discrete(labels = gene15_df$bname[which(gene15_df$use)]) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, colour = gene15_df$col[which(gene15_df$use)], face = "italic")) + ylab("")
 
+all_combos = expand.grid(unique(gene15_df$clean), unique(gene15_df$cluster))
+colnames(all_combos) = c("clean", "cluster")
+all_combos[, colnames(gene15_df)[which(! colnames(gene15_df) %in% colnames(all_combos))]] = "na"
+all_combos = all_combos[,colnames(gene15_df)]
+all_combos$bname = gene15_df$bname[match(all_combos$clean, gene15_df$clean)]
+gene15_df$hit = T
+all_combos$hit = F
+gene15_df = rbind(gene15_df, all_combos[which(! paste0(all_combos$clean, all_combos$cluster) %in%  paste0(gene15_df$clean, gene15_df$cluster) ),])
+# gene15_df$hgnc = gene_info$human[match(gene15_df$clean, gene_info$mzebra)]
+# gene15_df$hgnc[which(gene15_df$clean == "LOC101483038")] = "SOX10"
+gene15_df$col[which(gene15_df$col == "na")] = "gray95"
+gene15_df$col2 = "gray95"
+gene15_df$col2[which(gene15_df$hit)] = convert15$col[match(gene15_df$cluster[which(gene15_df$hit)], convert15$new.full)]
+gene15_df$cluster = factor(gene15_df$cluster, levels = convert15$new.full)
+gene15_df = gene15_df[which(gene15_df$bname != "GPR54"),]
+gene15_df$label = factor(tolower(gene15_df$bname), levels = unique(tolower(gene15_df$bname[order(gene15_df$cat, gene15_df$bname)])))
+
+
+pdf("C:/Users/miles/Downloads/bri15_markers_heatmap_3.pdf", height = 13, width = 6)
+ggplot(gene15_df[which(! is.na(gene15_df$clean) ),], aes(y = label, x = cluster, fill = col)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), axis.text.y = element_text(face = "italic")) + xlab("") + ylab("")
+dev.off()
+
+pdf("C:/Users/miles/Downloads/bri15_markers_heatmap_2.pdf", height = 13, width = 6)
+ggplot(gene15_df[which(! is.na(gene15_df$clean) ),], aes(y = label, x = cluster, fill = col2)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), axis.text.y = element_text(face = "italic")) + xlab("") + ylab("")
+dev.off()
+
+pdf("C:/Users/miles/Downloads/bri15_markers_heatmap_1.pdf", height = 13, width = 6)
+ggplot(gene15_df[which(! is.na(gene15_df$clean) ),], aes(y = label, x = cluster, fill = hit)) + geom_tile(color = "black") + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), axis.text.y = element_text(face = "italic")) + xlab("") + ylab("") + scale_fill_manual(values = c(viridis(3)[2], "gold"), guide = 'none')
+dev.off()
+
+BriDotPlot(gene15_df$clean[which(gene15_df$use)])
+
+BriDotPlot = function(features) {
+  exp_mat = myAverageExpression(bb, features = features)
+  scale_exp_mat = scale(t(exp_mat))
+  dp_df = melt(scale_exp_mat)
+  # dp_df = aggregate(exp ~ feature, exp_df, mean)
+  colnames(dp_df) = c("Cluster", "Feature", "Expression")
+  ggplot(dp_df, aes(x = Feature, y = Cluster, fill = Expression)) + geom_point() + scale_fill_gradientn(colors = c("lightgrey", "blue")) + theme_classic()
+}
+
+#****************************************************************************
+# scGNN =====================================================================
+#****************************************************************************
+library("data.table")
+imp_mat = read.csv("C:/Users/miles/Downloads/CichlidDataFolder_recon.csv")
+t_imp_mat <- transpose(imp_mat)
+t_imp_mat[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")] = bb@meta.data[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")]
+colnames(t_imp_mat) = t_imp_mat[1,]
+t_imp_mat = t_imp_mat[-c(1),]
+t_imp_mat2 <- mutate_all(t_imp_mat, function(x) as.numeric(as.character(x)))
+t_imp_mat2[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")] = bb@meta.data[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")]
+ggplot(t_imp_mat2, aes(satb1, mettl15, color = subsample)) + geom_point() + NoLegend()
+ggplot(t_imp_mat2, aes(x = subsample, y = ccdc71, color = subsample)) + geom_boxplot() + geom_point(alpha = 0.01, position = position_jitterdodge()) + NoLegend()
+# bb <- SetAssayData(object = bb, slot = "imp", new.data = imp_mat2)
+
+saveRDS(t_imp_mat2, "C:/Users/miles/Downloads/brain/data/scgnn_imputed.rds")
+
+all_gene_df = aggregate(. ~ subsample, t_imp_mat2[,c(colnames(t_imp_mat2)[1:2000], "subsample")], mean)
+sep_cgenes = sapply(2:ncol(all_gene_df), function(x) all(outer(X = as.numeric(all_gene_df[1:19,x]), Y = as.numeric(all_gene_df[20:38,x]), FUN = '>')) | all(outer(X = as.numeric(all_gene_df[1:19,x]), Y = as.numeric(all_gene_df[20:38,x]), FUN = '<')) )
+up_cgenes = sapply(colnames(all_gene_df)[which(sep_cgenes) + 1], function(x) all_gene_df[1,x] > all_gene_df[20,x] )
+big_cgenes = sapply(colnames(all_gene_df)[which(sep_cgenes) + 1], function(x) abs(sum(all_gene_df[1:19,x]) - sum(all_gene_df[20:38,x])) )
+names(big_cgenes) = colnames(all_gene_df)[which(sep_cgenes) + 1]
+sd_cgenes = sapply(colnames(all_gene_df)[which(sep_cgenes) + 1], function(x) sum(sd(all_gene_df[1:19,x]), sd(all_gene_df[20:38,x])) )
+names(sd_cgenes) = colnames(all_gene_df)[which(sep_cgenes) + 1]
+cgenes_df = data.frame(gene = names(big_cgenes), mean_dif = big_cgenes, sd_sum = sd_cgenes, up_in_b = up_cgenes)
+cgenes_df$up_in_b = plyr::revalue(as.character(cgenes_df$up_in_b), replace = c("TRUE" = "BHVE", "FALSE" = "CTRL"))
+ggplot(cgenes_df, aes(x = mean_dif, y = sd_sum, color = mean_dif)) + geom_point() + geom_text_repel(data = cgenes_df[which(cgenes_df$mean_dif > 1),], aes(label = gene), color = "black") + scale_color_viridis_c() + xlab("Difference in BHVE Mean of Avg Expression - CTRL Mean of Avg Expression") + ylab("Sum of BHVE and CTRL Standard Deviation") + theme_bw()
+
+clust15_sep_df = data.frame()
+for (this_clust in 0:52) {
+  print(this_clust)
+  all_gene_df = aggregate(. ~ subsample, t_imp_mat2[which(bb$seuratclusters53 == this_clust),c(colnames(t_imp_mat2)[1:2000], "subsample")], mean)
+  sep_cgenes = sapply(2:ncol(all_gene_df), function(x) all(outer(X = as.numeric(all_gene_df[1:19,x]), Y = as.numeric(all_gene_df[20:38,x]), FUN = '>')) | all(outer(X = as.numeric(all_gene_df[1:19,x]), Y = as.numeric(all_gene_df[20:38,x]), FUN = '<')) )
+  up_cgenes = sapply(colnames(all_gene_df)[which(sep_cgenes) + 1], function(x) all_gene_df[1,x] > all_gene_df[20,x] )
+  big_cgenes = sapply(colnames(all_gene_df)[which(sep_cgenes) + 1], function(x) abs(sum(all_gene_df[1:19,x]) - sum(all_gene_df[20:38,x])) )
+  names(big_cgenes) = colnames(all_gene_df)[which(sep_cgenes) + 1]
+  sd_cgenes = sapply(colnames(all_gene_df)[which(sep_cgenes) + 1], function(x) sum(sd(all_gene_df[1:19,x]), sd(all_gene_df[20:38,x])) )
+  names(sd_cgenes) = colnames(all_gene_df)[which(sep_cgenes) + 1]
+  if (length(which(sep_cgenes)) > 0) {
+    this_df = data.frame(gene = names(big_cgenes), mean_dif = big_cgenes, sd_sum = sd_cgenes, up_in_b = up_cgenes, cluster = this_clust)
+    this_df$up_in_b = plyr::revalue(as.character(this_df$up_in_b), replace = c("TRUE" = "BHVE", "FALSE" = "CTRL"))
+    clust15_sep_df = rbind(clust15_sep_df, this_df)
+  }
+}
+
+all_gene_df$cond = c(rep("BHVE", 19), rep("CTRL", 19))
+ggplot(all_gene_df, aes(x = cond, y = npas3, fill = cond, color = cond)) + geom_boxplot(alpha = 0.6) + geom_point(position = position_jitter()) + scale_fill_manual(values = rev(viridis(2))) + scale_color_manual(values = rev(viridis(2)))
+
+test_df = data.frame(satb1 = as.vector(bb@assays$RNA@data['satb1',]))
+test_df[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")] = bb@meta.data[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")]
+ggplot(test_df, aes(x = subsample, y = asic4, color = subsample)) + geom_boxplot() + geom_point(alpha = 0.01, position = position_jitterdodge()) + NoLegend() + ggtitle("Non-Imputed Data")
+
+imp_cor = sapply(colnames(t_imp_mat2), function(x) cor(t_imp_mat2[,x], bb$depth_adj))
+
+#****************************************************************************
+# Z-Test Random Genes =======================================================
+#****************************************************************************
+pcrc = read.csv("C:/Users/miles/Downloads/brain/data/markers/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
+gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
+gene_counts$gene = rownames(gene_counts)
+gene_counts = gene_counts[order(gene_counts[,1]),]
+pcrc_idx = which(gene_counts[,2] %in% pcrc)
+ran_genes_1 = gene_counts[pcrc_idx + 1, 2]
+ran_genes_2 = gene_counts[pcrc_idx + 2, 2]
+ran_genes_3 = gene_counts[pcrc_idx + 3, 2]
+ran_genes_4 = gene_counts[pcrc_idx + 4, 2]
+ran_genes_5 = gene_counts[pcrc_idx + 5, 2]
+
+real_res = markerExpPerCellPerClusterQuick(bb, pcrc)[[4]]
+ran_1_df = markerExpPerCellPerClusterQuick(bb, ran_genes_1)[[4]]
+ran_2_df = markerExpPerCellPerClusterQuick(bb, ran_genes_2)[[4]]
+ran_3_df = markerExpPerCellPerClusterQuick(bb, ran_genes_3)[[4]]
+ran_4_df = markerExpPerCellPerClusterQuick(bb, ran_genes_4)[[4]]
+ran_5_df = markerExpPerCellPerClusterQuick(bb, ran_genes_5)[[4]]
+
+big_df = rbind(real_res, ran_1_df, ran_2_df, ran_3_df, ran_4_df, ran_5_df)
+big_df$real = c(rep("real", nrow(real_res)), rep(1, nrow(ran_1_df)), rep(2, nrow(ran_2_df)), rep(3, nrow(ran_3_df)), rep(4, nrow(ran_4_df)), rep(5, nrow(ran_5_df)))
+ggplot(big_df, aes(x = real, y = avg_cluster_exp)) + geom_boxplot() + facet_wrap(~ cluster)
+
+big_df2 = real_res[, c(1, 2)]
+colnames(big_df2) = c("cluster", "real")
+big_df2$ran1 = ran_1_df$avg_cluster_exp
+big_df2$ran2 = ran_2_df$avg_cluster_exp
+big_df2$ran3 = ran_3_df$avg_cluster_exp
+big_df2$ran4 = ran_4_df$avg_cluster_exp
+big_df2$ran5 = ran_5_df$avg_cluster_exp
+write.csv(big_df2, "C:/Users/miles/Downloads/bb_pcrc_real_and_ran_53.csv")
+
+cor(colSums(bb@assays$RNA@data[pcrc,]), colSums(bb@assays$RNA@data[ran_genes_1,]))
+cor(colSums(bb@assays$RNA@data[pcrc,]), colSums(bb@assays$RNA@data[ran_genes_2,]))
+cor(colSums(bb@assays$RNA@data[pcrc,]), colSums(bb@assays$RNA@data[ran_genes_3,]))
+cor(colSums(bb@assays$RNA@data[pcrc,]), colSums(bb@assays$RNA@data[ran_genes_4,]))
+cor(colSums(bb@assays$RNA@data[pcrc,]), colSums(bb@assays$RNA@data[ran_genes_5,]))
+
+big_exp = GetAssayData(bb, assay = "RNA", slot="counts")
+big_exp[which(big_exp > 1)] = 1
+clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
+
+ran_pools = list()
+search_space = seq(-200, 200)
+search_space = search_space[order(abs(search_space))][2:length(search_space)]
+for (gene in pcrc) {
+  gene_pcrc_idx = pcrc_idx[which(pcrc == gene)]
+  ran_pools[[gene]] = c()
+  search_space_i = 1
+  while(length(ran_pools[[gene]]) < 100) {
+    idx_to_try = gene_pcrc_idx + search_space[search_space_i]
+    if (idx_to_try > 0 & idx_to_try <= nrow(bb)) {
+      ran_pools[[gene]] = c(ran_pools[[gene]], gene_counts[idx_to_try, 2])
+    }
+    search_space_i = search_space_i + 1
+  }
+}
+
+mySingleRun = function(markers) {
+  exp = big_exp[markers,]
+  
+  per_cluster_df = data.frame()
+  for (cluster in clusters) {
+    cluster_cells <- WhichCells(bb, idents = cluster)
+    avg_cluster_exp = colSums(exp[markers, cluster_cells])
+    avg_cluster_exp = avg_cluster_exp/bb$nFeature_RNA[cluster_cells]
+    mean_avg_cluster_exp = mean(avg_cluster_exp)
+    per_cluster_df = rbind(per_cluster_df, t(c(cluster, mean_avg_cluster_exp)))
+  }
+  return(per_cluster_df[,2])
+}
+
+library("rhdf5")
+# h5f = H5Fopen("~/scratch/brain/results/py_cor15/cluster15_1_cor_bhve.h5")
+h5f = H5Fopen("~/scratch/brain/results/py_ns/real_no_bvc__cor_all.h5")
+r_mat = h5f$name
+h5closeAll()
+rownames(r_mat) = colnames(r_mat) = rownames(bb)
+gene_info = read.table("~/scratch/m_zebra_ref/gene_info.txt", sep="\t", header = T, stringsAsFactors = F)
+cons_gene_info = gene_info[which(gene_info$human_mart == gene_info$human_pat),]
+dup_gene_df = data.frame(table(cons_gene_info$human))
+cons_gene_info_dup = cons_gene_info[which( cons_gene_info$human %in% dup_gene_df[which(dup_gene_df[,2] == 2),1] ),]
+cons_gene_info_dup = cons_gene_info_dup[order(cons_gene_info_dup$human),]
+dup_gene_pair = data.frame(gene1 = cons_gene_info_dup$mzebra[which(duplicated(cons_gene_info_dup$human))], gene2 = cons_gene_info_dup$mzebra[which(! duplicated(cons_gene_info_dup$human))], ens1 = cons_gene_info_dup$ens[which(duplicated(cons_gene_info_dup$human))], ens2 = cons_gene_info_dup$ens[which(! duplicated(cons_gene_info_dup$human))], human = cons_gene_info_dup$human[which(! duplicated(cons_gene_info_dup$human))])
+dup_gene_pair$cor = diag(r_mat[dup_gene_pair$gene1, dup_gene_pair$gene2])
+dup_gene_pair = dup_gene_pair[order(abs(dup_gene_pair$cor), decreasing = T),]
+dup_gene_pair$n1 = gene_counts[match(dup_gene_pair$gene1, gene_counts[,2]),1]
+dup_gene_pair$n2 = gene_counts[match(dup_gene_pair$gene2, gene_counts[,2]),1]
+
+cons_gene_info = gene_info
+cons_gene_info = cons_gene_info[which(!duplicated(cons_gene_info$mzebra)),]
+dup_gene_df = data.frame(table(cons_gene_info$human_pat))
+cons_gene_info_dup = cons_gene_info[which( cons_gene_info$human_pat %in% dup_gene_df[which(dup_gene_df[,2] == 2),1] ),]
+cons_gene_info_dup = cons_gene_info_dup[order(cons_gene_info_dup$human_pat),]
+dup_gene_pair2 = data.frame(gene1 = cons_gene_info_dup$mzebra[which(duplicated(cons_gene_info_dup$human_pat))], gene2 = cons_gene_info_dup$mzebra[which(! duplicated(cons_gene_info_dup$human_pat))], ens1 = cons_gene_info_dup$ens[which(duplicated(cons_gene_info_dup$human_pat))], ens2 = cons_gene_info_dup$ens[which(! duplicated(cons_gene_info_dup$human_pat))], human = cons_gene_info_dup$human_pat[which(! duplicated(cons_gene_info_dup$human_pat))])
+dup_gene_pair2$cor = diag(r_mat[dup_gene_pair2$gene1, dup_gene_pair2$gene2])
+dup_gene_pair2 = dup_gene_pair2[order(abs(dup_gene_pair2$cor), decreasing = T),]
+dup_gene_pair2$n1 = gene_counts[match(dup_gene_pair2$gene1, gene_counts[,2]),1]
+dup_gene_pair2$n2 = gene_counts[match(dup_gene_pair2$gene2, gene_counts[,2]),1]
