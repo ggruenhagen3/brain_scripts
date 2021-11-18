@@ -64,6 +64,7 @@ nperm = 10000
 pcrc = read.csv("~/scratch/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
 zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_090921.csv")[,2]
 select_zGenePops = c("emx2", "tac1", "LOC101470177", "adrb1", "LOC101466282", "th", "lepr", "LOC101464917", "LOC101469465", "LOC101475240", "igf2", "LOC101464862", "LOC101480131", "LOC101477361", "LOC101463985", "LOC101467991", "LOC101484392", "npy", "gad1", "esr2", "calcr")
+select_zGenePops2 = c("LOC101476084", "adora2b", "LOC112430066", "ddc", "slc6a3", "trh", "LOC101472037", "dlx5", "etv1", "gad2")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -106,10 +107,11 @@ clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
 # real_res = singleRun(pcrc, returnP = F)
 # real_res_log = -log10(real_res)
 
-perm_res = lapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], genePops = select_zGenePops, returnP = F))
+library("parallel")
+perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], genePops = select_zGenePops2, returnP = F), mc.cores = detectCores())
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
-colnames(perm_df) = select_zGenePops
+colnames(perm_df) = select_zGenePops2
 
 # Visualize Results
 # perm_df = as.data.frame(t(as.data.frame(perm_res)))
@@ -120,29 +122,31 @@ colnames(perm_df) = select_zGenePops
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
   
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_select_dgene.csv")
-
-# p_df = data.frame()
-# perm_df_log = -log10(perm_df)
-# for (cluster in clusters) {
-#   neg = length(which(perm_df_log[,as.character(cluster)] <= real_res_log))
-#   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster + 1]))
-#   p_df = rbind(p_df, data.frame(cluster, neg))
-# }
-# p_df$cluster = factor(p_df$cluster, levels = clusters)
-# p_df$p = ((nperm - p_df$neg) / nperm) * 100
-# p_df$bon = p.adjust(p_df$p/100, method = "BH")
-# ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
-# ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_select2_dgene.csv")
 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
-# for (gene in zGenePops) {
+# # for (cluster in clusters) {
+# #   neg = length(which(perm_df_log[,as.character(cluster)] <= real_res_log))
+# #   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster + 1]))
+# #   p_df = rbind(p_df, data.frame(cluster, neg))
+# # }
+# # p_df$cluster = factor(p_df$cluster, levels = clusters)
+# # p_df$p = ((nperm - p_df$neg) / nperm) * 100
+# # p_df$bon = p.adjust(p_df$p/100, method = "BH")
+# # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
+# # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
+# 
+# # p_df = data.frame()
+# # perm_df_log = -log10(perm_df)
+# # for (gene in zGenePops) {
+# for (gene in select_zGenePops) {
 #   print(gene)
 #   pgene = str_replace(gene, "-", ".")
 #   # neg = length(which(perm_df_log[,as.character(cluster)] <= real_res_log))
-#   neg = length(which( perm_df[,pgene] <= real_res[which(zGenePops == gene)] ))
-#   p_df = rbind(p_df, data.frame(cluster, neg))
+#   # neg = length(which( perm_df[,pgene] <= real_res[which(zGenePops == gene)] ))
+#   neg = length(which( perm_df[,pgene] <= real_res[which(select_zGenePops == gene)] ))
+#   p_df = rbind(p_df, data.frame(gene, neg))
 # }
 # p_df$cluster = factor(p_df$cluster, levels = clusters)
 # p_df$p = ((nperm - p_df$neg) / nperm) * 100
