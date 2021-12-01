@@ -19,6 +19,7 @@ library("ggtext")
 library("colourvalues")
 library("colorspace")
 library("ggrepel")
+library("parallel")
 # library("ggforce")
 httr::set_config(config(ssl_verifypeer = FALSE))
 
@@ -241,6 +242,35 @@ bvcVis = function(obj, feature, myslot = "data", mode = "box", meta = "sample", 
   return(p)
 }
 
+mySingleGeneHull = function(obj, feature1, feature2, prop_thresh = 0.15, my.pt.size = 0.6) {
+  #' @param obj Seurat object
+  #' @param feature1 feature to plot
+  df = data.frame(cluster15 = obj$seuratclusters15, value1 = obj@assays$RNA@data[feature1,], value2 = obj@assays$RNA@data[feature1,], isPos1 = obj@assays$RNA@counts[feature1,] > 0, isPos2 = obj@assays$RNA@counts[feature2,] > 0)
+  df$exp = NA
+  df$exp[which(df$isPos1)] = feature1
+  df$exp[which(df$isPos2)] = feature2
+  # df = data.frame(isPos = as.numeric(obj@assays$RNA@counts[feature1,] > 0), cluster15 = obj$seuratclusters15, value = obj@assays$RNA@data[feature1,])
+  # df_agr = aggregate(isPos ~ cluster15, data = df, sum)
+  # df_agr$num_clust = aggregate(isPos ~ cluster15, data = df, length)[,2]
+  # df_agr$prop = df_agr[,2] / df_agr[,3]
+  # df_agr$prop_pass_thresh = df_agr$prop > prop_thresh
+  # hull_clusters = df_agr[which(df_agr$prop_pass_thresh), 1]
+  # print(df_agr)
+  # 
+  # df$hull = df$cluster15
+  # df$hull[which( (! df$isPos) | (! df$cluster15 %in% hull_clusters) )] = NA
+  df[,c("UMAP_1", "UMAP_2")] = as.data.frame(obj@reductions$umap@cell.embeddings)
+  df = df[order(df$exp, decreasing = F),]
+  # p = ggplot(df, aes(UMAP_1, UMAP_2, color = value)) + geom_point(size = my.pt.size) + theme_classic() + scale_color_gradientn(colors = c("lightgrey", "blue"), na.value="gray80") + geom_mark_hull(data = df[which(!is.na(df$hull)),],aes(group = hull, fill = hull), concavity = 20, expand = unit(0, "mm"), linetype = 'blank')
+  # p = ggplot(df, aes(UMAP_1, UMAP_2, color = value)) + geom_point(size = my.pt.size) + theme_classic() + scale_color_gradientn(colors = c("lightgrey", "blue"), na.value="gray80") + geom_density_2d_filled(data = df[which(df$isPos == 1),], contour_var = "ndensity", position="identity", bins = 5, alpha = 0.4)
+  # p = ggplot(df, aes(UMAP_1, UMAP_2, color = value)) + geom_point(size = my.pt.size) + theme_classic() + scale_color_gradientn(colors = c("lightgrey", "blue"), na.value="gray80") + geom_density_2d(data = df[which(df$isPos == 1),], contour_var = "ndensity", position="identity", bins = 2, size = 2, binwidth = 0.3, expand = unit(2.7, "mm"))
+  # p = ggplot(df, aes(UMAP_1, UMAP_2, color = value)) + geom_point(size = my.pt.size) + theme_classic() + scale_color_gradientn(colors = c("lightgrey", "blue"), na.value="gray80") + stat_density2d(data = df[which(df$isPos == 1),], geom="polygon", contour_var = "ndensity", position="identity", bins = 2, size = 2, binwidth = 0.3)
+  p = ggplot(df, aes(UMAP_1, UMAP_2, color = exp)) + geom_point(size = my.pt.size) + theme_classic() + stat_density2d(data = df[which(df$isPos1),], aes(fill = exp), alpha = 0.5, geom="polygon", contour_var = "ndensity", position="identity", bins = 2, size = 2, binwidth = 0.3)
+  # geom_density_2d_filled(data=df[which( df$pos == paste(feature1, "+", feature2) ),], mapping=aes(UMAP_1, UMAP_2, col = pos), contour_var = "ndensity", position="identity", bins = 5, alpha = 0.4)
+  print(p)
+  return(df)
+}
+
 myDensityPlot = function(obj, feature1, feature2, cells.use = NULL, myslot = "data", alpha_vect = NULL, my.split.by = NULL, my.pt.size = 1) {
   #' Make a FeaturePlot using ggplot. Having this gives me more control over the plot.
   #' 
@@ -318,7 +348,7 @@ myDensityPlot = function(obj, feature1, feature2, cells.use = NULL, myslot = "da
   return(p)
 }
 
-multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cells.use = NULL, cols = NULL) {
+multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cells.use = NULL, cols = NULL, doHull = F, my.h = NULL, myAlphaHull = 0.5) {
   #' Create a FeaturePlot using multiple markers with different colors
   #' This one is the preferred function, it uses a color blending function, 
   #' but multiFeaturePlot is also acceptable and its method is to overlap points.
@@ -334,6 +364,7 @@ multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cell
   lightgray_hex = "#D3D3D3FF"
   if (is.null(cols))
     cols = brewer.pal(9, "Set1")
+  names(cols) = features
   
   # Make sure the input features are in the data and get the value of 
   df = as.data.frame(obj@reductions$umap@cell.embeddings)
@@ -344,6 +375,7 @@ multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cell
     df$order = obj@assays$RNA@counts[features,]
   n = ncol(obj)
   
+  df$gene = 'none'
   i = 1
   for (feature in features) {
     if (feature %in% rownames(obj)) {
@@ -352,6 +384,8 @@ multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cell
         df$feature = obj@assays$RNA@data[feature,]
         m <- grDevices::colorRamp(c(lightgray_hex, this_col))( (1:n)/n )
         df$col = colour_values(df$feature, palette = m)
+        feature_pos = colnames(obj)[which(obj@assays$RNA@counts[feature,] > 0 )]
+        df[feature_pos, 'gene'] = feature
       } else {
         this_values = obj@assays$RNA@data[feature,]
         m <- grDevices::colorRamp(c("lightgray", this_col))( (1:n)/n )
@@ -371,6 +405,7 @@ multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cell
         }
         new_cols = unlist(lapply(feature_pos, my_mix))
         df[feature_pos, "col"] = new_cols
+        df[feature_pos, 'gene'] = feature
       }
       i = i + 1
     } else {
@@ -382,9 +417,13 @@ multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cell
     df = df[cells.use,]
   
   df = df[order(df$order, decreasing = F),]
+  df$gene = factor(df$gene, levels = c(features, 'none'))
   print(head(df))
   p = ggplot(df, aes(UMAP_1, UMAP_2)) + geom_point(size = my.pt.size, colour = df$col, alpha = my.alpha) + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + NoLegend()
   p = LabelClusters(p, "ident", unique(df$ident), repel = F, colour = "black")
+  if (doHull)
+    p = p + stat_density2d(data = df[which(df$gene != 'none'),], aes(fill = gene, group = gene, color = gene), alpha = myAlphaHull, geom="polygon", contour_var = "ndensity", position="identity", size = 0.9, binwidth = 0.5, h = my.h) + scale_color_manual(values = cols) + scale_fill_manual(values = cols)
+    
   
   # Color title based on genes
   title_str = "<span>"
@@ -400,7 +439,7 @@ multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cell
   }
   title_str = paste0(title_str, "</span>")
   p = p + labs(title = title_str) + theme( plot.title = element_markdown(lineheight = 1.1 ))
-  
+  print(p)
   return(p)
 }
 
@@ -1254,6 +1293,70 @@ markerExpPerCellPerClusterQuickGeneX = function(obj, markers, geneX) {
   return(d_df)
 }
 
+markerExpPerCellPerClusterQuickDemux = function(obj, markers) {
+  #' Same as markerExpPerCellPerCluster using the default settings and using some shortcuts
+  # Defaults from original function
+  myslot = "counts"
+  title_str = "Average"
+  title_str = paste(title_str, if_else(myslot=="counts", "", "Normalized"))
+  title_str = paste(title_str, "Expression of Marker Genes per Cell per Cluster")
+  
+  exp = GetAssayData(obj, assay = "RNA", slot=myslot)
+  exp = exp[markers,]
+  exp[which(exp > 0)] = 1
+  per_cluster_df = data.frame()
+  d_df = data.frame()
+  avg_cluster_exp = colSums(exp[markers,])
+  avg_cluster_exp = avg_cluster_exp/obj$nFeature_RNA
+  big_df = data.frame(exp = avg_cluster_exp, subsample = obj$subsample, cluster = obj$seuratclusters15)
+  # agr_df = aggregate(exp ~ subsample + cluster, big_df, mean)
+  # print(anova(data = agr_df, formula = exp ~ cluster))
+  # agr_df$inCluster = F
+  big_df$inCluster = F
+  for (cluster in 0:14) {
+    big_df$inCluster = big_df$cluster == cluster
+    agr_df = aggregate(exp ~ subsample + inCluster, big_df, mean)
+    # agr_df$inCluster = factor(as.character(agr_df$inCluster), levels = c("TRUE", "FALSE"))
+    # print(head(agr_df$inCluster))
+    p = wilcox.test(x = agr_df$exp[which(agr_df$inCluster)], y = agr_df$exp[which(! agr_df$inCluster)], alternative = "greater")$p.value
+    # p = kruskal.test(x = agr_df$exp, g = agr_df$inCluster, alternative = "greater")$p.value
+    print(head(agr_df))
+    
+    # Cohen's d
+    print(cluster)
+    test= effsize::cohen.d(agr_df$exp, factor(as.character(agr_df$inCluster), levels = c("TRUE", "FALSE")))
+    
+    d=test$estimate
+    up=test$conf.int[2]
+    down = test$conf.int[1]
+    mag=test$magnitude
+    mag_pos=mag
+    mag_pos[which(d < 0)] = "negligible"
+    
+    d_df = rbind(d_df, data.frame(cluster, mag, mag_pos, d, up, down, p))
+    per_cluster_df = rbind(per_cluster_df, data.frame(cluster, agr_df$exp[which(agr_df$inCluster == "TRUE")], p, mag_pos))
+  }
+  
+  d_df$p_val_adj = p.adjust(d_df$p, method = "bonferroni")
+  d_df$cluster = factor(d_df$cluster, levels = 0:14)
+  p1  = ggplot(d_df, aes(cluster, d, color=mag, fill = mag)) + geom_pointrange(aes(ymin = down, ymax = up)) + ylab("Cohen's d") + ggtitle("Effect Size in Clusters")
+  
+  colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp", "p", "mag_pos")
+  per_cluster_df$avg_cluster_exp = as.numeric(as.vector(per_cluster_df$avg_cluster_exp))
+  per_cluster_df$p_val_adj = unlist(sapply(1:15, function(x) rep(d_df$p_val_adj[which(d_df$cluster == (x-1))], length(which(per_cluster_df$cluster == (x-1)))) ))
+  per_cluster_df$star = ifelse(per_cluster_df$p_val_adj < 0.001, "***",
+                               ifelse(per_cluster_df$p_val_adj < 0.01, "**",
+                                      ifelse(per_cluster_df$p_val_adj < 0.05, "*", "")))
+  per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = 0:14)
+  per_cluster_df$mag_pos = factor(per_cluster_df$mag_pos, levels = c("negligible", "small", "medium", "large"))
+  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=mag_pos, color=mag_pos)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.05) + xlab("Cluster") + ylab("") + ggtitle(title_str) + scale_color_viridis(discrete = T,drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size") + scale_fill_viridis(discrete = T, drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size")
+  
+  print(head(per_cluster_df[which(per_cluster_df$cluster == 0),]))
+  
+  return(list(p, p1, d_df, agr_df))
+}
+
+
 markerExpPerCellPerClusterQuick = function(obj, markers) {
   #' Same as markerExpPerCellPerCluster using the default settings and using some shortcuts
   # Defaults from original function
@@ -1315,7 +1418,7 @@ markerExpPerCellPerClusterQuick = function(obj, markers) {
 
   print(head(per_cluster_df[which(per_cluster_df$cluster == 0),]))
 
-  return(list(p, p1, d_df))
+  return(list(p, p1, d_df, per_cluster_df))
 }
 
 markerExpPerCellPerCluster = function(obj, markers, myslot="counts", n_markers=T, correct=T) {
