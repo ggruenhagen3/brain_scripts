@@ -3630,8 +3630,17 @@ nrow(cluster_deg[which(cluster_deg$q < 0.05),])
 all_coef = read.csv("C:/Users/miles/Downloads/scgnn_bin_pred_coef.csv")
 all_coef_melt = melt(all_coef)
 all_coef$mean = rowMeans(all_coef[2:ncol(all_coef)])
+all_coef$stderr = sapply(1:nrow(all_coef), function(x) sd(all_coef[x, 2:ncol(all_coef)]/sqrt(length(ncol(all_coef)-1))) )
+# all_coef_p = sapply(all_coef$X, function(x) t.test(all_coef_melt$value[which(all_coef_melt$X == x)], all_coef_melt$value[which(all_coef_melt$X != x)])$p.value )
+all_coef_p = 2*pnorm(-abs(scale(all_coef$mean)))
+all_coef_bh = p.adjust(all_coef_p, method = "BH")
+names(all_coef_p) = names(all_coef_bh) = all_coef$X
+sort(all_coef_p[which(all_coef_p < 0.05)])
+sort(all_coef_bh[which(all_coef_bh < 0.05)])
 head(all_coef[order(all_coef$mean, decreasing = T), c("X", "mean")])
+all_coef[match(names(sort(all_coef_bh[which(all_coef_bh < 0.05)])), all_coef$X), c("X", "mean", "stderr")]
 hist(all_coef$mean, breaks = 50)
+
 
 all_coef_melt$X = factor(all_coef_melt$X, levels = all_coef$X[order(abs(all_coef$mean), decreasing = T)])
 ggplot(all_coef_melt[which(all_coef_melt$X %in% all_coef$X[order(abs(all_coef$mean), decreasing = T)[1:50]]),], aes(x = X, y = value, color = X, fill = X)) + geom_boxplot(alpha = 0.7) + geom_point(alpha = 0.2, position = position_jitter()) + theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("Importance to Model")
@@ -4707,6 +4716,23 @@ ggplot(test_df, aes(x = subsample, y = asic4, color = subsample)) + geom_boxplot
 
 imp_cor = sapply(colnames(t_imp_mat2), function(x) cor(t_imp_mat2[,x], bb$depth_adj))
 
+cor_df = data.frame(gene = colnames(imp_mat2), cor_counts = 0, cor_data = 0, row.names = colnames(imp_mat2))
+for (gene in colnames(imp_mat2)) {
+  print(gene)
+  cor_df[gene, "cor_counts"] = cor(bb@assays$RNA@counts[gene,], imp_mat2[,gene])
+  cor_df[gene, "cor_data"] = cor(bb@assays$RNA@data[gene,], imp_mat2[,gene])
+}
+cor_df[which(is.na(cor_df$cor_counts) | is.na(cor_df$cor_data)), c("cor_counts", "cor_data")] = 0
+ggplot(cor_df, aes(cor_counts, cor_data, color = cor_counts)) + geom_point() + scale_color_gradientn(colors = plasma(100))
+
+sum_df = data.frame(gene = colnames(imp_mat2), count_sum = 0, data_sum = 0, imp_sum = 0, row.names = colnames(imp_mat2))
+sum_df$count_sum = rowSums(bb@assays$RNA@counts[colnames(imp_mat2),])
+sum_df$data_sum = rowSums(bb@assays$RNA@data[colnames(imp_mat2),])
+sum_df$imp_sum = colSums(imp_mat2[,colnames(imp_mat2)])
+ggplot(sum_df, aes(count_sum, imp_sum, color = count_sum)) + geom_point() + scale_color_gradientn(colors = plasma(100)) + xlab("Sum Counts") + ylab("Sum Imputed")
+ggplot(sum_df, aes(data_sum, imp_sum, color = data_sum)) + geom_point() + scale_color_gradientn(colors = plasma(100)) + xlab("Sum Data") + ylab("Sum Imputed")
+
+
 #****************************************************************************
 # Z-Test Random Genes =======================================================
 #****************************************************************************
@@ -4876,3 +4902,636 @@ write.csv(pcrc_thresh, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin_df
 
 pcrc = sort(unique(rc$GENE_NAME[which(rc$GENE_NAME %in% pc$GENE_NAME)]))
 write.csv(pcrc, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak.csv")
+
+#*******************************************************************************
+# Zack Models for IEG, Neurogen, and PCRC ======================================
+#*******************************************************************************
+ieg_dir = "C:/Users/miles/Downloads/ieg_real_vs_random_final/ieg_real_vs_random_final/"
+ieg_dir15  = paste0(ieg_dir, "bb15/")
+ieg_dir53  = paste0(ieg_dir, "bb53/")
+ieg_dirgoi = paste0(ieg_dir, "by_goi/")
+
+neurogen_dir = "C:/Users/miles/Downloads/neurogen_real_vs_random_final/"
+neurogen_dir15  = paste0(neurogen_dir, "bb15/")
+neurogen_dir53  = paste0(neurogen_dir, "bb53/")
+neurogen_dirgoi = paste0(neurogen_dir, "by_goi/")
+
+dirgoi = paste0(zdir, "by_goi/")
+pcrc_dir = "C:/Users/miles/Downloads/pcrc_real_vs_random_final/"
+pcrc_dir15  = paste0(dirgoi, "bb15/")
+pcrc_dir53  = paste0(dirgoi, "bb53/")
+pcrc_dirgoi = paste0(dirgoi, "by_goi/")
+
+ieg_zdf15      = analyze15Dir(ieg_dir15)
+neurogen_zdf15 = analyze15Dir(neurogen_dir15)
+pcrc_zdf15     = analyze15Dir(pcrc_dir15)
+
+ieg_zdf53      = analyze53Dir(ieg_dir53)
+neurogen_zdf53 = analyze53Dir(neurogen_dir53)
+pcrc_zdf53     = analyze53Dir(pcrc_dir53)
+
+ieg_zdfgoi      = analyzegoiDir(ieg_dirgoi)
+neurogen_zdfgoi = analyzegoiDir(neurogen_dirgoi)
+pcrc_zdfgoi     = analyzegoiDir(pcrc_dirgoi)
+
+ieg_zdf15$list      = ieg_zdf53$list      = ieg_zdfgoi$list      = "ieg"
+neurogen_zdf15$list = neurogen_zdf53$list = neurogen_zdfgoi$list = "neurogen"
+pcrc_zdf15$list     = pcrc_zdf53$list     = pcrc_zdfgoi$list     = "pcrc"
+
+zdf15 = rbind(ieg_zdf15, neurogen_zdf15, pcrc_zdf15)
+zdf15 = reshape2::melt(zdf15)
+zdf15 = zdf15[which(zdf15$isReal == "real" & zdf15$variable %in% c("pct_sig", "neg_log_p_max", "neg_log_hmp")),]
+zdf15$thresh = plyr::revalue(zdf15$variable, replace = c("pct_sig" = "100", "neg_log_p_max" = as.character(-log10(0.05)), "neg_log_hmp" = as.character(-log10(0.05))))
+zdf15$thresh = as.numeric(as.vector(zdf15$thresh))
+zdf15$list_cluster_exp_cond = paste(zdf15$list, zdf15$cluster, zdf15$exp_cond)
+list_cluster_exp_cond_sig = sapply(unique(zdf15$list_cluster_exp_cond), function(x) { 
+  this_df = zdf15[which(zdf15$list_cluster_exp_cond == x),]
+  return(all(this_df$value >= this_df$thresh))
+})
+names(list_cluster_exp_cond_sig) = unique(zdf15$list_cluster_exp_cond)
+zdf15$isSig = list_cluster_exp_cond_sig[match(zdf15$list_cluster_exp_cond, names(list_cluster_exp_cond_sig))]
+my_pal = viridis(n = 3)
+pdf("C:/Users/miles/Downloads/bb15_all_lists_15.pdf", width = 15, height = 7)
+ggplot(zdf15, aes(x = cluster, y = value, shape = isSig, color = list, group = list)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_grid(variable ~ exp_cond, scales = "free") + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw()
+dev.off()
+
+zdf53 = rbind(ieg_zdf53, neurogen_zdf53, pcrc_zdf53)
+zdf53 = reshape2::melt(zdf53)
+zdf53 = zdf53[which(zdf53$isReal == "real" & zdf53$variable %in% c("pct_sig", "neg_log_p_max", "neg_log_hmp")),]
+zdf53$thresh = plyr::revalue(zdf53$variable, replace = c("pct_sig" = "100", "neg_log_p_max" = as.character(-log10(0.05)), "neg_log_hmp" = as.character(-log10(0.05))))
+zdf53$thresh = as.numeric(as.vector(zdf53$thresh))
+zdf53$list_cluster_exp_cond = paste(zdf53$list, zdf53$cluster, zdf53$exp_cond)
+list_cluster_exp_cond_sig = sapply(unique(zdf53$list_cluster_exp_cond), function(x) { 
+  this_df = zdf53[which(zdf53$list_cluster_exp_cond == x),]
+  return(all(this_df$value >= this_df$thresh))
+})
+names(list_cluster_exp_cond_sig) = unique(zdf53$list_cluster_exp_cond)
+zdf53$isSig = list_cluster_exp_cond_sig[match(zdf53$list_cluster_exp_cond, names(list_cluster_exp_cond_sig))]
+zdf53$group = paste(zdf53$list, zdf53$exp_cond)
+my_pal = viridis(n = 3)
+pdf("C:/Users/miles/Downloads/bb53_all_lists_bower_53.pdf", width = 15, height = 7)
+ggplot(zdf53[which(zdf53$exp_cond == "bower"),], aes(x = cluster, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/bb53_all_lists_cond_53.pdf", width = 15, height = 7)
+ggplot(zdf53[which(zdf53$exp_cond == "condition"),], aes(x = cluster, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/bb53_all_lists_bai_53.pdf", width = 15, height = 7)
+ggplot(zdf53[which(zdf53$exp_cond == "bower activity index"),], aes(x = cluster, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/bb53_all_lists_gsi_53.pdf", width = 15, height = 7)
+ggplot(zdf53[which(zdf53$exp_cond == "gsi"),], aes(x = cluster, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/bb53_all_lists_spawn_53.pdf", width = 15, height = 7)
+ggplot(zdf53[which(zdf53$exp_cond == "spawn"),], aes(x = cluster, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw()
+dev.off()
+
+zdfgoi = rbind(ieg_zdfgoi, neurogen_zdfgoi, pcrc_zdfgoi)
+zdfgoi = reshape2::melt(zdfgoi)
+zdfgoi = zdfgoi[which(zdfgoi$isReal == "real" & zdfgoi$variable %in% c("pct_sig", "neg_log_p_max", "neg_log_hmp")),]
+zdfgoi$thresh = plyr::revalue(zdfgoi$variable, replace = c("pct_sig" = "100", "neg_log_p_max" = as.character(-log10(0.05)), "neg_log_hmp" = as.character(-log10(0.05))))
+zdfgoi$thresh = as.numeric(as.vector(zdfgoi$thresh))
+zdfgoi$list_mzebra_exp_cond = paste(zdfgoi$list, zdfgoi$mzebra, zdfgoi$exp_cond)
+list_mzebra_exp_cond_sig = sapply(unique(zdfgoi$list_mzebra_exp_cond), function(x) { 
+  this_df = zdfgoi[which(zdfgoi$list_mzebra_exp_cond == x),]
+  return(all(this_df$value >= this_df$thresh))
+})
+names(list_mzebra_exp_cond_sig) = unique(zdfgoi$list_mzebra_exp_cond)
+zdfgoi$isSig = list_mzebra_exp_cond_sig[match(zdfgoi$list_mzebra_exp_cond, names(list_mzebra_exp_cond_sig))]
+zdfgoi$group = paste(zdfgoi$list, zdfgoi$exp_cond)
+my_pal = viridis(n = 3)
+pdf("C:/Users/miles/Downloads/bbgoi_all_lists_bower_goi.pdf", width = 25, height = 7)
+ggplot(zdfgoi[which(zdfgoi$exp_cond == "bower"),], aes(x = mzebra, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+pdf("C:/Users/miles/Downloads/bbgoi_all_lists_cond_goi.pdf", width = 25, height = 7)
+ggplot(zdfgoi[which(zdfgoi$exp_cond == "condition"),], aes(x = mzebra, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+pdf("C:/Users/miles/Downloads/bbgoi_all_lists_bai_goi.pdf", width = 25, height = 7)
+ggplot(zdfgoi[which(zdfgoi$exp_cond == "bower activity index"),], aes(x = mzebra, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+pdf("C:/Users/miles/Downloads/bbgoi_all_lists_gsi_goi.pdf", width = 25, height = 7)
+ggplot(zdfgoi[which(zdfgoi$exp_cond == "gsi"),], aes(x = mzebra, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+pdf("C:/Users/miles/Downloads/bbgoi_all_lists_spawn_goi.pdf", width = 25, height = 7)
+ggplot(zdfgoi[which(zdfgoi$exp_cond == "spawn"),], aes(x = mzebra, y = value, shape = isSig, color = list, group = group)) + geom_point(aes(alpha = isSig, size = isSig)) + geom_line(alpha = 0.8) + scale_alpha_manual(values = c(0.6, 0.9)) + scale_size_manual(values = c(2, 2.3)) + scale_shape_manual(values = c(1, 19)) + scale_color_manual(values = my_pal) + xlab("") + facet_wrap(~ variable, scales = "free", ncol = 1) + geom_hline(aes(yintercept = thresh), linetype = "dashed", color = "gray40") + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+
+analyze15Dir = function(dir15) {
+  zdf15 = data.frame()
+  for (f in list.files(dir15)) {
+    zdf = read.csv(paste0(dir15, f))
+    zdf_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm"))]
+    zdf$num_sig = rowSums( zdf[, zdf_p_names] < 0.05 )
+    zdf$pct_sig = (zdf$num_sig / length(zdf_p_names)) * 100
+    zdf$p_max = sapply(1:nrow(zdf), function(x) max(zdf[x, zdf_p_names]) )
+    zdf$isReal = "none"
+    zdf$exp_cond = "none"
+    
+    # Real v Ran 1 v Ran 2
+    if      (grepl("rand1", f)) { zdf$isReal = "rand1" } 
+    else if (grepl("rand2", f)) { zdf$isReal = "rand2" } 
+    else                        { zdf$isReal = "real"  }
+    
+    # Experimental Condition
+    if      (grepl("bower", f)) { zdf$exp_cond = "bower" }
+    else if (grepl("gsi", f))   { zdf$exp_cond = "gsi"   }
+    else if (grepl("spawn", f)) { zdf$exp_cond = "spawn" }
+    else                        { print("ERROR")         }
+    
+    if(zdf$exp_cond[1] == "bower") { zdf$hmp = zdf$hmp_bower_all }
+    
+    zdf15 = rbind(zdf15, zdf[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    
+    # Split Bower into Cond and BAI
+    if (zdf$exp_cond[1] == "bower") {
+      zdf_cond_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_cond"))]
+      zdf_bai_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_bower_activity"))]
+      
+      zdf_cond = zdf
+      zdf_cond$exp_cond = "condition"
+      zdf_bai = zdf
+      zdf_bai$exp_cond = "bower activity index"
+      
+      zdf_cond$num_sig = rowSums( zdf[, zdf_cond_p_names] < 0.05 )
+      zdf_cond$pct_sig = (zdf_cond$num_sig / length(zdf_cond_p_names)) * 100
+      zdf_cond$p_max = sapply(1:nrow(zdf_cond), function(x) max(zdf_cond[x, zdf_cond_p_names]) )
+      zdf_cond$hmp = zdf_cond$hmp_cond
+      
+      zdf_bai$num_sig = rowSums( zdf[, zdf_bai_p_names] < 0.05 )
+      zdf_bai$pct_sig = (zdf_bai$num_sig / length(zdf_bai_p_names)) * 100
+      zdf_bai$p_max = sapply(1:nrow(zdf_bai), function(x) max(zdf_bai[x, zdf_bai_p_names]) )
+      zdf_bai$hmp = zdf_bai$hmp_cond
+      
+      zdf15 = rbind(zdf15, zdf_cond[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+      zdf15 = rbind(zdf15, zdf_bai[ ,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    }
+  }
+  
+  zdf15$neg_log_p_max = -log10(zdf15$p_max)
+  zdf15$neg_log_hmp = -log10(zdf15$hmp)
+  zdf15$cluster = factor(zdf15$cluster, levels = unique(zdf15$cluster))
+  zdf15$isReal = factor(zdf15$isReal, levels = c("real", "rand1", "rand2"))
+  zdf15$group = paste(zdf15$isReal, zdf15$exp_cond)
+  return(zdf15)
+}
+
+analyze53Dir = function(dir53) {
+  
+  zdf53 = data.frame()
+  for (f in list.files(dir53)) {
+    zdf = read.csv(paste0(dir53, f))
+    zdf_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm"))]
+    zdf$num_sig = rowSums( zdf[, zdf_p_names] < 0.05 )
+    zdf$pct_sig = (zdf$num_sig / length(zdf_p_names)) * 100
+    zdf$p_max = sapply(1:nrow(zdf), function(x) max(zdf[x, zdf_p_names]) )
+    zdf$isReal = "none"
+    zdf$exp_cond = "none"
+    
+    # Real v Ran 1 v Ran 2
+    if      (grepl("rand1", f)) { zdf$isReal = "rand1" } 
+    else if (grepl("rand2", f)) { zdf$isReal = "rand2" } 
+    else                        { zdf$isReal = "real"  }
+    
+    # Experimental Condition
+    if      (grepl("bower", f)) { zdf$exp_cond = "bower" }
+    else if (grepl("gsi", f))   { zdf$exp_cond = "gsi"   }
+    else if (grepl("spawn", f)) { zdf$exp_cond = "spawn" }
+    else                        { print("ERROR")         }
+    
+    # zdf$hmp = zdf[, which(startsWith(colnames(zdf), "hmp")[1])]
+    if(zdf$exp_cond[1] == "bower") { zdf$hmp = zdf$hmp_bower_all }
+    
+    zdf53 = rbind(zdf53, zdf[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    
+    # Split Bower into Cond and BAI
+    if (zdf$exp_cond[1] == "bower") {
+      zdf_cond_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_cond"))]
+      zdf_bai_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_bower_activity"))]
+      
+      zdf_cond = zdf
+      zdf_cond$exp_cond = "condition"
+      zdf_bai = zdf
+      zdf_bai$exp_cond = "bower activity index"
+      
+      zdf_cond$num_sig = rowSums( zdf[, zdf_cond_p_names] < 0.05 )
+      zdf_cond$pct_sig = (zdf_cond$num_sig / length(zdf_cond_p_names)) * 100
+      zdf_cond$p_max = sapply(1:nrow(zdf_cond), function(x) max(zdf_cond[x, zdf_cond_p_names]) )
+      zdf_cond$hmp = zdf_cond$hmp_cond
+      
+      zdf_bai$num_sig = rowSums( zdf[, zdf_bai_p_names] < 0.05 )
+      zdf_bai$pct_sig = (zdf_bai$num_sig / length(zdf_bai_p_names)) * 100
+      zdf_bai$p_max = sapply(1:nrow(zdf_bai), function(x) max(zdf_bai[x, zdf_bai_p_names]) )
+      zdf_bai$hmp = zdf_bai$hmp_cond
+      
+      zdf53 = rbind(zdf53, zdf_cond[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+      zdf53 = rbind(zdf53, zdf_bai[ ,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    }
+  }
+  
+  zdf53$neg_log_p_max = -log10(zdf53$p_max)
+  zdf53$neg_log_hmp = -log10(zdf53$hmp)
+  zdf53$cluster = factor(zdf53$cluster, levels = unique(zdf53$cluster))
+  zdf53$isReal = factor(zdf53$isReal, levels = c("real", "rand1", "rand2"))
+  zdf53$group = paste(zdf53$isReal, zdf53$exp_cond)
+  return(zdf53)
+}
+
+analyzegoiDir = function(dirgoi) {
+  zdfgoi = data.frame()
+  for (f in list.files(dirgoi)) {
+    zdf = read.csv(paste0(dirgoi, f))
+    zdf_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm"))]
+    zdf$num_sig = rowSums( zdf[, zdf_p_names] < 0.05 )
+    zdf$pct_sig = (zdf$num_sig / length(zdf_p_names)) * 100
+    zdf$p_max = sapply(1:nrow(zdf), function(x) max(zdf[x, zdf_p_names]) )
+    zdf$isReal = "none"
+    zdf$exp_cond = "none"
+    zdf$human = zdf$goi
+    
+    # Real v Ran 1 v Ran 2
+    if      (grepl("rand1", f)) { zdf$isReal = "rand1" }
+    else if (grepl("rand2", f)) { zdf$isReal = "rand2" }
+    else                        { zdf$isReal = "real"  }
+    
+    # Experimental Condition
+    if      (grepl("bower", f)) { zdf$exp_cond = "bower" }
+    else if (grepl("gsi", f))   { zdf$exp_cond = "gsi"   }
+    else if (grepl("spawn", f)) { zdf$exp_cond = "spawn" }
+    else                        { print("ERROR")         }
+    
+    # zdf$hmp = zdf[, which(startsWith(colnames(zdf), "hmp")[1])]
+    if(zdf$exp_cond[1] == "bower") { zdf$hmp = zdf$hmp_bower_all }
+    
+    zdfgoi = rbind(zdfgoi, zdf[,c('exp_cond', 'isReal', 'mzebra', 'human', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    
+    # Split Bower into Cond and BAI
+    if (zdf$exp_cond[1] == "bower") {
+      zdf_cond_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_cond"))]
+      zdf_bai_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_bower_activity"))]
+      
+      zdf_cond = zdf
+      zdf_cond$exp_cond = "condition"
+      zdf_bai = zdf
+      zdf_bai$exp_cond = "bower activity index"
+      
+      zdf_cond$num_sig = rowSums( zdf[, zdf_cond_p_names] < 0.05 )
+      zdf_cond$pct_sig = (zdf_cond$num_sig / length(zdf_cond_p_names)) * 100
+      zdf_cond$p_max = sapply(1:nrow(zdf_cond), function(x) max(zdf_cond[x, zdf_cond_p_names]) )
+      zdf_cond$hmp = zdf_cond$hmp_cond
+      
+      zdf_bai$num_sig = rowSums( zdf[, zdf_bai_p_names] < 0.05 )
+      zdf_bai$pct_sig = (zdf_bai$num_sig / length(zdf_bai_p_names)) * 100
+      zdf_bai$p_max = sapply(1:nrow(zdf_bai), function(x) max(zdf_bai[x, zdf_bai_p_names]) )
+      zdf_bai$hmp = zdf_bai$hmp_cond
+      
+      zdfgoi = rbind(zdfgoi, zdf_cond[,c('exp_cond', 'isReal', 'mzebra', 'human', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+      zdfgoi = rbind(zdfgoi, zdf_bai[ ,c('exp_cond', 'isReal', 'mzebra', 'human', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    }
+  }
+  
+  zdfgoi$goi = zdfgoi$mzebra
+  zdfgoi$neg_log_p_max = -log10(zdfgoi$p_max)
+  zdfgoi$neg_log_hmp = -log10(zdfgoi$hmp)
+  zdfgoi$goi = factor(zdfgoi$goi, levels = sort(unique(zdfgoi$goi)))
+  zdfgoi$isReal = factor(zdfgoi$isReal, levels = c("real", "rand1", "rand2"))
+  zdfgoi$group = paste(zdfgoi$isReal, zdfgoi$exp_cond)
+  zdfgoi = zdfgoi[order(zdfgoi$isReal, decreasing = T),]
+  return(zdfgoi)
+}
+
+# Help Zack
+# zdir = "C:/Users/miles/Downloads/ieg_real_vs_random_final/ieg_real_vs_random_final/"
+# zdir = "C:/Users/miles/Downloads/neurogen_real_vs_random_final/"
+zdir = "C:/Users/miles/Downloads/pcrc_real_vs_random_final/"
+dir15  = paste0(zdir, "bb15/")
+dir53  = paste0(zdir, "bb53/")
+dirgoi = paste0(zdir, "by_goi/")
+
+zdf15 = data.frame()
+for (f in list.files(dir15)) {
+  zdf = read.csv(paste0(dir15, f))
+  zdf_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm"))]
+  zdf$num_sig = rowSums( zdf[, zdf_p_names] < 0.05 )
+  zdf$pct_sig = (zdf$num_sig / length(zdf_p_names)) * 100
+  zdf$p_max = sapply(1:nrow(zdf), function(x) max(zdf[x, zdf_p_names]) )
+  zdf$isReal = "none"
+  zdf$exp_cond = "none"
+  
+  # Real v Ran 1 v Ran 2
+  if      (grepl("rand1", f)) { zdf$isReal = "rand1" } 
+  else if (grepl("rand2", f)) { zdf$isReal = "rand2" } 
+  else                        { zdf$isReal = "real"  }
+  
+  # Experimental Condition
+  if      (grepl("bower", f)) { zdf$exp_cond = "bower" }
+  else if (grepl("gsi", f))   { zdf$exp_cond = "gsi"   }
+  else if (grepl("spawn", f)) { zdf$exp_cond = "spawn" }
+  else                        { print("ERROR")         }
+  
+  # zdf$hmp = zdf[, which(startsWith(colnames(zdf), "hmp")[1])]
+  if(zdf$exp_cond[1] == "bower") { zdf$hmp = zdf$hmp_bower_all }
+  
+  zdf15 = rbind(zdf15, zdf[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+  
+  # Split Bower into Cond and BAI
+  if (zdf$exp_cond[1] == "bower") {
+    zdf_cond_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_cond"))]
+    zdf_bai_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_bower_activity"))]
+    
+    zdf_cond = zdf
+    zdf_cond$exp_cond = "condition"
+    zdf_bai = zdf
+    zdf_bai$exp_cond = "bower activity index"
+    
+    zdf_cond$num_sig = rowSums( zdf[, zdf_cond_p_names] < 0.05 )
+    zdf_cond$pct_sig = (zdf_cond$num_sig / length(zdf_cond_p_names)) * 100
+    zdf_cond$p_max = sapply(1:nrow(zdf_cond), function(x) max(zdf_cond[x, zdf_cond_p_names]) )
+    zdf_cond$hmp = zdf_cond$hmp_cond
+    
+    zdf_bai$num_sig = rowSums( zdf[, zdf_bai_p_names] < 0.05 )
+    zdf_bai$pct_sig = (zdf_bai$num_sig / length(zdf_bai_p_names)) * 100
+    zdf_bai$p_max = sapply(1:nrow(zdf_bai), function(x) max(zdf_bai[x, zdf_bai_p_names]) )
+    zdf_bai$hmp = zdf_bai$hmp_cond
+    
+    zdf15 = rbind(zdf15, zdf_cond[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    zdf15 = rbind(zdf15, zdf_bai[ ,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+  }
+}
+
+zdf15$neg_log_p_max = -log10(zdf15$p_max)
+zdf15$neg_log_hmp = -log10(zdf15$hmp)
+# zdf15$realSig = zdf15$isReal == "real" & 
+zdf15$cluster = factor(zdf15$cluster, levels = unique(zdf15$cluster))
+zdf15$isReal = factor(zdf15$isReal, levels = c("real", "rand1", "rand2"))
+zdf15$group = paste(zdf15$isReal, zdf15$exp_cond)
+pdf("C:/Users/miles/Downloads/pcrc_bb15_p_max.pdf", width = 12, height = 10)
+ggplot(zdf15, aes(x = cluster, y = neg_log_p_max, shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab(expression(-Log["10"]*" Max P")) + facet_wrap(~ exp_cond, ncol = 2) + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrc_bb15_hmp.pdf", width = 12, height = 10)
+ggplot(zdf15, aes(x = cluster, y = neg_log_hmp,   shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab(expression(-Log["10"]*" HMP")) + facet_wrap(~ exp_cond, ncol = 2) + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrc_bb15_pct_sig.pdf", width = 12, height = 10)
+ggplot(zdf15, aes(x = cluster, y = pct_sig,       shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab("Percent of Significant Models") + facet_wrap(~ exp_cond, ncol = 2) + theme_bw() + scale_y_continuous(limits = c(0, 100))
+dev.off()
+
+zdf15_heat = data.frame()
+for (ec in c("bower", "condition", "bower activity index", "gsi", "spawn")) {
+  for (cluster in levels(zdf15$cluster)) {
+    this_df = zdf15[which(zdf15$exp_cond == ec & zdf15$cluster == cluster),]
+    
+    zdf15_heat = rbind(zdf15_heat, data.frame(ec = ec, cluster = cluster, sig = this_df$hmp[which(this_df$isReal == "real")] < 0.05 & this_df$pct_sig[which(this_df$isReal == "real")] == 100 & this_df$pct_sig[which(this_df$isReal == "rand1")] < 100 & this_df$pct_sig[which(this_df$isReal == "rand2")] < 100 ))
+  }
+}
+zdf15_heat$cluster = as.numeric(zdf15_heat$cluster)
+zdf15_heat = acast(data = zdf15_heat, formula = ec ~ cluster) * 1
+pheatmap::pheatmap(zdf15_heat, cluster_rows = F, cluster_cols = F, color = viridis(100), angle_col = 0, filename = "C:/Users/miles/Downloads/pcrc_bb15_binary.pdf", cellwidth = 25, cellheight = 25, legend = F)
+
+
+zdf53 = data.frame()
+for (f in list.files(dir53)) {
+  zdf = read.csv(paste0(dir53, f))
+  zdf_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_"))]
+  zdf$num_sig = rowSums( zdf[, zdf_p_names] < 0.05 )
+  zdf$pct_sig = (zdf$num_sig / length(zdf_p_names)) * 100
+  zdf$p_max = sapply(1:nrow(zdf), function(x) max(zdf[x, zdf_p_names]) )
+  zdf$isReal = "none"
+  zdf$exp_cond = "none"
+  
+  # Real v Ran 1 v Ran 2
+  if      (grepl("rand1", f)) { zdf$isReal = "rand1" } 
+  else if (grepl("rand2", f)) { zdf$isReal = "rand2" } 
+  else                        { zdf$isReal = "real"  }
+  
+  # Experimental Condition
+  if      (grepl("bower", f)) { zdf$exp_cond = "bower" }
+  else if (grepl("gsi", f))   { zdf$exp_cond = "gsi"   }
+  else if (grepl("spawn", f)) { zdf$exp_cond = "spawn" }
+  else                        { print("ERROR")         }
+  
+  # zdf$hmp = zdf[, which(startsWith(colnames(zdf), "hmp")[1])]
+  if(zdf$exp_cond[1] == "bower") { zdf$hmp = zdf$hmp_bower_all }
+  
+  zdf53 = rbind(zdf53, zdf[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+  
+  # Split Bower into Cond and BAI
+  if (zdf$exp_cond[1] == "bower") {
+    zdf_cond_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_cond"))]
+    zdf_bai_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_bower_activity"))]
+    
+    zdf_cond = zdf
+    zdf_cond$exp_cond = "condition"
+    zdf_bai = zdf
+    zdf_bai$exp_cond = "bower activity index"
+    
+    zdf_cond$num_sig = rowSums( zdf[, zdf_cond_p_names] < 0.05 )
+    zdf_cond$pct_sig = (zdf_cond$num_sig / length(zdf_cond_p_names)) * 100
+    zdf_cond$p_max = sapply(1:nrow(zdf_cond), function(x) max(zdf_cond[x, zdf_cond_p_names]) )
+    zdf_cond$hmp = zdf_cond$hmp_cond
+    
+    zdf_bai$num_sig = rowSums( zdf[, zdf_bai_p_names] < 0.05 )
+    zdf_bai$pct_sig = (zdf_bai$num_sig / length(zdf_bai_p_names)) * 100
+    zdf_bai$p_max = sapply(1:nrow(zdf_bai), function(x) max(zdf_bai[x, zdf_bai_p_names]) )
+    zdf_bai$hmp = zdf_bai$hmp_cond
+    
+    zdf53 = rbind(zdf53, zdf_cond[,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    zdf53 = rbind(zdf53, zdf_bai[ ,c('exp_cond', 'isReal', 'cluster', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+  }
+}
+
+zdf53$neg_log_p_max = -log10(zdf53$p_max)
+zdf53$neg_log_hmp = -log10(zdf53$hmp)
+zdf53$cluster = factor(zdf53$cluster, levels = unique(zdf53$cluster))
+zdf53$isReal = factor(zdf53$isReal, levels = c("real", "rand1", "rand2"))
+zdf53$group = paste(zdf53$isReal, zdf53$exp_cond)
+pdf("C:/Users/miles/Downloads/pcrc_bb53_p_max.pdf", width = 20, height = 10)
+ggplot(zdf53, aes(x = cluster, y = neg_log_p_max, shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab(expression(-Log["10"]*" Max P")) + facet_wrap(~ exp_cond, ncol = 2) + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrc_bb53_hmp.pdf", width = 20, height = 10)
+ggplot(zdf53, aes(x = cluster, y = neg_log_hmp,   shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab(expression(-Log["10"]*" HMP")) + facet_wrap(~ exp_cond, ncol = 2) + theme_bw()
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrc_bb53_pct_sig.pdf", width = 20, height = 10)
+ggplot(zdf53, aes(x = cluster, y = pct_sig,       shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab("Percent of Significant Models") + facet_wrap(~ exp_cond, ncol = 2) + theme_bw() + scale_y_continuous(limits = c(0, 100))
+dev.off()
+
+zdf53_heat = data.frame()
+for (ec in c("bower", "condition", "bower activity index", "gsi", "spawn")) {
+  for (cluster in levels(zdf53$cluster)) {
+    this_df = zdf53[which(zdf53$exp_cond == ec & zdf53$cluster == cluster),]
+    
+    zdf53_heat = rbind(zdf53_heat, data.frame(ec = ec, cluster = cluster, sig = this_df$hmp[which(this_df$isReal == "real")] < 0.05 & this_df$pct_sig[which(this_df$isReal == "real")] == 100 & this_df$pct_sig[which(this_df$isReal == "rand1")] < 100 & this_df$pct_sig[which(this_df$isReal == "rand2")] < 100 ))
+  }
+}
+zdf53_heat$cluster = as.numeric(zdf53_heat$cluster)
+zdf53_heat = acast(data = zdf53_heat, formula = ec ~ cluster) * 1
+pheatmap::pheatmap(zdf53_heat, cluster_rows = F, cluster_cols = F, color = viridis(100), angle_col = 0, filename = "C:/Users/miles/Downloads/pcrc_bb53_binary.pdf", cellwidth = 25, cellheight = 25, legend = F)
+
+
+zdfgoi = data.frame()
+for (f in list.files(dirgoi)) {
+  zdf = read.csv(paste0(dirgoi, f))
+  zdf_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_"))]
+  zdf$num_sig = rowSums( zdf[, zdf_p_names] < 0.05 )
+  zdf$pct_sig = (zdf$num_sig / length(zdf_p_names)) * 100
+  zdf$p_max = sapply(1:nrow(zdf), function(x) max(zdf[x, zdf_p_names]) )
+  zdf$isReal = "none"
+  zdf$exp_cond = "none"
+  zdf$human = zdf$goi
+
+  # Real v Ran 1 v Ran 2
+  if      (grepl("rand1", f)) { zdf$isReal = "rand1" }
+  else if (grepl("rand2", f)) { zdf$isReal = "rand2" }
+  else                        { zdf$isReal = "real"  }
+
+  # Experimental Condition
+  if      (grepl("bower", f)) { zdf$exp_cond = "bower" }
+  else if (grepl("gsi", f))   { zdf$exp_cond = "gsi"   }
+  else if (grepl("spawn", f)) { zdf$exp_cond = "spawn" }
+  else                        { print("ERROR")         }
+
+  # zdf$hmp = zdf[, which(startsWith(colnames(zdf), "hmp")[1])]
+  if(zdf$exp_cond[1] == "bower") { zdf$hmp = zdf$hmp_bower_all }
+
+  zdfgoi = rbind(zdfgoi, zdf[,c('exp_cond', 'isReal', 'mzebra', 'human', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+  
+  # Split Bower into Cond and BAI
+  if (zdf$exp_cond[1] == "bower") {
+    zdf_cond_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_cond"))]
+    zdf_bai_p_names = colnames(zdf)[which(startsWith(colnames(zdf), "p_bbmm_bower_activity"))]
+    
+    zdf_cond = zdf
+    zdf_cond$exp_cond = "condition"
+    zdf_bai = zdf
+    zdf_bai$exp_cond = "bower activity index"
+    
+    zdf_cond$num_sig = rowSums( zdf[, zdf_cond_p_names] < 0.05 )
+    zdf_cond$pct_sig = (zdf_cond$num_sig / length(zdf_cond_p_names)) * 100
+    zdf_cond$p_max = sapply(1:nrow(zdf_cond), function(x) max(zdf_cond[x, zdf_cond_p_names]) )
+    zdf_cond$hmp = zdf_cond$hmp_cond
+    
+    zdf_bai$num_sig = rowSums( zdf[, zdf_bai_p_names] < 0.05 )
+    zdf_bai$pct_sig = (zdf_bai$num_sig / length(zdf_bai_p_names)) * 100
+    zdf_bai$p_max = sapply(1:nrow(zdf_bai), function(x) max(zdf_bai[x, zdf_bai_p_names]) )
+    zdf_bai$hmp = zdf_bai$hmp_cond
+    
+    zdfgoi = rbind(zdfgoi, zdf_cond[,c('exp_cond', 'isReal', 'mzebra', 'human', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+    zdfgoi = rbind(zdfgoi, zdf_bai[ ,c('exp_cond', 'isReal', 'mzebra', 'human', 'num_sig', 'pct_sig', 'p_max', 'hmp')])
+  }
+}
+
+zdfgoi$goi = zdfgoi$mzebra
+zdfgoi$neg_log_p_max = -log10(zdfgoi$p_max)
+zdfgoi$neg_log_hmp = -log10(zdfgoi$hmp)
+zdfgoi$goi = factor(zdfgoi$goi, levels = sort(unique(zdfgoi$goi)))
+zdfgoi$isReal = factor(zdfgoi$isReal, levels = c("real", "rand1", "rand2"))
+zdfgoi$group = paste(zdfgoi$isReal, zdfgoi$exp_cond)
+zdfgoi = zdfgoi[order(zdfgoi$isReal, decreasing = T),]
+pdf("C:/Users/miles/Downloads/pcrc_bbgoi_p_max.pdf", width = 25, height = 10)
+ggplot(zdfgoi, aes(x = goi, y = neg_log_p_max, shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab(expression(-Log["10"]*" Max P")) + facet_wrap(~ exp_cond, ncol = 1) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrc_bbgoi_hmp.pdf", width = 25, height = 10)
+ggplot(zdfgoi, aes(x = goi, y = neg_log_hmp,   shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab(expression(-Log["10"]*" HMP")) + facet_wrap(~ exp_cond, ncol = 1) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrc_bbgoi_pct_sig.pdf", width = 25, height = 10)
+ggplot(zdfgoi, aes(x = goi, y = pct_sig,       shape = exp_cond, color = isReal, group = group)) + geom_point(size = 2) + geom_line() + scale_color_manual(values = c("blue", "gray50", "gray70")) + xlab("") + ylab("Percent of Significant Models") + facet_wrap(~ exp_cond, ncol = 1) + theme_bw() + scale_y_continuous(limits = c(0, 100)) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+dev.off()
+
+zdfgoi_heat = data.frame()
+incomplete_goi = c()
+for (ec in c("bower", "condition", "bower activity index", "gsi", "spawn")) {
+  for (goi in levels(zdfgoi$goi)) {
+    this_df = zdfgoi[which(zdfgoi$exp_cond == ec & zdfgoi$goi == goi),]
+    if (nrow(this_df) == 3)
+      zdfgoi_heat = rbind(zdfgoi_heat, data.frame(ec = ec, goi = goi, sig = this_df$hmp[which(this_df$isReal == "real")] < 0.05 & this_df$pct_sig[which(this_df$isReal == "real")] == 100 & this_df$pct_sig[which(this_df$isReal == "rand1")] < 100 & this_df$pct_sig[which(this_df$isReal == "rand2")] < 100 ))
+    else
+      incomplete_goi = c(incomplete_goi, goi)
+  }
+}
+zdfgoi_heat = acast(data = zdfgoi_heat, formula = ec ~ goi) * 1
+zdfgoi_heat = zdfgoi_heat[, which(colSums(zdfgoi_heat) > 0)]
+colnames(zdfgoi_heat) = paste0(colnames(zdfgoi_heat), " (", gene_info$human[match(colnames(zdfgoi_heat), gene_info$mzebra)], ")")
+pheatmap::pheatmap(zdfgoi_heat, cluster_rows = F, cluster_cols = F, color = viridis(100), angle_col = 45, filename = "C:/Users/miles/Downloads/pcrc_bbgoi_binary.pdf", cellwidth = 25, cellheight = 25, legend = F)
+
+
+zdf15_heat_ieg = read.csv("C:/Users/miles/Downloads/ieg_sum15.csv")
+zdf53_heat_ieg = read.csv("C:/Users/miles/Downloads/ieg_sum53.csv")
+zdfgoi_heat_ieg = read.csv("C:/Users/miles/Downloads/ieg_sumgoi.csv")
+zdf15_heat_ieg$X = paste("IEG: ", zdf15_heat_ieg$X)
+zdf53_heat_ieg$X = paste("IEG: ", zdf53_heat_ieg$X)
+zdfgoi_heat_ieg$X = paste("IEG: ", zdfgoi_heat_ieg$X)
+
+zdf15_heat_neurogen = read.csv("C:/Users/miles/Downloads/neurogen_sum15.csv")
+zdf53_heat_neurogen = read.csv("C:/Users/miles/Downloads/neurogen_sum53.csv")
+zdfgoi_heat_neurogen = read.csv("C:/Users/miles/Downloads/neurogen_sumgoi.csv")
+zdf15_heat_neurogen$X = paste("Neurogenesis: ", zdf15_heat_neurogen$X)
+zdf53_heat_neurogen$X = paste("Neurogenesis: ", zdf53_heat_neurogen$X)
+zdfgoi_heat_neurogen$X = paste("Neurogenesis: ", zdfgoi_heat_neurogen$X)
+
+zdf15_heat_pcrc = read.csv("C:/Users/miles/Downloads/pcrc_sum15.csv")
+zdf53_heat_pcrc = read.csv("C:/Users/miles/Downloads/pcrc_sum53.csv")
+zdfgoi_heat_pcrc = read.csv("C:/Users/miles/Downloads/pcrc_sumgoi.csv")
+zdf15_heat_pcrc$X = paste("FST: ", zdf15_heat_pcrc$X)
+zdf53_heat_pcrc$X = paste("FST: ", zdf53_heat_pcrc$X)
+zdfgoi_heat_pcrc$X = paste("FST: ", zdfgoi_heat_pcrc$X)
+
+sum15 = rbind(zdf15_heat_ieg, zdf15_heat_neurogen, zdf15_heat_pcrc)
+rownames(sum15) = sum15$X
+sum15$X = NULL
+colnames(sum15) = substr(colnames(sum15), 2, 100)
+pheatmap::pheatmap(sum15, cluster_rows = F, cluster_cols = F, color = viridis(100), angle_col = 0, filename = "C:/Users/miles/Downloads/sum_bb15_binary.pdf", cellwidth = 25, cellheight = 25, legend = F)
+
+sum53 = rbind(zdf53_heat_ieg, zdf53_heat_neurogen, zdf53_heat_pcrc)
+rownames(sum53) = sum53$X
+sum53$X = NULL
+colnames(sum53) = substr(colnames(sum53), 2, 100)
+pheatmap::pheatmap(sum53, cluster_rows = F, cluster_cols = F, color = viridis(100), angle_col = 0, filename = "C:/Users/miles/Downloads/sum_bb53_binary.pdf", cellwidth = 25, cellheight = 25, legend = F)
+
+sumgoi = rbind(zdfgoi_heat_ieg, zdfgoi_heat_neurogen, zdfgoi_heat_pcrc)
+rownames(sumgoi) = sumgoi$X
+sumgoi$X = NULL
+colnames(sumgoi) = paste0(colnames(sumgoi), " (", gene_info$human[match(colnames(sumgoi), gene_info$mzebra)], ")")
+# colnames(sumgoi) = str_replace(colnames(sumgoi), "\\..", " (")
+# colnames(sumgoi) = str_replace(colnames(sumgoi), "\\.", ")")
+sumgoi = sumgoi[, which(colSums(sumgoi) > 0)]
+# colnames(sumgoi)[ncol(sumgoi)] = "nkx2.1 (NKX2.1)"
+pheatmap::pheatmap(sumgoi, cluster_rows = F, cluster_cols = T, color = viridis(100), angle_col = 45, filename = "C:/Users/miles/Downloads/sum_bbgoi_binary.pdf", cellwidth = 25, cellheight = 25, legend = F)
+
+
+test = read.csv("C:/Users/miles/Downloads/doi_10.5061_dryad.8t8s248__v1/Moffitt_and_Bambah-Mukku_et_al_merfish_all_cells.csv")
+ran_lists = read.csv("C:/Users/miles/Downloads/pcrc_matched_exp_level_ran_lists_10k.csv")
+
+bb$rand1 = colSums(mat[as.character(ran_lists[2,]),])
+df = data.frame(value = c(bb$pcrc, bb$rand1), real = c(rep(T, ncol(bb)), rep(F, ncol(bb))))
+# ggplot(df, aes(x = value, color = real, fill = real)) + geom_density(alpha = 0.2)
+ggplot(df, aes(x = value, color = real, fill = real)) + geom_histogram(alpha = 0.2, position = 'identity', binwidth = 1) + ggtitle("Score")
+
+df = data.frame(value = c(colSums(bb@assays$RNA@counts[pcrc,]), colSums(bb@assays$RNA@counts[as.character(ran_lists[2,]),])), real = c(rep(T, ncol(bb)), rep(F, ncol(bb))))
+ggplot(df, aes(x = value, color = real, fill = real)) + geom_histogram(alpha = 0.2, position = 'identity', binwidth = 1) + ggtitle("Counts")
+
+library(ggExtra)
+i = 2
+df = data.frame(Counts = c(colSums(bb@assays$RNA@counts[pcrc,]), colSums(bb@assays$RNA@counts[as.character(ran_lists[i,]),])),
+                Score  = c(bb$pcrc, colSums(mat[as.character(ran_lists[i,]),])),
+                real = c(rep(T, ncol(bb)), rep(F, ncol(bb))))
+ggplot(df, aes(x = Counts, y = Score, color = real, fill = real)) + geom_jitter(alpha = 0.5, width = 0.2, height = 0.2) + ggtitle(paste0("Score vs Counts (i = ", i, ")"))
+# p = ggplot(df, aes(x = Counts, y = Score, color = real, fill = real)) + geom_point() + ggtitle(paste0("Score vs Counts (i = ", i, ")"))
+# ggExtra::ggMarginal(p, type = "histogram")
+
+fst = read.csv("C:/Users/miles/Downloads/pcrc_fst_file_for_george.csv")
+pcrc = read.csv("C:/Users/miles/Downloads/brain/data/markers/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
+fst$hasGene = F
+fst$hasPCRC = F
+bin_size = 10000
+gtf$lg = lgConverter(gtf$V1)
+gtf$gene_start_round = (floor(gtf$V4  / bin_size) * bin_size) + 1
+gtf$gene_end_round   = ceiling(gtf$V5 / bin_size) * bin_size
+for (i in 1:nrow(gtf)) {
+  if (i %% 1000 == 0)
+    cat(paste0(i, "."))
+  gene_start_round = gtf$gene_start_round[i]
+  gene_end_round = gtf$gene_end_round[i]
+  gene_bins = seq(gene_start_round, gene_end_round, by = bin_size)
+  gene_bins = paste0(gtf$lg[i], "_", gene_bins)
+  fst$hasGene[match(gene_bins, fst$bin)] = T
+  if(gtf$gene_name[i] %in% pcrc)
+    fst$hasPCRC[match(gene_bins, fst$bin)] = T
+}
+write.csv(fst, "C:/Users/miles/Downloads/pcrc_fst_file_for_zack.csv")
