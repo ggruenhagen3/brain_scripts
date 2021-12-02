@@ -3684,7 +3684,7 @@ permNeurogenCor = function(x, clust_level = "bulk", useNuc = T, num_genes = 51) 
   if (! is.numeric(num_genes) )          { print("num_genes must be numeric");  return(NULL); }
 
   # Create Permutation Gene Set
-  perm_genes = ran_lists[x]
+  perm_genes = ran_lists[[x]]
   
   # Calculate Score
   perm_score = colSums(mat[perm_genes,])
@@ -3731,28 +3731,38 @@ perm_df$isAbove = cor(bb$fst, bb$neurogen) > perm_df$perm_cor
 ggplot(perm_df, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
 perm_df_bulk_nuc_nonzero = perm_df
 
+pdf("~/scratch/brain/results/pcrc_neurogen_10k.pdf", width = 8, height = 5)
+ggplot(perm_df, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
+dev.off()
+
 # 10k Perm FST w/ Neurogen: Bulk, Subsample, NonZero
-perm_cors = unlist(mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = 'bulk', useNuc = F, num_genes = 51, useNonZero = F), mc.cores = 2 ))
+perm_cors = unlist(mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = 'bulk', useNuc = F, num_genes = 51), mc.cores = detectCores() ))
 perm_df = data.frame(perm_num = 1:num_perms, perm_cor = perm_cors)
 perm_df$isAbove = cor(real_df_agr$fst, real_df_agr$neurogen) > perm_df$perm_cor
 perm_df_bulk_sub_nonzero = perm_df
-ggplot(perm_df_bulk_sub_nonzero, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
+pdf("~/scratch/brain/results/pcrc_neurogen_sub_10k.pdf", width = 8, height = 5)
+ggplot(perm_df_bulk_sub_nonzero, aes(perm_cor, color = isAbove, fill = isAbove)) + geom_histogram(alpha = 0.5) + scale_fill_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + scale_color_manual(values = c("gray40", "goldenrod1"), name = "Real Greater than Perm") + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms") + xlab("Correlation w/ Neurogenesis") + ggtitle("10k Perms of 51 Random Genes R w/ Neurogenesis Compared to FST R", subtitle = paste0("p-value = ", (num_perms - length(which(perm_df$isAbove)))/ num_perms))
+dev.off()
 
 # 10k Perm FST w/ Neurogen: 15, Subsample, NonZero
-perm_cors = mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = '15', useNuc = F, num_genes = 51, useNonZero = F), mc.cores = 4 )
+perm_cors = mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = '15', useNuc = F, num_genes = 51), mc.cores = detectCores() )
 perm_df = as.data.frame(t(as.data.frame(perm_cors)))
 real_clust15_res$num_above = sapply(1:ncol(perm_df), function(x) num_perms - length(which(real_clust15_res[x,2] > perm_df[,x])) )
 real_clust15_res$isSig = real_clust15_res$num_above < 50
 perm_df_15_sub_nonzero = perm_df
-ggplot(real_clust15_res, aes(x=V1, y = num_above, fill = isSig, color = isSig)) + geom_bar(alpha = 0.5, stat = 'identity') + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms Greater than Real") + xlab("Cluster") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R by 15 Cluster") + geom_hline(yintercept = 50, lty = 2) + scale_color_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + scale_fill_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + geom_text(aes(label = num_above), vjust = -0.2)
+pdf("~/scratch/brain/results/pcrc_neurogen_sub_15_10k.pdf", width = 8, height = 5)
+ggplot(real_clust15_res, aes(x=V1, y = num_above, fill = isSig, color = isSig)) + geom_bar(alpha = 0.5, stat = 'identity') + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms Greater than Real") + xlab("Cluster") + ggtitle("10k Perms of 51 Random Genes R w/ Neurogenesis Compared to FST R by 15 Cluster") + geom_hline(yintercept = 50, lty = 2) + scale_color_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + scale_fill_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + geom_text(aes(label = num_above), vjust = -0.2)
+dev.off()
 
 # 10k Perm FST w/ Neurogen: 53, Subsample, NonZero
-perm_cors = mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = '53', useNuc = F, num_genes = 51, useNonZero = F), mc.cores = 4 )
+perm_cors = mclapply( 1:num_perms, function(x) permNeurogenCor(x, clust_level = '53', useNuc = F, num_genes = 51), mc.cores = detectCores() )
 perm_df = as.data.frame(t(as.data.frame(perm_cors)))
 real_clust53_res$num_above = sapply(1:ncol(perm_df), function(x) num_perms - length(which(real_clust53_res[x,2] > perm_df[,x])) )
 real_clust53_res$isSig = real_clust53_res$num_above < 50
 perm_df_53_sub_nonzero = perm_df
-ggplot(real_clust53_res, aes(x=V1, y = num_above, fill = isSig, color = isSig)) + geom_bar(alpha = 0.5, stat = 'identity') + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms Greater than Real") + xlab("Cluster") + ggtitle("10k Perms of 51 Random Nonzero Genes R w/ Neurogenesis Compared to FST R by 53 Cluster") + geom_hline(yintercept = 50, lty = 2) + scale_color_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + scale_fill_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + geom_text(aes(label = num_above), vjust = -0.2)
+pdf("~/scratch/brain/results/pcrc_neurogen_sub_53_10k.pdf", width = 8, height = 5)
+ggplot(real_clust53_res, aes(x=V1, y = num_above, fill = isSig, color = isSig)) + geom_bar(alpha = 0.5, stat = 'identity') + theme_bw() + scale_y_continuous(expand = c(0,0), name = "Number of Perms Greater than Real") + xlab("Cluster") + ggtitle("10k Perms of 51 Random Genes R w/ Neurogenesis Compared to FST R by 53 Cluster") + geom_hline(yintercept = 50, lty = 2) + scale_color_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + scale_fill_manual(values = c('gray40', "goldenrod1"), name = 'Significant') + geom_text(aes(label = num_above), vjust = -0.2)
+dev.off()
 
 # Couple of sig Effects
 perm_df = data.frame(perm_num = 1:num_perms, perm_cor = perm_df_53_sub_nonzero[,34])
@@ -4491,6 +4501,38 @@ ggplot(clown_meta_agr, aes(x = seurat_clusters, y = nCount_RNA, fill = sex, colo
 #*******************************************************************************
 # Brianna Markers ==============================================================
 #*******************************************************************************
+brianna15 = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george1.xlsx", sheetIndex = 1, startRow = 1)
+colnames(brianna15)[which(colnames(brianna15) == "Gene.")] = "Gene"
+brianna15$Category = str_replace_all(trimws(brianna15$Category, which = "both"), "[^[:alnum:]\\s]", "")
+brianna15$LOCID = str_replace_all(trimws(brianna15$LOCID, which = "both"), "[^[:alnum:]\\s]", "")
+brianna15$gene_name = gtf$gene_name[match(brianna15$LOCID, gtf$loc)]
+brianna15$col = plyr::revalue(brianna15$Category, replace = c("Neuromodulator" = "#00E7EC", "Neuromodulatory Receptor" = "#FDD615", "NeuroanatNeurodev TF" = "#FE04FF"))
+
+all_combos = expand.grid(unique(brianna15$gene_name), convert15$new.full)
+colnames(all_combos) = c("gene_name", "cluster")
+all_combos[, colnames(brianna15)[which(! colnames(brianna15) %in% colnames(all_combos))]] = brianna15[match(all_combos$gene_name, brianna15$gene_name), colnames(brianna15)[which(! colnames(brianna15) %in% colnames(all_combos))]] 
+all_combos[, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = 0
+
+for (cluster in convert15$new.full) {
+  print(cluster)
+  this_idx = which(all_combos$cluster == cluster)
+  this_cluster_cells = colnames(bb)[which(bb$seuratclusters15 == convert15$old[which(convert15$new.full == cluster)])]
+  clust_pct_fc = pct_dif_avg_logFC(bb, this_cluster_cells, colnames(bb)[which(! colnames(bb) %in% this_cluster_cells)], features = brianna15$gene_name)
+  all_combos[this_idx, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = clust_pct_fc[match(all_combos$gene_name[this_idx], clust_pct_fc$genes), c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")]
+}
+
+all_combos$col4 = "gray98"
+all_combos$col4[which(all_combos$pct.1 >= 5 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 5 )],  "40")
+all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "60")
+all_combos$col4[which(all_combos$pct.1 >= 40 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 40 )], "80")
+all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 60 )], "ff")
+
+brianna_order = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george2.xlsx", sheetIndex = 1, startRow = 1)
+all_combos$Gene = factor(all_combos$Gene, levels = brianna_order$Gene)
+pdf("~/research/brain/results/bri15_markers_heatmap_8.pdf", height = 3.5, width = 12)
+ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
+
 gtf = read.delim("~/research/all_research/GCF_000238955.4_M_zebra_UMD2a_genomic.gtf", header = F)
 gtf = gtf[which(gtf$V3 == "gene"),]
 # gtf = gtf[5:nrow(gtf),]
@@ -4553,7 +4595,40 @@ gene15_df$col2[which(gene15_df$hit)] = convert15$col[match(gene15_df$cluster[whi
 gene15_df$cluster = factor(gene15_df$cluster, levels = convert15$new.full)
 gene15_df = gene15_df[which(gene15_df$bname != "GPR54"),]
 gene15_df$label = factor(tolower(gene15_df$bname), levels = unique(tolower(gene15_df$bname[order(gene15_df$cat, gene15_df$bname)])))
+gene15_df[, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = 0
 
+for (cluster in convert15$new.full) {
+  print(cluster)
+  this_idx = which(gene15_df$cluster == cluster)
+  this_cluster_cells = colnames(bb)[which(bb$seuratclusters15 == convert15$old[which(convert15$new.full == cluster)])]
+  clust_pct_fc = pct_dif_avg_logFC(bb, this_cluster_cells, colnames(bb)[which(! colnames(bb) %in% this_cluster_cells)])
+  gene15_df[this_idx, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = clust_pct_fc[match(gene15_df$clean[this_idx], clust_pct_fc$genes), c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")]
+}
+
+gene15_df$col3 = gene15_df$col
+gene15_df$col3[which(gene15_df$use != "na" & gene15_df$pct.1 >= 5 )]  = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 5 )],  "40")
+gene15_df$col3[which(gene15_df$use != "na" & gene15_df$pct.1 >= 25 )] = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 25 )], "60")
+gene15_df$col3[which(gene15_df$use != "na" & gene15_df$pct.1 >= 50 )] = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 50 )], "80")
+gene15_df$col3[which(gene15_df$use != "na" & gene15_df$pct.1 >= 75 )] = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 75 )], "ff")
+
+gene15_df$col4 = gene15_df$col
+gene15_df$col4[which(gene15_df$use != "na" & gene15_df$pct.1 >= 5 )]  = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 5 )],  "40")
+gene15_df$col4[which(gene15_df$use != "na" & gene15_df$pct.1 >= 20 )] = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 20 )], "60")
+gene15_df$col4[which(gene15_df$use != "na" & gene15_df$pct.1 >= 40 )] = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 40 )], "80")
+gene15_df$col4[which(gene15_df$use != "na" & gene15_df$pct.1 >= 60 )] = paste0(gene15_df$col[which(gene15_df$use != "na" & gene15_df$pct.1 >= 60 )], "ff")
+
+
+pdf("~/research/brain/results/bri15_markers_heatmap_6.pdf", height = 3.1, width = 12)
+ggplot(gene15_df[which(! is.na(gene15_df$clean) ),], aes(x = label, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
+
+pdf("~/research/brain/results/bri15_markers_heatmap_5.pdf", height = 3.1, width = 12)
+ggplot(gene15_df[which(! is.na(gene15_df$clean) ),], aes(y = label, x = cluster, fill = col3)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + coord_flip() + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
+
+pdf("~/research/brain/results/bri15_markers_heatmap_4.pdf", height = 3.1, width = 12)
+ggplot(gene15_df[which(! is.na(gene15_df$clean) ),], aes(y = label, x = cluster, fill = col)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("") + coord_flip() + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
 
 pdf("C:/Users/miles/Downloads/bri15_markers_heatmap_3.pdf", height = 13, width = 6)
 ggplot(gene15_df[which(! is.na(gene15_df$clean) ),], aes(y = label, x = cluster, fill = col)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), axis.text.y = element_text(face = "italic")) + xlab("") + ylab("")
@@ -4733,3 +4808,71 @@ dup_gene_pair2$cor = diag(r_mat[dup_gene_pair2$gene1, dup_gene_pair2$gene2])
 dup_gene_pair2 = dup_gene_pair2[order(abs(dup_gene_pair2$cor), decreasing = T),]
 dup_gene_pair2$n1 = gene_counts[match(dup_gene_pair2$gene1, gene_counts[,2]),1]
 dup_gene_pair2$n2 = gene_counts[match(dup_gene_pair2$gene2, gene_counts[,2]),1]
+
+goi = read.csv("~/scratch/brain/data/markers/goi_1plus_by_trial_id_and_cat_120121_hgnc.csv")
+goi$X.1 = goi$X = NULL
+goi_mat = r_mat[unique(goi$mzebra), unique(goi$mzebra)]
+diag(goi_mat) = 0
+global_hc = 0
+callback = function(hc, mat){
+  global_hc <<- hc
+}
+# pheatmap::pheatmap(goi_mat, clustering_callback = callback, cellwidth = 10, cellheight = 10, file = "~/scratch/brain/results/goi_heatmap_big.pdf")
+pheatmap::pheatmap(goi_mat, clustering_callback = callback, file = "~/scratch/brain/results/goi_heatmap_small.pdf")
+
+pop17 = c("th", "tac1", "LOC101464862", "LOC101480131", "npy", "igf2", "LOC101477361", "gad1", "adrb1", "gad2", "LOC101484392", "LOC101467991", "LOC101470177", "LOC101466282", "LOC101469465", "LOC101463985", "calcr")
+pop17_mat = r_mat[unique(pop17), unique(pop17)]
+diag(pop17_mat) = 0
+pheatmap::pheatmap(pop17_mat, clustering_callback = callback, file = "~/scratch/brain/results/pop17_heatmap_small.pdf")
+
+ran_df = read.csv("~/Downloads/pcrc_matched_exp_level_ran_lists_10k.csv")
+ran_df$X = NULL
+mat = as.matrix(bb@assays$RNA@counts)
+mat[which(mat > 1)] = 1
+pcrc = read.csv("~/research/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
+
+library("parallel")
+ran_score_sum = sapply(1:10000, function(x) sum(colSums(mat[as.character(ran_df[x,]),])) )
+# ran_score_sum = unlist(mclapply(1:10000, function(x) sum(colSums(mat[as.character(ran_df[x,]),])), mc.cores = detectCores() ))
+ran_counts_sum = sapply(1:10000, function(x) sum(colSums(bb@assays$RNA@counts[as.character(ran_df[x,]),])) )
+ran_sum_df = data.frame(score = ran_score_sum, counts = ran_counts_sum, isReal = F)
+real_sum_df = data.frame(score = sum(colSums(mat[pcrc,])), counts = sum(colSums(bb@assays$RNA@counts[as.character(pcrc),])), isReal = T)
+all_sum_df = rbind(real_sum_df, ran_sum_df)
+ggplot(all_sum_df, aes(x = isReal, y = score, fill = isReal, color = isReal)) + geom_boxplot(alpha = 0.2, outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 0.1) + ggtitle("Matched Random Genes Have Significantly Higher Scores (p = 0.03)") + NoLegend()
+ggplot(all_sum_df, aes(x = isReal, y = counts, fill = isReal, color = isReal)) + geom_boxplot(alpha = 0.2, outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 0.1) + ggtitle("Matched Random Genes Have Similar Counts (By Creation)") + NoLegend()
+
+full_ran_counts = as.vector(sapply(1:10000, function(x) colSums(bb@assays$RNA@counts[as.character(ran_df[x,]),]) ))
+full_ran_score = as.vector(sapply(1:10000, function(x) colSums(mat[as.character(ran_df[x,]),]) ))
+ran_score_mean = sapply(1:10000, function(x) mean(colSums(mat[as.character(ran_df[x,]),])) )
+ran_counts_mean = sapply(1:10000, function(x) mean(colSums(bb@assays$RNA@counts[as.character(ran_df[x,]),])) )
+
+full_ran_counts = readRDS("~/research/brain/data/full_ran_counts.RDS")
+real_mean_df = data.frame(score = mean(colSums(mat[as.character(pcrc),])), counts = mean(colSums(bb@assays$RNA@counts[as.character(pcrc),])), isReal = T)
+real_counts = colSums(bb@assays$RNA@counts[as.character(pcrc),])
+all_counts_df = rbind(data.frame(counts = real_counts, isReal = T), data.frame(counts = full_ran_counts, isReal = F))
+pdf("~/scratch/brain/results/real_ran_counts_density.pdf", width = 7, height = 6)
+ggplot(all_counts_df, aes(counts, color = isReal, fill = isReal)) + geom_density()
+dev.off()
+
+rc = read.delim("rc_fst_closest_bedtools.bed", header = F)
+rc = rc[which( abs(rc$V16) < 25000 ),]
+rc$gene_name = colsplit(rc$V15, "; ", c('1', '2'))[, 1]
+rc$gene_name = colsplit(rc$gene_name, "gene_id ", c('1', '2'))[, 2]
+colnames(rc) = c("CHROM", "BIN_START", "BIN_END", "N_VAR", "WEIGHTED_FST", "MEAN_FST", "CHROM_1", "REF", "BIOTYPE", "GENE_START", "GENE_END", "GTF_1", "DIR", "GTF_2", "GENE_INFO", "DIST_TO_GENE", "GENE_NAME" )
+rc$BIN_ID = paste0(rc$CHROM, "_", rc$BIN_START)
+
+pc = read.delim("pc_fst_closest_bedtools.bed", header = F)
+pc = pc[which( abs(pc$V16) < 25000 & pc$V1 == "NC_036790.1" & pc$V2 > 5950001 & pc$V3 < 25280000),]
+pc$gene_name = colsplit(pc$V15, "; ", c('1', '2'))[, 1]
+pc$gene_name = colsplit(pc$gene_name, "gene_id ", c('1', '2'))[, 2]
+colnames(pc) = c("CHROM", "BIN_START", "BIN_END", "N_VAR", "WEIGHTED_FST", "MEAN_FST", "CHROM_1", "REF", "BIOTYPE", "GENE_START", "GENE_END", "GTF_1", "DIR", "GTF_2", "GENE_INFO", "DIST_TO_GENE", "GENE_NAME" )
+pc$BIN_ID = paste0(pc$CHROM, "_", pc$BIN_START)
+
+pcrc_merged = merge(pc, rc, by = "BIN_ID", suffixes = c("_PC", "_RC"))
+pcrc_thresh = pcrc_merged[which(pcrc_merged$WEIGHTED_FST_PC >= 0.2 & pcrc_merged$WEIGHTED_FST_RC >= 0.3),]
+pcrc_bin = sort(unique(pcrc_thresh$GENE_NAME))
+write.csv(pcrc_bin, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")
+write.csv(pcrc_thresh, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin_df.csv")
+
+pcrc = sort(unique(rc$GENE_NAME[which(rc$GENE_NAME %in% pc$GENE_NAME)]))
+write.csv(pcrc, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak.csv")

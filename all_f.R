@@ -26,51 +26,28 @@ httr::set_config(config(ssl_verifypeer = FALSE))
 # Helper Functions #
 ####################
 
-lgConverter <- function(input_vect) {
-  #' Convert LG to NCBI etc
-  #' @param input_vect: input vector of lg or NCBI chrom names
-  if (startsWith(getwd(), "/storage/scratch1/6/ggruenhagen3/")) {
-    pat <- read.table("~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt", sep = "\t", header = FALSE, fill = TRUE)
-  } else if (startsWith(getwd(), "C:/Users/")) {
-    ar = read.table("C:/Users/miles/Downloads/all_research/M_zebra_UMD2a_assembly_report.txt", sep = "\t", header = FALSE, fill = TRUE)
-  } else if (startsWith(getwd(), "~/research/")) {
-    #TODO
-  } else {
-    print("Error unknown directory.")
-    return()
-  }
-  
-  if ( startsWith(toupper(input_vect[1]), "LG") ) {
-    print("Detected LG format. Now converting to NCBI format.")
-    new_vect = ar$V7[match(toupper(input_vect), ar$V3)]
-  } else if ( startsWith(input_vect[1], "NC_") | startsWith(input_vect[1], "NW_") ) {
-    print("Detected NCBI format. Now converting to LG format.")
-    new_vect = ar$V3[match(toupper(input_vect), ar$V7)]
-  } else {
-    print("Error: didn't detect a known format. Is this a list of chromosomes?")
-  }
-  return(new_vect)
-}
-
 clipboard <- function(x, sep="\t", row.names=FALSE, col.names=TRUE){
   con <- pipe("xclip -selection clipboard -i", open="w")
   write.table(x, con, sep=sep, row.names=row.names, col.names=col.names, quote = F)
   close(con)
 }
 
-pct_dif_avg_logFC = function(obj, cells.1, cells.2) {
+pct_dif_avg_logFC = function(obj, cells.1, cells.2, features = NULL) {
   #' Find the Average Log FC and Percent Difference for Every Gene
   #' @param obj Seurat object
   #' @param cells.1 vector of first group of cells
   #' @param cells.2 vector of second group of cells
+  #' @param features vector of genes to use
+  if (is.null(features)) {
+    features = rownames(obj)[which(rowSums(obj@assays$RNA@counts[,both_cells]) > 0)]
+  }
   both_cells = unique(c(cells.1, cells.2))
-  non_zero_genes = rownames(obj)[which(rowSums(obj@assays$RNA@counts[,both_cells]) > 0)]
   
   # Find Percent of Gene+ in both groups of cells
-  mat1 = obj@assays$RNA@counts[non_zero_genes, cells.1]
+  mat1 = obj@assays$RNA@counts[features, cells.1]
   mat1[which(mat1 > 1)] = 1
   num_pos_cells1 = rowSums(mat1)
-  mat2 = obj@assays$RNA@counts[non_zero_genes, cells.2]
+  mat2 = obj@assays$RNA@counts[features, cells.2]
   mat2[which(mat2 > 1)] = 1
   num_pos_cells2 = rowSums(mat2)
   pct_pos_cells1 = (num_pos_cells1/length(cells.1)) * 100
@@ -79,16 +56,16 @@ pct_dif_avg_logFC = function(obj, cells.1, cells.2) {
   
   # Find Average Log FC
   # Seurat
-  mean_exp1 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.1]))
-  mean_exp2 = rowMeans(expm1(obj@assays$RNA@data[non_zero_genes, cells.2]))
-  avg_logFC = log(mean_exp1 + 1, base = 2) - log(mean_exp2 + 1, base = 2)
+  mean_exp1 = rowMeans(expm1(obj@assays$RNA@data[features, cells.1]))
+  mean_exp2 = rowMeans(expm1(obj@assays$RNA@data[features, cells.2]))
+  avg_logFC = log(mean_exp1 + 1) - log(mean_exp2 + 1)
   
   # # Zack 
   # mean_exp1 = rowSums(bb@assays$RNA@counts[non_zero_genes,cells.1]) / sum(bb$nCount_RNA[cells.1])
   # mean_exp2 = expm1(rowSums(bb@assays$RNA@counts[non_zero_genes,cells.2]) / sum(bb$nCount_RNA[cells.2]))
   # avg_logFC = log(mean_exp1 + 1) - log(mean_exp2 + 1)
   
-  df = data.frame(genes = non_zero_genes, avg_logFC = avg_logFC, pct.1 = pct_pos_cells1, pct.2 = pct_pos_cells2, pct_dif = pct_dif, num.1 = num_pos_cells1, num.2 = num_pos_cells2)
+  df = data.frame(genes = features, avg_logFC = avg_logFC, pct.1 = pct_pos_cells1, pct.2 = pct_pos_cells2, pct_dif = pct_dif, num.1 = num_pos_cells1, num.2 = num_pos_cells2)
   
   return(df)
 }
@@ -2984,55 +2961,57 @@ heatmapComparison <- function(df1, df2, df1_sample, df2_sample, filename, filepa
   
   # Plot 1 - Ovlp
   if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
-    png(paste(filepath, filename, "_ovlp_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("DEGs in Common w/ Same Sign b/w", df1_sample, "&", df2_sample,  "Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)))
+    # png(paste(filepath, filename, "_ovlp_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+    # print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("DEGs in Common w/ Same Sign b/w", df1_sample, "&", df2_sample,  "Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)))
+    # dev.off()
+    pdf(paste(filepath, filename, "_ovlp_same_dir.pdf", sep=""), width = df1_num_clusters*1.00 + 0.5, height = df2_num_clusters*1.00)
+    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp_same_dir, color=ovlp_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("DEGs in Common w/ Same Sign b/w", df1_sample, "&", df2_sample,  "Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank()) + coord_fixed() + theme(text = element_text(size = (df1_num_clusters + df2_num_clusters) * 0.5 ), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)))
     dev.off()
   } else {
-    png(paste(filepath, filename, "_ovlp.png", sep=""),  width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-    dev.off()
+    # png(paste(filepath, filename, "_ovlp.png", sep=""),  width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+    # print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=ovlp, color=ovlp_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters")) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+    # dev.off()
   }
   print("finished 1")
 
   # Plot 2 - Ovlp Best Guess
-  if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
-    png(paste(filepath, filename, "_best_guess_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=I("#000000"))) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("Best Guess of DEGs w/ Same Sign b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-    dev.off()
-  } else {
-    png(paste(filepath, filename, "_best_guess.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_best > 0), aes(label=ovlp_best, color=I("#000000"))) +  xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("Best Guess b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-    dev.off()
-  }
-  print("finished 2")
+  # if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
+  #   png(paste(filepath, filename, "_best_guess_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_same_dir_best > 0), aes(label=ovlp_same_dir_best, color=I("#000000"))) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("Best Guess of DEGs w/ Same Sign b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+  #   dev.off()
+  # } else {
+  #   png(paste(filepath, filename, "_best_guess.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=ovlp_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, ovlp_best > 0), aes(label=ovlp_best, color=I("#000000"))) +  xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("Best Guess b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+  #   dev.off()
+  # }
+  # print("finished 2")
 
   # Plot 3 - Pct
   if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
-    png(paste(filepath, filename, "_pct_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-    dev.off()
-    pdf_df =
+    # png(paste(filepath, filename, "_pct_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+    # print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+    # dev.off()
     pdf(paste(filepath, filename, "_pct_same_dir.pdf", sep=""), width = df1_num_clusters*1.00 + 0.5, height = df2_num_clusters*1.00)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir)) + geom_raster() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct_same_dir, 1), nsmall = 1), color=pct_same_dir_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs w/ Same Sign in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(text = element_text(size = (df1_num_clusters + df2_num_clusters) * 0.5 ), line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
     dev.off()
   } else {
-    png(paste(filepath, filename, "_pct.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-    dev.off()
+    # png(paste(filepath, filename, "_pct.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+    # print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(aes(label=format(round(pct, 1), nsmall = 1), color=pct_col)) + scale_colour_manual(values=c("#FFFFFF", "#000000")) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% DEGs in Common b/w", df1_sample, "&", df2_sample,  "Clusters", with_correction)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+    # dev.off()
   }
   print("finished plot 3")
   
   # Plot 4 - Pct Best Guess
-  if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
-    png(paste(filepath, filename, "_pct_best_guess_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=I("#000000"))) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% Best Guess of DEGs w/ Same Sign b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-    dev.off()
-  } else {
-    png(paste(filepath, filename, "_pct_best_guess.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
-    print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_best > 0), aes(label=format(round(pct_best, 1), nsmall = 1), color=I("#000000"))) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% Best Guess b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-    dev.off()
-  }
-  print("finished plot 4")
+  # if (any(sign(df1$avg_logFC) == -1) || any(sign(df2$avg_logFC) == -1)) {
+  #   png(paste(filepath, filename, "_pct_best_guess_same_dir.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_same_dir_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_same_dir_best > 0), aes(label=format(round(pct_same_dir_best, 1), nsmall = 1), color=I("#000000"))) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% Best Guess of DEGs w/ Same Sign b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+  #   dev.off()
+  # } else {
+  #   png(paste(filepath, filename, "_pct_best_guess.png", sep=""), width = df1_num_clusters*100, height = df2_num_clusters*100, unit = "px", res = 100)
+  #   print(ggplot(df, aes(df1_cluster, df2_cluster, fill=pct_best)) + geom_tile() + scale_fill_viridis(discrete=FALSE) + geom_text(data=subset(df, pct_best > 0), aes(label=format(round(pct_best, 1), nsmall = 1), color=I("#000000"))) + xlab(paste(df1_sample, "Cluster")) + ylab(paste(df2_sample, "Cluster")) + ggtitle(paste("% Best Guess b/w", df1_sample, "&", df2_sample)) + guides(color = FALSE) + theme_classic() + theme(line = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+  #   dev.off()
+  # }
+  # print("finished plot 4")
   
   return(list(df, gene_df))
 }
