@@ -55,7 +55,7 @@ rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
 bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
-Idents(bb) = bb$seuratclusters15
+Idents(bb) = bb$seuratclusters53
 
 # Set Number of Permutations
 nperm = 10000
@@ -121,7 +121,7 @@ colnames(perm_df) = clusters
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
   
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_15_120321.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_53_120321.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
