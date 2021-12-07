@@ -57,7 +57,7 @@ df = bb@meta.data[which(bb$seuratclusters15 == k),]
 df$log_spawn_events = as.numeric(df$log_spawn_events)
 df$bower_activity_index = as.numeric(df$bower_activity_index)
 df$gsi = as.numeric(df$gsi)
-df$neurogen_score = as.numeric(neurogen_score)
+df$neurogen_score = as.numeric(df$neurogen_score)
 df$pair = as.factor(df$pair)
 df$subject = as.factor(df$trial_id)
 df$cond = as.factor(df$cond)
