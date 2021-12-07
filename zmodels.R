@@ -66,11 +66,11 @@ run_vars = c("neurogen_score")
 for (i in 1:10) {
   this_var = paste0("ran", i)
   run_vars = c(run_vars, this_var)
-  bb_metadata[, this_var] = abs(bb$neurogen_score + round(rnorm(n = ncol(bb))))
+  bb_metadata[, this_var] = abs(bb_metadata$neurogen_score + round(rnorm(n = nrow(bb_metadata))))
 }
 
 # Subset Data by Cluster
-df = bb_metadata[which(bb$seuratclusters15 == k),]
+df = bb_metadata[which(bb_metadata$seuratclusters15 == k),]
 df$log_spawn_events = as.numeric(df$log_spawn_events)
 df$bower_activity_index = as.numeric(df$bower_activity_index)
 df$gsi = as.numeric(df$gsi)
