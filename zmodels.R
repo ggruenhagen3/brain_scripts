@@ -44,10 +44,11 @@ myBBmmVector = function(x) {
 # Body ================================================================
 #**********************************************************************
 # Load Data + Libraries
-rna_path = "~/scratch/brain/"
-source(paste0(rna_path, "brain_scripts/all_f.R"))
-library("SeuratObject")
-bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
+# rna_path = "~/scratch/brain/"
+# source(paste0(rna_path, "brain_scripts/all_f.R"))
+# library("SeuratObject")
+# bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
+bb_metadata = read.csv(paste0(rna_path, "data/bb_demux_102021.rds"))
 
 # Load Other Libraries
 library(parallel)
@@ -65,11 +66,11 @@ run_vars = c("neurogen_score")
 for (i in 1:10) {
   this_var = paste0("ran", i)
   run_vars = c(run_vars, this_var)
-  bb@meta.data[, this_var] = abs(bb$neurogen_score + round(rnorm(n = ncol(bb))))
+  bb_metadata[, this_var] = abs(bb$neurogen_score + round(rnorm(n = ncol(bb))))
 }
 
 # Subset Data by Cluster
-df = bb@meta.data[which(bb$seuratclusters15 == k),]
+df = bb_metadata[which(bb$seuratclusters15 == k),]
 df$log_spawn_events = as.numeric(df$log_spawn_events)
 df$bower_activity_index = as.numeric(df$bower_activity_index)
 df$gsi = as.numeric(df$gsi)
