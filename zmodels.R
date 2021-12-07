@@ -46,7 +46,7 @@ k = 0
 
 # Temporary Random Scores (Same Mean as Neurogen Score -> 10)
 run_vars = c("neurogen_score")
-for (i in 1:100) {
+for (i in 1:10) {
   this_var = paste0("ran", i)
   run_vars = c(run_vars, this_var)
   bb@meta.data[, this_var] = abs(bb$neurogen_score + round(rnorm(n = ncol(bb))))
@@ -54,8 +54,13 @@ for (i in 1:100) {
 
 # Subset Data by Cluster
 df = bb@meta.data[which(bb$seuratclusters15 == k),]
+df$log_spawn_events = as.numeric(df$log_spawn_events)
+df$bower_activity_index = as.numeric(df$bower_activity_index)
+df$gsi = as.numeric(df$gsi)
+df$neurogen_score = as.numeric(neurogen_score)
 df$pair = as.factor(df$pair)
 df$subject = as.factor(df$trial_id)
+df$cond = as.factor(df$cond)
 
 bbmm_start_time <- proc.time()[[3]]
 res = unlist(mclapply(run_vars, function(x) myBBmm(x), mc.cores = detectCores()))
@@ -63,6 +68,4 @@ names(res) = run_vars
 print(res)
 # bbmm <- BBmm(fixed.formula = neurogen_score ~ as.numeric(bower_activity_index) + as.numeric(gsi), random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
 bbmm_stop_time = proc.time()[[3]]
-print(paste0("BBmm on Cluster 0 (15 level) w/ 100 Randoms took: ", bbmm_stop_time-bbmm_start_time))
-
-# saveRDS(bbmm, "~/scratch/brain/results/bbmm_test.rds")
+print(paste0("BBmm on Cluster 0 (15 level) w/ 10 Randoms took: ", bbmm_stop_time-bbmm_start_time))
