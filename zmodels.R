@@ -48,7 +48,7 @@ rna_path = "~/scratch/brain/"
 # source(paste0(rna_path, "brain_scripts/all_f.R"))
 # library("SeuratObject")
 # bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
-bb_metadata = read.csv(paste0(rna_path, "data/bb_demux_102021.rds"))
+bb_metadata = read.csv(paste0(rna_path, "data/bb_meta_data.csv"))
 
 # Load Other Libraries
 library(parallel)
