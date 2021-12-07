@@ -44,7 +44,7 @@ myBBmmVector = function(x) {
 # Body ================================================================
 #**********************************************************************
 # Load Data + Libraries
-# rna_path = "~/scratch/brain/"
+rna_path = "~/scratch/brain/"
 # source(paste0(rna_path, "brain_scripts/all_f.R"))
 # library("SeuratObject")
 # bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
