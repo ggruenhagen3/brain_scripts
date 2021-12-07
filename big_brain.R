@@ -5538,9 +5538,17 @@ ggplot(df, aes(x = Counts, y = Score, color = real, fill = real)) + geom_jitter(
 # ggExtra::ggMarginal(p, type = "histogram")
 
 fst = read.csv("C:/Users/miles/Downloads/pcrc_fst_file_for_george.csv")
-pcrc = read.csv("C:/Users/miles/Downloads/brain/data/markers/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
+pcrc = read.csv("C:/Users/miles/Downloads/pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak.csv")[,2]
+pcrc_bin = read.csv("C:/Users/miles/Downloads/pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+pcrc_bin_bin = read.csv("C:/Users/miles/Downloads/pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin_df.csv")
+pcrc_bin_bin$lg = lgConverter(pcrc_bin_bin$CHROM_PC)
+pcrc_bin_bin$bin = paste0(pcrc_bin_bin$lg, "_", pcrc_bin_bin$BIN_START_PC)
 fst$hasGene = F
 fst$hasPCRC = F
+fst$hasPCRC_BinGene = F
+fst$hasPCRC_BinOf_BinGene = fst$bin %in% pcrc_bin_bin$bin
+fst$pcrcGene = ""
+fst$pcrcBinGene = ""
 bin_size = 10000
 gtf$lg = lgConverter(gtf$V1)
 gtf$gene_start_round = (floor(gtf$V4  / bin_size) * bin_size) + 1
@@ -5553,7 +5561,13 @@ for (i in 1:nrow(gtf)) {
   gene_bins = seq(gene_start_round, gene_end_round, by = bin_size)
   gene_bins = paste0(gtf$lg[i], "_", gene_bins)
   fst$hasGene[match(gene_bins, fst$bin)] = T
-  if(gtf$gene_name[i] %in% pcrc)
+  if(gtf$gene_name[i] %in% pcrc) {
     fst$hasPCRC[match(gene_bins, fst$bin)] = T
+    fst$pcrcGene[match(gene_bins, fst$bin)] = gtf$gene_name[i]
+  }
+  if(gtf$gene_name[i] %in% pcrc_bin) {
+    fst$hasPCRC_BinGene[match(gene_bins, fst$bin)] = T
+    fst$pcrcBinGene[match(gene_bins, fst$bin)] = gtf$gene_name[i]
+  }
 }
-write.csv(fst, "C:/Users/miles/Downloads/pcrc_fst_file_for_zack.csv")
+write.csv(fst, "C:/Users/miles/Downloads/pcrc_fst_file_for_zack_120221.csv")
