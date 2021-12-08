@@ -43,19 +43,25 @@ myBBmmVector = function(x) {
 #**********************************************************************
 # Body ================================================================
 #**********************************************************************
-# Load Data + Libraries
-rna_path = "~/scratch/brain/"
-# source(paste0(rna_path, "brain_scripts/all_f.R"))
-# library("SeuratObject")
-# bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
-bb_metadata = read.csv(paste0(rna_path, "data/bb_meta_data.csv"))
-
-# Load Other Libraries
+# Load Libraries
 library(parallel)
 library(qvalue)
 library(tidyverse)
 library(lme4)
 library(PROreg)
+library(data.table)
+
+# Load Data
+bbmm_start_time <- proc.time()[[3]]
+rna_path = "~/scratch/brain/"
+# source(paste0(rna_path, "brain_scripts/all_f.R"))
+# library("SeuratObject")
+# bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
+# bb_metadata = read.csv(paste0(rna_path, "data/bb_meta_data.csv"))
+bb_metadata = fread(paste0(rna_path, "data/bb_meta_data.csv"))
+bbmm_stop_time = proc.time()[[3]]
+print(paste0("Loading took: ", bbmm_stop_time-bbmm_start_time))
+
 
 # Clusters to Test
 skip_clusters=c(12,13,14)
@@ -91,7 +97,7 @@ bbmm_start_time <- proc.time()[[3]]
 # res = unlist(mclapply(run_vars, function(x) myBBmm(x), mc.cores = num.cores))
 # names(res) = run_vars
 # print(res)
-bbmm <- BBmm(fixed.formula = neurogen_score ~ as.numeric(bower_activity_index) + as.numeric(gsi), random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
+bbmm <- BBmm(fixed.formula = neurogen_score ~ bower_activity_index + gsi, random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
 bbmm_stop_time = proc.time()[[3]]
 print(paste0("BBmm on Cluster 0 (15 level) on Real took: ", bbmm_stop_time-bbmm_start_time))
 print(paste0("BBmm End Time: ", format(Sys.time(), "%X")))
