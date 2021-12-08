@@ -86,7 +86,7 @@ df$subject = as.factor(df$trial_id)
 df$cond = as.factor(df$cond)
 
 # Do smaller dataframes run faster?
-df = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
+# df = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
 
 num.cores = detectCores()
 print(paste0("Number of Cores: ", num.cores))
