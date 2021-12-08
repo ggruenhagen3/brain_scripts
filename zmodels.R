@@ -143,7 +143,7 @@ ff_str = switch(this_model,
 print(paste0("Model Fixed Effects formula: score ~ ", ff_str))
 
 # Parameters and Print Messages
-nperm = 2
+nperm = 100
 run_vars = paste0(gene_list, 1:nperm)
 num.cores = detectCores()
 print(paste0("Performing ", nperm, " Bootstraps"))
