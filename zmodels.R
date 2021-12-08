@@ -15,10 +15,10 @@ myBBmm = function(x) {
   #' Finds p value of bower_activity_index by score.
   #' 
   #' @param x score column
-  test_var = "as.numeric(bower_activity_index)"
-  ff = as.formula(paste0(x, " ~ as.numeric(bower_activity_index) + as.numeric(gsi)"))
+  test_var = "bower_activity_index"
+  ff = as.formula(paste0(x, " ~ bower_activity_index + gsi"))
   rf = as.formula(" ~ (subject %in% sample %in% run) + (subject %in% pair)")
-  bbmm <- BBmm(fixed.formula = ff, random.formula = rf, m=88, data = df2, show = TRUE)
+  bbmm <- BBmm(fixed.formula = ff, random.formula = rf, m=88, data = df, show = TRUE)
   this_res = data.frame(summary(bbmm)$fixed.coefficients)
   print(paste0("Done ", x))
   return(this_res$p.value[which( rownames(this_res) == test_var)])
@@ -85,19 +85,19 @@ df$pair = as.factor(df$pair)
 df$subject = as.factor(df$trial_id)
 df$cond = as.factor(df$cond)
 
-# Do smaller dataframes run faster?
+# Do smaller dataframes run faster? No.
 # df = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
 
 num.cores = detectCores()
 print(paste0("Number of Cores: ", num.cores))
 print(paste0("BBmm Start Time: ", format(Sys.time(), "%X")))
 bbmm_start_time <- proc.time()[[3]]
-# res = myBBmm("neurogen_score")
+res = myBBmm("neurogen_score")
 # res2 = myBBmmVector("neurogen_score")
 # res = unlist(mclapply(run_vars, function(x) myBBmm(x), mc.cores = num.cores))
 # names(res) = run_vars
 # print(res)
-bbmm <- BBmm(fixed.formula = neurogen_score ~ bower_activity_index + gsi, random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
+# bbmm <- BBmm(fixed.formula = neurogen_score ~ bower_activity_index + gsi, random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
 bbmm_stop_time = proc.time()[[3]]
 print(paste0("BBmm on Cluster 0 (15 level) on Real took: ", bbmm_stop_time-bbmm_start_time))
 print(paste0("BBmm End Time: ", format(Sys.time(), "%X")))
