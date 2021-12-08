@@ -103,15 +103,15 @@ df$cond = as.factor(df$cond)
 # Do smaller dataframes run faster? No.
 # df = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
 
-# num.cores = detectCores()
-num.cores = 4
+num.cores = detectCores()
+# num.cores = 4
 print(paste0("Number of Cores: ", num.cores))
 print(paste0("BBmm Start Time: ", format(Sys.time(), "%X")))
 bbmm_start_time <- proc.time()[[3]]
 # res = myBBmm("neurogen_score")
 # res2 = myBBmmVector("neurogen_score")
-res = unlist(mclapply(rep("neurogen_score", 8), function(x) myBBmm(x), mc.cores = num.cores))
-# res = unlist(mclapply(rep("neurogen_score", 8), function(x) myBBmmLocal(x), mc.cores = num.cores))
+# res = unlist(mclapply(rep("neurogen_score", 8), function(x) myBBmm(x), mc.cores = num.cores))
+res = unlist(mclapply(rep("neurogen_score", 8), function(x) myBBmmLocal(x), mc.cores = num.cores))
 # names(res) = run_vars
 # print(res)
 # bbmm <- BBmm(fixed.formula = neurogen_score ~ bower_activity_index + gsi, random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
