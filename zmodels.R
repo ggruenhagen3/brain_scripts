@@ -104,7 +104,7 @@ df$cond = as.factor(df$cond)
 # df = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
 
 # num.cores = detectCores()
-num.cores = 2
+num.cores = 4
 print(paste0("Number of Cores: ", num.cores))
 print(paste0("BBmm Start Time: ", format(Sys.time(), "%X")))
 bbmm_start_time <- proc.time()[[3]]
