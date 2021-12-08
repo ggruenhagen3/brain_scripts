@@ -879,8 +879,9 @@ geneX_list_unique = unique(geneX_list$gene)
 
 full_res = data.frame()
 for (i in 1:length(geneX_list_unique)) {
+# for (i in 1:10) {
   gene = geneX_list_unique[i]
-  if (i %% 50 == 0) { print(i) }
+  if (i %% 10 == 0) { print(i) }
   this_res = markerExpPerCellPerClusterQuickGeneX(bb, enrich_list, gene)
   if (! is.na(this_res) ) {
     this_res$gene = gene
