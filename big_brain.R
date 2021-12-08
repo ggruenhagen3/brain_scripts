@@ -4511,22 +4511,32 @@ ggplot(clown_meta_agr, aes(x = seurat_clusters, y = nCount_RNA, fill = sex, colo
 #*******************************************************************************
 # Brianna Markers ==============================================================
 #*******************************************************************************
-brianna15 = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george1.xlsx", sheetIndex = 1, startRow = 1)
+brianna53 = xlsx::read.xlsx("~/Downloads/53heatmapmarkerlist_george4.xlsx", sheetIndex = 1, startRow = 1)
+colnames(brianna53)[1] = "Category"
+colnames(brianna53)[4] = "Rank.Within"
+colnames(brianna53)[5] = "Rank.Overall"
+brianna53[, 6:ncol(brianna53)] = NULL
+brianna15 = brianna53
+# brianna15 = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george1.xlsx", sheetIndex = 1, startRow = 1)
 colnames(brianna15)[which(colnames(brianna15) == "Gene.")] = "Gene"
 brianna15$Category = str_replace_all(trimws(brianna15$Category, which = "both"), "[^[:alnum:]\\s]", "")
+brianna15$Category[which( startsWith(brianna15$Category, "Neuroanat") )]  = "NeuroanatNeurodev TF"
 brianna15$LOCID = str_replace_all(trimws(brianna15$LOCID, which = "both"), "[^[:alnum:]\\s]", "")
 brianna15$gene_name = gtf$gene_name[match(brianna15$LOCID, gtf$loc)]
 brianna15$col = plyr::revalue(brianna15$Category, replace = c("Neuromodulator" = "#00E7EC", "Neuromodulatory Receptor" = "#FDD615", "NeuroanatNeurodev TF" = "#FE04FF"))
 
-all_combos = expand.grid(unique(brianna15$gene_name), convert15$new.full)
+# all_combos = expand.grid(unique(brianna15$gene_name), convert15$new.full)
+all_combos = expand.grid(unique(brianna15$gene_name), convert53$new)
 colnames(all_combos) = c("gene_name", "cluster")
 all_combos[, colnames(brianna15)[which(! colnames(brianna15) %in% colnames(all_combos))]] = brianna15[match(all_combos$gene_name, brianna15$gene_name), colnames(brianna15)[which(! colnames(brianna15) %in% colnames(all_combos))]] 
 all_combos[, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = 0
 
-for (cluster in convert15$new.full) {
+# for (cluster in convert15$new.full) {
+for (cluster in convert53$new) {
   print(cluster)
   this_idx = which(all_combos$cluster == cluster)
-  this_cluster_cells = colnames(bb)[which(bb$seuratclusters15 == convert15$old[which(convert15$new.full == cluster)])]
+  # this_cluster_cells = colnames(bb)[which(bb$seuratclusters15 == convert15$old[which(convert15$new.full == cluster)])]
+  this_cluster_cells = colnames(bb)[which(bb$seuratclusters53 == convert53$old[which(convert53$new == cluster)])]
   clust_pct_fc = pct_dif_avg_logFC(bb, this_cluster_cells, colnames(bb)[which(! colnames(bb) %in% this_cluster_cells)], features = brianna15$gene_name)
   all_combos[this_idx, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = clust_pct_fc[match(all_combos$gene_name[this_idx], clust_pct_fc$genes), c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")]
 }
@@ -4537,9 +4547,21 @@ all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(al
 all_combos$col4[which(all_combos$pct.1 >= 40 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 40 )], "80")
 all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 60 )], "ff")
 
-brianna_order = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george2.xlsx", sheetIndex = 1, startRow = 1)
-all_combos$Gene = factor(all_combos$Gene, levels = brianna_order$Gene)
-pdf("~/research/brain/results/bri15_markers_heatmap_8.pdf", height = 3.5, width = 12)
+all_combos$col4 = "gray98"
+all_combos$col4[which(all_combos$pct.1 >= 10 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 10 )],  "40")
+all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "60")
+all_combos$col4[which(all_combos$pct.1 >= 40 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 40 )], "80")
+all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 60 )], "ff")
+
+# brianna_order = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george2.xlsx", sheetIndex = 1, startRow = 1)
+# all_combos$Gene = factor(all_combos$Gene, levels = brianna_order$Gene)
+# pdf("~/research/brain/results/bri15_markers_heatmap_8.pdf", height = 3.5, width = 12)
+# ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+# dev.off()
+
+all_combos$cluster = factor(all_combos$cluster, levels = unique(convert53$new))
+all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene))
+pdf("~/research/brain/results/bri53_markers_heatmap_cutoff10_1.pdf", height = 10, width = 12)
 ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
 

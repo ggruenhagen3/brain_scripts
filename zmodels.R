@@ -45,9 +45,10 @@ myBBmmVector = function(x) {
 #**********************************************************************
 # Load Data + Libraries
 rna_path = "~/scratch/brain/"
-source(paste0(rna_path, "brain_scripts/all_f.R"))
-library("SeuratObject")
-bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
+# source(paste0(rna_path, "brain_scripts/all_f.R"))
+# library("SeuratObject")
+# bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
+bb_metadata = read.csv(paste0(rna_path, "data/bb_meta_data.csv"))
 
 # Load Other Libraries
 library(parallel)
@@ -65,11 +66,11 @@ run_vars = c("neurogen_score")
 for (i in 1:10) {
   this_var = paste0("ran", i)
   run_vars = c(run_vars, this_var)
-  bb@meta.data[, this_var] = abs(bb$neurogen_score + round(rnorm(n = ncol(bb))))
+  bb_metadata[, this_var] = abs(bb_metadata$neurogen_score + round(rnorm(n = nrow(bb_metadata))))
 }
 
 # Subset Data by Cluster
-df = bb@meta.data[which(bb$seuratclusters15 == k),]
+df = bb_metadata[which(bb_metadata$seuratclusters15 == k),]
 df$log_spawn_events = as.numeric(df$log_spawn_events)
 df$bower_activity_index = as.numeric(df$bower_activity_index)
 df$gsi = as.numeric(df$gsi)
@@ -79,12 +80,13 @@ df$subject = as.factor(df$trial_id)
 df$cond = as.factor(df$cond)
 
 # Do smaller dataframes run faster?
-df2 = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
+df = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
 
 num.cores = detectCores()
 print(paste0("Number of Cores: ", num.cores))
 print(paste0("BBmm Start Time: ", format(Sys.time(), "%X")))
 bbmm_start_time <- proc.time()[[3]]
+# res = myBBmm("neurogen_score")
 # res2 = myBBmmVector("neurogen_score")
 # res = unlist(mclapply(run_vars, function(x) myBBmm(x), mc.cores = num.cores))
 # names(res) = run_vars
