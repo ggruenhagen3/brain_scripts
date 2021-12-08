@@ -4560,6 +4560,8 @@ all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(al
 
 all_combos$cluster = factor(all_combos$cluster, levels = unique(convert53$new))
 all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene))
+test = acast(Gene ~ cluster, data = all_combos, value.var = 'pct.1')
+pheatmap::pheatmap(test)
 pdf("~/research/brain/results/bri53_markers_heatmap_cutoff10_1.pdf", height = 10, width = 12)
 ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
