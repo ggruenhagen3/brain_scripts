@@ -53,7 +53,7 @@ myBBmmVector = function(x) {
 # Read Input
 args = commandArgs(trailingOnly=TRUE)
 gene_list = args[1]
-this_model = args[2]
+this_model = as.numeric(args[2])
 print(paste0("Performing BootStraps on ", gene_list))
 print(paste0("Using Model ", this_model))
 
