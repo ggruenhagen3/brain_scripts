@@ -51,6 +51,7 @@ myBBmmVector = function(x) {
 # Body ================================================================
 #**********************************************************************
 # Read Input
+args = commandArgs(trailingOnly=TRUE)
 gene_list = args[1]
 this_model = args[2]
 print(paste0("Performing BootStraps on ", gene_list))
