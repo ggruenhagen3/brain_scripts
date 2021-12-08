@@ -55,7 +55,7 @@ args = commandArgs(trailingOnly=TRUE)
 gene_list = args[1]
 this_model = args[2]
 print(paste0("Performing BootStraps on ", gene_list))
-print(paste0("Using Model ", x))
+print(paste0("Using Model ", this_model))
 
 # Load Libraries
 library(parallel)
@@ -166,7 +166,7 @@ for (i in 0:11) {
 
 # Write Data and Finish Up
 print("All Done")
-write.csv(all_p, paste0("~/scratch/brain/results/bbmm15_", gene_list, "_"))
+write.csv(all_p, paste0("~/scratch/brain/results/bbmm15_", gene_list, "_model", this_model, ".csv"))
 very_stop_time = proc.time()[[3]]
 print(paste0("Total End Time: ", format(Sys.time(), "%X")))
 print(paste0("Number of Seconds Elapsed: ", very_stop_time-very_start_time))
