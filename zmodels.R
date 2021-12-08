@@ -92,9 +92,9 @@ num.cores = detectCores()
 print(paste0("Number of Cores: ", num.cores))
 print(paste0("BBmm Start Time: ", format(Sys.time(), "%X")))
 bbmm_start_time <- proc.time()[[3]]
-res = myBBmm("neurogen_score")
+# res = myBBmm("neurogen_score")
 # res2 = myBBmmVector("neurogen_score")
-# res = unlist(mclapply(run_vars, function(x) myBBmm(x), mc.cores = num.cores))
+res = unlist(mclapply(c("neurogen_score", "neurogen_score"), function(x) myBBmm(x), mc.cores = num.cores))
 # names(res) = run_vars
 # print(res)
 # bbmm <- BBmm(fixed.formula = neurogen_score ~ bower_activity_index + gsi, random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
