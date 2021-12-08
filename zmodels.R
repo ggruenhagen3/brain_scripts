@@ -24,6 +24,21 @@ myBBmm = function(x) {
   return(this_res$p.value[which( rownames(this_res) == test_var)])
 }
 
+myBBmmLocal = function(x) {
+  #' Expects that data has already been subset by cluster.
+  #' Finds p value of bower_activity_index by score.
+  #' 
+  #' @param x score column
+  df = fread("~/scratch/brain/results/bb_meta_data_0_test.csv")
+  test_var = "bower_activity_index"
+  ff = as.formula(paste0(x, " ~ bower_activity_index + gsi"))
+  rf = as.formula(" ~ (subject %in% sample %in% run) + (subject %in% pair)")
+  bbmm <- BBmm(fixed.formula = ff, random.formula = rf, m=88, data = df, show = TRUE)
+  this_res = data.frame(summary(bbmm)$fixed.coefficients)
+  print(paste0("Done ", x))
+  return(this_res$p.value[which( rownames(this_res) == test_var)])
+}
+
 myBBmmVector = function(x) {
   #' Expects that data has already been subset by cluster.
   #' Finds p value of bower_activity_index by score.
@@ -88,13 +103,15 @@ df$cond = as.factor(df$cond)
 # Do smaller dataframes run faster? No.
 # df = df[,c("subject", "sample", "run", "pair", "neurogen_score", "bower_activity_index", "gsi")]
 
-num.cores = detectCores()
+# num.cores = detectCores()
+num.cores = 2
 print(paste0("Number of Cores: ", num.cores))
 print(paste0("BBmm Start Time: ", format(Sys.time(), "%X")))
 bbmm_start_time <- proc.time()[[3]]
 # res = myBBmm("neurogen_score")
 # res2 = myBBmmVector("neurogen_score")
 res = unlist(mclapply(rep("neurogen_score", 8), function(x) myBBmm(x), mc.cores = num.cores))
+# res = unlist(mclapply(rep("neurogen_score", 8), function(x) myBBmmLocal(x), mc.cores = num.cores))
 # names(res) = run_vars
 # print(res)
 # bbmm <- BBmm(fixed.formula = neurogen_score ~ bower_activity_index + gsi, random.formula = ~ (subject %in% sample %in% run) + (subject %in% pair) , m=88, data = df, show = TRUE)
