@@ -115,7 +115,7 @@ library(data.table)
 # mat[which(mat > 1)] = 1
 # for (x in 1:100) { bb@meta.data[,paste0("neurogen", x)] = colSums(mat[ran_lists[[x]],]) }
 # bb$subject = bb$trial_id
-# df = bb@meta.data[,c("subject", "sample", "run", "pair", "neurogen_score", "ieg_score", "bower_activity_index", "gsi", paste0("neurogen", 1:100), paste0("ieg", 1:100))]
+# df = bb@meta.data[,c("subject", "sample", "run", "pair", "neurogen_score", "ieg_score", "log_spawn_events", "cond", "bower_activity_index", "gsi", paste0("neurogen", 1:100), paste0("ieg", 1:100))]
 # write.csv(df, "~/scratch/brain/results/bb_real_and_rand_meta.csv")
 # for (i in 0:11) {
 #   clust_df = df[colnames(bb)[which(bb$seuratclusters15 == i)],]
@@ -132,14 +132,15 @@ library(data.table)
 # df$subject = as.factor(df$trial_id)
 # df$cond = as.factor(df$cond)
 
-ff_str = switch(this_model, 
-                "cond + log_spawn_events + gsi",                 # Model 1
-                "cond + log_spawn_events",                       # Model 2
-                "cond + gsi",                                    # Model 3
-                "bower_activity_index + log_spawn_events + gsi", # Model 4
-                "bower_activity_index + log_spawn_events",       # Model 5
-                "bower_activity_index + gsi",                    # Model 6
-                "log_spawn_events + gsi")                        # Model 7
+test_vars = switch(this_model, 
+                  c("cond", "log_spawn_events", "gsi"),                 # Model 1
+                  c("cond", "log_spawn_events"),                        # Model 2
+                  c("cond", "gsi"),                                     # Model 3
+                  c("bower_activity_index", "log_spawn_events", "gsi"), # Model 4
+                  c("bower_activity_index", "log_spawn_events"),        # Model 5
+                  c("bower_activity_index", "gsi"),                     # Model 6
+                  c("log_spawn_events", "gsi"))                         # Model 7
+ff_str = paste(test_vars, collapse = " + ")
 print(paste0("Model Fixed Effects formula: score ~ ", ff_str))
 
 # Parameters and Print Messages
@@ -158,7 +159,11 @@ for (i in 0:11) {
   print(paste0("Cluster Start Time: ", format(Sys.time(), "%X")))
   clust_start_time <- proc.time()[[3]]
   clust_p = mclapply(run_vars, function(x) myBBmmLocal(x, i), mc.cores = num.cores)
-  all_p = rbind(all_p, do.call(rbind, clust_p))
+  clust_df = do.call(rbind, clust_p)
+  colnames(clust_df) = paste0(test_vars, "_p")
+  clust_df$perm = 1:nperm
+  clust_df$cluster = i
+  all_p = rbind(all_p, )
   print(paste0("Cluster End Time: ", format(Sys.time(), "%X")))
   clust_end_time <- proc.time()[[3]]
   print(paste0("Number of Seconds Elapsed for Cluster ", i, ": ", clust_end_time-clust_start_time))
