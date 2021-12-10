@@ -159,8 +159,7 @@ for (i in 0:11) {
   print(paste0("Cluster Start Time: ", format(Sys.time(), "%X")))
   clust_start_time <- proc.time()[[3]]
   clust_p = mclapply(run_vars, function(x) myBBmmLocal(x, i), mc.cores = num.cores)
-  clust_df = do.call(rbind, clust_p)
-  colnames(clust_df) = paste0(test_vars, "_p")
+  clust_df = as.data.frame(data.table::transpose(clust_p), col.names = paste0(test_vars, "_p"))
   clust_df$perm = 1:nperm
   clust_df$cluster = i
   all_p = rbind(all_p, )
