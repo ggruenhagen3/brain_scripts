@@ -162,7 +162,7 @@ for (i in 0:11) {
   clust_df = as.data.frame(data.table::transpose(clust_p), col.names = paste0(test_vars, "_p"))
   clust_df$perm = 1:nperm
   clust_df$cluster = i
-  all_p = rbind(all_p, )
+  all_p = rbind(all_p, clust_df)
   print(paste0("Cluster End Time: ", format(Sys.time(), "%X")))
   clust_end_time <- proc.time()[[3]]
   print(paste0("Number of Seconds Elapsed for Cluster ", i, ": ", clust_end_time-clust_start_time))
