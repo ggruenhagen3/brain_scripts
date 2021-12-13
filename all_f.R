@@ -20,12 +20,209 @@ library("colourvalues")
 library("colorspace")
 library("ggrepel")
 library("parallel")
+library("curl")
+library("rjson")
 # library("ggforce")
 httr::set_config(config(ssl_verifypeer = FALSE))
 
 ####################
 # Helper Functions #
 ####################
+
+clusterProportionsP = function(obj, group1, group2, cluster_meta_name = 'seurat_clusters', ind_meta_name = 'subsample') {
+  #' Test for Differences in Cluster Proportions Between 2 Groups of Individuals
+  #' @param obj Seurat object
+  #' @param group1 vector of first group of individuals
+  #' @param group2 vector of second group of individuals
+  #' @param cluster_meta_name metadata column name that stores cluster assignments
+  #' @param ind_meta_name metadata column name that stores individuals
+  #' 
+  #' @return list of 4 dataframes: 1. Number of Cells By Individual
+  #'                               2. Number of Cells By Cluster
+  #'                               3. Proportions of Cells by Individual By Cluster ('ind_meta_name' -> individual, 'group' -> group1 or group2, 'cluster_meta_name' -> cluster, num_cells -> number of cells in the individual in the cluster, 'sub_tot' -> number of cells in the individual, 'clust_tot' -> number of cells in the cluster, 'prop_of_clust_in_sub' -> Cell in Individual and Cluster / Cells in Individual), 'prop_of_sub_in_clust' -> Cell in Individual and Cluster / Cells in Cluster
+  #'                               4. P-values for significance by cluster ('cluster' -> cluster, 'prop_of_sub_in_clust_p' -> p-value for prop_of_sub_in_clust, 'prop_of_clust_in_sub' -> p-value for prop_of_clust_in_sub, 'n_ind_group1' -> number of individuals from group1 present in the cluster, 'n_ind_group2' -> number of individuals from group2 present in the cluster, 'prop_of_clust_in_sub_bh' -> BH correction for prop_of_clust_in_sub_p, 'prop_of_sub_in_clust_bh' -> BH correction for prop_of_sub_in_clust_p)
+  #' 
+  
+  metadata = obj@meta.data
+  metadata$num_cells = metadata$nCount_RNA
+  
+  # Check Input
+  if (! cluster_meta_name %in% colnames(metadata) ) { warning("cluster_meta_name is not in the metadata for this object"); return(F); }
+  if (! ind_meta_name     %in% colnames(metadata) ) { warning("ind_meta_name is not in the metadata for this object");     return(F); }
+  if (! all(group1 %in% metadata[, ind_meta_name]) ) { warning("All individuals in group1 are not in the ind_meta_name metadata");     return(F); }
+  if (! all(group2 %in% metadata[, ind_meta_name]) ) { warning("All individuals in group2 are not in the ind_meta_name metadata");     return(F); }
+  
+  # Set the Groups
+  metadata$group1 = plyr::revalue(as.character(metadata[, ind_meta_name] %in% group1), replace = c("TRUE" = 1, "FALSE" = 0))
+  metadata$group2 = plyr::revalue(as.character(metadata[, ind_meta_name] %in% group2), replace = c("TRUE" = 2, "FALSE" = 0))
+  metadata$group  = metadata$group1
+  metadata$group[which(metadata$group == 0)] = metadata$group2[which(metadata$group == 0)]
+  
+  # Find Proportions
+  # 1. prop_of_clust_in_sub = Cell in Individual and Cluster / Cells in Individual
+  # 2. prop_of_sub_in_clust = Cell in Individual and Cluster / Cells in Cluster
+  sub_df = aggregate(as.formula(paste("num_cells ~", ind_meta_name)), data = metadata, length)
+  clust_df = aggregate(as.formula(paste("num_cells ~", cluster_meta_name)), data = metadata, length)
+  sub_clust_df = aggregate(as.formula(paste("num_cells ~", ind_meta_name, "+ group +", cluster_meta_name)), data = metadata, length)
+  sub_clust_df$sub_tot = sub_df$num_cells[match(sub_clust_df[, ind_meta_name], sub_df[, ind_meta_name])]
+  sub_clust_df$clust_tot = clust_df$num_cells[match(sub_clust_df[, cluster_meta_name], clust_df[, cluster_meta_name])]
+  sub_clust_df$prop_of_clust_in_sub = (sub_clust_df$num_cells / sub_clust_df$sub_tot) * 100
+  sub_clust_df$prop_of_sub_in_clust = (sub_clust_df$num_cells / sub_clust_df$clust_tot) * 100
+  
+  # Find the p-values for cluster proportions
+  cluster_p_df = data.frame()
+  for (cluster in clust_df[, cluster_meta_name]) {
+    this_sub_clust_df = sub_clust_df[which(sub_clust_df[, cluster_meta_name] == cluster),]
+    n_ind_group1 = length(which(this_sub_clust_df$group == 1)) # number of group 1 samples present in cluster
+    n_ind_group2 = length(which(this_sub_clust_df$group == 2)) # number of group 2 samples present in cluster
+    prop_sub_in_clust_p = prop_clust_in_sub_p = 1;
+    if (n_ind_group1 > 0 & n_ind_group2 > 0) {
+      num_p               = kruskal.test(this_sub_clust_df$num_cells, this_sub_clust_df$group)$p.value
+      prop_sub_in_clust_p = kruskal.test(this_sub_clust_df$prop_of_sub_in_clust, this_sub_clust_df$group)$p.value
+      prop_clust_in_sub_p = kruskal.test(this_sub_clust_df$prop_of_clust_in_sub, this_sub_clust_df$group)$p.value
+    }
+    cluster_p_df = rbind(cluster_p_df, data.frame(cluster, prop_sub_in_clust_p, prop_clust_in_sub_p, n_ind_group1, n_ind_group2))
+  }
+  cluster_p_dfnum_bh = p.adjust(cluster_p_df$num_p, method = "BH")
+  cluster_p_df$prop_clust_in_sub_bh = p.adjust(cluster_p_df$prop_clust_in_sub_p, method = "BH")
+  cluster_p_df$prop_sub_in_clust_bh = p.adjust(cluster_p_df$prop_sub_in_clust_p, method = "BH")
+  
+  return(list(sub_df, clust_df, sub_clust_df, cluster_p_df))
+}
+
+diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_info = "C:/Users/miles/Downloads/all_research/gene_info.txt") {
+  #' Find Differential Enrichmentment Using ToppGene
+  #' @param list1 vector of genes
+  #' @param list2 vector of genes
+  #' @param org1 organism the first list belongs to: human, mouse, or mzebra
+  #' @param org2 organism the second list belongs to: human, mouse, or mzebra
+  #' @param path_to_gene_info path to gene_info.txt file that George sent you (the same one used to convert mzebra to human genes)
+  
+  # Detect the organism of the input list
+  for (i in 1:2) {
+    org =      if (i == 1) org1  else org2
+    org_list = if (i == 1) list1 else list2
+    org_list_length = length(org_list)
+    if (is.null(org)) {
+      human_length = length(which( toupper(org_list)      == org_list ))
+      mouse_length = length(which( str_to_title(org_list) == org_list ))
+      max_human_mouse_length = max(c(human_length, mouse_length))
+      org = ifelse(max_human_mouse_length == human_length, "human", "mouse")
+      org = ifelse(max_human_mouse_length > 0.75 * org_list_length, "human", "mzebra")
+      message(paste0("Organism for list", i, " not provided. Detected organism: ", org))
+      if (i == 1) { org1 = org } else { org2 = org }
+    }
+  }
+  message()
+  
+  # Load mzebra conversion info if necessary
+  if (org1 == "mzebra" || org2 == "mzebra") {
+    gene_info = read.table(path_to_gene_info, sep="\t", header = T, stringsAsFactors = F)   
+  }
+  
+  # Gene Conversion
+  for (i in 1:2) {
+    org =      if (i == 1) org1  else org2
+    org_list = if (i == 1) list1 else list2
+    org_list_length_1 = length(org_list)
+    if (org == "mouse")  { org_list = toupper(org_list) }
+    if (org == "mzebra") { org_list = gene_info$human[match(org_list, gene_info$mzebra)] }
+    org_list = org_list[which( (! is.na(org_list)) & org_list != "" )]
+    org_list_length_2 = length(org_list)
+    org_list = unique(org_list) # Remove Duplicates
+    org_list_length_3 = length(org_list)
+    
+    # API Gene Lookup
+    human_str = paste0(org_list, collapse = '", "')
+    gene_query = paste0('{ "Symbols": ["', human_str, '"] }')
+    h <- new_handle()
+    handle_setopt(h, copypostfields = gene_query)
+    handle_setheaders(h, "Content-Type" = "text/json")
+    curl_download("https://toppgene.cchmc.org/API/lookup", destfile = "gene_out.json", handle = h)
+    res = fromJSON(file = "gene_out.json")
+    human_ids = as.data.table(t(rbindlist(res)))
+    org_list = as.vector(unlist(human_ids[,2]))
+    
+    org_list = unique(org_list)
+    org_list = org_list[which( !is.na(org_list) )]
+    org_list_length_4 = length(org_list)
+    final_list_length = org_list_length_4
+    message(paste0( "List", i, " Original Length ", org_list_length_1, " (100%) -> Gene Conversion ", org_list_length_2, " (", format(round(org_list_length_2/org_list_length_1 * 100, 2), nsmall = 2), "% of Original) -> Remove Duplicates ", org_list_length_3, " (", format(round(org_list_length_3/org_list_length_1 * 100, 2), nsmall = 2), "% of Original) -> Find Entrez Accessions ", org_list_length_4, " (", format(round(org_list_length_4/org_list_length_1 * 100, 2), nsmall = 2), "% of Original)" ))
+    if (i == 1) { list1 = org_list; final_list1_length  = final_list_length; } else { list2 = org_list; final_list2_length = final_list_length; }
+  }
+  message()
+  
+  # Construct JSON Query
+  message("Constructing JSON Query Strings")
+  my_cats = c("GeneOntologyMolecularFunction", "GeneOntologyBiologicalProcess", "GeneOntologyCellularComponent")
+  json_queries = c()
+  for (i in 1:2) {
+    org_list = if (i == 1) list1 else list2
+    json_query = paste0('{ "Genes": [', paste0(org_list, collapse = ','), '], "Categories": [') # Add the Genes
+    for (j in 1:length(my_cats)) {
+      my_cat = my_cats[j]
+      json_query = paste0(json_query, '{ "Type": "', my_cat, '", "PValue": 1, "MinGenes": 0, "MaxGenes": 1000000000, "MaxResults": 1000000000, "Correction": "FDR" }')
+      if (j != length(my_cats)) { json_query = paste0(json_query, ", ") }
+    } # end cat for
+    json_query = paste0(json_query, '] } }')
+    json_queries = c(json_queries, json_query)
+  } # end json_query for
+  
+  # Curl ToppGene Results Using Their API
+  for (i in 1:2) {
+    message(paste0("Retrieving ToppGene Output for List", i, ". This may take a few seconds."))
+    h <- new_handle()
+    handle_setopt(h, copypostfields = json_queries[i])
+    handle_setheaders(h, "Content-Type" = "text/json")
+    curl_download("https://toppgene.cchmc.org/API/enrich", destfile = "list_out.json", handle = h)
+    res = fromJSON(file = "list_out.json")
+    df = as.data.table(do.call(rbind,res$Annotations))
+    df = df[,1:which(colnames(df) == "GenesInTermInQuery")]
+    df = as.data.table(unnest(df, cols = colnames(df)))
+    df$Category = plyr::revalue(df$Category, replace = c('GeneOntologyBiologicalProcess' = 'BP', 'GeneOntologyCellularComponent' = 'CC', 'GeneOntologyMolecularFunction' = 'MF'))
+    if (i == 1) { df1 = df } else { df2 = df }
+  }
+  
+  # Merge Datasets
+  message("Merging List1 and List2 ToppGene Output.")
+  df_merge = merge.data.table(df1, df2, by = c('Category', 'ID', 'Name'), suffixes = c("1", "2"), all = T)
+  value_names = colnames(df_merge)[which(grepl("Value" , colnames(df_merge)))]
+  genes_names = paste0("GenesInTermInQuery", 1:2)
+  df_merge = df_merge  %>% mutate_at(value_names, ~replace_na(., 1))
+  df_merge = df_merge  %>% mutate_at(genes_names, ~replace_na(., 0))
+  df_merge$TotalGenes1[is.na(df_merge$TotalGenes1)] = df_merge$TotalGenes2[is.na(df_merge$TotalGenes1)]
+  df_merge$TotalGenes2[is.na(df_merge$TotalGenes2)] = df_merge$TotalGenes1[is.na(df_merge$TotalGenes2)]
+  df_merge$GenesInTerm1[is.na(df_merge$GenesInTerm1)] = df_merge$GenesInTerm2[is.na(df_merge$GenesInTerm1)]
+  df_merge$GenesInTerm2[is.na(df_merge$GenesInTerm2)] = df_merge$GenesInTerm1[is.na(df_merge$GenesInTerm2)]
+  query_gene_df = unique(df_merge[! is.na(df_merge$GenesInQuery1), c("Category", "GenesInQuery1")])
+  query_gene_df$GenesInQuery2 = unique(df_merge[! is.na(df_merge$GenesInQuery2), c("Category", "GenesInQuery2")])[,2]
+  df_merge[, c("GenesInQuery1", "GenesInQuery2")] = query_gene_df[match(df_merge$Category, query_gene_df$Category), c("GenesInQuery1", "GenesInQuery2")]
+  df_melt = melt(df_merge, id.vars = c('Category', 'ID', 'Name'))
+  
+  # Calculate p-values for differential enrichment
+  message("Calculating p-values for differential enrichment. This may take a few seconds.")
+  df_merge[, c("chisq_p", "fisher_p", "prop1", "prop2", "highGroup")]  = 1
+  for (i in 1:nrow(df_merge)) {
+    contig_table = data.frame(InTerm = unlist(c(df_merge[i, "GenesInTermInQuery1"], df_merge[i, "GenesInTermInQuery2"])), NotInTerm = unlist(c(df_merge[i, "GenesInQuery1"], df_merge[i, "GenesInQuery2"])))
+    df_merge[i, c("prop1", "prop2")] = list(contig_table[1, 1] / contig_table[1, 2], contig_table[2, 1] / contig_table[2, 2])
+    contig_table$NotInTerm = contig_table$NotInTerm - contig_table$InTerm
+    df_merge[i, c("chisq_p", "fisher_p")] = list(chisq.test(contig_table)$p.value, fisher.test(contig_table)$p.value)
+    df_merge[i, c("highGroup")] = ifelse(max(df_merge[i, c("prop1", "prop2")]) == df_merge[i, "prop1"], 1, 2)
+  }
+  df_merge$bh_chisq  = p.adjust(df_merge$chisq_p, method = 'BH')
+  df_merge$bon_chisq = p.adjust(df_merge$chisq_p, method = 'bonferroni')
+  df_merge$bh_fisher  = p.adjust(df_merge$fisher_p, method = 'BH')
+  df_merge$bon_fisher = p.adjust(df_merge$fisher_p, method = 'bonferroni')
+  message("Done.\n")
+  
+  message(paste0("Number of Bonferroni Significant Results Using Fisher's Exact Test: ", length(which(df_merge$bon_fisher < 0.05)) ))
+  message(paste0("Number of Bonferroni Significant Results Using Chi-Square Test: ", length(which(df_merge$bon_chisq < 0.05)) ))
+  message(paste0("Top 5 Differentially Enriched Categories:"))
+  print(df_merge[order(fisher_p)[1:5], c("Category", "Name", "bon_fisher", "fisher_p")])
+  message("All Done.")
+
+  return(df_merge)
+}
 
 clipboard <- function(x, sep="\t", row.names=FALSE, col.names=TRUE){
   con <- pipe("xclip -selection clipboard -i", open="w")
@@ -39,10 +236,10 @@ pct_dif_avg_logFC = function(obj, cells.1, cells.2, features = NULL) {
   #' @param cells.1 vector of first group of cells
   #' @param cells.2 vector of second group of cells
   #' @param features vector of genes to use
+  both_cells = unique(c(cells.1, cells.2))
   if (is.null(features)) {
     features = rownames(obj)[which(rowSums(obj@assays$RNA@counts[,both_cells]) > 0)]
   }
-  both_cells = unique(c(cells.1, cells.2))
   
   # Find Percent of Gene+ in both groups of cells
   mat1 = obj@assays$RNA@counts[features, cells.1]
@@ -59,7 +256,7 @@ pct_dif_avg_logFC = function(obj, cells.1, cells.2, features = NULL) {
   # Seurat
   mean_exp1 = rowMeans(expm1(obj@assays$RNA@data[features, cells.1]))
   mean_exp2 = rowMeans(expm1(obj@assays$RNA@data[features, cells.2]))
-  avg_logFC = log(mean_exp1 + 1) - log(mean_exp2 + 1)
+  avg_logFC = log(mean_exp1 + 1, base = 2) - log(mean_exp2 + 1, base = 2)
   
   # # Zack 
   # mean_exp1 = rowSums(bb@assays$RNA@counts[non_zero_genes,cells.1]) / sum(bb$nCount_RNA[cells.1])
