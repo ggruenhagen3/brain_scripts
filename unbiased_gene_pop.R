@@ -65,6 +65,12 @@ gpop_thresh = 1000
 gpops = names(bmat_row_sums)[which(bmat_row_sums >= gpop_thresh)]
 gpops = gpops[which(gpops %in% sub_gpops)]
 
-#
+# Calculate My Metric
 gpop_res = mclapply(gpops[1:10], function(gp) pct_FC_in_GP(gp), mc.cores = detectCores())
-gp_df = rbindlist(gpop_res)
+gp_df = setNames(as.data.frame(t(as.data.frame(gpop_res)), row.names = 1:10), c("top_50", "top_100", "top_500", "num_above_2", "num_above_25", "num_above_3"))
+gp_df$gene = gpops
+gp_df$num_cells = bmat_row_sums[gpops]
+gp_df = gp_df %>% relocate(gene:num_cells, .before = 1)
+
+# Write data
+write.csv(gp_df, paste0("~/scratch/brain/results/unbiased_gene_pop_", obj_str, ".csv"))
