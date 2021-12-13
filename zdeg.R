@@ -159,6 +159,7 @@ for (k in clusters_3plus_per_subject[1]){
   out_final = data.frame(results@stats)
   hist(out_final$P_bower_activity_index)
   out_final$cluster=k-1
+  saveRDS(results, "results.rds")
   saveRDS(glmmseq_counts, "glmmseq_counts.rds")
   saveRDS(coldata, "coldata.rds")
   saveRDS(dds, "dds.rds")
