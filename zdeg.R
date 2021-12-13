@@ -20,7 +20,7 @@ clusters_3plus_per_subject=c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,2
 
 #DEG analysis
 #k=11
-for (k in clusters_3plus_per_subject){
+for (k in clusters_3plus_per_subject[1]){
   #for (k in 1:1){
   print(paste0("starting cluster ",k))
   #  if(k %in% skip_clusters){
@@ -159,5 +159,9 @@ for (k in clusters_3plus_per_subject){
   out_final = data.frame(results@stats)
   hist(out_final$P_bower_activity_index)
   out_final$cluster=k-1
-  write.csv(out_final, paste0("bb53_deg_glmmseq_demux_bower_activity_index_log_spawn_events_gsi_control_subjectinsampleinrun_subjectinpair_random_good_genes_by_pair_cluster",k-1,"_102121.csv"))
+  saveRDS(glmmseq_counts, "glmmseq_counts.rds")
+  saveRDS(coldata, "coldata.rds")
+  saveRDS(dds, "dds.rds")
+  saveRDS(disp, "disp.rds")
+  # write.csv(out_final, paste0("bb53_deg_glmmseq_demux_bower_activity_index_log_spawn_events_gsi_control_subjectinsampleinrun_subjectinpair_random_good_genes_by_pair_cluster",k-1,"_102121.csv"))
 } 
