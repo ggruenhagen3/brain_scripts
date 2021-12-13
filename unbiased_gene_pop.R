@@ -36,7 +36,7 @@ if (obj_str == 'bb') {
   obj$group = obj$cond
   obj$group = plyr::revalue(obj$group, replace = c("BHVE" = 'group1', "CTRL" = 'group2'))
 } else if (obj_str == 'clown') {
-  obj = "clown"
+  obj = readRDS(paste0(rna_path, "data/anenomefish_clustered_061821.rds"))
   obj$subsample = paste0(obj$sample, "_", obj$subsample)
   obj$group = obj$sex
   obj$group = plyr::revalue(obj$group, replace = c("f" = 'group1', "m" = 'group2'))
