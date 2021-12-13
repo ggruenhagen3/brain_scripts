@@ -5574,3 +5574,122 @@ for (i in 1:nrow(gtf)) {
   }
 }
 write.csv(fst, "C:/Users/miles/Downloads/pcrc_fst_file_for_zack_120221.csv")
+
+# org_list = human_ids$NCBI.gene..formerly.Entrezgene..ID[match(org_list, human_ids$Gene.name)]
+# Urn = All Genes In Category. White Ball = Term Genes. Black Ball = Non Term Genes
+# k = unname(unlist(df_merge[1, "GenesInQuery1"])) # Number of balls drawn from urn
+# m = unname(unlist(df_merge[1, "GenesInTerm1"])) # Number of White Balls
+# n = unname(unlist(df_merge[1, "TotalGenes1"])) - unname(unlist(df_merge[1, "GenesInTerm1"])) # Number of black balls
+# x = unname(unlist(df_merge[1, "GenesInTermInQuery1"])) # Number of white balls drawn from urn
+# phyper(q = x, m = m, n = n, k = k)
+# signif(phyper(x, m, n, k) - cumsum(dhyper(x, m, n, k)), digits = 8)
+
+#************************************************************************
+# Zack Models for Neurogen - 100 Perms ==================================
+#************************************************************************
+library(lazyeval)
+gene_list_name = "neurogen"
+cluster_level = 15
+zmodel = lapply(1:7, function(x) { 
+  this_zm = read.csv(paste0(rna_path, "bbmm", cluster_level, "_", gene_list_name, "_model", x, ".csv"))
+  colnames(this_zm) = paste0(colnames(this_zm), "_", x)
+  return(this_zm)})
+
+big_zm = do.call(cbind, zmodel)
+big_zm[, which( startsWith(colnames(big_zm), "X") | startsWith(colnames(big_zm), "perm") | startsWith(colnames(big_zm), "cluster") )] = NULL
+big_zm$perm = zmodel[[1]]$perm
+big_zm$cluster = zmodel[[1]]$cluster
+big_zm = big_zm %>% relocate(perm:cluster, .before = 1)
+
+# Find Maximum P Value per Variable
+big_zm = big_zm %>% mutate(cond_max_p  = pmax(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "cond_p"))])))
+big_zm = big_zm %>% mutate(bai_max_p   = pmax(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "bower_activity_index_p"))])))
+big_zm = big_zm %>% mutate(gsi_max_p   = pmax(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "gsi_p"))])))
+big_zm = big_zm %>% mutate(spawn_max_p = pmax(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "log_spawn_events_p"))])))
+big_zm = big_zm %>% mutate(bower_max_p = pmax(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "cond_p") | startsWith(colnames(big_zm), "bower_activity_index_p"))])))
+
+# Find Number of Significant Models per Variable
+big_zm$cond_num_sig  = big_zm %>% select(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "cond_p"))])) %>% mutate(cond_num_sig  = rowSums(. < 0.05)) %>% pull('cond_num_sig')
+big_zm$bai_num_sig   = big_zm %>% select(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "bower_activity_index_p"))])) %>% mutate(bai_num_sig  = rowSums(. < 0.05)) %>% pull('bai_num_sig')
+big_zm$gsi_num_sig   = big_zm %>% select(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "gsi_p"))])) %>% mutate(gsi_num_sig  = rowSums(. < 0.05)) %>% pull('gsi_num_sig')
+big_zm$spawn_num_sig = big_zm %>% select(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "log_spawn_events_p"))])) %>% mutate(spawn_num_sig  = rowSums(. < 0.05)) %>% pull('spawn_num_sig')
+big_zm$bower_num_sig = big_zm %>% select(!!!rlang::syms(colnames(big_zm)[which(startsWith(colnames(big_zm), "cond_p") | startsWith(colnames(big_zm), "bower_activity_index_p"))])) %>% mutate(bower_num_sig  = rowSums(. < 0.05)) %>% pull('bower_num_sig')
+
+# Plot Num Sig
+zm_p = rbindlist(lapply(0:11, function(x)  {this_zm = big_zm[which(big_zm$cluster == x),]; data.frame(cond = length(which(this_zm$cond_num_sig == 3)), bai = length(which(this_zm$bai_num_sig == 3)), bower = length(which(this_zm$bower_num_sig == 6)), gsi = length(which(this_zm$gsi_num_sig == 5)), spawn = length(which(this_zm$spawn_num_sig == 5)) ) }))
+zm_p$cluster = 0:11
+zm_p = melt(zm_p, id.var = c('cluster'))
+zm_p$cluster = factor(zm_p$cluster, levels = 0:11)
+ggplot(zm_p, aes(x = cluster, y = value, fill = variable)) + geom_bar(stat = 'identity', position = position_dodge()) + scale_y_continuous(expand = c(0, 0)) + theme_classic() + ylab("# of Perms Meeting # of Sig Model Threshold") + xlab("Cluster") + ggtitle("Neurogenesis 15 Cluster Level")
+
+# Plot P Max
+zm_p = melt(big_zm[, c('cluster', 'cond_max_p', 'bai_max_p', 'bower_max_p', 'gsi_max_p', 'spawn_max_p')], id.var = c('cluster'))
+zm_p$cluster = factor(zm_p$cluster, levels = 0:11)
+zm_p$value = -log10(zm_p$value)
+ggplot(zm_p, aes(x = cluster, y = value, fill = variable)) + geom_boxplot(position = position_dodge()) + scale_y_continuous(expand = c(0, 0)) + theme_classic() + ylab("-Log10(Max P)") + xlab("Cluster") + ggtitle("Neurogenesis 15 Cluster Level") + geom_hline(yintercept = -log10(0.05), linetype = 'dashed', color = 'gray40')
+
+tj.deg.sig.pos$neg_log_bon = -log10(tj.deg.sig.pos$p_val_adj)
+paste0("BON v 9: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric9))], tj.deg.sig.pos$all_metric9[which(is.finite(tj.deg.sig.pos$all_metric9))]))
+paste0("BON v 8: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric8))], tj.deg.sig.pos$all_metric8[which(is.finite(tj.deg.sig.pos$all_metric8))]))
+paste0("BON v 7: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric7))], tj.deg.sig.pos$all_metric7[which(is.finite(tj.deg.sig.pos$all_metric7))]))
+paste0("BON v 6: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric6))], tj.deg.sig.pos$all_metric6[which(is.finite(tj.deg.sig.pos$all_metric6))]))
+paste0("BON v 5: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric5))], tj.deg.sig.pos$all_metric5[which(is.finite(tj.deg.sig.pos$all_metric5))]))
+paste0("BON v 4: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric4))], tj.deg.sig.pos$all_metric4[which(is.finite(tj.deg.sig.pos$all_metric4))]))
+paste0("BON v 3: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric3))], tj.deg.sig.pos$all_metric3[which(is.finite(tj.deg.sig.pos$all_metric3))]))
+paste0("BON v 2: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric2))], tj.deg.sig.pos$all_metric2[which(is.finite(tj.deg.sig.pos$all_metric2))]))
+paste0("BON v 1: ", cor(tj.deg.sig.pos$p_val_adj[which(is.finite(tj.deg.sig.pos$all_metric))], tj.deg.sig.pos$all_metric[which(is.finite(tj.deg.sig.pos$all_metric))]))
+
+tj.deg.sig.pos$num_1 = tj.deg.sig.pos$num.cells * tj.deg.sig.pos$pct.1
+tj.deg.sig.pos$num_2 = (ncol(tj) - tj.deg.sig.pos$num.cells) * tj.deg.sig.pos$pct.2
+
+tj.deg.sig.pos$all_metric_tmp = tj.deg.sig.pos$pct_dif * tj.deg.sig.pos$avg_log2FC * log(tj.deg.sig.pos$num.cells)
+cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric_tmp))], tj.deg.sig.pos$all_metric_tmp[which(is.finite(tj.deg.sig.pos$all_metric_tmp))])
+
+tj.deg$num.cells = tj.num.cells$Freq[match(tj.deg$cluster, tj.num.cells$cluster)]
+tj.deg$pct_dif = tj.deg$pct.1 - tj.deg$pct.2
+tj.deg$abs_pct_dif = abs(tj.deg$pct_dif)
+tj.deg$mym = tj.deg$pct_dif * tj.deg$avg_log2FC * log(tj.deg$num.cells)
+tj.deg$neg_log_bon = -log10(tj.deg$p_val_adj)
+tj.deg$isSig = tj.deg$p_val_adj < 0.05
+cor(tj.deg$neg_log_bon, tj.deg$mym)
+ggplot(tj.deg, aes(x = neg_log_bon, y = mym, color = as.numeric(isSig))) + geom_point() + geom_smooth(method='lm', formula= y~x) 
+ggplot(tj.deg, aes(x = isSig, y = mym, color = as.numeric(isSig))) + geom_boxplot() + geom_point(alpha = 0.1, position = position_jitterdodge())
+ggplot(tj.deg, aes(x = isSig, y = neg_log_bon, color = as.numeric(isSig))) + geom_boxplot() + geom_point(alpha = 0.1, position = position_jitterdodge())
+
+bb15$all_metric_tmp = bb15$pct_dif * bb15$avg_logFC * log(bb15$num.cells)
+cor(bb15$neg_log_bon[which(is.finite(bb15$all_metric_tmp))], bb15$all_metric_tmp[which(is.finite(bb15$all_metric_tmp))])
+
+
+# bvc = read.delim("C:/Users/miles/Downloads/brain/results/bb/sim_bhve_v_ctrl.tsv")
+bb15 = read.csv("C:/Users/miles/Downloads/brain/results/bb/bb_all_cluster_15_degs.csv")
+# bb15 = read.csv("C:/Users/miles/Downloads/brain/results/bb/bb_all_cluster_53_degs.csv")
+bb.num.cells = as.data.frame(table(bb$seuratclusters15))
+bb15$num.cells = bb.num.cells$Freq[match(bb15$cluster, bb.num.cells$Var1)]
+bb15$pct_dif = bb15$pct.1 - bb15$pct.2
+bb15$abs_pct_dif = abs(bb15$pct_dif)
+bb15$mym = bb15$pct_dif * bb15$avg_logFC * log(bb15$num.cells)
+bb15$neg_log_bon = -log10(bb15$p_val_adj)
+bb15$isSig = bb15$p_val_adj < 0.05
+bb15$neg_log_bon[which(! is.finite(bb15$neg_log_bon) )] = 500
+cor(bb15$neg_log_bon[which(bb15$neg_log_bon != 500)], bb15$mym[which(bb15$neg_log_bon != 500)])
+ggplot(bb15, aes(x = neg_log_bon, y = mym, color = as.numeric(isSig))) + geom_point() + geom_smooth(method='lm', formula= y~x) 
+ggplot(bb15, aes(x = isSig, y = mym, color = as.numeric(isSig))) + geom_boxplot() + geom_point(alpha = 0.1, position = position_jitterdodge())
+ggplot(bb15, aes(x = isSig, y = neg_log_bon, color = as.numeric(isSig))) + geom_boxplot() + geom_point(alpha = 0.1, position = position_jitterdodge())
+
+# Best so far: pct_dif * avg_log2FC * log(num.cells)
+
+paste0("LOG BON v 9: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric9))], tj.deg.sig.pos$all_metric9[which(is.finite(tj.deg.sig.pos$all_metric9))]))
+paste0("LOG BON v 8: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric8))], tj.deg.sig.pos$all_metric8[which(is.finite(tj.deg.sig.pos$all_metric8))]))
+paste0("LOG BON v 7: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric7))], tj.deg.sig.pos$all_metric7[which(is.finite(tj.deg.sig.pos$all_metric7))]))
+paste0("LOG BON v 6: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric6))], tj.deg.sig.pos$all_metric6[which(is.finite(tj.deg.sig.pos$all_metric6))]))
+paste0("LOG BON v 5: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric5))], tj.deg.sig.pos$all_metric5[which(is.finite(tj.deg.sig.pos$all_metric5))]))
+paste0("LOG BON v 4: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric4))], tj.deg.sig.pos$all_metric4[which(is.finite(tj.deg.sig.pos$all_metric4))]))
+paste0("LOG BON v 3: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric3))], tj.deg.sig.pos$all_metric3[which(is.finite(tj.deg.sig.pos$all_metric3))]))
+paste0("LOG BON v 2: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric2))], tj.deg.sig.pos$all_metric2[which(is.finite(tj.deg.sig.pos$all_metric2))]))
+# paste0("LOG BON v 1: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric))], tj.deg.sig.pos$all_metric[which(is.finite(tj.deg.sig.pos$all_metric))]))
+
+tj.deg.sig.pos$cluster_gene = paste(tj.deg.sig.pos$cluster, tj.deg.sig.pos$gene)
+my_f = mean(tj.deg.sig.pos$neg_log_bon) / mean(tj.deg.sig.pos$all_metric8)
+tj.deg.sig.pos$tmp = abs(tj.deg.sig.pos$all_metric8 * my_f - tj.deg.sig.pos$neg_log_bon)
+ggplot(tj.deg.sig.pos, aes(x = p_val_adj, y = all_metric3)) + geom_point()
+ggplot(tj.deg.sig.pos, aes(x = neg_log_bon, y = all_metric3, color = avg_log2FC)) + geom_point() + geom_smooth(method='lm', formula= y~x) + geom_text_repel(data = tj.deg.sig.pos[which(tj.deg.sig.pos$tmp > 25),], aes(label = cluster_gene))
