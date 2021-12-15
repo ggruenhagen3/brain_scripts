@@ -173,7 +173,7 @@ diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_inf
     message(paste0("Retrieving ToppGene Output for List", i, ". This may take a few seconds."))
     h <- new_handle()
     handle_setopt(h, copypostfields = json_queries[i])
-    handle_setheaders(h, "Content-Type" = "text/json")
+    handle_setheaders(h, "Content-Type" = "text/json", "Connection" = "keep-alive")
     curl_download("https://toppgene.cchmc.org/API/enrich", destfile = "list_out.json", handle = h)
     res = fromJSON(file = "list_out.json")
     df = as.data.table(do.call(rbind,res$Annotations))
