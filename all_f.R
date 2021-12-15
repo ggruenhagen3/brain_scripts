@@ -154,7 +154,7 @@ diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_inf
   
   # Construct JSON Query
   message("Constructing JSON Query Strings")
-  my_cats = c("GeneOntologyMolecularFunction", "GeneOntologyBiologicalProcess", "GeneOntologyCellularComponent")
+  my_cats = c("GeneOntologyMolecularFunction", "GeneOntologyBiologicalProcess", "GeneOntologyCellularComponent", "HumanPheno", "MousePheno", "Domain", "Pathway", "Interaction", "GeneFamily", "Disease")
   json_queries = c()
   for (i in 1:2) {
     org_list = if (i == 1) list1 else list2
@@ -179,7 +179,7 @@ diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_inf
     df = as.data.table(do.call(rbind,res$Annotations))
     df = df[,1:which(colnames(df) == "GenesInTermInQuery")]
     df = as.data.table(unnest(df, cols = colnames(df)))
-    df$Category = plyr::revalue(df$Category, replace = c('GeneOntologyBiologicalProcess' = 'BP', 'GeneOntologyCellularComponent' = 'CC', 'GeneOntologyMolecularFunction' = 'MF'))
+    df$Category = plyr::revalue(df$Category, replace = c('GeneOntologyBiologicalProcess' = 'BP', 'GeneOntologyCellularComponent' = 'CC', 'GeneOntologyMolecularFunction' = 'MF', "HumanPheno" = "Human Phenotype", "MousePheno" = "Mouse Phenotype"))
     if (i == 1) { df1 = df } else { df2 = df }
   }
   
@@ -199,26 +199,28 @@ diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_inf
   df_merge[, c("GenesInQuery1", "GenesInQuery2")] = query_gene_df[match(df_merge$Category, query_gene_df$Category), c("GenesInQuery1", "GenesInQuery2")]
   df_melt = melt(df_merge, id.vars = c('Category', 'ID', 'Name'))
   
+  ptm <- proc.time()
   # Calculate p-values for differential enrichment
   message("Calculating p-values for differential enrichment. This may take a few seconds.")
   df_merge[, c("chisq_p", "fisher_p", "prop1", "prop2", "highGroup")]  = 1
+  df_merge$prop1 = df_merge$GenesInTermInQuery1 / df_merge$GenesInQuery1
+  df_merge$prop2 = df_merge$GenesInTermInQuery2 / df_merge$GenesInQuery2
+  df_merge$highGroup = plyr::revalue(as.character(df_merge$prop1 > df_merge$prop2), replace = c("TRUE" = 1, "FALSE" = 2))
   for (i in 1:nrow(df_merge)) {
     contig_table = data.frame(InTerm = unlist(c(df_merge[i, "GenesInTermInQuery1"], df_merge[i, "GenesInTermInQuery2"])), NotInTerm = unlist(c(df_merge[i, "GenesInQuery1"], df_merge[i, "GenesInQuery2"])))
-    df_merge[i, c("prop1", "prop2")] = list(contig_table[1, 1] / contig_table[1, 2], contig_table[2, 1] / contig_table[2, 2])
     contig_table$NotInTerm = contig_table$NotInTerm - contig_table$InTerm
     df_merge[i, c("chisq_p", "fisher_p")] = list(chisq.test(contig_table)$p.value, fisher.test(contig_table)$p.value)
-    df_merge[i, c("highGroup")] = ifelse(max(df_merge[i, c("prop1", "prop2")]) == df_merge[i, "prop1"], 1, 2)
   }
-  df_merge$bh_chisq  = p.adjust(df_merge$chisq_p, method = 'BH')
-  df_merge$bon_chisq = p.adjust(df_merge$chisq_p, method = 'bonferroni')
-  df_merge$bh_fisher  = p.adjust(df_merge$fisher_p, method = 'BH')
-  df_merge$bon_fisher = p.adjust(df_merge$fisher_p, method = 'bonferroni')
-  message("Done.\n")
+  df_merge = df_merge %>% group_by(Category) %>% mutate(bh_chisq = p.adjust(chisq_p, method = 'BH'))
+  df_merge = df_merge %>% group_by(Category) %>% mutate(bon_chisq = p.adjust(chisq_p, method = 'bonferroni'))
+  df_merge = df_merge %>% group_by(Category) %>% mutate(bh_fisher = p.adjust(fisher_p, method = 'BH'))
+  df_merge = df_merge %>% group_by(Category) %>% mutate(bon_fisher = p.adjust(fisher_p, method = 'bonferroni'))
+  message(paste0("Done in ", format(round(proc.time()[[3]] - ptm[[3]], 2), nsmall = 2), "s.\n"))
   
   message(paste0("Number of Bonferroni Significant Results Using Fisher's Exact Test: ", length(which(df_merge$bon_fisher < 0.05)) ))
   message(paste0("Number of Bonferroni Significant Results Using Chi-Square Test: ", length(which(df_merge$bon_chisq < 0.05)) ))
   message(paste0("Top 5 Differentially Enriched Categories:"))
-  print(df_merge[order(fisher_p)[1:5], c("Category", "Name", "bon_fisher", "fisher_p")])
+  print(df_merge[order(df_merge$fisher_p, decreasing = F)[1:5], c("Category", "Name", "bon_fisher", "fisher_p")])
   message("All Done.")
 
   return(df_merge)
