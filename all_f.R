@@ -90,7 +90,7 @@ clusterProportionsP = function(obj, group1, group2, cluster_meta_name = 'seurat_
   return(list(sub_df, clust_df, sub_clust_df, cluster_p_df))
 }
 
-diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_info = "C:/Users/miles/Downloads/all_research/gene_info.txt") {
+diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_info = "C:/Users/miles/Downloads/all_research/gene_info.txt", my_cats = c("GeneOntologyMolecularFunction", "GeneOntologyBiologicalProcess", "GeneOntologyCellularComponent", "HumanPheno", "MousePheno", "Domain", "Pathway", "Interaction", "GeneFamily", "Disease")) {
   #' Find Differential Enrichmentment Using ToppGene
   #' @param list1 vector of genes
   #' @param list2 vector of genes
@@ -154,7 +154,6 @@ diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_inf
   
   # Construct JSON Query
   message("Constructing JSON Query Strings")
-  my_cats = c("GeneOntologyMolecularFunction", "GeneOntologyBiologicalProcess", "GeneOntologyCellularComponent", "HumanPheno", "MousePheno", "Domain", "Pathway", "Interaction", "GeneFamily", "Disease")
   json_queries = c()
   for (i in 1:2) {
     org_list = if (i == 1) list1 else list2
