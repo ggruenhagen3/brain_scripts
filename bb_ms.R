@@ -13,12 +13,8 @@ for (k in 1:15) {
 print(k)
 library("scales")
 cols15 = gc.ramp <- hue_pal()(15)
+cols15 = cols15[c(10:15, 1:9)]
 
-cols15_test = cols15[k:length(cols15)]
-if (length(cols15_test) < length(cols15)) {
-  cols15_test = c(cols15_test, cols15[1:(k - 1)])
-}
-cols15 = cols15_test
 # names(cols15) = 0:14
 
 # Change Cluster IDs on 53 Level
@@ -146,6 +142,22 @@ pdf(paste0(rna_path, "/results/known_markers_w_specific_dotplot.pdf"), width = 1
 print(dotp)
 dev.off()
 
+pal = rev(brewer.pal(7, "RdYlBu"))
+pal = colorRampPalette(pal)
+# names(zpcrc) = c("4_GABA", "6_GABA", "14_Glut", "13_Glut", "4_GABA", "12_Glut", "3_Peri", "6_GABA", "9_Glut", "1_Astro/MG")
+zpcrc_deg = deg15[which(deg15$gene %in% zpcrc),]
+names(zpcrc) = sapply(zpcrc, function(x) { 
+  this_df = zpcrc_deg[which(zpcrc_deg$gene == x),]
+  return(this_df$cluster[which.min(this_df$p_val_adj)])
+})
+names(zpcrc) = convert15$new.full[match(names(zpcrc), convert15$old)]
+names(zpcrc)[which(is.na(names(zpcrc)))] = "2_OPC/Oligo"
+zpcrc = zpcrc[order(match(names(zpcrc), convert15$new.full))]
+xtext_cols = convert15$col[match(names(zpcrc), convert15$new.full)]
+names(zpcrc) = NULL
+pdf("C:/Users/miles/Downloads/brain/results/pcrc_cluster_markers.pdf", width = 12, height = 5)
+print(DotPlot(bb, features = zpcrc) + scale_color_gradientn(colors = pal(50)) + ylab("Cluster") + xlab("Gene") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic", colour = xtext_cols), axis.text.y = element_text(colour = convert15$col)) + scale_x_discrete(labels = zpcrc))
+dev.off()
 
 # Volcano Plots
 library("EnhancedVolcano")
@@ -447,6 +459,138 @@ p_list[["CTRL"]] = ggplot(df[which(df$cond == "CTRL"),], aes(UMAP_1, UMAP_2, col
 png("C:/Users/miles/Downloads/bvc15_umap_rdylbu.png", width = 2000, height = 1000, res = 120)
 plot_grid(plotlist=p_list, ncol = 2)
 dev.off()
+
+#************************************************************************
+# Prediction ============================================================
+#************************************************************************
+all_gene_df = read.csv("C:/Users/miles/Downloads/best_pred_clust0_genes.csv")
+all_genes = unname(unlist(all_gene_df[,3:ncol(all_gene_df)]))
+all_genes_usage = as.data.frame(table(all_genes))
+all_genes_usage$all_genes = as.vector(all_genes_usage$all_genes)
+all_genes_usage$pct = all_genes_usage$Freq / 19 * 100
+all_genes_usage$label = gene_info$human[match(all_genes_usage$all_genes, gene_info$mzebra)]
+all_genes_usage$label[which(is.na(all_genes_usage$label))] = all_genes_usage$all_genes[which(is.na(all_genes_usage$label))]
+all_genes_usage = all_genes_usage[order(all_genes_usage$label),]
+ggplot(all_genes_usage, aes(x = label, y = pct, color = pct, fill = pct)) + geom_bar(stat = 'identity', alpha = 0.6, position = position_dodge2()) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ylab("Percent of Models") + scale_color_continuous(guide = 'none') + scale_fill_continuous(guide = 'none')
+
+# PCA
+library("factoextra")
+Idents(bb) = factor(bb$subsample, levels = sort(unique(bb$subsample)))
+# avg_exp = myAverageExpression(bb, features = unique(all_genes))
+avg_exp = myAverageExpression(bb, features = unique(all_genes_usage$all_genes[which(all_genes_usage$Freq == 19)]))
+res.pca <- prcomp(t(as.matrix(avg_exp)), scale = T, center = T)
+groups = factor(c(rep("Behave", 19), rep("Control", 19)))
+# pdf("C:/Users/miles/Downloads/ml_subsample_counts_bulk.pdf", width = 8, height = 8)
+print(fviz_pca_ind(res.pca, col.ind = groups, palette = c("#00AFBB",  "#FC4E07"), addEllipses = T, ellipse.type = "confidence", legend.title = "Groups", repel = T))
+# dev.off()
+
+# Conf
+conf_df = read.csv("C:/Users/miles/Downloads/best_pred_clust0_conf.csv")
+ggplot(conf_df, aes(x = cond, y = conf, color = cond, fill = cond)) + geom_boxplot(alpha = 0.5) + geom_jitter(position = position_jitter()) + scale_color_manual(values = c("#00AFBB",  "#FC4E07")) + scale_fill_manual(values = c("#00AFBB",  "#FC4E07")) + theme_bw() + ylab("Likelihood of Behavior") + xlab("")
+
+# Clusters
+clust_acc_empty = data.frame(X = 0:52, cluster = 0, mean_b = 0, mean_c = 0, mean_dif = 0, num_b_in_c = 0, num_c_in_b = 0, all_cor = 0, cluster15 = 0:52)
+clust_acc = read.csv("C:/Users/miles/Downloads/scgnn_pred_cluster53.csv")
+clust_acc$cluster15 = clust_acc$X
+clust_acc = as.data.frame(rbindlist(list(clust_acc, data.frame("all", 0, 0, 0 ,0, 0, 0, 1, "all"))))
+clust_acc = rbind(clust_acc, clust_acc_empty[which(! clust_acc_empty$X %in% clust_acc$X ),])
+clust_acc$accuracy = clust_acc$all_cor
+# clust_acc = xlsx::read.xlsx("C:/Users/miles/Downloads/params.xlsx", sheetName = "Final")
+# clust_acc$new = convert15$new.full[match(clust_acc$cluster15, convert15$old)]
+# clust_acc$col = convert15$col[match(clust_acc$cluster15, convert15$old)]
+clust_acc$new = convert53$new[match(clust_acc$cluster15, convert53$old)]
+clust_acc$col = convert53$col[match(clust_acc$cluster15, convert53$old)]
+clust_acc$accuracy = as.numeric(as.vector(clust_acc$accuracy))
+clust_acc$accuracy[which( clust_acc$accuracy == "NA" )] = 0
+clust_acc[which(clust_acc$cluster15 == "all"), c("new", "col")] = c("All", "#377863")
+# clust_acc$new = factor(clust_acc$new, levels = c(convert15$new.full, "All"))
+clust_acc$new = factor(clust_acc$new, levels = c(convert53$new, "All"))
+ggplot(clust_acc, aes(x = new, y = accuracy * 100, color = col, fill = col)) + geom_bar(stat = 'identity', alpha = 0.75) + scale_color_identity() + scale_fill_identity() + theme_bw() + theme(panel.grid.major.x = element_blank()) + scale_y_continuous(limits = c(0,100), expand = c(0, 0)) + ylab("Accuracy") + xlab("") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+# bb$accuracy = clust_acc$accuracy[match(bb$seuratclusters15, clust_acc$cluster15)]
+# Idents(bb) = convert15$new.full[match(bb$seuratclusters15, convert15$old)]
+bb$accuracy = clust_acc$accuracy[match(bb$seuratclusters53, clust_acc$cluster15)]
+Idents(bb) = convert53$new[match(bb$seuratclusters53, convert53$old)]
+FeaturePlot(bb, "accuracy", order = T, label = T) + scale_color_viridis_c()
+
+#************************************************************************
+# PCRC Plot =============================================================
+#************************************************************************
+pcrc15  = as.data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/pcrc_enrichment.xlsx", sheet = "15 Summary"))
+pcrc53  = as.data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/pcrc_enrichment.xlsx", sheet = "53 Summary"))
+pcrcgoi = as.data.frame(readxl::read_xlsx("C:/Users/miles/Downloads/pcrc_enrichment.xlsx", sheet = "Gene Pops Summary"))
+colnames(pcrcgoi)[which(colnames(pcrcgoi) == "Cohen's d")] = 'd'
+pcrcgoi$cluster = tolower( pcrcgoi$human_gene )
+
+pcrc15$num_cells = as.vector(table(bb$seuratclusters15))
+pcrc53$num_cells = as.vector(table(bb$seuratclusters53))
+pcrcgoi$num_cells = sapply(pcrcgoi$gene, function(x) length(which(bb@assays$RNA@counts[x,] > 0)))
+
+pcrc15$level  = "15"
+pcrc53$level  = "53"
+pcrcgoi$level = "goi"
+
+pcrc15$neg_log_p1k  = -log10(pcrc15$p_1k)
+pcrc53$neg_log_p1k  = -log10(pcrc53$p_1k)
+pcrcgoi$neg_log_p1k = -log10(pcrcgoi$p_1k)
+
+pcrc15$neg_log_p10k  = -log10(pcrc15$p_10k)
+pcrc53$neg_log_p10k  = -log10(pcrc53$p_10k)
+pcrcgoi$neg_log_p10k = -log10(pcrcgoi$p_10k)
+
+pcrc15$neg_log_pz  = -log10(pcrc15$p_val_adj)
+pcrc53$neg_log_pz  = -log10(pcrc53$p_val_adj)
+pcrcgoi$neg_log_pz = -log10(pcrcgoi$p_val_adj)
+
+pcrc15$pz_sig  = as.numeric(pcrc15$p_val_adj) < 0.05
+pcrc53$pz_sig  = as.numeric(pcrc53$p_val_adj) < 0.05
+pcrcgoi$pz_sig = as.numeric(pcrcgoi$p_val_adj) < 0.05
+
+pcrc15$p10k_sig  = as.numeric(pcrc15$p_10k) < 0.05
+pcrc53$p10k_sig  = as.numeric(pcrc53$p_10k) < 0.05
+pcrcgoi$p10k_sig = as.numeric(pcrcgoi$p_10k) < 0.05
+pcrcgoi$p10k_sig[which(is.na(pcrcgoi$p10k_sig))] = F
+
+pcrc15$both_sig  = pcrc15$pz_sig & pcrc15$p10k_sig
+pcrc53$both_sig  = pcrc53$pz_sig & pcrc53$p10k_sig
+pcrcgoi$both_sig = pcrcgoi$pz_sig & pcrcgoi$p10k_sig
+
+pcrc15$neg_log_cells  = -log10(pcrc15$num_cells)
+pcrc53$neg_log_cells  = -log10(pcrc53$num_cells)
+pcrcgoi$neg_log_cells = -log10(pcrcgoi$num_cells)
+
+pcrc15$neg_log_plot  = pcrc15$neg_log_p10k
+pcrc53$neg_log_plot  = pcrc53$neg_log_p10k
+pcrcgoi$neg_log_plot = pcrcgoi$neg_log_p1k
+
+pcrcall = rbind(pcrc15[, c("d", "neg_log_plot", "level", "both_sig", "num_cells", "cluster")], pcrc53[, c("d", "neg_log_plot", "level", "both_sig", "num_cells", "cluster")], pcrcgoi[, c("d", "neg_log_plot", "level", "both_sig", "num_cells", "cluster")])
+my_pal = c("#0a9396", "#ee9b00", "#ae2012")
+pdf("C:/Users/miles/Downloads/pcrcall_w_label_tiny.pdf", width = 6, height = 4)
+ggplot(pcrcall, aes(x = d, y = neg_log_plot, shape = both_sig, alpha = both_sig, color = level, size = num_cells, group = 1)) + geom_point(stroke = 1) + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 10k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = my_pal) + scale_shape_manual(values = c(1, 19)) + scale_alpha_manual(values = c(0.4, 0.8)) + theme_classic() + geom_text_repel(data = pcrcall[which(pcrcall$both_sig & pcrcall$neg_log_plot > -log10(0.05)),], aes(label = cluster))
+dev.off()
+# pdf("C:/Users/miles/Downloads/pcrcall_w_curve.pdf", width = 6, height = 4)
+# ggplot(pcrcall, aes(x = d, y = neg_log_plot, shape = both_sig, color = level, group = 1)) + geom_point(size = 2) + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 10k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = my_pal) + scale_shape_manual(values = c(3, 19)) + theme_classic() + stat_smooth(method = "loess", size = 1, color = "purple") 
+# dev.off()
+
+pdf("C:/Users/miles/Downloads/pcrc15.pdf", width = 6, height = 4)
+ggplot(pcrc15, aes(x = d, y = neg_log_p10k, shape = pz_sig, color = both_sig, group = 1)) + geom_point(size = 2) + ggtitle("15 Level") + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 10k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = c(viridis(3)[2], "gold"), guide = 'none') + scale_shape_manual(values = c(3, 19)) + theme_classic()
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrc53.pdf", width = 6, height = 4)
+ggplot(pcrc53, aes(x = d, y = neg_log_p10k, shape = pz_sig, color = both_sig, group = 1)) + geom_point(size = 1.75) + ggtitle("53 Level") + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 10k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = c(viridis(3)[2], "gold"), guide = 'none') + scale_shape_manual(values = c(3, 19)) + theme_classic()
+dev.off()
+pdf("C:/Users/miles/Downloads/pcrcgoi.pdf", width = 6, height = 4)
+ggplot(pcrcgoi, aes(x = d, y = neg_log_p1k, shape = pz_sig, color = both_sig, group = 1)) + geom_point(size = 1.75) + ggtitle("GOI") + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 1k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = c(viridis(3)[2], "gold"), guide = 'none') + scale_shape_manual(values = c(3, 19)) + theme_classic()
+dev.off()
+
+# pdf("C:/Users/miles/Downloads/pcrc15_w_curve.pdf", width = 6, height = 4)
+# ggplot(pcrc15, aes(x = d, y = neg_log_p10k, shape = pz_sig, color = both_sig, group = 1)) + geom_point(size = 2) + ggtitle("15 Level") + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 10k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = c(viridis(3)[2], "gold"), guide = 'none') + scale_shape_manual(values = c(3, 19)) + stat_smooth(method = "loess", size = 1, color = "purple") + theme_classic()
+# dev.off()
+# pdf("C:/Users/miles/Downloads/pcrc53_w_curve.pdf", width = 6, height = 4)
+# ggplot(pcrc53, aes(x = d, y = neg_log_p10k, shape = pz_sig, color = both_sig, group = 1)) + geom_point(size = 1.75) + ggtitle("53 Level") + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 10k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = c(viridis(3)[2], "gold"), guide = 'none') + scale_shape_manual(values = c(3, 19)) + stat_smooth(method = "loess", size = 1, color = "purple") + theme_classic()
+# dev.off()
+# pdf("C:/Users/miles/Downloads/pcrcgoi_w_curve.pdf", width = 6, height = 4)
+# ggplot(pcrcgoi, aes(x = d, y = neg_log_p1k, shape = pz_sig, color = both_sig, group = 1)) + geom_point(size = 1.75) + ggtitle("GOI") + xlab("Cohen's d") + ylab(expression(-Log["10"]*" P 1k")) + geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray60") + scale_color_manual(values = c(viridis(3)[2], "gold"), guide = 'none') + scale_shape_manual(values = c(3, 19)) + stat_smooth(method = "loess", size = 1, color = "purple") + theme_classic()
+# dev.off()
 
 #************************************************************************
 # Demux DEG =============================================================
@@ -1144,6 +1288,12 @@ dev.off()
 # bDEGS ========================================================================
 #*******************************************************************************
 # badeg = read.csv("~/research/brain/results/deg_depth_build_badeg_glmmseq_demux_all_clusters_all_tests_pair_subjectinpair_pool_subjectinpool_sig_all_genes_100821_q_hgnc.csv")
+<<<<<<< HEAD
+# all_deg_gsi = read.csv("C:/Users/miles/Downloads/bb15_deg_glmmseq_demux_all_clusters_cond_gsi_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101321_q_by_cluster.csv")
+# all_deg_spawn = read.csv("C:/Users/miles/Downloads/bb15_deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101321_q_by_cluster.csv")
+# bdeg = read.csv("C:/Users/miles/Downloads/bb15_glmmseq_cond_gsi_control_and_cond_spawn_control_sig_genes_q_by_cluster_100521.csv")
+bdeg = read.csv("C:/Users/miles/Downloads/out_glmmseq_bb15_demux_deg_bower_behavior_hmp_calculated_across_clusters_111821_hgnc.csv")
+=======
 all_deg_gsi = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_gsi_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster.csv")
 all_deg_spawn = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster.csv")
 all_deg_spawn = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster (1).csv")
@@ -1151,12 +1301,61 @@ bdeg = read.csv("C:/Users/miles/Downloads/bb15_glmmseq_cond_gsi_control_and_cond
 bdeg = read.csv("~/research/brain/results/bb15_glmmseq_cond_gsi_control_and_cond_spawn_control_sig_genes_q_by_cluster_100521.csv")
 all_deg_gsi$cluster_gene = paste0(all_deg_gsi$cluster, "_", all_deg_gsi$mzebra)
 all_deg_spawn$cluster_gene = paste0(all_deg_spawn$cluster, "_", all_deg_spawn$mzebra)
+>>>>>>> 8f8596ef120133c923d097d0591dfcdea3aa6d92
 bdeg$cluster_gene = paste0(bdeg$cluster, "_", bdeg$mzebra)
+bdeg53 = read.csv("C:/Users/miles/Downloads/out_glmmseq_bb53_demux_deg_bower_behavior_hmp_calculated_across_clusters_111821_hgnc.csv")
+bdeg53$cluster_gene = paste0(bdeg53$cluster, "_", bdeg53$mzebra)
+sdeg = read.csv("C:/Users/miles/Downloads/out_glmmseq_bb15_demux_deg_log_spawn_events_hmp_calculated_across_clusters_111821_hgnc.csv")
+sdeg$cluster_gene = paste0(sdeg$cluster, "_", sdeg$mzebra)
+gdeg = read.csv("C:/Users/miles/Downloads/out_glmmseq_bb15_demux_deg_gsi_hmp_calculated_across_clusters_11182_hgnc.csv")
+gdeg$cluster_gene = paste0(gdeg$cluster, "_", gdeg$mzebra)
+
+bdeg_post = read.csv("C:/Users/miles/Downloads/bdeg_for_volcano_11_30_21.csv")
+bdeg$avg_logFC_pool = bdeg_post$avg_logFC
+
+all_pairs = sort(unique(bb$pair))
+bdeg[,c(paste0("b", all_pairs), paste0("c", all_pairs))] = 0
+for (this_clust in sort(unique(bdeg$cluster))) {
+  this_clust_degs = bdeg$mzebra[which(bdeg$cluster == this_clust)]
+  print(paste0("Cluster: ", this_clust, ". Num DEGs BAD = ", length(which(! this_clust_degs %in% rownames(bb))), ". Pct DEGs BAD = ", length(which(! this_clust_degs %in% rownames(bb))) / length(this_clust_degs) * 100))
+  this_clust_degs = this_clust_degs[which(this_clust_degs %in% rownames(bb))]
+  # print("")
+  for (pair in all_pairs) {
+    # cat(paste0(pair, "."))
+    clust_pair_b_cells = colnames(bb)[which(bb$seuratclusters15 == this_clust & bb$pair == pair & bb$cond == "BHVE")]
+    clust_pair_c_cells = colnames(bb)[which(bb$seuratclusters15 == this_clust & bb$pair == pair & bb$cond == "CTRL")]
+    this_res = pct_dif_avg_logFC(bb, cells.1 = clust_pair_b_cells, cells.2 = clust_pair_c_cells, features = this_clust_degs)
+    this_res$cluster = this_clust
+    this_res$cluster_gene = paste0(this_res$cluster, "_", this_res$genes)
+    bdeg[match(this_res$cluster_gene, bdeg$cluster_gene),paste0("b", pair)] = this_res$avg_logFC
+    bdeg[match(this_res$cluster_gene, bdeg$cluster_gene),paste0("c", pair)] = -this_res$avg_logFC
+  }
+  # print("")
+}
+bdeg$bvc_fc_dif = sapply(1:nrow(bdeg), function(x) sum(bdeg[x, paste0("b", all_pairs)]) - sum(bdeg[x, paste0("c", all_pairs)]) )
+bdeg$abs_bvc_fc_dif = abs(bdeg$bvc_fc_dif)
+bdeg$avg_b_fc = rowMeans(bdeg[, paste0("b", all_pairs)])
+bdeg$num_b_up = rowSums(sign(bdeg[, paste0("b", all_pairs)]) == 1)
+bdeg$neg_log_hmp_cond = -log10(bdeg$hmp_cond)
+bdeg_cond = bdeg[which(bdeg$sig_cond == 3),]
+bdeg_melt = melt(bdeg_cond[, c("cluster_gene", "cluster", "mzebra", "hmp_cond", "neg_log_hmp_cond", "avg_b_fc", "avg_logFC_pool", paste0("b", all_pairs), paste0("c", all_pairs))], id.var = c('cluster_gene', 'mzebra', 'cluster', 'hmp_cond', 'neg_log_hmp_cond', 'avg_b_fc', 'avg_logFC_pool'))
+bdeg_melt$cluster_gene = factor(bdeg_melt$cluster_gene, levels = bdeg_cond$cluster_gene[order(bdeg_cond$bvc_fc_dif, decreasing = T)])
+bdeg_melt$cond = startsWith(as.vector(bdeg_melt$variable), "b")
+pdf("C:/Users/miles/Downloads/volcano_pool.pdf", width = 10, height = 8)
+ggplot(bdeg_melt, aes(x = avg_logFC_pool, y = neg_log_hmp_cond)) + geom_point() + xlab("Gene Cluster Combo") + theme_light() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab("-Log10(HMP COND)") 
+dev.off()
+
+ggplot(bdeg_melt, aes(x = avg_b_fc, avg_logFC_pool)) + geom_point()
+cor(bdeg_melt$avg_b_fc[which(! is.na(bdeg_melt$avg_b_fc) & ! is.na(bdeg_melt$avg_logFC_pool))], bdeg_melt$avg_logFC_pool[which(! is.na(bdeg_melt$avg_b_fc) & ! is.na(bdeg_melt$avg_logFC_pool))])
+# bdeg_melt$cluster = factor(bdeg_melt$cluster)
+# pdf("C:/Users/miles/Downloads/volcano_test_cluster.pdf", width = 10, height = 8)
+# ggplot(bdeg_melt, aes(x = cluster_gene, y = value, color = cluster)) + geom_point() + xlab("Gene Cluster Combo") + ylab("LOG FC") + theme_light() + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+# dev.off()
 
 bhve_cells = colnames(bb)[which(bb$cond == "BHVE")]
 ctrl_cells = colnames(bb)[which(bb$cond == "CTRL")]
 all_pct_fc = data.frame()
-for (this_clust in 0:14) {
+for (this_clust in sort(unique(bdeg$cluster))) {
   this_clust_cells = colnames(bb)[which(bb$seuratclusters15 == this_clust)]
   this_res = pct_dif_avg_logFC(bb, cells.1 = this_clust_cells[which(this_clust_cells %in% bhve_cells)], cells.2 = this_clust_cells[which(this_clust_cells %in% ctrl_cells)])
   this_res$cluster = this_clust
@@ -1164,12 +1363,258 @@ for (this_clust in 0:14) {
 }
 all_pct_fc$cluster_gene = paste0(all_pct_fc$cluster, "_", all_pct_fc$genes)
 bdeg[,colnames(all_pct_fc)] = all_pct_fc[match(bdeg$cluster_gene, all_pct_fc$cluster_gene),]
-all_deg_gsi[,colnames(all_pct_fc)] = all_pct_fc[match(all_deg_gsi$cluster_gene, all_pct_fc$cluster_gene),]
-all_deg_spawn[,colnames(all_deg_spawn)] = all_pct_fc[match(all_deg_spawn$cluster_gene, all_pct_fc$cluster_gene),]
+bdeg$cond_sig = bdeg$hmp_cond < 0.05 & bdeg$sig_cond == 3
+bdeg$bai_sig =  bdeg$hmp_bower_activity_index < 0.05 & bdeg$sig_bower_activity_index == 3
+bdeg$bower_sig =  bdeg$hmp_bower_all < 0.05 & bdeg$sig_bower_all == 6
+bdeg$col = convert15$col[match(bdeg$cluster, convert15$old)]
+bdeg$col[which(! bdeg$cond_sig )] = "gray80"
+bdeg$col_bai = convert15$col[match(bdeg$cluster, convert15$old)]
+bdeg$col_bai[which(! bdeg$bai_sig )] = "gray80"
+bdeg$col_bower = convert15$col[match(bdeg$cluster, convert15$old)]
+bdeg$col_bower[which(! bdeg$bower_sig )] = "gray80"
+bdeg$neg_log_hmp_cond = -log10(bdeg$hmp_cond)
+bdeg$neg_log_hmp_bai = -log10(bdeg$hmp_bower_activity_index)
+bdeg$neg_log_hmp_bower = -log10(bdeg$hmp_bower_all)
 
-pdf("C:/Users/miles/Downloads/bb_bdeg.pdf", height = 6, width = 5)
-ggplot(bdeg, aes(x = avg_logFC, y = neg_log_cond_p, color = col2)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" P")) + theme_light()
+bhve_cells = colnames(bb)[which(bb$cond == "BHVE")]
+ctrl_cells = colnames(bb)[which(bb$cond == "CTRL")]
+all_pct_fc = data.frame()
+for (this_clust in 0:52) {
+  print(this_clust)
+  this_clust_cells = colnames(bb)[which(bb$seuratclusters53 == this_clust)]
+  this_res = pct_dif_avg_logFC(bb, cells.1 = this_clust_cells[which(this_clust_cells %in% bhve_cells)], cells.2 = this_clust_cells[which(this_clust_cells %in% ctrl_cells)])
+  this_res$cluster = this_clust
+  all_pct_fc = rbind(all_pct_fc, this_res)
+}
+all_pct_fc$cluster_gene = paste0(all_pct_fc$cluster, "_", all_pct_fc$genes)
+bdeg53[,colnames(all_pct_fc)] = all_pct_fc[match(bdeg53$cluster_gene, all_pct_fc$cluster_gene),]
+bdeg53$cond_sig = bdeg53$hmp_cond < 0.05 & bdeg53$sig_cond == 3
+bdeg53$bai_sig =  bdeg53$hmp_bower_activity_index < 0.05 & bdeg53$sig_bower_activity_index == 3
+bdeg53$bower_sig =  bdeg53$hmp_bower_all < 0.05 & bdeg53$sig_bower_all == 6
+bdeg53$col = convert15$col[match(bdeg53$cluster, convert15$old)]
+bdeg53$col[which(! bdeg53$cond_sig )] = "gray80"
+bdeg53$col_bai = convert15$col[match(bdeg53$cluster, convert15$old)]
+bdeg53$col_bai[which(! bdeg53$bai_sig )] = "gray80"
+bdeg53$col_bower = convert15$col[match(bdeg53$cluster, convert15$old)]
+bdeg53$col_bower[which(! bdeg53$bower_sig )] = "gray80"
+bdeg53$neg_log_hmp_cond = -log10(bdeg53$hmp_cond)
+bdeg53$neg_log_hmp_bai = -log10(bdeg53$hmp_bower_activity_index)
+bdeg53$neg_log_hmp_bower = -log10(bdeg53$hmp_bower_all)
+
+# Spawn DEGs
+sub_spawn = aggregate(log_spawn_events ~ subsample, bb@meta.data, mean)
+sdeg$spawn_cor = 0
+for (this_clust in 0:14) {
+  print(this_clust)
+  this_clust_colnames = colnames(all_avg)[which( startsWith(colnames(all_avg), as.character(this_clust)) )]
+  this_spawn = sub_spawn$log_spawn_events[match(reshape2::colsplit(this_clust_colnames, "_", c('1', '2'))[,2], sub_spawn$subsample)]
+  clust_avg = all_avg[, this_clust_colnames]
+  sdeg_clust = sdeg[which(sdeg$cluster == this_clust),]
+  if (nrow(sdeg_clust) > 0) {
+    spawn_cor = sapply(sdeg_clust$mzebra, function(x) cor(as.numeric(clust_avg[x,]), this_spawn) )
+    sdeg$spawn_cor[match(sdeg_clust$cluster_gene, sdeg$cluster_gene)] = spawn_cor
+  }
+}
+sdeg$isSig = sdeg$hmp < 0.05 & sdeg$sig_log_spawn_events == 5
+sdeg$col = convert15$col[match(sdeg$cluster, convert15$old)]
+sdeg$col[which(! sdeg$isSig )] = "gray80"
+sdeg$neg_log_hmp = -log10(sdeg$hmp)
+sdeg = sdeg[order(sdeg$isSig, decreasing = F),]
+
+# GSI DEGs
+Idents(bb) = paste0(bb$seuratclusters15, "_", bb$subsample)
+sub_gsi = aggregate(gsi ~ subsample, bb@meta.data, mean)
+all_avg = myAverageExpression(bb)
+# all_avg[,c("cluster", "subsample")] = reshape2::colsplit(all_avg, "_", c('1', '2'))
+gdeg$gsi_cor = 0
+for (this_clust in 0:14) {
+  print(this_clust)
+  this_clust_colnames = colnames(all_avg)[which( startsWith(colnames(all_avg), as.character(this_clust)) )]
+  this_gsi = sub_gsi$gsi[match(reshape2::colsplit(this_clust_colnames, "_", c('1', '2'))[,2], sub_gsi$subsample)]
+  clust_avg = all_avg[, this_clust_colnames]
+  gdeg_clust = gdeg[which(gdeg$cluster == this_clust),]
+  if (nrow(gdeg_clust) > 0) {
+    gsi_cor = sapply(gdeg_clust$mzebra, function(x) cor(as.numeric(clust_avg[x,]), this_gsi) )
+    gdeg$gsi_cor[match(gdeg_clust$cluster_gene, gdeg$cluster_gene)] = gsi_cor
+  }
+}
+gdeg$isSig = gdeg$hmp < 0.05 & gdeg$sig_gsi == 5
+gdeg$col = convert15$col[match(gdeg$cluster, convert15$old)]
+gdeg$col[which(! gdeg$isSig )] = "gray80"
+gdeg$neg_log_hmp = -log10(gdeg$hmp)
+gdeg = gdeg[order(gdeg$isSig, decreasing = F),]
+
+clust_nums = data.frame(cluster = 0:14, clust_name = convert15$new.full[match(0:14, convert15$old)], col = convert15$col[match(0:14, convert15$old)],
+                        COND = as.numeric(table(factor(bdeg$cluster[which(bdeg$cond_sig)], levels = 0:14))),
+                        BAI = as.numeric(table(factor(bdeg$cluster[which(bdeg$bai_sig)], levels = 0:14))),
+                        GSI = as.numeric(table(factor(gdeg$cluster[which(gdeg$isSig)], levels = 0:14))),
+                        SPAWN = as.numeric(table(factor(sdeg$cluster[which(sdeg$isSig)], levels = 0:14))))
+clust_nums_melt = melt(clust_nums)
+clust_nums_melt = clust_nums_melt[which(clust_nums_melt$variable != "cluster"),]
+clust_nums_melt$clust_name = factor(clust_nums_melt$clust_name, levels = convert15$new.full)
+# clust_nums_melt$variable = plyr::revalue(clust_nums_melt$variable, replace = c("bdeg"))
+pdf("C:/Users/miles/Downloads/deg_nums.pdf", width = 13, height = 6)
+ggplot(clust_nums_melt, aes(x = clust_name, y = value, fill = variable, color = variable, group = variable)) + geom_point(size = 2) + geom_line() + theme_classic() + xlab("") + ylab("Number of DEGs")
 dev.off()
+
+# Volcano Plot
+bdeg = bdeg[order(bdeg$cond_sig, decreasing = F),]
+pdf("C:/Users/miles/Downloads/bb_cond_bdeg_volcano_15.pdf", height = 6, width = 5)
+ggplot(bdeg, aes(x = avg_logFC, y = neg_log_hmp_cond, color = col, alpha = cond_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_cond_bdeg_volcano_15_label.pdf", height = 6, width = 5)
+ggplot(bdeg, aes(x = avg_logFC, y = neg_log_hmp_cond, color = col, alpha = cond_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = bdeg[which(bdeg$cond_sig & bdeg$neg_log_hmp_cond > 100),] ,aes(label = cluster_gene))
+dev.off()
+bdeg = bdeg[order(bdeg$bai_sig, decreasing = F),]
+pdf("C:/Users/miles/Downloads/bb_bai_deg_volcano_15.pdf", height = 6, width = 5)
+ggplot(bdeg, aes(x = avg_logFC, y = neg_log_hmp_bai, color = col_bai, alpha = bai_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_bai_deg_volcano_15_label.pdf", height = 6, width = 5)
+ggplot(bdeg, aes(x = avg_logFC, y = neg_log_hmp_bai, color = col_bai, alpha = bai_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = bdeg[which(bdeg$bai_sig & bdeg$neg_log_hmp_bai > 10),] ,aes(label = cluster_gene))
+dev.off()
+bdeg = bdeg[order(bdeg$bower_sig, decreasing = F),]
+pdf("C:/Users/miles/Downloads/bb_bower_deg_volcano_15.pdf", height = 6, width = 5)
+ggplot(bdeg, aes(x = avg_logFC, y = neg_log_hmp_bower, color = col_bower, alpha = bower_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_bower_deg_volcano_15_label.pdf", height = 6, width = 5)
+ggplot(bdeg, aes(x = avg_logFC, y = neg_log_hmp_bower, color = col_bower, alpha = bower_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = bdeg[which(bdeg$bower_sig & bdeg$neg_log_hmp_bower > 20),] ,aes(label = cluster_gene))
+dev.off()
+
+pdf("C:/Users/miles/Downloads/bb_gsi_deg_volcano_15.pdf", height = 6, width = 5)
+ggplot(gdeg, aes(x = gsi_cor, y = neg_log_hmp, color = col, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab("Correlation with GSI") + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_gsi_deg_volcano_15_label.pdf", height = 6, width = 5)
+ggplot(gdeg, aes(x = gsi_cor, y = neg_log_hmp, color = col, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab("Correlation with GSI") + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = gdeg[which(gdeg$isSig & gdeg$neg_log_hmp > 200),] ,aes(label = cluster_gene))
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_spawn_deg_volcano_15.pdf", height = 6, width = 5)
+ggplot(sdeg, aes(x = spawn_cor, y = neg_log_hmp, color = col, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab("Correlation with Log Spawn Events") + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_spawn_deg_volcano_15_label.pdf", height = 6, width = 5)
+ggplot(sdeg, aes(x = spawn_cor, y = neg_log_hmp, color = col, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab("Correlation with Log Spawn Events") + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = sdeg[which(sdeg$isSig & sdeg$neg_log_hmp > 75),] ,aes(label = cluster_gene))
+dev.off()
+# pdf("C:/Users/miles/Downloads/bb_bdeg_volcano_gsi_spawn_max_53.pdf", height = 6, width = 5)
+# ggplot(all_deg_join, aes(x = avg_logFC.gsi, y = neg_log_q_max, color = col2, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+# dev.off()
+# pdf("C:/Users/miles/Downloads/bb_bdeg_volcano_gsi_53.pdf", height = 6, width = 5)
+# ggplot(all_deg_join, aes(x = avg_logFC.gsi, y = neg_log_q_gsi, color = col2, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+# dev.off()
+# pdf("C:/Users/miles/Downloads/bb_bdeg_volcano_spawn_53.pdf", height = 6, width = 5)
+# ggplot(all_deg_join, aes(x = avg_logFC.gsi, y = neg_log_q_spawn, color = col2, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+# dev.off()
+# pdf("C:/Users/miles/Downloads/bb_bdeg_gsi_spawn_53.pdf", height = 6, width = 5)
+# ggplot(all_deg_join, aes(x = neg_log_q_spawn, y = neg_log_q_gsi, color = col2, alpha = isSig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(-Log["10"]*" Adjusted P (Spawn)")) + ylab(expression(-Log["10"]*" Adjusted P (GSI)")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+# dev.off()
+
+#53
+bdeg5353 = bdeg53[order(bdeg53$cond_sig, decreasing = F),]
+pdf("C:/Users/miles/Downloads/bb_cond_bdeg53_volcano_53.pdf", height = 6, width = 5)
+ggplot(bdeg53, aes(x = avg_logFC, y = neg_log_hmp_cond, color = col, alpha = cond_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_cond_bdeg53_volcano_53_label.pdf", height = 6, width = 5)
+ggplot(bdeg53, aes(x = avg_logFC, y = neg_log_hmp_cond, color = col, alpha = cond_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = bdeg53[which(bdeg53$cond_sig & bdeg53$neg_log_hmp_cond > 100),] ,aes(label = cluster_gene))
+dev.off()
+bdeg53 = bdeg53[order(bdeg53$bai_sig, decreasing = F),]
+pdf("C:/Users/miles/Downloads/bb_bai_deg_volcano_53.pdf", height = 6, width = 5)
+ggplot(bdeg53, aes(x = avg_logFC, y = neg_log_hmp_bai, color = col_bai, alpha = bai_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_bai_deg_volcano_53_label.pdf", height = 6, width = 5)
+ggplot(bdeg53, aes(x = avg_logFC, y = neg_log_hmp_bai, color = col_bai, alpha = bai_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = bdeg53[which(bdeg53$bai_sig & bdeg53$neg_log_hmp_bai > 10),] ,aes(label = cluster_gene))
+dev.off()
+bdeg53 = bdeg53[order(bdeg53$bower_sig, decreasing = F),]
+pdf("C:/Users/miles/Downloads/bb_bower_deg_volcano_53.pdf", height = 6, width = 5)
+ggplot(bdeg53, aes(x = avg_logFC, y = neg_log_hmp_bower, color = col_bower, alpha = bower_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none')
+dev.off()
+pdf("C:/Users/miles/Downloads/bb_bower_deg_volcano_53_label.pdf", height = 6, width = 5)
+ggplot(bdeg53, aes(x = avg_logFC, y = neg_log_hmp_bower, color = col_bower, alpha = bower_sig)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" Adjusted P")) + theme_light() + scale_alpha_manual(values = c(0.5, 0.9), drop = F, guide = 'none') + geom_text_repel(data = bdeg53[which(bdeg53$bower_sig & bdeg53$neg_log_hmp_bower > 20),] ,aes(label = cluster_gene))
+dev.off()
+# all_deg_gsi = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_gsi_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster (1).csv")
+# all_deg_spawn = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster (2).csv")
+# bdeg = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_cond_sig_53clusters_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster_hgnc.csv")
+# 
+# all_deg_gsi$cluster_gene = paste0(all_deg_gsi$cluster, "_", all_deg_gsi$mzebra)
+# all_deg_spawn$cluster_gene = paste0(all_deg_spawn$cluster, "_", all_deg_spawn$mzebra)
+# all_deg_gsi = all_deg_gsi[which(! is.na(all_deg_gsi$cluster_gene) ),]
+# all_deg_spawn = all_deg_spawn[which(! is.na(all_deg_spawn$cluster_gene) ),]
+# bdeg$cluster_gene = paste0(bdeg$cluster, "_", bdeg$mzebra)
+# all_deg_gsi[,colnames(all_pct_fc)] = all_pct_fc[match(all_deg_gsi$cluster_gene, all_pct_fc$cluster_gene),]
+# all_deg_spawn[,colnames(all_pct_fc)] = all_pct_fc[match(all_deg_spawn$cluster_gene, all_pct_fc$cluster_gene),]
+#
+# all_deg_gsi = all_deg_gsi[which(! is.na(all_deg_gsi$cluster_gene) ),]
+# all_deg_spawn = all_deg_spawn[which(! is.na(all_deg_spawn$cluster_gene) ),]
+# all_deg_join = inner_join(all_deg_gsi, all_deg_spawn, by = "cluster_gene", suffix = c(".gsi", ".spawn"))
+# all_deg_join$neg_log_q_gsi = -log10(all_deg_join$q_cond.gsi)
+# all_deg_join$neg_log_q_spawn = -log10(all_deg_join$q_cond.spawn)
+# # all_deg_join$col = convert15$col[match(all_deg_join$cluster.gsi, convert15$old)]
+# all_deg_join$col = convert53$col[match(all_deg_join$cluster.gsi, convert53$old)]
+# all_deg_join$isSig = all_deg_join$cluster_gene %in% bdeg$cluster_gene
+# all_deg_join$col2 = all_deg_join$col
+# all_deg_join$col2[which(!all_deg_join$isSig)] = "gray"
+# all_deg_join = all_deg_join[order(all_deg_join$isSig, decreasing = F),]
+# all_deg_join$q_combined = sapply(1:nrow(all_deg_join), function(x) mean(c(all_deg_join$q_cond.gsi[x], all_deg_join$q_cond.spawn[x])))
+# all_deg_join$q_max = sapply(1:nrow(all_deg_join), function(x) max(c(all_deg_join$q_cond.gsi[x], all_deg_join$q_cond.spawn[x])))
+# all_deg_join$neg_log_q_max = -log10(all_deg_join$q_max)
+# all_deg_join$neg_log_q_combined2 = -log10(all_deg_join$q_combined)
+# all_deg_join$neg_log_q_combined = sapply(1:nrow(all_deg_join), function(x) mean(c(all_deg_join$neg_log_q_gsi[x], all_deg_join$neg_log_q_spawn[x])))
+# head(all_deg_join[,c("neg_log_q_gsi", "neg_log_q_spawn", "neg_log_q_combined", "neg_log_q_combined2", "neg_log_q_max")])
+
+
+# subsample_meta = unique(bb@meta.data[,c("subsample", "pair", "pool", "gsi", "standard_length", "cond", colnames(bb@meta.data)[which(startsWith(colnames(bb@meta.data), "build"))], colnames(bb@meta.data)[which(startsWith(colnames(bb@meta.data), "depth"))], colnames(bb@meta.data)[which(startsWith(colnames(bb@meta.data), "spawn"))] )])
+subsample_meta = unique(bb@meta.data[,c("subsample", "pair", "run", "gsi", "standard_length", "cond", "log_spawn_events", "bower_activity_index", "build_events", "depth", "depth_adj", "spawn_events" )])
+rownames(subsample_meta) = subsample_meta$subsample
+subsample_meta = subsample_meta[order(subsample_meta$subsample),]
+subsample_pairs = list()
+for (i in 1:18) {
+  subsample_pairs[[i]] = subsample_meta$subsample[which(subsample_meta$pair == i)]
+}
+
+# Heatmap with Hierarchical Clustering for 15 Cluster BVC DEGs
+heat15 = data.frame()
+# for (i in 0:14) {
+for (i in 0:52) {  
+  this_clust_bdeg = bdeg[which(bdeg$cluster == i),]
+  if ( nrow(this_clust_bdeg) > 0 ) {
+    print(i)
+    pairs_res = data.frame()
+    for (p in unique(subsample_meta$pair)) {
+      # this_pair_res = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$seuratclusters15 == i & bb$pair == p & bb$cond == "BHVE")], cells.2 = colnames(bb)[which(bb$seuratclusters15 == i & bb$pair == p & bb$cond == "CTRL")])
+      this_pair_res = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$seuratclusters53 == i & bb$pair == p & bb$cond == "BHVE")], cells.2 = colnames(bb)[which(bb$seuratclusters53 == i & bb$pair == p & bb$cond == "CTRL")])
+      this_pair_res = this_pair_res[this_clust_bdeg$genes,]
+      this_pair_res$cluster = i
+      this_pair_res$pair = p
+      this_pair_res = rbind(this_pair_res, this_pair_res)
+      this_pair_res$cond_pair = c(rep(paste0("b", p), nrow(this_pair_res)/2), rep(paste0("c", p), nrow(this_pair_res)/2))
+      this_pair_res$avg_logFC[(nrow(this_pair_res)/2):nrow(this_pair_res)] = -this_pair_res$avg_logFC[(nrow(this_pair_res)/2):nrow(this_pair_res)]
+      pairs_res = rbind(pairs_res, this_pair_res)
+    }
+    # for (p in 1:5) {
+    #   # this_pair_res = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$seuratclusters15 == i & bb$pool == paste0("pair", p) & bb$cond == "BHVE")], cells.2 = colnames(bb)[which(bb$seuratclusters15 == i & bb$pool == paste0("pair", p) & bb$cond == "CTRL")])
+    #   this_pair_res = pct_dif_avg_logFC(bb, cells.1 = colnames(bb)[which(bb$seuratclusters53 == i & bb$pool == paste0("pair", p) & bb$cond == "BHVE")], cells.2 = colnames(bb)[which(bb$seuratclusters53 == i & bb$pool == paste0("pair", p) & bb$cond == "CTRL")])
+    #   this_pair_res = this_pair_res[this_clust_bdeg$genes,]
+    #   this_pair_res$cluster = i
+    #   this_pair_res$pool = p
+    #   this_pair_res = rbind(this_pair_res, this_pair_res)
+    #   this_pair_res$cond_pool = c(rep(paste0("b_", p), nrow(this_pair_res)/2), rep(paste0("c_", p), nrow(this_pair_res)/2))
+    #   this_pair_res$avg_logFC[(nrow(this_pair_res)/2):nrow(this_pair_res)] = -this_pair_res$avg_logFC[(nrow(this_pair_res)/2):nrow(this_pair_res)]
+    #   pairs_res = rbind(pairs_res, this_pair_res)
+    # }
+    heat15 = rbind(heat15, pairs_res)
+  }
+}
+heat15$cluster_gene = paste0(heat15$cluster, "_", heat15$genes)
+heat15_wide = reshape2::acast(cluster_gene ~ cond_pair, data = heat15, value.var = "avg_logFC")
+# heat15_wide[which(is.na(heat15_wide))] = 0
+# heat15_wide = heat15_wide[, c(1, 9:12, 14:18)]
+heat15_wide = abs(heat15_wide > 0)
+
+quantile_breaks <- function(xs, n = 10) {
+  breaks <- quantile(xs, probs = seq(0, 1, length.out = n))
+  breaks[!duplicated(breaks)]
+}
+
+
+mat_breaks <- quantile_breaks(heat15_wide, n = 11)
+pheatmap::pheatmap(heat15_wide, border_color = NA, angle_col = 0, show_rownames = F, color = viridis(length(mat_breaks) - 1), breaks = mat_breaks)
+
 
 #******************************************************************
 # Volcano 2.0 =====================================================
