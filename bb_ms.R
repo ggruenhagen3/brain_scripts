@@ -9,8 +9,16 @@ source(paste0(rna_path, "brain_scripts/all_f.R"))
 
 # *** 1B. 15 cluster and 53 cluster level UMAP *** #
 # Define 15 level colors
+for (k in 1:15) {
+print(k)
 library("scales")
 cols15 = gc.ramp <- hue_pal()(15)
+
+cols15_test = cols15[k:length(cols15)]
+if (length(cols15_test) < length(cols15)) {
+  cols15_test = c(cols15_test, cols15[1:(k - 1)])
+}
+cols15 = cols15_test
 # names(cols15) = 0:14
 
 # Change Cluster IDs on 53 Level
@@ -31,7 +39,7 @@ convert15$new = gsub("In", "GABA", convert15$new)
 convert15$new = gsub("Ex", "Glut", convert15$new)
 convert15$new.full = convert15$new
 convert15 = separate(data = convert15, col = new, into = c("new.num", "new.junk"), sep = "_")
-convert15 = convert15[order(as.numeric(convert15$new.num), decreasing = F),]
+convert15 = convert15[order(as.numeric(convert15$new.num), decreasing = T),]
 convert15$col = cols15
 # Get the parent and color of the 53 cluster 
 convert53$new.parent.old = convert15$old[match(convert53$new.parent, convert15$new.num)]
@@ -70,7 +78,11 @@ bb$good_names_num = colsplit(bb$good_names, "_", c("num", "ex"))[,1]
 Idents(bb) = bb$good_names_num
 clust53_new_col_list2 = convert53$col
 names(clust53_new_col_list2) = colsplit(convert53$new, "_", c("num", "ex"))[,1]
-DimPlot(bb, label = T, pt.size = 1) + scale_color_manual(values = clust53_new_col_list2) + NoLegend()
+
+pdf (paste0("~/research/brain/results/cols_", k, "_rev.pdf"), width = 5, height = 5)
+print(DimPlot(bb, label = T, pt.size = 1) + scale_color_manual(values = clust53_new_col_list2) + NoLegend())
+dev.off()
+}
 
 pdf("C:/Users/miles/Downloads/brain/results/bb/53_clusters_on_15_light_dark_label_04012021.pdf", width = 12, height = 12)
 print(DimPlot(bb, label = T, pt.size = 1) + scale_color_manual(values = clust53_new_col_list2) + NoLegend())
@@ -502,6 +514,7 @@ mat[which(mat > 1)] = 1
 # Calculate Differences in IEG Score, Neurgoen Score, and Cluster Proportion between BHVE and Control
 bb$annot15 = factor(convert15$new.full[match(bb$seuratclusters15, convert15$old)])
 bb$annot53 = factor(convert53$new[match(bb$seuratclusters53, convert53$old)])
+bb$subsample = factor(bb$subsample, levels = unique(sort(bb$subsample)))
 neuro_gen = read.csv("~/research/brain/data/conserved_neurogenesis_positive_zfish_mouse_cichlid.csv")[,3]
 ieg_like = read.csv("~/research/brain/data/ieg_like_fos_egr1_npas4_detected_011521.csv")[,1]
 bhve_evo= read.csv("~/research/brain/data/pcrc_FST20_30_LG11_evolution_genes_031821.csv")[,1]
@@ -530,7 +543,7 @@ for (cluster in convert53$new) {
   neuro_gen_scores53_c[[cluster]] = mean(mat[neuro_gen, which(bb$annot53 == cluster & bb$cond == "CTRL")])
   
   # num_cells53 = aggregate(nCount_RNA ~ sample, bb@meta.data[which(bb$annot == cluster),], length)[,2] / aggregate(nCount_RNA ~ sample, bb@meta.data, length)[,2]
-  this_num_cells53 = aggregate(nCount_RNA ~ subsample, bb@meta.data[which(bb$annot == cluster),], length, drop = F)
+  this_num_cells53 = aggregate(nCount_RNA ~ subsample, bb@meta.data[which(bb$annot53 == cluster),], length, drop = F)
   this_num_cells53[,2] = this_num_cells53[,2] / aggregate(nCount_RNA ~ subsample, bb@meta.data[which(bb$annot15 == "8_Glut"),], length)[,2]
   this_num_cells53[which( is.na(this_num_cells53[,2]) ),2] = 0
   this_num_cells53$sample = substr(this_num_cells53$subsample, 1, 2)
@@ -652,14 +665,15 @@ bb_df53$ieg_like_col = scaleValues(bb_df53$ieg_like)
 
 # 15 Level
 pdf("~/research/brain/results/sum_fig.pdf", width = 11, height = 11)
+my_track_height = 0.1
 # circos.par("canvas.xlim" = c(-2.4, 2.4), "canvas.ylim" = c(-2.4, 2.4))
 # circos.par("canvas.xlim" = c(-3, 3), "canvas.ylim" = c(-3, 3))
-circos.par("gap.after" = c(rep(0, 14), 10), cell.padding = c(0, 0, 0, 0), "start.degree" = 90, track.margin = c(0.02, 0.02))
+circos.par("gap.after" = c(rep(0, 14), 10), cell.padding = c(0, 0, 0, 0), "start.degree" = 90, track.margin = c(0.01, 0.01), track.height = my_track_height)
 circos.initialize(bb_df15$cluster, xlim = cbind(rep(0, nrow(bb_df15)), bb_df15$new_sub))
 border_buffer = 0.01
 
 # BHVE EVO
-circos.track(ylim = c(0, 1), track.height = 0.15, bg.border = NA, panel.fun = function(x, y) {
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
   # 15 Level
   pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
   circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$bhve_evo_col[CELL_META$sector.numeric.index], border = NA)
@@ -688,7 +702,7 @@ for (clust53 in bb_df53$cluster[which(bb_df53$bhve_evo_sig)]) {
 } # Denote significance with yellow border
 
 # IEG
-circos.track(ylim = c(0, 1), track.height = 0.15, bg.border = NA, panel.fun = function(x, y) {
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
   # 15 Level
   pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
   circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$ieg_like_col[CELL_META$sector.numeric.index], border = NA)
@@ -719,7 +733,7 @@ for (clust53 in bb_df53$cluster[which(bb_df53$ieg_like_sig)]) {
 circos.text(-0.5, 0.5, sector.index = "1_Astro/MG", "IEG", track.index = 2)
 
 # Neurogenesis
-circos.track(ylim = c(0, 1), track.height = 0.15, bg.border = NA, panel.fun = function(x, y) {
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
   # 15 Level
   pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
   circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$neuro_gen_col[CELL_META$sector.numeric.index], border = NA)
@@ -752,15 +766,15 @@ for (clust53 in bb_df53$cluster[which(bb_df53$neuro_gen_sig)]) {
 circos.text(-.5, 0.5, sector.index = "1_Astro/MG", "Neurogen", track.index = 3)
 
 # Cluster Colors
-circos.track(ylim = c(0, 1), track.height = 0.15, bg.border = NA, panel.fun = function(x, y) {
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
   pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
   bg.col = bb_df15$col[CELL_META$sector.numeric.index]
   
   # 15 Level
-  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 0.5, col = bb_df15$col[CELL_META$sector.numeric.index], border = NA)
-  circos.text(CELL_META$xcenter, CELL_META$cell.ylim[1] - mm_y(2),
+  circos.rect(CELL_META$cell.xlim[1], -0.5, CELL_META$cell.xlim[2], 0.5, col = bb_df15$col[CELL_META$sector.numeric.index], border = NA)
+  circos.text(CELL_META$xcenter, 0.5 - mm_y(2),
               CELL_META$sector.index, facing = "clockwise", niceFacing = TRUE,
-              adj = c(1, 0.5), cex = 0.6)
+              adj = c(1, 0.5), cex = 0.6, col = darken(bb_df15$col[CELL_META$sector.numeric.index], amount = 0.5))
   
   # 53 Level
   num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
@@ -777,8 +791,276 @@ circos.track(ylim = c(0, 1), track.height = 0.15, bg.border = NA, panel.fun = fu
 dev.off()
 
 
+#*******************************************************************************
+# Circle Figure 2 ==============================================================
+#*******************************************************************************
+bb$annot15 = factor(convert15$new.full[match(bb$seuratclusters15, convert15$old)])
+bb$annot53 = factor(convert53$new[match(bb$seuratclusters53, convert53$old)])
+bb$subsample = factor(bb$subsample, levels = unique(sort(bb$subsample)))
+
+zdf15 = read.csv("~/research/brain/results/bb15_all_lists_bower_all.csv")
+zdf53 = read.csv("~/research/brain/results/bb53_all_lists_bower_all.csv")
+bdeg15 = read.csv("~/research/brain/results/bb15_all_data_for_all_sig_cluster_genes.csv")
+bdeg53 = read.csv("~/research/brain/results/bb53_all_data_for_all_sig_cluster_genes.csv")
+pcrc15 = as.data.frame(readxl::read_xlsx("~/research/brain/results/pcrc_enrichment.xlsx", sheet = "15 Summary"))
+pcrc53 = as.data.frame(readxl::read_xlsx("~/research/brain/results/pcrc_enrichment.xlsx", sheet = "53 Summary"))
+
+zdf15$ieg_isSig   = zdf15$pct_sig_ieg   == 100 & zdf15$hmp_ieg   < 0.05
+zdf15$neuro_isSig = zdf15$pct_sig_neuro == 100 & zdf15$hmp_neuro < 0.05
+zdf15$pcrc_isSig  = zdf15$pct_sig_pcrc  == 100 & zdf15$hmp_pcrc  < 0.05
+
+zdf53$ieg_isSig   = zdf53$pct_sig_ieg   == 100 & zdf53$hmp_ieg   < 0.05
+zdf53$neuro_isSig = zdf53$pct_sig_neuro == 100 & zdf53$hmp_neuro < 0.05
+zdf53$pcrc_isSig  = zdf53$pct_sig_pcrc  == 100 & zdf53$hmp_pcrc  < 0.05
+
+pcrc15$pcrc_enrich_isSig = pcrc15$p_val_adj < 0.05 & pcrc15$p_10k < 0.05
+pcrc53$pcrc_enrich_isSig = pcrc53$p_val_adj < 0.05 & pcrc53$p_10k < 0.05
+
+pcrc15$neg_log_p1k = -log10(pcrc15$p_1k)
+pcrc15$neg_log_p10k = -log10(pcrc15$p_10k)
+pcrc53$neg_log_p10k = -log10(pcrc53$p_10k)
+
+bdeg15_num = aggregate(formula = X ~ cluster.1, data = bdeg15, FUN = length)
+bdeg53_num = aggregate(formula = X ~ cluster.1, data = bdeg53, FUN = length)
+
+num_cells_15 = aggregate(nCount_RNA ~ seuratclusters15, bb@meta.data, length)
+
+bb_df15 = convert15
+bb_df15$num = as.character(bb_df15$new.num)
+bb_df15$cluster = bb_df15$new.full
+bb_df15$num_cells = num_cells_15$nCount_RNA[match(bb_df15$old, num_cells_15$seuratclusters15)]
+bb_df15$new_sub = as.vector(table(factor(convert53$new.parent, levels = 1:15)))
+bb_df15$bdeg_num = bdeg15_num$X[match(bb_df15$old, bdeg15_num$cluster.1)]
+bb_df15$zieg   = zdf15$neg_log_p_max_ieg[match(bb_df15$old,      zdf15$cluster)]
+bb_df15$zneuro = zdf15$neg_log_p_max_neurogen[match(bb_df15$old, zdf15$cluster)]
+bb_df15$zpcrc  = zdf15$neg_log_p_max_pcrc[match(bb_df15$old,   zdf15$cluster)]
+bb_df15[is.na(bb_df15)] = 0
+bb_df15$zieg_isSig   = zdf15$ieg_isSig[match(bb_df15$old,   zdf15$cluster)]
+bb_df15$zneuro_isSig = zdf15$neuro_isSig[match(bb_df15$old, zdf15$cluster)]
+bb_df15$zpcrc_isSig  = zdf15$pcrc_isSig[match(bb_df15$old,  zdf15$cluster)]
+bb_df15$pcrc_enrich = pcrc15$neg_log_p10k[match(bb_df15$old, pcrc15$cluster)]
+bb_df15$pcrc_enrich_isSig = pcrc15$pcrc_enrich_isSig[match(bb_df15$old, pcrc15$cluster)]
+bb_df15[is.na(bb_df15)] = FALSE
+bb_df15$bdeg_num_col = scaleValues(bb_df15$bdeg_num)
+bb_df15$zieg_col     = scaleValues(bb_df15$zieg)
+bb_df15$zneuro_col   = scaleValues(bb_df15$zneuro)
+bb_df15$zpcrc_col    = scaleValues(bb_df15$zpcrc)
+bb_df15$pcrc_enrich_col = scaleValues(bb_df15$pcrc_enrich)
+
+bb_df53 = convert53
+bb_df53$cluster = bb_df53$new
+bb_df53$cluster_label = reshape2::colsplit(bb_df53$cluster, "_", c(1,2))[,1]
+bb_df53$parent = reshape2::colsplit(bb_df53$cluster_label, "\\.", c(1, 2))[,1]
+bb_df53$parent[which(bb_df53$cluster == "8-9_Glut")] = "8"
+bb_df53$sub = reshape2::colsplit( reshape2::colsplit(bb_df53$cluster, "\\.", c(1, 2))[,2], "_", c(1,2) )[,1]
+bb_df53$sub[which( is.na(bb_df53$sub) )] = "1"
+bb_df53$sub[which( bb_df53$cluster == "8-9_Glut" )] = "12"
+bb_df53$sub = as.numeric(bb_df53$sub)
+bb_df53$bdeg_num = bdeg53_num$X[match(bb_df53$old, bdeg53_num$cluster.1)]
+bb_df53$zieg   = zdf53$neg_log_p_max_ieg[match(bb_df53$old,      zdf53$cluster)]
+bb_df53$zneuro = zdf53$neg_log_p_max_neurogen[match(bb_df53$old, zdf53$cluster)]
+bb_df53$zpcrc  = zdf53$neg_log_p_max_pcrc[match(bb_df53$old,   zdf53$cluster)]
+bb_df53[is.na(bb_df53)] = 0
+bb_df53$pcrc_enrich = pcrc53$neg_log_p10k[match(bb_df53$old, pcrc53$cluster)]
+bb_df53$pcrc_enrich_isSig = pcrc53$pcrc_enrich_isSig[match(bb_df53$old, pcrc53$cluster)]
+bb_df53$zieg_isSig   = zdf53$ieg_isSig[match(bb_df53$old,   zdf53$cluster)]
+bb_df53$zneuro_isSig = zdf53$neuro_isSig[match(bb_df53$old, zdf53$cluster)]
+bb_df53$zpcrc_isSig  = zdf53$pcrc_isSig[match(bb_df53$old,  zdf53$cluster)]
+bb_df53[is.na(bb_df53)] = FALSE
+bb_df53$bdeg_num_col    = scaleValues(bb_df53$bdeg_num)
+bb_df53$zieg_col        = scaleValues(bb_df53$zieg)
+bb_df53$zneuro_col      = scaleValues(bb_df53$zneuro)
+bb_df53$zpcrc_col       = scaleValues(bb_df53$zpcrc)
+bb_df53$pcrc_enrich_col = scaleValues(bb_df53$pcrc_enrich)
 
 
+pdf("~/research/brain/results/sum_fig2.pdf", width = 11, height = 11)
+my_track_height = 0.1
+circos.par("gap.after" = c(rep(0, 14), 10), cell.padding = c(0, 0, 0, 0), "start.degree" = 90, track.margin = c(0.01, 0.01), track.height = my_track_height)
+circos.initialize(bb_df15$cluster, xlim = cbind(rep(0, nrow(bb_df15)), bb_df15$new_sub))
+border_buffer = 0.01
+sigBorderThickness = 3
+sigBorderCol = "goldenrod"
+this_track_index = 0
+
+# BDEG Num
+this_track_index = this_track_index + 1
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
+  # 15 Level
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$bdeg_num_col[CELL_META$sector.numeric.index], border = NA)
+  
+  # 53 Level
+  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
+  for (i in 1:num_new_sub) {
+    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
+    xstart = 0 + (i-1)*1
+    xend = xstart + 1
+    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$bdeg_num_col[idx53], border = NA)
+    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25, bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE, adj = c(0.5, 0.5), cex = 0.6)
+  }
+})
+circos.text(-0.5, 0.5, sector.index = "1_Astro/MG", "# DEG", track.index = this_track_index)
+
+# BHVE EVO Enrichment
+this_track_index = this_track_index + 1
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
+  # 15 Level
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$pcrc_enrich_col[CELL_META$sector.numeric.index], border = NA)
+  
+  # 53 Level
+  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
+  for (i in 1:num_new_sub) {
+    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
+    xstart = 0 + (i-1)*1
+    xend = xstart + 1
+    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$pcrc_enrich_col[idx53], border = NA)
+    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25, bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE, adj = c(0.5, 0.5), cex = 0.6)
+  }
+})
+circos.text(-0.5, 0.5, sector.index = "1_Astro/MG", "BEVO 10k", track.index = this_track_index)
+for (clust15 in bb_df15$cluster[which(bb_df15$pcrc_enrich_isSig)]) {
+  xstart = 0
+  xend = bb_df15$new_sub[which(bb_df15$cluster == clust15)]
+  circos.rect(xstart, 0, xend, 0.5, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+for (clust53 in bb_df53$cluster[which(bb_df53$pcrc_enrich_isSig)]) {
+  clust15 = bb_df15$cluster[which(bb_df15$num == bb_df53$parent[which(bb_df53$cluster == clust53)])]
+  xstart = bb_df53$sub[which(bb_df53$cluster == clust53)]-1
+  xend = bb_df53$sub[which(bb_df53$cluster == clust53)]
+  circos.rect(xstart, 0.5, xend, 1, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+
+
+# Z BHVE EVO 
+this_track_index = this_track_index + 1
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
+  # 15 Level
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$zpcrc_col[CELL_META$sector.numeric.index], border = NA)
+  
+  # 53 Level
+  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
+  for (i in 1:num_new_sub) {
+    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
+    xstart = 0 + (i-1)*1
+    xend = xstart + 1
+    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$zpcrc_col[idx53], border = NA)
+    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25, bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE, adj = c(0.5, 0.5), cex = 0.6)
+  }
+})
+circos.text(-0.5, 0.5, sector.index = "1_Astro/MG", "BEVO", track.index = this_track_index)
+for (clust15 in bb_df15$cluster[which(bb_df15$zpcrc_isSig)]) {
+  xstart = 0
+  xend = bb_df15$new_sub[which(bb_df15$cluster == clust15)]
+  circos.rect(xstart, 0, xend, 0.5, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+for (clust53 in bb_df53$cluster[which(bb_df53$zpcrc_isSig)]) {
+  clust15 = bb_df15$cluster[which(bb_df15$num == bb_df53$parent[which(bb_df53$cluster == clust53)])]
+  xstart = bb_df53$sub[which(bb_df53$cluster == clust53)]-1
+  xend = bb_df53$sub[which(bb_df53$cluster == clust53)]
+  circos.rect(xstart, 0.5, xend, 1, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+
+# IEG
+this_track_index = this_track_index + 1
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
+  # 15 Level
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$zieg_col[CELL_META$sector.numeric.index], border = NA)
+  xstart = CELL_META$xlim[1]
+  xend = CELL_META$xlim[2]
+  
+  # 53 Level
+  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
+  for (i in 1:num_new_sub) {
+    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
+    xstart = 0 + (i-1)*1
+    xend = xstart + 1
+    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$zieg_col[idx53], border = NA)
+    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25, bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE, adj = c(0.5, 0.5), cex = 0.6)
+  }
+})
+for (clust15 in bb_df15$cluster[which(bb_df15$zieg_isSig)]) {
+  xstart = 0
+  xend = bb_df15$new_sub[which(bb_df15$cluster == clust15)]
+  circos.rect(xstart, 0, xend, 0.5, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+for (clust53 in bb_df53$cluster[which(bb_df53$zieg_isSig)]) {
+  clust15 = bb_df15$cluster[which(bb_df15$num == bb_df53$parent[which(bb_df53$cluster == clust53)])]
+  xstart = bb_df53$sub[which(bb_df53$cluster == clust53)]-1
+  xend = bb_df53$sub[which(bb_df53$cluster == clust53)]
+  circos.rect(xstart, 0.5, xend, 1, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+circos.text(-0.5, 0.5, sector.index = "1_Astro/MG", "IEG", track.index = this_track_index)
+
+# Neurogenesis
+this_track_index = this_track_index + 1
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
+  # 15 Level
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$zneuro_col[CELL_META$sector.numeric.index], border = NA)
+  xstart = CELL_META$xlim[1]
+  xend = CELL_META$xlim[2]
+  
+  # 53 Level
+  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
+  for (i in 1:num_new_sub) {
+    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
+    xstart = 0 + (i-1)*1
+    xend = xstart + 1
+    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$zneuro_col[idx53], border = NA)
+    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25,
+                bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE,
+                adj = c(0.5, 0.5), cex = 0.6)
+  }
+})
+for (clust15 in bb_df15$cluster[which(bb_df15$zneuro_isSig)]) {
+  xstart = 0
+  xend = bb_df15$new_sub[which(bb_df15$cluster == clust15)]
+  circos.rect(xstart, 0, xend, 0.5, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+for (clust53 in bb_df53$cluster[which(bb_df53$zneuro_isSig)]) {
+  clust15 = bb_df15$cluster[which(bb_df15$num == bb_df53$parent[which(bb_df53$cluster == clust53)])]
+  xstart = bb_df53$sub[which(bb_df53$cluster == clust53)]-1
+  xend = bb_df53$sub[which(bb_df53$cluster == clust53)]
+  circos.rect(xstart, 0.5, xend, 1, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+} # Denote significance with yellow border
+circos.text(-.5, 0.5, sector.index = "1_Astro/MG", "NG", track.index = this_track_index)
+
+# Cluster Colors
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  bg.col = bb_df15$col[CELL_META$sector.numeric.index]
+  
+  # 15 Level
+  circos.rect(CELL_META$cell.xlim[1], -0.5, CELL_META$cell.xlim[2], 0.5, col = bb_df15$col[CELL_META$sector.numeric.index], border = NA)
+  this_facing = "clockwise"
+  this_adj = c(1, 0.5)
+  this_y = 0.5 - mm_y(2)
+  if (CELL_META$sector.index %in% c("15_GABA/Glut", "1_Astro/MG", "8_Glut", "9_Glut")) { this_facing = "downward"; this_adj = c(0.5, 0.5); this_y = CELL_META$ycenter - 0.5; }
+  circos.text(CELL_META$xcenter, this_y,
+              CELL_META$sector.index, facing = this_facing, niceFacing = TRUE,
+              adj = this_adj, cex = 0.6, col = darken(bb_df15$col[CELL_META$sector.numeric.index], amount = 0.5))
+  
+  # 53 Level
+  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
+  for (i in 1:num_new_sub) {
+    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
+    xstart = 0 + (i-1)*1
+    xend = xstart + 1
+    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$col[idx53], border = NA)
+    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25,
+                bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE,
+                adj = c(0.5, 0.5), cex = 0.6)
+  }
+})
+highlight.sector("2_OPC/Oligo", col = "#FF000020", border = "red", lwd = 1, padding = c(-0.073, 0, 0.15, -0.5))
+highlight.sector("4_GABA", col = "#FF000020", border = "red", lwd = 1, padding = c(-0.073, 0.086, 0.15, 0.065))
+highlight.sector("9_Glut", col = "#FF000020", border = "red", lwd = 1, padding = c(-0.073, -0.625, 0.15, -0.25))
+highlight.sector("10_Glut", col = "#FF000020", border = "red", lwd = 1, padding = c(-0.073, 0, 0.15, -0.5))
+dev.off()
 
 # Old code:
 # track1_breaks = pretty(unlist(neuro_gen_scores), n = 2)
@@ -866,6 +1148,7 @@ all_deg_gsi = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_
 all_deg_spawn = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster.csv")
 all_deg_spawn = read.csv("C:/Users/miles/Downloads/deg_glmmseq_demux_all_clusters_cond_spawn_control_pair_subjectinpair_pool_subjectinpool_good_genes_by_pair_101121_q_by_cluster (1).csv")
 bdeg = read.csv("C:/Users/miles/Downloads/bb15_glmmseq_cond_gsi_control_and_cond_spawn_control_sig_genes_q_by_cluster_100521.csv")
+bdeg = read.csv("~/research/brain/results/bb15_glmmseq_cond_gsi_control_and_cond_spawn_control_sig_genes_q_by_cluster_100521.csv")
 all_deg_gsi$cluster_gene = paste0(all_deg_gsi$cluster, "_", all_deg_gsi$mzebra)
 all_deg_spawn$cluster_gene = paste0(all_deg_spawn$cluster, "_", all_deg_spawn$mzebra)
 bdeg$cluster_gene = paste0(bdeg$cluster, "_", bdeg$mzebra)
@@ -886,6 +1169,87 @@ all_deg_spawn[,colnames(all_deg_spawn)] = all_pct_fc[match(all_deg_spawn$cluster
 
 pdf("C:/Users/miles/Downloads/bb_bdeg.pdf", height = 6, width = 5)
 ggplot(bdeg, aes(x = avg_logFC, y = neg_log_cond_p, color = col2)) + geom_point() + scale_y_sqrt() + scale_color_identity() + xlab(expression(Log["2"]*" Fold Change")) + ylab(expression(-Log["10"]*" P")) + theme_light()
+dev.off()
+
+#******************************************************************
+# Volcano 2.0 =====================================================
+#******************************************************************
+bb15 = read.csv("~/Downloads/out_bb15_bbmm_demux_deg_all_tests_for_volcano_plotting_121321.csv")
+bb53 = read.csv("~/Downloads/out_bb53_glmmseq_demux_deg_all_tests_for_volcano_plotting.csv")
+
+bb15$neg_log_bower = -log10(bb15$P_bower_activity_index)
+bb15$neg_log_gsi   = -log10(bb15$P_gsi)
+bb15$neg_log_spawn = -log10(bb15$P_log_spawn_events)
+
+bb53$neg_log_bower = -log10(bb53$P_bower_activity_index)
+bb53$neg_log_gsi   = -log10(bb53$P_gsi)
+bb53$neg_log_spawn = -log10(bb53$P_log_spawn_events)
+
+non_sig_col = "gray80"
+bb15$col = convert15$col[match(bb15$cluster, convert15$old)]
+bb15$col_bower = bb15$col
+bb15$col_gsi   = bb15$col
+bb15$col_spawn = bb15$col
+bb15$col_bower[which(bb15$sig_bower_behavior == 0)]   = non_sig_col
+bb15$col_gsi[which(bb15$sig_gsi == 0)]                = non_sig_col
+bb15$col_spawn[which(bb15$sig_log_spawn_events == 0)] = non_sig_col
+
+bb53$col = convert53$col[match(bb53$cluster, convert53$old)]
+bb53$col_bower = bb53$col
+bb53$col_gsi   = bb53$col
+bb53$col_spawn = bb53$col
+bb53$col_bower[which(bb53$sig_bower_behavior == 0)]   = 
+bb53$col_gsi[which(bb53$sig_gsi == 0)]                = non_sig_col
+bb53$col_spawn[which(bb53$sig_log_spawn_events == 0)] = non_sig_col
+
+# 15 Cluster Level Plots
+bb15 = bb15[order(bb15$sig_bower_behavior),]
+bb15$neg_log_bower_10 = bb15$neg_log_bower ^ (1/10)
+brk_f = pretty_breaks(n = 3)
+bower_labels = brk_f(bb15$neg_log_bower_10, n=3)
+pdf("~/research/brain/results/bb15_bower_volcano_like_10th.pdf", width = 6, height = 5)
+ggplot(bb15, aes(x = bower_activity_index, y = neg_log_bower_10, color = col_bower, alpha = as.logical(sig_bower_behavior))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(bower_labels), "^10"), breaks = bower_labels) + theme_bw()
+dev.off()
+
+bb15 = bb15[order(bb15$sig_gsi),]
+bb15$neg_log_gsi_10 = bb15$neg_log_gsi ^ (1/10)
+brk_f = pretty_breaks(n = 3)
+gsi_labels = brk_f(bb15$neg_log_gsi_10, n=3)
+pdf("~/research/brain/results/bb15_gsi_volcano_like_10th.pdf", width = 6, height = 5)
+ggplot(bb15, aes(x = gsi, y = neg_log_gsi_10, color = col_gsi, alpha = as.logical(sig_gsi))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(gsi_labels), "^10"), breaks = gsi_labels) + theme_bw()
+dev.off()
+
+bb15 = bb15[order(bb15$sig_log_spawn_events),]
+bb15$neg_log_spawn_10 = bb15$neg_log_spawn ^ (1/10)
+brk_f = pretty_breaks(n = 3)
+spawn_labels = brk_f(bb15$neg_log_spawn_10, n=3)
+pdf("~/research/brain/results/bb15_spawn_volcano_like_10th.pdf", width = 6, height = 5)
+ggplot(bb15, aes(x = log_spawn_events, y = neg_log_spawn_10, color = col_spawn, alpha = as.logical(sig_log_spawn_events))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(spawn_labels), "^10"), breaks = spawn_labels) + theme_bw()
+dev.off()
+
+# 53 Cluster Level Plots
+bb53 = bb53[order(bb53$sig_bower_behavior),]
+bb53$neg_log_bower_10 = bb53$neg_log_bower ^ (1/10)
+brk_f = pretty_breaks(n = 3)
+bower_labels = brk_f(bb53$neg_log_bower_10, n=3)
+pdf("~/research/brain/results/bb53_bower_volcano_like_10th.pdf", width = 6, height = 5)
+ggplot(bb53, aes(x = bower_activity_index, y = neg_log_bower_10, color = col_bower, alpha = as.logical(sig_bower_behavior))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(bower_labels), "^10"), breaks = bower_labels) + theme_bw()
+dev.off()
+
+bb53 = bb53[order(bb53$sig_gsi),]
+bb53$neg_log_gsi_10 = bb53$neg_log_gsi ^ (1/10)
+brk_f = pretty_breaks(n = 3)
+gsi_labels = brk_f(bb53$neg_log_gsi_10, n=3)
+pdf("~/research/brain/results/bb53_gsi_volcano_like_10th.pdf", width = 6, height = 5)
+ggplot(bb53, aes(x = gsi, y = neg_log_gsi_10, color = col_gsi, alpha = as.logical(sig_gsi))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(gsi_labels), "^10"), breaks = gsi_labels) + theme_bw()
+dev.off()
+
+bb53 = bb53[order(bb53$sig_log_spawn_events),]
+bb53$neg_log_spawn_10 = bb53$neg_log_spawn ^ (1/10)
+brk_f = pretty_breaks(n = 3)
+spawn_labels = brk_f(bb53$neg_log_spawn_10, n=3)
+pdf("~/research/brain/results/bb53_spawn_volcano_like_10th.pdf", width = 6, height = 5)
+ggplot(bb53, aes(x = log_spawn_events, y = neg_log_spawn_10, color = col_spawn, alpha = as.logical(sig_log_spawn_events))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(spawn_labels), "^10"), breaks = spawn_labels) + theme_bw()
 dev.off()
 
 ###################################################################
