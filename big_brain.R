@@ -4511,7 +4511,7 @@ ggplot(clown_meta_agr, aes(x = seurat_clusters, y = nCount_RNA, fill = sex, colo
 #*******************************************************************************
 # Brianna Markers ==============================================================
 #*******************************************************************************
-brianna53 = xlsx::read.xlsx("~/Downloads/53heatmapmarkerlist_george4.xlsx", sheetIndex = 1, startRow = 1)
+brianna53 = xlsx::read.xlsx("~/Downloads/53heatmapmarkerlist_george6.xlsx", sheetIndex = 1, startRow = 1)
 colnames(brianna53)[1] = "Category"
 colnames(brianna53)[4] = "Rank.Within"
 colnames(brianna53)[5] = "Rank.Overall"
@@ -4524,6 +4524,17 @@ brianna15$Category[which( startsWith(brianna15$Category, "Neuroanat") )]  = "Neu
 brianna15$LOCID = str_replace_all(trimws(brianna15$LOCID, which = "both"), "[^[:alnum:]\\s]", "")
 brianna15$gene_name = gtf$gene_name[match(brianna15$LOCID, gtf$loc)]
 brianna15$col = plyr::revalue(brianna15$Category, replace = c("Neuromodulator" = "#00E7EC", "Neuromodulatory Receptor" = "#FDD615", "NeuroanatNeurodev TF" = "#FE04FF"))
+
+drd1_idx = which(brianna15$Gene == "drd1")
+nr4_idx = which(brianna15$Gene == "nr4a2b (nurr1)")
+neurod1_idx = which(brianna15$Gene == "neurod1")
+neurod6b_idx = which(brianna15$Gene == "neurod6b")
+cck_idx = which(brianna15$Gene == "cck")
+nos1_idx = which(brianna15$Gene == "nos1")
+
+brianna15_idx = c(1:(neurod6b_idx-1), neurod1_idx, neurod6b_idx, (neurod1_idx+1):(cck_idx-1), nos1_idx, cck_idx, (cck_idx+1):(drd1_idx-1), (drd1_idx+1):(nr4_idx-1), drd1_idx, nr4_idx:nrow(brianna15))
+
+brianna15[which( grepl("LOC101487266", brianna15$LOCID) ), c("LOCID", "Gene", "gene_name")] = c("LOC101487266", "nr4a2b (nurr1)", "LOC101487266")
 
 # all_combos = expand.grid(unique(brianna15$gene_name), convert15$new.full)
 all_combos = expand.grid(unique(brianna15$gene_name), convert53$new)
@@ -4542,16 +4553,16 @@ for (cluster in convert53$new) {
 }
 
 all_combos$col4 = "gray98"
-all_combos$col4[which(all_combos$pct.1 >= 5 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 5 )],  "40")
-all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "60")
-all_combos$col4[which(all_combos$pct.1 >= 40 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 40 )], "80")
-all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 60 )], "ff")
+all_combos$col4[which(all_combos$pct.1 >= 5 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 5 )],  "70")
+all_combos$col4[which(all_combos$pct.1 >= 10 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 10 )], "80")
+all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "90")
+all_combos$col4[which(all_combos$pct.1 >= 30 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 30 )], "ff")
 
-all_combos$col4 = "gray98"
-all_combos$col4[which(all_combos$pct.1 >= 10 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 10 )],  "40")
-all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "60")
-all_combos$col4[which(all_combos$pct.1 >= 40 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 40 )], "80")
-all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 60 )], "ff")
+# all_combos$col4 = "gray98"
+# all_combos$col4[which(all_combos$pct.1 >= 10 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 10 )],  "40")
+# all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "60")
+# all_combos$col4[which(all_combos$pct.1 >= 40 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 40 )], "80")
+# all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 60 )], "ff")
 
 # brianna_order = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george2.xlsx", sheetIndex = 1, startRow = 1)
 # all_combos$Gene = factor(all_combos$Gene, levels = brianna_order$Gene)
@@ -4559,11 +4570,11 @@ all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(al
 # ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 # dev.off()
 
-all_combos$cluster = factor(all_combos$cluster, levels = unique(convert53$new))
-all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene))
+all_combos$cluster = factor(all_combos$cluster, levels = rev(unique(convert53$new)))
+all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene[brianna15_idx]))
 test = acast(Gene ~ cluster, data = all_combos, value.var = 'pct.1')
 pheatmap::pheatmap(test)
-pdf("~/research/brain/results/bri53_markers_heatmap_cutoff10_1.pdf", height = 10, width = 12)
+pdf("~/research/brain/results/bri53_markers_heatmap14.pdf", height = 10, width = 12)
 ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
 
@@ -5693,3 +5704,35 @@ my_f = mean(tj.deg.sig.pos$neg_log_bon) / mean(tj.deg.sig.pos$all_metric8)
 tj.deg.sig.pos$tmp = abs(tj.deg.sig.pos$all_metric8 * my_f - tj.deg.sig.pos$neg_log_bon)
 ggplot(tj.deg.sig.pos, aes(x = p_val_adj, y = all_metric3)) + geom_point()
 ggplot(tj.deg.sig.pos, aes(x = neg_log_bon, y = all_metric3, color = avg_log2FC)) + geom_point() + geom_smooth(method='lm', formula= y~x) + geom_text_repel(data = tj.deg.sig.pos[which(tj.deg.sig.pos$tmp > 25),], aes(label = cluster_gene))
+
+gcm = glmmseq_counts
+res = results@stats
+i = which(rownames(res) == "wdr17")
+
+my_int = res[i, "(Intercept)"]
+my_bower = res[i, "bower_activity_index"]
+my_gsi   = res[i, "gsi"]
+my_spawn = res[i, "log_spawn_events"]
+
+bai_cell = bb$bower_activity_index[which(bb$seuratclusters53 == 0)]
+gsi_cell = bb$gsi[which(bb$seuratclusters53 == 0)]
+spawn_cell = bb$log_spawn_events[which(bb$seuratclusters53 == 0)]
+
+gcm[i, ] = glmmseq_counts[i, ] - my_gsi * gsi_cell - my_spawn * spawn_cell
+gcm_df = data.frame(adj_counts = t(gcm[i,]), sample = bb$sample[which(bb$seuratclusters53 == 0)], cond = bb$cond[which(bb$seuratclusters53 == 0)], subsample = bb$subsample[which(bb$seuratclusters53 == 0)], pair = bb$pair[which(bb$seuratclusters53 == 0)], bai = bai_cell, gsi = gsi_cell, spawn = spawn_cell)
+colnames(gcm_df)[1] = "adj_counts"
+gcm_df_agr = aggregate(adj_counts ~ subsample + cond + pair + bai, gcm_df, mean)
+
+pdf("~/scratch/brain/results/bb53_0_wdr17_glmmseq.pdf", width = 4, height = 4)
+print(ggplot(gcm_df_agr, aes(x = cond, y = adj_counts, color = cond)) + geom_boxplot(outlier.shape = NA) + geom_line(linetype = "dashed", color = "gray40", alpha = 0.4, aes(group=pair)) + geom_point(alpha = 0.75, position = position_jitterdodge()))
+dev.off()
+
+pdf("~/scratch/brain/results/bb53_0_wdr17_glmmseq_w_bai.pdf", width = 5, height = 5)
+print(ggplot(gcm_df_agr, aes(x = adj_counts, y = bai, color = cond, label = subsample)) + geom_point(alpha = 0.75))
+dev.off()
+
+
+# for (i in 1:nrow(res)) {
+# tspoap1
+# gcm[i, ] = my_spawn * glmmseq_counts[i, ] + my_gsi * glmmseq_counts[i, ] + my_bower * glmmseq_counts[i, ] + my_int
+# }
