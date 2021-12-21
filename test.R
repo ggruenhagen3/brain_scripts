@@ -1,3 +1,6 @@
+args = commandArgs(trailingOnly=TRUE)
+cur_level = as.character(args[1])
+
 rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
@@ -9,7 +12,6 @@ z53 = read.csv("~/scratch/brain/results/out_bb53_glmmseq_demux_deg_all_tests_for
 gcm15 = readRDS("~/scratch/brain/results/adjusted_glmmseq_ffm_15.rds")
 gcm53 = readRDS("~/scratch/brain/results/adjusted_glmmseq_ffm_53.rds")
 
-cur_level = "53"
 if  (cur_level == "53") { cz = z53 }                   else { cz = z15 }
 if  (cur_level == "53") { cmeta = "seuratclusters53" } else { cmeta = "seuratclusters15" }
 if  (cur_level == "53") { clusters = 0:52 }            else { clusters = 0:14 }
