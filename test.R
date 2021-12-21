@@ -27,8 +27,8 @@ cz$data_mean_of_mean_b = cz$data_mean_of_mean_c = cz$data_mean_b = cz$data_sign_
 cz$counts_mean_of_mean_b = cz$counts_mean_of_mean_c = cz$counts_mean_b = cz$counts_sign_pair = cz$counts_mean_c = 0
 
 for (i in 1:nrow(cz)) {
-  # if (i %% 1000 == 0) { print(i) }
-  print(i)
+  if (i %% 1000 == 0) { print(i) }
+  # print(i)
   czgene = cz$zgenes[i]
   cluster = cz$cluster[i]
   clust_idx = which(bb@meta.data[,cmeta] == i)
