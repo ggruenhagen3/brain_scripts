@@ -61,8 +61,8 @@ Idents(bb) = bb$seuratclusters53
 nperm = 10000
 
 # Load in Real PCRC List
-pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
-zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_090921.csv")[,2]
+pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_122121.csv")[,1]
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -121,7 +121,7 @@ colnames(perm_df) = zGenePops
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
   
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_goi_120321.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_goi_122221.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
@@ -139,15 +139,16 @@ write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_goi_120321.csv")
 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
-# # for (gene in zGenePops) {
-# for (cluster in clusters) {
-#   # print(gene)
-#   # pgene = str_replace(gene, "-", ".")
-#   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster+1]))
-#   # neg = length(which( perm_df[,pgene] <= real_res[which(select_zGenePops2 == gene)] ))
-#   p_df = rbind(p_df, data.frame(cluster, neg))
+# for (gene in zGenePops) {
+# # for (cluster in clusters) {
+#   print(gene)
+#   pgene = str_replace(gene, "-", ".")
+#   # neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster+1]))
+#   neg = length(which( perm_df[,pgene] <= real_res[which(zGenePops == gene)] ))
+#   p_df = rbind(p_df, data.frame(gene, neg))
 # }
-# p_df$cluster = factor(p_df$cluster, levels = clusters)
+# # p_df$cluster = factor(p_df$cluster, levels = clusters)
+# p_df$gene = factor(p_df$gene, levels = unique(zGenePops))
 # p_df$p = ((nperm - p_df$neg) / nperm) * 100
 # p_df$bh = p.adjust(p_df$p/100, method = "BH")
 # p_df$bon = p.adjust(p_df$p/100, method = "bonferroni")
