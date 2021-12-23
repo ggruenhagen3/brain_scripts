@@ -43,6 +43,9 @@ singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
     cluster_p = c(cluster_p, p)
     cluster_d = c(cluster_d, d)
   }
+  
+  cat(paste0("- Single Perm End Time: ", format(Sys.time(), "%X ")))
+  
   if (returnP) 
     return(cluster_p)
   else
@@ -71,11 +74,11 @@ gene_counts = gene_counts[order(gene_counts[,1]),]
 pcrc_idx = which(gene_counts[,2] %in% pcrc)
 
 # Find pools of genes with comparable expression levels as the real list
+print(paste0("Finding Gene Pools Start Time: ", format(Sys.time(), "%X")))
 ran_pools = list()
 search_space = seq(-200, 200)
 search_space = search_space[order(abs(search_space))][2:length(search_space)]
 for (gene in pcrc) {
-  print(gene)
   gene_pcrc_idx = which(gene_counts[,2] == gene)
   ran_pools[[gene]] = c()
   search_space_i = 1
@@ -106,6 +109,8 @@ clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
 # real_res_log = -log10(real_res)
 
 library("parallel")
+print(paste0("Doing Perms Start Time: ", format(Sys.time(), "%X")))
+print("")
 perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], genePops = zGenePops, returnP = F), mc.cores = detectCores())
 # perm_res = mclapply(1:nperm, function(x) singleRun(ran_lists[[x]], returnP = F), mc.cores = detectCores())
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
