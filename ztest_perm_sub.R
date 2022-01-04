@@ -35,7 +35,6 @@ rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
 bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
-Idents(bb) = bb$seuratclusters15
 
 # Set Number of Permutations
 nperm = 10000
@@ -52,6 +51,7 @@ zdf53 = read.csv("~/scratch/brain/data/goi_by_53clusters_1plus_by_trial_id_12222
 if (cluster_level == "15") { zdf = zdf15; bb$cluster = bb$seuratclusters15; }
 if (cluster_level == "53") { zdf = zdf53; bb$cluster = bb$seuratclusters53; }
 zdf$gene = str_replace(zdf$gene, "\\.1", "")
+Idents(bb) = bb$cluster
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
