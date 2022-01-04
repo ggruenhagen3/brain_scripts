@@ -47,8 +47,8 @@ cluster_level = "15"
 pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
 
 # Load Gene Cluster Combos
-zdf15 = read.csv("~/scratch/brain/")
-zdf53 = read.csv("~/scratch/brain/")
+zdf15 = read.csv("~/scratch/brain/data/goi_by_15clusters_1plus_by_trial_id_122021.csv")
+zdf53 = read.csv("~/scratch/brain/data/goi_by_53clusters_1plus_by_trial_id_122221.csv")
 if (cluster_level == "15") { zdf = zdf15; bb$cluster = bb$seuratclusters15; }
 if (cluster_level == "53") { zdf = zdf53; bb$cluster = bb$seuratclusters53; }
 
