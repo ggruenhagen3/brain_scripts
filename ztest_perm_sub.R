@@ -1,5 +1,5 @@
 # Helper Functions ***********************************************************************
-singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
+singleRunGeneDefined = function(markers, returnP = T) {
   avg_exp = colSums(exp[markers,])
   avg_exp = avg_exp/bb$nFeature_RNA
   cluster_p = c()
@@ -51,6 +51,7 @@ zdf15 = read.csv("~/scratch/brain/data/goi_by_15clusters_1plus_by_trial_id_12202
 zdf53 = read.csv("~/scratch/brain/data/goi_by_53clusters_1plus_by_trial_id_122221.csv")
 if (cluster_level == "15") { zdf = zdf15; bb$cluster = bb$seuratclusters15; }
 if (cluster_level == "53") { zdf = zdf53; bb$cluster = bb$seuratclusters53; }
+zdf$gene = str_replace(zdf$gene, "\\.1", "")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -94,7 +95,7 @@ clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
 library("parallel")
 print(paste0("Doing Perms Start Time: ", format(Sys.time(), "%X")))
 print("")
-perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], genePops = zGenePops, returnP = F), mc.cores = detectCores())
+perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], returnP = F), mc.cores = detectCores())
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
 colnames(perm_df) = clusters
