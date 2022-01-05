@@ -40,7 +40,7 @@ bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
 nperm = 10000
 
 # Set Cluster Level
-cluster_level = "15"
+cluster_level = "53"
 
 # Load in Real PCRC List
 pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
@@ -100,7 +100,7 @@ perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
 colnames(perm_df) = clusters
 
-write.csv(perm_df, paste0("~/scratch/brain/results/ztest_perm_10k_", cluster_level, "_by_goi_010422.csv"))
+write.csv(perm_df, paste0("~/scratch/brain/results/ztest_perm_10k_", cluster_level, "_by_goi_010522.csv"))
 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
