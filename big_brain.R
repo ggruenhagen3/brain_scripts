@@ -5689,6 +5689,11 @@ ggplot(bb15, aes(x = isSig, y = neg_log_bon, color = as.numeric(isSig))) + geom_
 
 # Best so far: pct_dif * avg_log2FC * log(num.cells)
 
+tj.deg$all_metric9 = tj.deg$pct_dif * tj.deg$avg_log2FC * log(tj.deg$num.cells)
+tj.deg$all_metric8 = tj.deg$pct_dif * tj.deg$avg_log2FC
+paste0("LOG BON v 9: ", cor(tj.deg$neg_log_bon[which(is.finite(tj.deg$all_metric9))], tj.deg$all_metric9[which(is.finite(tj.deg$all_metric9))]))
+paste0("LOG BON v 8: ", cor(tj.deg$neg_log_bon[which(is.finite(tj.deg$all_metric8))], tj.deg$all_metric8[which(is.finite(tj.deg$all_metric8))]))
+
 paste0("LOG BON v 9: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric9))], tj.deg.sig.pos$all_metric9[which(is.finite(tj.deg.sig.pos$all_metric9))]))
 paste0("LOG BON v 8: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric8))], tj.deg.sig.pos$all_metric8[which(is.finite(tj.deg.sig.pos$all_metric8))]))
 paste0("LOG BON v 7: ", cor(tj.deg.sig.pos$neg_log_bon[which(is.finite(tj.deg.sig.pos$all_metric7))], tj.deg.sig.pos$all_metric7[which(is.finite(tj.deg.sig.pos$all_metric7))]))
@@ -5705,6 +5710,7 @@ tj.deg.sig.pos$tmp = abs(tj.deg.sig.pos$all_metric8 * my_f - tj.deg.sig.pos$neg_
 ggplot(tj.deg.sig.pos, aes(x = p_val_adj, y = all_metric3)) + geom_point()
 ggplot(tj.deg.sig.pos, aes(x = neg_log_bon, y = all_metric3, color = avg_log2FC)) + geom_point() + geom_smooth(method='lm', formula= y~x) + geom_text_repel(data = tj.deg.sig.pos[which(tj.deg.sig.pos$tmp > 25),], aes(label = cluster_gene))
 
+<<<<<<< HEAD
 glmmseq_counts = readRDS("~/scratch/brain/results/deg_lmer_demux/53_clusters/glmmseq_counts.rds")
 test_names = str_replace(rownames(glmmseq_counts), pattern = "\\.", "-")
 rownames(glmmseq_counts) = test_names
@@ -5712,6 +5718,34 @@ colnames(glmmseq_counts) = str_replace(colnames(glmmseq_counts), pattern = "\\."
 a = as.matrix(glmmseq_counts)
 b = as.matrix(bb@assays$RNA@counts[test_names, which(bb$seuratclusters53 == 0)])
 identical(a, b)
+=======
+convert53 = read.csv("/path/to/convert53.csv")
+clust53_new_col_list2 = convert53$col
+names(clust53_new_col_list2) = colsplit(convert53$new, "_", c("num", "ex"))[,1]
+
+all_pairs = 1:length(unique(bb$pair))
+names(all_pairs) = unique(bb$pair)
+bb$pair2 = plyr::revalue(bb$pair, replace = all_pairs)
+p_list = list()
+p_list[["empty"]] = ggplot() + geom_point() + theme_void()
+for (pair in unique(bb$pair2)) {
+  print(pair)
+  pair_cells = colnames(bb)[which(bb$pair2 == pair)]
+  b_cells = colnames(bb)[which(bb$pair2 == pair & bb$cond == "BHVE")]
+  c_cells = colnames(bb)[which(bb$pair2 == pair & bb$cond == "CTRL")]
+  # p_list[[pair]] = DimPlot(bb, cells = pair_cells)
+  p1 = DimPlot(bb, cells = b_cells) + theme_void() + scale_color_manual(values = clust53_new_col_list2) + NoLegend()
+  p2 = DimPlot(bb, cells = c_cells) + theme_void() + scale_color_manual(values = clust53_new_col_list2) + NoLegend()
+  p3 = plot_grid(plotlist=list(p1, p2), ncol = 2)
+  title <- ggdraw() + draw_label(pair)
+  p4 = plot_grid(title, p3, ncol=1, rel_heights=c(0.1, 1))
+  p_list[[pair]] = p4
+}
+pdf("C:/Users/miles/Downloads/test.pdf", width = 6, height = 15)
+p = plot_grid(plotlist=p_list, ncol = 2)
+print(p)
+dev.off()
+>>>>>>> e8c571a1b03924c8c867ee14444e2c383cf8e516
 
 gcm = glmmseq_counts
 res = results@stats
@@ -5738,7 +5772,6 @@ dev.off()
 pdf("~/scratch/brain/results/bb53_0_wdr17_glmmseq_w_bai.pdf", width = 5, height = 5)
 print(ggplot(gcm_df_agr, aes(x = adj_counts, y = bai, color = cond, label = subsample)) + geom_point(alpha = 0.75))
 dev.off()
-
 
 z15 = read.csv("~/scratch/brain/results/out_bb15_bbmm_demux_deg_all_tests_for_volcano_plotting_121321.csv")
 z53 = read.csv("~/scratch/brain/results/out_bb53_glmmseq_demux_deg_all_tests_for_volcano_plotting.csv")

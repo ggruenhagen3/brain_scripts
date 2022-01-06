@@ -43,6 +43,9 @@ singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
     cluster_p = c(cluster_p, p)
     cluster_d = c(cluster_d, d)
   }
+  
+  cat(paste0("- Single Perm End Time: ", format(Sys.time(), "%X ")))
+  
   if (returnP) 
     return(cluster_p)
   else
@@ -55,14 +58,14 @@ rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
 bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
-Idents(bb) = bb$seuratclusters53
+Idents(bb) = bb$seuratclusters15
 
 # Set Number of Permutations
 nperm = 10000
 
 # Load in Real PCRC List
-pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
-zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_090921.csv")[,2]
+pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_122121.csv")[,1]
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -71,11 +74,11 @@ gene_counts = gene_counts[order(gene_counts[,1]),]
 pcrc_idx = which(gene_counts[,2] %in% pcrc)
 
 # Find pools of genes with comparable expression levels as the real list
+print(paste0("Finding Gene Pools Start Time: ", format(Sys.time(), "%X")))
 ran_pools = list()
 search_space = seq(-200, 200)
 search_space = search_space[order(abs(search_space))][2:length(search_space)]
 for (gene in pcrc) {
-  print(gene)
   gene_pcrc_idx = which(gene_counts[,2] == gene)
   ran_pools[[gene]] = c()
   search_space_i = 1
@@ -106,11 +109,13 @@ clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
 # real_res_log = -log10(real_res)
 
 library("parallel")
-perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], genePops = zGenePops, returnP = F), mc.cores = detectCores())
-# perm_res = mclapply(1:nperm, function(x) singleRun(ran_lists[[x]], returnP = F), mc.cores = detectCores())
+print(paste0("Doing Perms Start Time: ", format(Sys.time(), "%X")))
+print("")
+# perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], genePops = zGenePops, returnP = F), mc.cores = detectCores())
+perm_res = mclapply(1:nperm, function(x) singleRun(ran_lists[[x]], returnP = F), mc.cores = detectCores())
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
-colnames(perm_df) = zGenePops
+colnames(perm_df) = clusters
 
 # Visualize Results
 # perm_df = as.data.frame(t(as.data.frame(perm_res)))
@@ -121,7 +126,7 @@ colnames(perm_df) = zGenePops
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
   
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_goi_120321.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_15_122721.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
@@ -139,17 +144,18 @@ write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_goi_120321.csv")
 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
-# # for (gene in zGenePops) {
-# for (cluster in clusters) {
-#   # print(gene)
-#   # pgene = str_replace(gene, "-", ".")
-#   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster+1]))
-#   # neg = length(which( perm_df[,pgene] <= real_res[which(select_zGenePops2 == gene)] ))
-#   p_df = rbind(p_df, data.frame(cluster, neg))
+# for (gene in zGenePops) {
+# # for (cluster in clusters) {
+#   print(gene)
+#   pgene = str_replace(gene, "-", ".")
+#   # neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster+1]))
+#   neg = length(which( perm_df[,pgene] <= real_res[which(zGenePops == gene)] ))
+#   p_df = rbind(p_df, data.frame(gene, neg))
 # }
-# p_df$cluster = factor(p_df$cluster, levels = clusters)
-# p_df$p = ((nperm - p_df$neg) / nperm) * 100
-# p_df$bh = p.adjust(p_df$p/100, method = "BH")
-# p_df$bon = p.adjust(p_df$p/100, method = "bonferroni")
+# # p_df$cluster = factor(p_df$cluster, levels = clusters)
+# p_df$gene = factor(p_df$gene, levels = unique(zGenePops))
+# p_df$p = ((nperm - p_df$neg) / nperm)
+# p_df$bh = p.adjust(p_df$p, method = "BH")
+# p_df$bon = p.adjust(p_df$p, method = "bonferroni")
 # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
 # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
