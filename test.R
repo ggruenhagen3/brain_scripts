@@ -19,6 +19,7 @@ if  (cur_level == "53") { gcm = gcm53 }                else { gcm = gcm15 }
 
 cz$zgenes = str_replace(cz$mzebra, pattern = "\\.", "-")
 cz = cz[which(cz$zgenes %in% rownames(bb)),]
+all_pairs = sort(unique(bb$pair))
 adj_sub_mean    = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
 data_sub_mean   = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
 counts_sub_mean = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
@@ -41,21 +42,42 @@ for (i in top_hits) {
     data_agr   = aggregate(data   ~ subsample + cond + pair + bai, gcm_df, mean)
     counts_agr = aggregate(counts ~ subsample + cond + pair + bai, gcm_df, mean)
     
+    # Aggregate removes 0 subsamples and messes up BHVE vs CTRL
+    # clust_idx = which(bb@meta.data[,cmeta] == cluster & bb$subsample == "b1.1")
+    # gcm_df %>% mutate(b = factor(b, letters[1:5])) %>%
+    #   group_by(b) %>%
+    #   summarise(out = n()) %>%
+    #   complete(b, fill = list(out = 0))
+    # for (j in all_pairs) {
+    #   
+    # }
+    
     adj_pair_sign_vector = adj_agr$adj[order(adj_agr$pair)[c(FALSE, TRUE)]] - adj_agr$adj[order(adj_agr$pair)[c(TRUE, FALSE)]]
     data_pair_sign_vector = data_agr$data[order(data_agr$pair)[c(FALSE, TRUE)]] - data_agr$data[order(data_agr$pair)[c(TRUE, FALSE)]]
     counts_pair_sign_vector = counts_agr$counts[order(counts_agr$pair)[c(FALSE, TRUE)]] - counts_agr$counts[order(counts_agr$pair)[c(TRUE, FALSE)]]
+
     
     adj_sub_mean[i, ] = adj_agr$adj[match(colnames(adj_sub_mean), adj_agr$subsample)]
     data_sub_mean[i, ] = data_agr$data[match(colnames(data_sub_mean), data_agr$subsample)]
     counts_sub_mean[i, ] = counts_agr$counts[match(colnames(counts_sub_mean), counts_agr$subsample)]
     
-    cz$adj_mean_of_mean_b[i, ] = mean(adj_agr$adj[which(adj_agr$cond == "BHVE")])
-    cz$adj_mean_of_mean_c[i, ] = mean(adj_agr$adj[which(adj_agr$cond == "CTRL")])
-    cz$adj_mean_b[i, ] = mean(gcm_df$adj[which(gcm_df$cond == "BHVE")])
-    cz$adj_mean_c [i, ]= mean(gcm_df$adj[which(gcm_df$cond == "CTRL")])
-    cz$adj_sign_pair[i, ] = length(which(adj_pair_sign_vector > 0))
-    cz$data_sign_pair[i, ] = length(which(data_pair_sign_vector > 0))
-    cz$counts_sign_pair[i, ] = length(which(counts_pair_sign_vector > 0))
+    cz$adj_mean_of_mean_b[i] = mean(adj_agr$adj[which(adj_agr$cond == "BHVE")])
+    cz$adj_mean_of_mean_c[i] = mean(adj_agr$adj[which(adj_agr$cond == "CTRL")])
+    cz$adj_mean_b[i] = mean(gcm_df$adj[which(gcm_df$cond == "BHVE")])
+    cz$adj_mean_c [i]= mean(gcm_df$adj[which(gcm_df$cond == "CTRL")])
+    cz$adj_sign_pair[i] = length(which(adj_pair_sign_vector > 0))
+    
+    cz$data_mean_of_mean_b[i] = mean(data_agr$data[which(data_agr$cond == "BHVE")])
+    cz$data_mean_of_mean_c[i] = mean(data_agr$data[which(data_agr$cond == "CTRL")])
+    cz$data_mean_b[i] = mean(gcm_df$data[which(gcm_df$cond == "BHVE")])
+    cz$data_mean_c [i]= mean(gcm_df$data[which(gcm_df$cond == "CTRL")])
+    cz$data_sign_pair[i] = length(which(data_pair_sign_vector > 0))
+    
+    cz$counts_mean_of_mean_b[i] = mean(counts_agr$counts[which(counts_agr$cond == "BHVE")])
+    cz$counts_mean_of_mean_c[i] = mean(counts_agr$counts[which(counts_agr$cond == "CTRL")])
+    cz$counts_mean_b[i] = mean(gcm_df$counts[which(gcm_df$cond == "BHVE")])
+    cz$counts_mean_c [i]= mean(gcm_df$counts[which(gcm_df$cond == "CTRL")])
+    cz$counts_sign_pair[i] = length(which(counts_pair_sign_vector > 0))
   }
 }
 
