@@ -48,8 +48,8 @@ set.seed(156) # seed for the script
 
 # Load IEG and IEG Like Genes
 # ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
-ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
-bb$ieg_like_score <- colSums(bb@assays$RNA@data[ieg_like,])
+# ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
+bb$ieg_like_score <- bb$ieg_score
 
 # Load Populations
 # pop_df = read.csv("C:/Users/miles/Downloads/ieg_pops.csv")
@@ -122,11 +122,11 @@ write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_pop_p100k_bvc.csv")
 # perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
 # df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
 # 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_bvc_perm_greater_raw.png", width = 850, height = 800, res = 90)
+# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_bvc_perm_greater_raw_pop.png", width = 850, height = 800, res = 90)
 # ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + ggtitle("Behave - Control Correation")
 # dev.off()
 # 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_abs_bvc_perm_greater.png", width = 850, height = 800, res = 90)
+# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_abs_bvc_perm_greater_pop.png", width = 850, height = 800, res = 90)
 # ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = abs_n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + labs(fill ="n_perm_greater") + ggtitle("Absolute Value Behave - Control Correation")
 # dev.off()
 # 

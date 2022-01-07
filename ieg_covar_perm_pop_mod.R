@@ -62,8 +62,8 @@ set.seed(156) # seed for the script
 
 # Load IEG and IEG Like Genes
 # ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
-ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
-bb$ieg_like_score <- colSums(bb@assays$RNA@data[ieg_like,])
+# ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
+bb$ieg_like_score <- bb$ieg_score
 
 # Load Populations
 # pop_df = read.csv("C:/Users/miles/Downloads/ieg_pops.csv")
@@ -76,9 +76,9 @@ for (i in 1:nrow(pop_df)) {
   my.level   = pop_df[i, "level"]
   my.cluster = pop_df[i, "cluster"]
   my.gp      = pop_df[i, "mzebra"]
-  if (my.level == "primary")  { bb$cluster = bb$seuratclusters15 }
+  if (my.level == "primary")    { bb$cluster = bb$seuratclusters15 }
   if (my.level == "secondary")  { bb$cluster = bb$seuratclusters53 }
-  if (my.level == "all") { bb$cluster = "All"               }
+  if (my.level == "all")        { bb$cluster = "All"               }
   if (my.gp == FALSE) { bb$gp = TRUE } else { bb$gp = bb@assays$RNA@counts[my.gp,] > 0 }
   bb@meta.data[, paste0("pop", i)] = bb$cluster == my.cluster & bb$gp
   pop_list[[i]] = colnames(bb)[which( bb@meta.data[, paste0("pop", i)] )]
@@ -114,54 +114,56 @@ write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"
 
 # # After permutations are done:
 # # Load perm results
-# perm_bvc_df = read.csv("~/scratch/brain/results/ieg_covar_c15_p100k_bvc.csv")
-# rownames(perm_bvc_df) = perm_bvc_df$X
-# perm_bvc_df$X = NULL
-# perm_bvc_df$X100001 = NULL
-# colnames(perm_bvc_df) = c("cluster1", "cluster2", 1:(ncol(perm_bvc_df)-2))
-# 
-# # Real Results
-# perm_labels = list()
-# perm_labels[[n_perm+1]] = bb$backup_subsample
-# real_combos = combosRes(n_perm+1)
-# 
-# df_bvc_plot3 = perm_bvc_df
-# df_bvc_plot3$bvc = 0
-# df_bvc_plot3[names(real_combos),"bvc"] = real_combos
-# perm_greater_boolean = df_bvc_plot3[,as.character(c(1:(n_perm-1)))] > df_bvc_plot3$bvc
-# df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
-# 
-# df_bvc_plot3$cluster1 = factor(df_bvc_plot3$cluster1, levels = 0:14)
-# df_bvc_plot3$cluster2 = factor(df_bvc_plot3$cluster2, levels = 0:14)
-# 
-# perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
-# df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
-# 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_bvc_perm_greater_raw_pop.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + ggtitle("Behave - Control Correation")
-# dev.off()
-# 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_abs_bvc_perm_greater_pop.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = abs_n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + labs(fill ="n_perm_greater") + ggtitle("Absolute Value Behave - Control Correation")
-# dev.off()
-# 
-# df_bvc_plot3$p = df_bvc_plot3$n_perm_greater / n_perm
-# df_bvc_plot3$q = p.adjust(df_bvc_plot3$p, method = "BH")
-# 
-# df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
-# df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
-# length(which(df_bvc_plot3$abs_p < 0.05))
-# length(which(df_bvc_plot3$abs_q < 0.05))
-# # df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
-# 
-# # P value per combo
-# z_scores = t(scale(t(df_bvc_plot3[, c("bvc", as.character(1:n_perm))]))) # scale combos per row
-# p_from_z = lapply(1:nrow(z_scores), function(x) 2*pnorm(-abs(z_scores[x, "bvc"])) )
-# # p_from_z = lapply(1:ncol(z_scores_mat), function(x) 2*pnorm(-abs(z_scores_mat["real",x]), mean = mean(z_scores_mat[,x]), sd = sd(z_scores_mat[,x])) )
-# p = unlist(p_from_z)
-# names(p) = rownames(z_scores)
-# q = p.adjust(p, method = "BH")
-# names(q) = rownames(z_scores)
-# length(which(p < 0.05))
-# length(which(q < 0.05))
-# q[which.min(q)]
+perm_bvc_df = as.data.frame(data.table::fread("~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"))
+rownames(perm_bvc_df) = perm_bvc_df[,1]
+perm_bvc_df[,1] = NULL
+perm_bvc_df[,"100001"] = NULL
+
+# Real Results
+perm_labels = list()
+perm_labels[[1]] = bb$subsample
+real_combos = combosRes(1)
+
+df_bvc_plot3 = perm_bvc_df
+df_bvc_plot3$bvc = 0
+df_bvc_plot3[names(real_combos),"bvc"] = real_combos
+perm_greater_boolean = df_bvc_plot3[,as.character(c(1:(n_perm-1)))] > df_bvc_plot3$bvc
+df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
+
+df_bvc_plot3$cluster1 = factor(df_bvc_plot3$cluster1, levels = 0:14)
+df_bvc_plot3$cluster2 = factor(df_bvc_plot3$cluster2, levels = 0:14)
+
+perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
+df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
+
+png("~/scratch/brain/results/ieg_covar_c15_p100k_r_bvc_perm_greater_raw_pop.png", width = 850, height = 800, res = 90)
+ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + ggtitle("Behave - Control Correation")
+dev.off()
+
+png("~/scratch/brain/results/ieg_covar_c15_p100k_r_abs_bvc_perm_greater_pop.png", width = 850, height = 800, res = 90)
+ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = abs_n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + labs(fill ="n_perm_greater") + ggtitle("Absolute Value Behave - Control Correation")
+dev.off()
+
+df_bvc_plot3$p = df_bvc_plot3$n_perm_greater / n_perm
+df_bvc_plot3$q = p.adjust(df_bvc_plot3$p, method = "BH")
+length(which(df_bvc_plot3$p < 0.05))
+length(which(df_bvc_plot3$q < 0.05))
+
+df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
+df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
+length(which(df_bvc_plot3$abs_p < 0.05))
+length(which(df_bvc_plot3$abs_q < 0.05))
+df_bvc_plot3$dup = sapply(1:nrow(df_bvc_plot3), function(x) length(which(duplicated(df_bvc_plot3[x,as.character(1:100000)]))))
+# df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
+
+# P value per combo
+z_scores = t(scale(t(df_bvc_plot3[, c("bvc", as.character(1:n_perm))]))) # scale combos per row
+p_from_z = lapply(1:nrow(z_scores), function(x) 2*pnorm(-abs(z_scores[x, "bvc"])) )
+# p_from_z = lapply(1:ncol(z_scores_mat), function(x) 2*pnorm(-abs(z_scores_mat["real",x]), mean = mean(z_scores_mat[,x]), sd = sd(z_scores_mat[,x])) )
+p = unlist(p_from_z)
+names(p) = rownames(z_scores)
+q = p.adjust(p, method = "BH")
+names(q) = rownames(z_scores)
+length(which(p < 0.05))
+length(which(q < 0.05))
+q[which.min(q)]
