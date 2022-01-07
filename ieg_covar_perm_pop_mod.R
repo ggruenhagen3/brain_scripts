@@ -3,6 +3,7 @@
 #==================================================================================================
 # 10 and 9
 permSubsamples = function(x) {
+  set.seed(x)
   isEven = x %% 2 == 0
   if (isEven) { num1 = 10; } else { num1 = 9; }
   num2 = 19 - num1
@@ -114,6 +115,7 @@ write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"
 
 # # After permutations are done:
 # # Load perm results
+# n_perm = 100000
 # perm_bvc_df = as.data.frame(data.table::fread("~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"))
 # rownames(perm_bvc_df) = perm_bvc_df[,1]
 # perm_bvc_df[,1] = NULL
@@ -127,22 +129,11 @@ write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"
 # df_bvc_plot3 = perm_bvc_df
 # df_bvc_plot3$bvc = 0
 # df_bvc_plot3[names(real_combos),"bvc"] = real_combos
-# perm_greater_boolean = df_bvc_plot3[,as.character(c(1:(n_perm-1)))] > df_bvc_plot3$bvc
+# perm_greater_boolean = df_bvc_plot3[,as.character(c(1:n_perm))] > df_bvc_plot3$bvc
 # df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
-# 
-# df_bvc_plot3$cluster1 = factor(df_bvc_plot3$cluster1, levels = 0:14)
-# df_bvc_plot3$cluster2 = factor(df_bvc_plot3$cluster2, levels = 0:14)
 # 
 # perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
 # df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
-# 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_bvc_perm_greater_raw_pop.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + ggtitle("Behave - Control Correation")
-# dev.off()
-# 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_abs_bvc_perm_greater_pop.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = abs_n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + labs(fill ="n_perm_greater") + ggtitle("Absolute Value Behave - Control Correation")
-# dev.off()
 # 
 # df_bvc_plot3$p = df_bvc_plot3$n_perm_greater / n_perm
 # df_bvc_plot3$q = p.adjust(df_bvc_plot3$p, method = "BH")
