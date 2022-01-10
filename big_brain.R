@@ -1283,6 +1283,11 @@ length(which(p_bvc_df$bh < 0.05))
 singleBVCScatter(1, 2)
 singleBVCScatter(4, 9)
 
+colnames(p_bvc_df)[c(3,4)] = c("p_bvc", "bh_bvc")
+p_bvc_df[, c('p_b', 'bh_b')] = p_behave_df[,c('p', 'bh')]
+p_bvc_df[, c('p_c', 'bh_c')] = p_control_df[,c('p', 'bh')]
+p_bvc_df[, c('r_b', 'r_c', 'num_b', 'num_c')] = cluster15_ieg_combos[match(paste0(p_bvc_df$Cluster1, p_bvc_df$Cluster2), paste0(cluster15_ieg_combos$cluster1, cluster15_ieg_combos$cluster2)), c('r_behave', 'r_control', 'num_b', 'num_c')]
+
 p_bvc_df$Cluster1 = factor(p_bvc_df$Cluster1, levels = levels(bb@meta.data[,c(cluster_level)]))
 p_bvc_df$Cluster2 = factor(p_bvc_df$Cluster2, levels = levels(bb@meta.data[,c(cluster_level)]))
 png("C:/Users/miles/Downloads/brain/results/bb/ieg_covariance_bvc_bh_15.png", width = 800, height = 750, res = 90)
@@ -4750,8 +4755,6 @@ test_df = data.frame(satb1 = as.vector(bb@assays$RNA@data['satb1',]))
 test_df[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")] = bb@meta.data[,c("seuratclusters15", "seuratclusters53", "subsample", "sample")]
 ggplot(test_df, aes(x = subsample, y = asic4, color = subsample)) + geom_boxplot() + geom_point(alpha = 0.01, position = position_jitterdodge()) + NoLegend() + ggtitle("Non-Imputed Data")
 
-imp_cor = sapply(colnames(t_imp_mat2), function(x) cor(t_imp_mat2[,x], bb$depth_adj))
-
 cor_df = data.frame(gene = colnames(imp_mat2), cor_counts = 0, cor_data = 0, row.names = colnames(imp_mat2))
 for (gene in colnames(imp_mat2)) {
   print(gene)
@@ -4768,6 +4771,40 @@ sum_df$imp_sum = colSums(imp_mat2[,colnames(imp_mat2)])
 ggplot(sum_df, aes(count_sum, imp_sum, color = count_sum)) + geom_point() + scale_color_gradientn(colors = plasma(100)) + xlab("Sum Counts") + ylab("Sum Imputed")
 ggplot(sum_df, aes(data_sum, imp_sum, color = data_sum)) + geom_point() + scale_color_gradientn(colors = plasma(100)) + xlab("Sum Data") + ylab("Sum Imputed")
 
+# Plot the gene with the highest correlation with bower_activity_index
+p_df = data.frame(value = imp_mat2["unc13b",], bai = bb$bower_activity_index)
+ggplot(p_df, aes(x = bai, y = value)) + geom_point() + xlab("Bower Avitvity Index")
+
+# Plot the gene with the highest correlation with bower_activity_index
+p_df = data.frame(value1 = imp_mat2["unc13b",], value2 = imp_mat2["LOC101473063",], value3 = -imp_mat2["LOC101484787",], bai = bb$bower_activity_index)
+p_df = p_df[order(p_df$bai, decreasing = F),]
+# ggplot(p_df, aes(x = value1, y = value2, color = bai)) + geom_point() + xlab("Bower Avitvity Index") + scale_color_gradientn(colors = viridis(100))
+plot_ly(p_df, x = ~value1, y = ~value2, z = ~value3, color = ~bai, size = I(10), colors = viridis(38))
+
+imp_cor = sapply(rownames(imp_mat2), function(x) cor(imp_mat2[x,], bb$bower_activity_index))
+imp_cor_df = data.frame(gene = rownames(imp_mat2), imp_cor = imp_cor, imp_cor_abs = abs(imp_cor))
+imp_cor_df$sub_cor = 0
+sub_meta = aggregate(bower_activity_index ~ subsample, bb@meta.data, mean)
+for (i in 1:nrow(imp_mat2)) {
+  gene = rownames(imp_mat2)[i]
+  gdf = data.frame(value = imp_mat2[gene,], subsample = bb$subsample)
+  gdf$subsample = factor(gdf$subsample, levels = sub_meta$subsample)
+  gdf_agr = aggregate(value ~ subsample, gdf, mean, drop = F)
+  gdf_agr$value[which(is.na(gdf_agr$value))] = 0
+  gdf_agr$bai = sub_meta$bower_activity_index[match(gdf_agr$subsample, sub_meta$subsample)]
+  imp_cor_df$sub_cor[i] = cor(gdf_agr$value, gdf_agr$bai)
+}
+imp_cor_df$sub_cor_abs = abs(imp_cor_df$sub_cor)
+
+
+gdf = data.frame(value1 = imp_mat2["LOC101484787",], value2 = imp_mat2["LOC101468154",], subsample = bb$subsample)
+gdf$subsample = factor(gdf$subsample, levels = sub_meta$subsample)
+gdf_agr = aggregate(. ~ subsample, gdf, mean, drop = F)
+gdf_agr$value1[which(is.na(gdf_agr$value1))] = 0
+gdf_agr$value2[which(is.na(gdf_agr$value2))] = 0
+gdf_agr$bai = sub_meta$bower_activity_index[match(gdf_agr$subsample, sub_meta$subsample)]
+# ggplot(gdf_agr, aes(x = value, y = bai)) + geom_point()
+ggplot(gdf_agr, aes(x = value1, y = value2, color = bai)) + geom_point() + scale_color_gradientn(colors = viridis(100))
 
 #****************************************************************************
 # Z-Test Random Genes =======================================================
@@ -5762,3 +5799,220 @@ dev.off()
 pdf("~/scratch/brain/results/bb53_0_wdr17_glmmseq_w_bai.pdf", width = 5, height = 5)
 print(ggplot(gcm_df_agr, aes(x = adj_counts, y = bai, color = cond, label = subsample)) + geom_point(alpha = 0.75))
 dev.off()
+
+cz = read.csv("C:/Users/miles/Downloads/zdeg15_summary.csv")
+adj_sub_mean = read.csv("C:/Users/miles/Downloads/zdeg15_adj_subsample_means.csv")
+cz$cluster_gene = paste0(cz$cluster, "_", cz$mzebra)
+rownames(cz) = cz$cluster_gene
+rownames(adj_sub_mean) = cz$cluster_gene
+cz$adj_sign_pair_abs = 9.5 + abs(9.5 - cz$adj_sign_pair)
+cz$data_sign_pair_abs = 9.5 + abs(9.5 - cz$data_sign_pair)
+cz$counts_sign_pair_abs = 9.5 + abs(9.5 - cz$counts_sign_pair)
+cz$adj_mean_of_mean_dif = cz$adj_mean_of_mean_b - cz$adj_mean_of_mean_c
+cz$data_mean_of_mean_dif = cz$data_mean_of_mean_b - cz$data_mean_of_mean_c
+cz$counts_mean_of_mean_dif = cz$counts_mean_of_mean_b - cz$counts_mean_of_mean_c
+cz$adj_mean_of_mean_dif_abs = abs(cz$adj_mean_of_mean_dif)
+cz$data_mean_of_mean_dif_abs = abs(cz$data_mean_of_mean_dif)
+cz$counts_mean_of_mean_dif_abs = abs(cz$counts_mean_of_mean_dif)
+cz$adj_mean_dif = cz$adj_mean_b - cz$adj_mean_c
+cz$data_mean_dif = cz$data_mean_b - cz$data_mean_c
+cz$counts_mean_dif = cz$counts_mean_b - cz$counts_mean_c
+cz$adj_mean_dif_abs = abs(cz$adj_mean_dif)
+cz$data_mean_dif_abs = abs(cz$data_mean_dif)
+cz$counts_mean_dif_abs = abs(cz$counts_mean_dif)
+cz$neg_log_p_bower = -log10(cz$P_bower_activity_index)
+cz$neg_log_p_gsi = -log10(cz$P_gsi)
+cz$neg_log_p_spawn = -log10(cz$P_log_spawn_events)
+cz$bower_p_sig = cz$P_bower_activity_index < 0.05
+
+cz_sig = cz[which(cz$sig_bower_behavior == 1),]
+adj_sub_mean_sig = adj_sub_mean[which(cz$sig_bower_behavior == 1),]
+hist(cz_sig$adj_sign_pair_abs, breaks = 9, main = "BVC DEGs on 15 level - Adjusted", xlab = "Number of Pairs w/ Consistent Direction")
+hist(cz_sig$data_sign_pair_abs, breaks = 9, main = "BVC DEGs on 15 level - Data", xlab = "Number of Pairs w/ Consistent Direction")
+hist(cz_sig$counts_sign_pair_abs, breaks = 9, main = "BVC DEGs on 15 level - Counts", xlab = "Number of Pairs w/ Consistent Direction")
+
+p_df = as.data.frame(table(paste0(cz$bower_p_sig, "_", cz$adj_sign_pair_abs)))
+p_df[, c("bower_p_sig", "adj_sign_pair_abs")] = reshape2::colsplit(p_df$Var1, "_", c("1", "2"))
+p_df$pct = ( p_df$Freq / length(which(cz$bower_p_sig)) ) * 100
+p_df$pct[which(!p_df$bower_p_sig)] = ( p_df$Freq[which(!p_df$bower_p_sig)] / length(which(! cz$bower_p_sig)) ) * 100
+# ggplot(p_df, aes(x = adj_sign_pair_abs, y = Freq, fill = bower_p_sig)) + geom_bar(stat = 'identity', position = position_dodge2()) + ggtitle("Adjusted")
+ggplot(p_df, aes(x = adj_sign_pair_abs, y = pct, fill = bower_p_sig)) + geom_bar(stat = 'identity', position = position_dodge2()) + xlab("Number of Pairs w/ Consistent Direction") + ylab("Percent of Rows") + ggtitle("adj")
+
+ggplot(cz_sig, aes(x = adj_mean_of_mean_b, y = adj_mean_of_mean_c)) + geom_point()
+ggplot(cz_sig, aes(x = adj_mean_of_mean_dif, y = data_mean_of_mean_dif)) + geom_point()
+ggplot(cz_sig, aes(x = adj_mean_of_mean_dif, y = counts_mean_of_mean_dif)) + geom_point()
+ggplot(cz_sig, aes(x = adj_mean_dif, y = counts_mean_dif)) + geom_point()
+
+ggplot(cz_sig, aes(x = adj_mean_of_mean_dif, y = bower_activity_index)) + geom_point()
+ggplot(cz_sig, aes(x = adj_mean_dif, y = bower_activity_index)) + geom_point()
+ggplot(cz_sig, aes(x = adj_mean_of_mean_dif_abs, y = neg_log_p_bower)) + geom_point()
+ggplot(cz_sig, aes(x = adj_mean_dif_abs, y = neg_log_p_bower)) + geom_point()
+
+ggplot(cz_sig, aes(x = adj_mean_dif_abs, y = neg_log_p_bower, color = adj_sign_pair_abs)) + geom_point() + scale_color_gradientn(colors = viridis(100))
+ggplot(cz_sig, aes(x = neg_log_p_gsi, y = neg_log_p_bower)) + geom_point()
+ggplot(cz_sig, aes(x = neg_log_p_spawn, y = neg_log_p_bower)) + geom_point()
+ggplot(cz_sig, aes(x = adj_mean_of_mean_dif, y = bower_activity_index, color = neg_log_p_bower)) + geom_point() + scale_color_gradientn(colors = viridis(100))
+
+# ClownFish ERE
+cdf = read.delim("~/scratch/brain/results/clown_ere_closest.bed")
+cdf$loc = reshape2::colsplit(cdf[,12], ";", c("1", "2"))[,1]
+cdf$loc = reshape2::colsplit(cdf$loc, " ", c("1", "2"))[,2]
+cdf$gene_name = reshape2::colsplit(cdf[,12], "; gene_source", c("1", "2"))[,1]
+cdf$gene_name = reshape2::colsplit(cdf$gene_name, "gene_name ", c("1", "2"))[,2]
+cdf$gene = cdf$gene_name
+cdf$gene[which(cdf$gene == "")] = cdf$loc[which(cdf$gene == "")]
+cdf2 = cdf[which( abs(cdf$X0) < 25000 ),]
+cdf2$class = "distal"
+cdf2$class[which(cdf2$X0 <= 5000 & cdf2$X0 > 0)] = "promoter"
+cdf2$class[which(cdf2$X0 == 0)] = "intragenic"
+cdf3 = cdf2[, c("gene", "class")]
+write.csv(cdf3, "~/scratch/brain/results/clown_ere_class.csv")
+
+cz_sig = z53[which(z53$sig_bower_behavior == 1),]
+cz_sig = cz_sig[order(cz_sig$P_bower_activity_index, decreasing = F),]
+cz_sig$zgenes = str_replace(cz_sig$mzebra, "\\.", "-")
+for (i in 1:5) {
+  print(pairedBoxViolin(bb, gcm53, cz_sig$zgenes[i], 53, cz_sig$cluster[i]) + ggtitle(i))
+}
+
+#************************************************************************
+# IEG Summary Figure ====================================================
+#************************************************************************
+# ieg_sum = read.csv("C:/Users/miles/Downloads/summary_sig_and_trend_IEG_hits_all_analyses_010321.csv")
+ieg_sum = read.csv("C:/Users/miles/Downloads/ieg_summary_data_by_cat_cluster_goi_010321.csv")
+ieg_sum$hgnc = ieg_sum$gene
+ieg_sum$gene_pop = ieg_sum$mzebra
+ieg_sum$cluster[which(ieg_sum$cluster == FALSE)] = "All"
+ieg_sum$gene_pop[which(ieg_sum$gene_pop == FALSE)] = "All"
+ieg_sum$level_old = paste0(ieg_sum$level, "_", ieg_sum$cluster)
+ieg_sum$level_old_gp = paste0(ieg_sum$level_old, "_", ieg_sum$gene_pop)
+ieg_sum$cat_level_old_gp = paste0(ieg_sum$cat, "_", ieg_sum$level_old_gp)
+
+convert_all = data.frame(cluster = c(convert15$new.full, convert53$new), color = c(convert15$col, convert53$col), old = c(convert15$old, convert53$old))
+convert_all = convert_all[which(! duplicated(convert_all$cluster) ),]
+convert_all[, c("new.id", "new.gaba")]    = colsplit(convert_all$cluster, "_", names = c("new.id", "new.gaba"))
+convert_all[, c("new.parent", "new.sub")] = colsplit(convert_all$new.id, "\\.", names = c("new.id", "new.gaba"))
+convert_all$new.sub[which(is.na(convert_all$new.sub))] = 0
+convert_all[which(convert_all$cluster == "8-9_Glut"), c("new.parent", "new.sub")] = c(8, 12) # Assign a parent and subcluster to the 8-9_Glut special case
+convert_all = convert_all[order(as.numeric(convert_all$new.parent), as.numeric(convert_all$new.sub), decreasing = F),]
+convert_all$level = plyr::revalue(as.character(convert_all$new.sub == 0), replace = c("TRUE" = "primary", "FALSE" = "secondary"))
+convert_all = rbind(data.frame(cluster = "All", color = viridis(1), new.id = 0, new.gaba = "all", new.parent = 0, new.sub = 0, level = "all", old = "All"), convert_all)
+convert_all$level_old = paste0(convert_all$level, "_", convert_all$old)
+
+all_combos = expand.grid(convert_all$level_old, unique(ieg_sum$gene_pop[which(ieg_sum$gene_pop != FALSE)]) )
+colnames(all_combos) = c("level_old", "gene_pop")
+all_combos$level_old_gp = paste0(all_combos$level_old, "_", all_combos$gene_pop)
+all_combos[,colnames(convert_all)] = convert_all[match(all_combos$level_old, convert_all$level_old),]
+all_combos$hgnc = gene_info$human[match(all_combos$gene_pop, gene_info$mzebra)]
+all_combos$hgnc[which(is.na(all_combos$hgnc))] = "All"
+all_combos$bsig = NA
+all_combos$gsig = NA
+all_combos$qsig = NA
+
+for (i in 1:nrow(ieg_sum)) {
+  my.sig = ieg_sum$is_sig[i]
+  my.cat = ieg_sum$cat[i]
+  my.x = ieg_sum$level_old_gp[i]
+  my.idx = which(all_combos$level_old_gp == my.x)
+  my.cat.col = plyr::revalue(my.cat, replace = c("bower" = "bsig", "gsi" = "gsig", "quiver" = "qsig"))
+  all_combos[my.idx, my.cat.col] = my.sig
+}
+
+all_combos$pcol = "white"
+non_na_rows = which( ! is.na(all_combos$bsig) | ! is.na(all_combos$gsig) | ! is.na(all_combos$qsig) )
+all_combos$pcol[non_na_rows] = unlist(lapply(non_na_rows, function(x) {
+  this.col = "error"
+  if ( ! is.na(all_combos[x,"bsig"]) ) { this.col = "#FDE725" }
+  if ( ! is.na(all_combos[x,"gsig"]) ) { this.col = "#2AB07F" }
+  if ( ! is.na(all_combos[x,"qsig"]) ) { this.col = "#433E85" }
+  if ( ! is.na(all_combos[x,"bsig"]) & ! is.na(all_combos[x,"gsig"]) ) { this.col = "#94CC52" }
+  if ( ! is.na(all_combos[x,"bsig"]) & ! is.na(all_combos[x,"qsig"]) ) { this.col = "#A09355" }
+  if ( ! is.na(all_combos[x,"gsig"]) & ! is.na(all_combos[x,"qsig"]) ) { this.col = "#377782" }
+  if ( ! is.na(all_combos[x,"bsig"]) & ! is.na(all_combos[x,"gsig"]) & ! is.na(all_combos[x,"qsig"]) ) { this.col = "#799c63" }
+  return(this.col)
+}))
+
+all_combos$tran = "FALSE"
+non_na_rows = which( ! is.na(all_combos$bsig) | ! is.na(all_combos$gsig) | ! is.na(all_combos$qsig) )
+all_combos$tran[non_na_rows] = unlist(lapply(non_na_rows, function(x) {
+  this.tran = "FF"
+  if ( ! is.na(all_combos[x,"bsig"]) &  ! all_combos[x,"bsig"] ) { this.tran = "85" }
+  if ( ! is.na(all_combos[x,"gsig"]) &  ! all_combos[x,"gsig"] ) { this.tran = "85" }
+  if ( ! is.na(all_combos[x,"qsig"]) &  ! all_combos[x,"qsig"] ) { this.tran = "85" }
+  return(this.tran)
+}))
+all_combos$pcol_tran = "white"
+all_combos$pcol_tran[non_na_rows] = paste0(all_combos$pcol[non_na_rows], all_combos$tran[non_na_rows])
+all_combos$sig_level = plyr::revalue(as.character(all_combos$tran), replace = c("FALSE" = "FALSE", "FF" = "TRUE", "85" = "trending"))
+all_combos$sig = F
+all_combos$sig[which(all_combos$sig_level == "TRUE")] = T
+all_combos$trending = F
+all_combos$trending[which(all_combos$sig_level == "trending")] = T
+all_combos$pcol_tran2 = "white"
+all_combos$pcol_tran2[non_na_rows] = paste0(all_combos$pcol[non_na_rows], "85")
+
+all_combos$cluster = factor(all_combos$cluster, levels = rev(convert_all$cluster))
+all_combos$hgnc = factor(all_combos$hgnc, levels = c("All", sort(unique(all_combos$hgnc[which(all_combos$hgnc != "All")]))))
+
+ggplot(all_combos, aes(x = hgnc, y = cluster, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color), face=ifelse(rev(convert_all$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+
+num_hits_by_clust = data.frame(table(all_combos$cluster[which(all_combos$pcol != "white" & all_combos$cluster != "All")]))
+num_hits_by_gp    = data.frame(table(all_combos$gene_pop[which(all_combos$pcol != "white" & all_combos$cluster != "All")]))
+convert_all$num_hits = num_hits_by_clust$Freq[match(convert_all$cluster, num_hits_by_clust$Var1)]
+convert_all_small = convert_all[which(convert_all$num_hits != 0 & convert_all$cluster != "All"),]
+all_combos_small = all_combos[which(all_combos$cluster %in% convert_all_small$cluster),]
+all_combos_small$cluster = factor(all_combos_small$cluster, levels = rev(convert_all_small$cluster))
+all_combos_small$gp_hits = num_hits_by_gp$Freq[match(all_combos_small$gene_pop, num_hits_by_gp$Var1)]
+all_combos_small = all_combos_small[which(all_combos_small$gp_hits > 0),]
+length(which(! all_combos_small$pcol %in% c("white", "#FDE725", "#2AB07F", "#433E85")))
+all_combos_small[which(! all_combos_small$pcol %in% c("white", "#FDE725", "#2AB07F", "#433E85")),]
+
+# # all_combos_small$num = as.numeric(as.vector(plyr::revalue(all_combos_small$pcol, replace = c("white" = 0, "#FDE725" = 1, "#2AB07F" = 2, "#433E85" = 3, "#94CC52" = 1.5, "#A09355" = 1, "#377782" = 2.5, "#799c63" = 4))))
+# all_combos_small$num = as.numeric(as.vector(plyr::revalue(all_combos_small$pcol, replace = c("white" = 0, "#FDE725" = 1.1, "#2AB07F" = 1.2, "#433E85" = 1.3, "#94CC52" = 1.15, "#A09355" = 1.2, "#377782" = 1.25, "#799c63" = 1.4))))
+# combos_mat = reshape(all_combos_small[,c("cluster", "gene_pop", "num")], idvar = "gene_pop", timevar = "cluster", direction = "wide")
+# rownames(combos_mat) = combos_mat[,1]
+# combos_mat[,1] = NULL
+# colnames(combos_mat) = str_sub(colnames(combos_mat), 5, 10000L)
+# combos_mat = scale(combos_mat)
+# dist_mat <- dist(combos_mat, method = 'euclidean')
+# hclust_avg <- hclust(dist_mat, method = 'average')
+# gene_order = rownames(combos_mat)[hclust_avg$order]
+# all_combos_small$gene_pop = factor(all_combos_small$gene_pop, levels = gene_order)
+
+order_combos = data.frame(table(all_combos_small$gene_pop[which(all_combos_small$pcol != "white")]))
+order_combos$border = data.frame(table(all_combos_small$gene_pop[which( ! is.na(all_combos_small$bsig) )]))[,2]
+order_combos$gorder = data.frame(table(all_combos_small$gene_pop[which( ! is.na(all_combos_small$gsig) )]))[,2]
+order_combos$qorder = data.frame(table(all_combos_small$gene_pop[which( ! is.na(all_combos_small$qsig) )]))[,2]
+order_combos = order_combos[order(order_combos$qorder, order_combos$gorder, order_combos$border, decreasing = T),]
+all_combos_small$gene_pop = factor(all_combos_small$gene_pop, levels = order_combos$Var1)
+
+pdf("C:/Users/miles/Downloads/ieg_summary_2.pdf", width = 9, height = 6)
+ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
+# all_combos_small$pcol[which(all_combos_small$pcol == "white")] = "gray60"
+# ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(aes(size = sig), width = 0.8, height = 0.8) + scale_color_identity() + scale_fill_identity() + scale_size_manual(values = c(0.8, 1.4)) + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+# all_combos_small$pcol[which(all_combos_small$pcol == "white")] = "gray60"
+# all_combos_small$pcol_tran[which(all_combos_small$pcol_tran == "white")] = "gray90"
+# all_combos_small = all_combos_small[order(all_combos_small$trending, decreasing = F),]
+# pdf("C:/Users/miles/Downloads/ieg_summary_1.pdf", width = 9, height = 6)
+# ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(width = 0.8, height = 0.8, size = 0.725) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
+# dev.off()
+# all_combos_small$pcol[which(all_combos_small$pcol == "white")] = "gray60"
+# all_combos_small = all_combos_small[order(all_combos_small$sig, decreasing = F),]
+# ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran2)) + geom_tile(color = "gray60") + geom_tile(data = all_combos_small[which(all_combos_small$sig),], aes(color = pcol), size = 1.5) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
+all_combos_small = all_combos_small[order(all_combos_small$trending, decreasing = F),]
+pdf("C:/Users/miles/Downloads/ieg_summary_3.pdf", width = 9, height = 6)
+ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(aes(size = trending)) + scale_color_identity() + scale_fill_identity() + scale_size_manual(values = c(0.6, 1), guide = F) + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
+dev.off()
+# ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran)) + geom_tile() + geom_tile(data = all_combos_small[which(all_combos_small$trending),], aes(color = pcol), size = 0.8) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
+
+Idents(clown) = clown$clusters49
+fpdf = data.frame()
+for (clust in sort(unique(Idents(clown)))) {
+  f_cells = length(which(clown$clusters49 == clust & clown$sex == "f"))
+  m_cells = length(which(clown$clusters49 == clust & clown$sex == "m"))
+  other_f = length(which(clown$clusters49 != clust & clown$sex == "f"))
+  other_m = length(which(clown$clusters49 != clust & clown$sex == "m"))
+  contig_table = data.frame(m = c(m_cells, other_m), f = c(f_cells, other_f))
+  fpdf = rbind(fpdf, data.frame(cluster = clust, fp = fisher.test(contig_table)$p.value))
+}
