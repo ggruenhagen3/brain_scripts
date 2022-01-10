@@ -1,6 +1,21 @@
 #==================================================================================================
 # Helper Functions ================================================================================
 #==================================================================================================
+# 10 and 9
+permSubsamples = function(x) {
+  set.seed(x)
+  isEven = x %% 2 == 0
+  if (isEven) { num1 = 10; } else { num1 = 9; }
+  num2 = 19 - num1
+  real_subs = unique(bb$subsample)
+  b_subs = real_subs[1:19]
+  c_subs = real_subs[20:38]
+  new_b = c(sample(b_subs, num1), sample(c_subs, num2))
+  new_c = c(b_subs[which(! b_subs %in% new_b)], c_subs[which(! c_subs %in% new_b)])
+  my_replace = c(new_b, new_c)
+  names(my_replace) = c(b_subs, c_subs)
+  return(plyr::revalue(bb$subsample, my_replace))
+}
 # Single Run Function
 combosRes = function(perm, cluster_level) {
   # Set the random samples
@@ -62,9 +77,9 @@ for (i in 1:nrow(pop_df)) {
   my.level   = pop_df[i, "level"]
   my.cluster = pop_df[i, "cluster"]
   my.gp      = pop_df[i, "mzebra"]
-  if (my.level == "primary")  { bb$cluster = bb$seuratclusters15 }
+  if (my.level == "primary")    { bb$cluster = bb$seuratclusters15 }
   if (my.level == "secondary")  { bb$cluster = bb$seuratclusters53 }
-  if (my.level == "all") { bb$cluster = "All"               }
+  if (my.level == "all")        { bb$cluster = "All"               }
   if (my.gp == FALSE) { bb$gp = TRUE } else { bb$gp = bb@assays$RNA@counts[my.gp,] > 0 }
   bb@meta.data[, paste0("pop", i)] = bb$cluster == my.cluster & bb$gp
   pop_list[[i]] = colnames(bb)[which( bb@meta.data[, paste0("pop", i)] )]
@@ -72,7 +87,8 @@ for (i in 1:nrow(pop_df)) {
 
 # Setup Permutations
 n_perm = 100001
-perm_labels = lapply(1:n_perm, function(x) sample(unname(as.vector(bb$subsample))))
+# perm_labels = lapply(1:n_perm, function(x) sample(unname(as.vector(bb$subsample))))
+perm_labels = lapply(1:n_perm, function(x) permSubsamples(x))
 bb$backup_subsample = bb$subsample
 
 # Parallelize Finding Difference in Behave and Control for Cluster Combos
@@ -95,48 +111,40 @@ combos = colsplit(rownames(perm_bvc_df), pattern = "\\_", names = c('cluster1', 
 perm_bvc_df = cbind(combos, perm_bvc_df)
 
 # Save the Results
-write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_pop_p100k_bvc.csv")
+write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv")
 
 # # After permutations are done:
 # # Load perm results
-# perm_bvc_df = read.csv("~/scratch/brain/results/ieg_covar_c15_p100k_bvc.csv")
-# rownames(perm_bvc_df) = perm_bvc_df$X
-# perm_bvc_df$X = NULL
-# perm_bvc_df$X100001 = NULL
-# colnames(perm_bvc_df) = c("cluster1", "cluster2", 1:(ncol(perm_bvc_df)-2))
+# n_perm = 100000
+# perm_bvc_df = as.data.frame(data.table::fread("~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"))
+# rownames(perm_bvc_df) = perm_bvc_df[,1]
+# perm_bvc_df[,1] = NULL
+# perm_bvc_df[,"100001"] = NULL
 # 
 # # Real Results
 # perm_labels = list()
-# perm_labels[[n_perm+1]] = bb$backup_subsample
-# real_combos = combosRes(n_perm+1)
+# perm_labels[[1]] = bb$subsample
+# real_combos = combosRes(1)
 # 
 # df_bvc_plot3 = perm_bvc_df
 # df_bvc_plot3$bvc = 0
 # df_bvc_plot3[names(real_combos),"bvc"] = real_combos
-# perm_greater_boolean = df_bvc_plot3[,as.character(c(1:(n_perm-1)))] > df_bvc_plot3$bvc
+# perm_greater_boolean = df_bvc_plot3[,as.character(c(1:n_perm))] > df_bvc_plot3$bvc
 # df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
-# 
-# df_bvc_plot3$cluster1 = factor(df_bvc_plot3$cluster1, levels = 0:14)
-# df_bvc_plot3$cluster2 = factor(df_bvc_plot3$cluster2, levels = 0:14)
 # 
 # perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
 # df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
 # 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_bvc_perm_greater_raw_pop.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + ggtitle("Behave - Control Correation")
-# dev.off()
-# 
-# png("~/scratch/brain/results/ieg_covar_c15_p100k_r_abs_bvc_perm_greater_pop.png", width = 850, height = 800, res = 90)
-# ggplot(df_bvc_plot3, aes(cluster1, cluster2, fill = abs_n_perm_greater)) + geom_tile() + scale_fill_viridis(discrete=F, limits=c(0, n_perm), begin = 1, end = 0) + labs(fill ="n_perm_greater") + ggtitle("Absolute Value Behave - Control Correation")
-# dev.off()
-# 
 # df_bvc_plot3$p = df_bvc_plot3$n_perm_greater / n_perm
 # df_bvc_plot3$q = p.adjust(df_bvc_plot3$p, method = "BH")
+# length(which(df_bvc_plot3$p < 0.05))
+# length(which(df_bvc_plot3$q < 0.05))
 # 
 # df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
 # df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
 # length(which(df_bvc_plot3$abs_p < 0.05))
 # length(which(df_bvc_plot3$abs_q < 0.05))
+# df_bvc_plot3$dup = sapply(1:nrow(df_bvc_plot3), function(x) length(which(duplicated(df_bvc_plot3[x,as.character(1:100000)]))))
 # # df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
 # 
 # # P value per combo

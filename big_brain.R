@@ -5747,6 +5747,14 @@ tj.deg.sig.pos$tmp = abs(tj.deg.sig.pos$all_metric8 * my_f - tj.deg.sig.pos$neg_
 ggplot(tj.deg.sig.pos, aes(x = p_val_adj, y = all_metric3)) + geom_point()
 ggplot(tj.deg.sig.pos, aes(x = neg_log_bon, y = all_metric3, color = avg_log2FC)) + geom_point() + geom_smooth(method='lm', formula= y~x) + geom_text_repel(data = tj.deg.sig.pos[which(tj.deg.sig.pos$tmp > 25),], aes(label = cluster_gene))
 
+glmmseq_counts = readRDS("~/scratch/brain/results/deg_lmer_demux/53_clusters/glmmseq_counts.rds")
+test_names = str_replace(rownames(glmmseq_counts), pattern = "\\.", "-")
+rownames(glmmseq_counts) = test_names
+colnames(glmmseq_counts) = str_replace(colnames(glmmseq_counts), pattern = "\\.", "-")
+a = as.matrix(glmmseq_counts)
+b = as.matrix(bb@assays$RNA@counts[test_names, which(bb$seuratclusters53 == 0)])
+identical(a, b)
+
 convert53 = read.csv("/path/to/convert53.csv")
 clust53_new_col_list2 = convert53$col
 names(clust53_new_col_list2) = colsplit(convert53$new, "_", c("num", "ex"))[,1]
@@ -6006,6 +6014,7 @@ ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran, color 
 dev.off()
 # ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran)) + geom_tile() + geom_tile(data = all_combos_small[which(all_combos_small$trending),], aes(color = pcol), size = 0.8) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
 
+# Clownfish Count - Fisher's Exact Test
 Idents(clown) = clown$clusters49
 fpdf = data.frame()
 for (clust in sort(unique(Idents(clown)))) {
@@ -6015,4 +6024,119 @@ for (clust in sort(unique(Idents(clown)))) {
   other_m = length(which(clown$clusters49 != clust & clown$sex == "m"))
   contig_table = data.frame(m = c(m_cells, other_m), f = c(f_cells, other_f))
   fpdf = rbind(fpdf, data.frame(cluster = clust, fp = fisher.test(contig_table)$p.value))
+}
+
+
+z15 = read.csv("~/scratch/brain/results/out_bb15_bbmm_demux_deg_all_tests_for_volcano_plotting_121321.csv")
+z53 = read.csv("~/scratch/brain/results/out_bb53_glmmseq_demux_deg_all_tests_for_volcano_plotting.csv")
+cur_level = "53"
+if  (cur_level == "53") { cz = z53 }                   else { cz = z15 }
+if  (cur_level == "53") { cmeta = "seuratclusters53" } else { cmeta = "seuratclusters15" }
+if  (cur_level == "53") { clusters = 0:52 }            else { clusters = 0:14 }
+all_zgenes = unique(cz$mzebra)
+all_zgenes = str_replace(all_zgenes, pattern = "\\.", "-")
+all_zgenes = all_zgenes[which(all_zgenes %in% rownames(bb))]
+# gcm = sparseMatrix(i = integer(0), j = integer(0), dims = c(length(all_zgenes), ncol(bb)), dimnames = list(all_zgenes, colnames(bb)))
+# gcm = as(gcm, "dgCMatrix")
+gcm_list = list()
+for (i in clusters) {
+  print(i)
+  # zgenes = cz$mzebra[which(cz$cluster == i)]
+  clust_idx = which(bb@meta.data[,cmeta] == i)
+  this_cz = cz[which(cz$cluster == i),]
+  this_cz$zgenes = this_cz$mzebra
+  print(paste0(length(which(! this_cz$zgenes %in% rownames(bb))), " genes not in bb without correction."))
+  this_cz$zgenes = str_replace(this_cz$zgenes, pattern = "\\.", "-")
+  print(paste0(length(which(! this_cz$zgenes %in% rownames(bb))), " genes not in bb at first pass."))
+  print(head(this_cz$zgenes)[which(! this_cz$zgenes %in% rownames(bb))])
+  this_cz = this_cz[which(this_cz$zgenes %in% rownames(bb)),]
+  glmmseq_counts = bb@assays$RNA@counts[this_cz$zgenes, clust_idx]
+  
+  if (nrow(this_cz) != 0) {
+    gsi_cell = bb$gsi[clust_idx]
+    spawn_cell = bb$log_spawn_events[clust_idx]
+    new_mods = mclapply(1:nrow(this_cz), function(x) adjGlmmseqCounts(x), mc.cores = 24)
+    new_mods_mtx = do.call(rbind, new_mods)
+    rownames(new_mods_mtx) = this_cz$zgenes
+    zgenes_not_in_cluster = all_zgenes[which(! all_zgenes %in% this_cz$zgenes )]
+    extra_rows = matrix(data = 0L, nrow = length(zgenes_not_in_cluster), ncol = length(clust_idx))
+    rownames(extra_rows) = zgenes_not_in_cluster
+    colnames(extra_rows) = colnames(bb)[clust_idx]
+    new_mods_mtx = rbind(new_mods_mtx, extra_rows)
+    new_mods_mtx = new_mods_mtx[ order(row.names(new_mods_mtx)), ]
+    new_mods_mtx = as(new_mods_mtx, "dgCMatrix")
+  }
+  else {
+    zgenes_not_in_cluster = all_zgenes[which(! all_zgenes %in% this_cz$zgenes )]
+    extra_rows = matrix(data = 0L, nrow = length(zgenes_not_in_cluster), ncol = length(clust_idx))
+    rownames(extra_rows) = zgenes_not_in_cluster
+    colnames(extra_rows) = colnames(bb)[clust_idx]
+    new_mods_mtx = extra_rows
+    new_mods_mtx = new_mods_mtx[ order(row.names(new_mods_mtx)), ]
+  }
+  gcm_list[[paste0("cluster_", i)]] = new_mods_mtx
+}
+
+gcm = do.call(cbind, gcm_list)
+gcm = gcm[,colnames(bb)]
+saveRDS(gcm, "~/scratch/brain/results/adjusted_glmmseq_ffm_53.rds")
+# saveRDS(gcm, "~/scratch/brain/results/adjusted_glmmseq_ffm_15.rds")
+
+adjGlmmseqCounts = function(x) {
+  zg = this_cz$zgenes[x]
+  bg = this_cz$mzebra[x]
+  my_gsi   = this_cz$gsi[x]
+  my_spawn = this_cz$log_spawn_events[x]
+  
+  return(glmmseq_counts[zg, ] - my_gsi * gsi_cell - my_spawn * spawn_cell)
+}
+
+gene = "wdr17"
+gcm_df = data.frame(adj_counts = gcm53[gene,which(bb$seuratclusters53 == 0)], sample = bb$sample[which(bb$seuratclusters53 == 0)], cond = bb$cond[which(bb$seuratclusters53 == 0)], subsample = bb$subsample[which(bb$seuratclusters53 == 0)], pair = bb$pair[which(bb$seuratclusters53 == 0)], bai = bb$bower_activity_index[which(bb$seuratclusters53 == 0)], gsi = bb$gsi[which(bb$seuratclusters53 == 0)], spawn = bb$log_spawn_events[which(bb$seuratclusters53 == 0)])
+colnames(gcm_df)[1] = "adj_counts"
+gcm_df_agr = aggregate(adj_counts ~ subsample + cond + pair + bai, gcm_df, mean)
+
+pdf("~/scratch/brain/results/bb53_0_wdr17_glmmseq_test.pdf", width = 4, height = 4)
+print(ggplot(gcm_df_agr, aes(x = cond, y = adj_counts, color = cond)) + geom_boxplot(outlier.shape = NA) + geom_line(linetype = "dashed", color = "gray40", alpha = 0.4, aes(group=pair)) + geom_point(alpha = 0.75, position = position_jitterdodge()))
+dev.off()
+
+if  (cur_level == "53") { gcm = gcm53 } else { gcm = gcm15 }
+cz$zgenes = str_replace(cz$mzebra, pattern = "\\.", "-")
+cz = cz[which(cz$zgenes %in% rownames(bb)),]
+adj_sub_mean    = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
+data_sub_mean   = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
+counts_sub_mean = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
+cz$adj_mean_of_mean_b = cz$adj_mean_of_mean_c = cz$adj_mean_b = cz$adj_sign_pair = cz$adj_mean_c = 0
+cz$data_mean_of_mean_b = cz$data_mean_of_mean_c = cz$data_mean_b = cz$data_sign_pair = cz$data_mean_c = 0
+cz$counts_mean_of_mean_b = cz$counts_mean_of_mean_c = cz$counts_mean_b = cz$counts_sign_pair = cz$counts_mean_c = 0
+
+
+for (i in 1:nrow(cz)) {
+  # if (i %% 1000 == 0) { print(i) }
+  print(i)
+  czgene = cz$zgenes[i]
+  cluster = cz$cluster[i]
+  clust_idx = which(bb@meta.data[,cmeta] == i)
+  gcm_df = data.frame(adj = gcm[czgene, clust_idx], data = bb@assays$RNA@data[czgene, clust_idx], counts = bb@assays$RNA@counts[czgene, clust_idx], sample = bb$sample[clust_idx], cond = bb$cond[clust_idx], subsample = bb$subsample[clust_idx], pair = bb$pair[clust_idx], bai = bb$bower_activity_index[clust_idx], gsi = bb$gsi[clust_idx], spawn = bb$log_spawn_events[clust_idx])
+  if (nrow(gcm_df) > 0) {
+    adj_agr    = aggregate(adj    ~ subsample + cond + pair + bai, gcm_df, mean)
+    data_agr   = aggregate(data   ~ subsample + cond + pair + bai, gcm_df, mean)
+    counts_agr = aggregate(counts ~ subsample + cond + pair + bai, gcm_df, mean)
+    
+    adj_pair_sign_vector = adj_agr$adj[order(adj_agr$pair)[c(FALSE, TRUE)]] - adj_agr$adj[order(adj_agr$pair)[c(TRUE, FALSE)]]
+    data_pair_sign_vector = data_agr$data[order(data_agr$pair)[c(FALSE, TRUE)]] - data_agr$data[order(data_agr$pair)[c(TRUE, FALSE)]]
+    counts_pair_sign_vector = counts_agr$counts[order(counts_agr$pair)[c(FALSE, TRUE)]] - counts_agr$counts[order(counts_agr$pair)[c(TRUE, FALSE)]]
+    
+    adj_sub_mean[i, ] = adj_agr$adj[match(colnames(adj_sub_mean), adj_agr$subsample)]
+    data_sub_mean[i, ] = data_agr$data[match(colnames(data_sub_mean), data_agr$subsample)]
+    counts_sub_mean[i, ] = counts_agr$counts[match(colnames(counts_sub_mean), counts_agr$subsample)]
+    
+    cz$adj_mean_of_mean_b = mean(adj_agr$adj[which(adj_agr$cond == "BHVE")])
+    cz$adj_mean_of_mean_c = mean(adj_agr$adj[which(adj_agr$cond == "CTRL")])
+    cz$adj_mean_b = mean(gcm_df$adj[which(gcm_df$cond == "BHVE")])
+    cz$adj_mean_c = mean(gcm_df$adj[which(gcm_df$cond == "CTRL")])
+    cz$adj_sign_pair = length(which(adj_pair_sign_vector > 0))
+    cz$data_sign_pair = length(which(data_pair_sign_vector > 0))
+    cz$counts_sign_pair = length(which(counts_pair_sign_vector > 0))
+  }
 }

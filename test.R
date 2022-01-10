@@ -21,6 +21,7 @@ if  (cur_level == "53") { gcm = gcm53 }                else { gcm = gcm15 }
 
 cz$zgenes = str_replace(cz$mzebra, pattern = "\\.", "-")
 cz = cz[which(cz$zgenes %in% rownames(bb)),]
+all_pairs = sort(unique(bb$pair))
 adj_sub_mean    = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
 data_sub_mean   = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
 counts_sub_mean = setNames(data.frame(matrix(0, nrow = nrow(cz), ncol = 38)), sort(unique(bb$subsample)))
@@ -50,9 +51,20 @@ for (i in top_hits) {
     data_agr[, c("pair", "cond")] = sub_meta[match(data_agr$subsample, sub_meta$subsample), c("pair", "cond")]
     counts_agr[, c("pair", "cond")] = sub_meta[match(counts_agr$subsample, sub_meta$subsample), c("pair", "cond")]
     
+    # Aggregate removes 0 subsamples and messes up BHVE vs CTRL
+    # clust_idx = which(bb@meta.data[,cmeta] == cluster & bb$subsample == "b1.1")
+    # gcm_df %>% mutate(b = factor(b, letters[1:5])) %>%
+    #   group_by(b) %>%
+    #   summarise(out = n()) %>%
+    #   complete(b, fill = list(out = 0))
+    # for (j in all_pairs) {
+    #   
+    # }
+    
     adj_pair_sign_vector = adj_agr$adj[order(adj_agr$pair)[c(FALSE, TRUE)]] - adj_agr$adj[order(adj_agr$pair)[c(TRUE, FALSE)]]
     data_pair_sign_vector = data_agr$data[order(data_agr$pair)[c(FALSE, TRUE)]] - data_agr$data[order(data_agr$pair)[c(TRUE, FALSE)]]
     counts_pair_sign_vector = counts_agr$counts[order(counts_agr$pair)[c(FALSE, TRUE)]] - counts_agr$counts[order(counts_agr$pair)[c(TRUE, FALSE)]]
+
     
     adj_sub_mean[i, ] = adj_agr$adj[match(colnames(adj_sub_mean), adj_agr$subsample)]
     data_sub_mean[i, ] = data_agr$data[match(colnames(data_sub_mean), data_agr$subsample)]
