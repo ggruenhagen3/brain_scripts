@@ -28,11 +28,12 @@ cz$adj_mean_of_mean_b = cz$adj_mean_of_mean_c = cz$adj_mean_b = cz$adj_sign_pair
 cz$data_mean_of_mean_b = cz$data_mean_of_mean_c = cz$data_mean_b = cz$data_sign_pair = cz$data_mean_c = 0
 cz$counts_mean_of_mean_b = cz$counts_mean_of_mean_c = cz$counts_mean_b = cz$counts_sign_pair = cz$counts_mean_c = 0
 cz$num_non_zero_pair = 0
-  
-# top_hits = c("30_LOC106674892", "11_LOC106674892", "29_LOC101483255", "2_arhgef18", "3_hs3st5")
+
+top_hits = order(cz$P_bower_activity_index, decreasing = F)[1:100]
+# top_hits = c("30_LOC106674892", "11_LOC106674892", "29_LOC101483255", "2_arhgef18", "3_hs3st5", "36_LOC101470924", "20_LOC101470091")
 # top_hits = which(cz$cluster_genes %in% top_hits)
-# for (i in top_hits) {
-for (i in 1:nrow(cz)) {
+for (i in top_hits) {
+# for (i in 1:nrow(cz)) {
   if (i %% 1000 == 0) { print(i) }
   # print(i)
   czgene = cz$zgenes[i]
@@ -77,7 +78,7 @@ for (i in 1:nrow(cz)) {
     cz$num_non_zero_pair[i] = length(which(! is.na(adj_pair_sign_vector) ))
   }
 }
-# cz2 = cz[top_hits,]
+cz2 = cz[top_hits,]
 
 write.csv(adj_sub_mean,    paste0("~/scratch/brain/results/zdeg", cur_level, "_adj_subsample_means.csv"))
 write.csv(data_sub_mean,   paste0("~/scratch/brain/results/zdeg", cur_level, "_data_subsample_means.csv"))
