@@ -8,14 +8,14 @@ global motif
 def parseArgs():
     parser = argparse.ArgumentParser(description='Find estrogen response elements (EREs).')
     parser.add_argument("-i", "--input", help="Input fasta file", nargs="?",
-                        default="/storage/home/hcoda1/6/ggruenhagen3/scratch/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.fna",
-                        const  ="/storage/home/hcoda1/6/ggruenhagen3/scratch/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.fna")
+                        default="/storage/home/hcoda1/6/ggruenhagen3/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.fna",
+                        const  ="/storage/home/hcoda1/6/ggruenhagen3/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.fna")
     parser.add_argument("-o", "--output", help="Output file in BED format", nargs="?",
-                        default="/storage/home/hcoda1/6/ggruenhagen3/scratch/scratch/brain/results/UMD2a_ERE.bed",
-                        const="/storage/home/hcoda1/6/ggruenhagen3/scratch/scratch/brain/results/UMD2a_ERE.bed")
+                        default="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/UMD2a_ERE.bed",
+                        const="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/UMD2a_ERE.bed")
     parser.add_argument("-r", "--res_ele", help="Response Element. Valid Options are: ere, are, pre, and gre.", nargs="?",
-                        default="/storage/home/hcoda1/6/ggruenhagen3/scratch/msc/UMD2a_ERE.bed",
-                        const="/storage/home/hcoda1/6/ggruenhagen3/scratch/msc/UMD2a_ERE.bed")
+                        default="ere",
+                        const="ere")
     parser.add_argument("-v", "--vcf", help="Make output vcf-like?", action="store_true")
     args = parser.parse_args()
     return args.input, args.output, args.res_ele, args.vcf
