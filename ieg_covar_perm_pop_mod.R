@@ -7,17 +7,17 @@ permSubsamples = function(x) {
   isEven = x %% 2 == 0
   if (isEven) { num1 = 10; } else { num1 = 9; }
   num2 = 19 - num1
-  real_subs = unique(bb$subsample)
+  real_subs = as.vector(unique(bb$subsample))
   b_subs = real_subs[1:19]
   c_subs = real_subs[20:38]
   new_b = c(sample(b_subs, num1), sample(c_subs, num2))
   new_c = c(b_subs[which(! b_subs %in% new_b)], c_subs[which(! c_subs %in% new_b)])
   my_replace = c(new_b, new_c)
-  names(my_replace) = c(b_subs, c_subs)
+  names(my_replace) = c(sample(b_subs), sample(c_subs))
   return(plyr::revalue(bb$subsample, my_replace))
 }
 # Single Run Function
-combosRes = function(perm, cluster_level) {
+combosRes = function(perm) {
   # Set the random samples
   bb$subsample = factor(perm_labels[[perm]])
   
@@ -88,8 +88,9 @@ for (i in 1:nrow(pop_df)) {
 # Setup Permutations
 n_perm = 100001
 # perm_labels = lapply(1:n_perm, function(x) sample(unname(as.vector(bb$subsample))))
-perm_labels = lapply(1:n_perm, function(x) permSubsamples(x))
+bb$subsample = factor(bb$subsample)
 bb$backup_subsample = bb$subsample
+perm_labels = lapply(1:n_perm, function(x) permSubsamples(x))
 
 # Parallelize Finding Difference in Behave and Control for Cluster Combos
 library("parallel")
@@ -144,9 +145,11 @@ df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
 df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
 length(which(df_bvc_plot3$abs_p < 0.05))
 length(which(df_bvc_plot3$abs_q < 0.05))
+
 # df_bvc_plot3$dup = sapply(1:nrow(df_bvc_plot3), function(x) length(which(duplicated(df_bvc_plot3[x,as.character(1:100000)]))))
 # # df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
 # 
+
 # # P value per combo
 # z_scores = t(scale(t(df_bvc_plot3[, c("bvc", as.character(1:n_perm))]))) # scale combos per row
 # p_from_z = lapply(1:nrow(z_scores), function(x) 2*pnorm(-abs(z_scores[x, "bvc"])) )
