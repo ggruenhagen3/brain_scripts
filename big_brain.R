@@ -5887,3 +5887,5 @@ for (i in 1:nrow(cz)) {
   }
 }
 
+sub_meta = aggregate(depth_5_35 + depth_15_45 + depth_25_55 + depth_35_65 + depth_45_75 + depth_55_85 + depth_65_95 + build_5_35 + build_15_45 + build_25_55 + build_35_65 + build_45_75 + build_55_85 + build_65_95 ~ subsample, bb@meta.data, mean)
+mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")

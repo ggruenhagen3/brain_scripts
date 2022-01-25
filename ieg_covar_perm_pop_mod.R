@@ -115,35 +115,35 @@ write.csv(perm_bvc_df, "~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"
 
 # # After permutations are done:
 # # Load perm results
-# n_perm = 100000
-# perm_bvc_df = as.data.frame(data.table::fread("~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"))
-# rownames(perm_bvc_df) = perm_bvc_df[,1]
-# perm_bvc_df[,1] = NULL
-# perm_bvc_df[,"100001"] = NULL
-# 
-# # Real Results
-# perm_labels = list()
-# perm_labels[[1]] = bb$subsample
-# real_combos = combosRes(1)
-# 
-# df_bvc_plot3 = perm_bvc_df
-# df_bvc_plot3$bvc = 0
-# df_bvc_plot3[names(real_combos),"bvc"] = real_combos
-# perm_greater_boolean = df_bvc_plot3[,as.character(c(1:n_perm))] > df_bvc_plot3$bvc
-# df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
-# 
-# perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
-# df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
-# 
-# df_bvc_plot3$p = df_bvc_plot3$n_perm_greater / n_perm
-# df_bvc_plot3$q = p.adjust(df_bvc_plot3$p, method = "BH")
-# length(which(df_bvc_plot3$p < 0.05))
-# length(which(df_bvc_plot3$q < 0.05))
-# 
-# df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
-# df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
-# length(which(df_bvc_plot3$abs_p < 0.05))
-# length(which(df_bvc_plot3$abs_q < 0.05))
+n_perm = 100000
+perm_bvc_df = as.data.frame(data.table::fread("~/scratch/brain/results/ieg_covar_pop_mod_p100k_bvc.csv"))
+rownames(perm_bvc_df) = perm_bvc_df[,1]
+perm_bvc_df[,1] = NULL
+perm_bvc_df[,"100001"] = NULL
+
+# Real Results
+perm_labels = list()
+perm_labels[[1]] = bb$subsample
+real_combos = combosRes(1)
+
+df_bvc_plot3 = perm_bvc_df
+df_bvc_plot3$bvc = 0
+df_bvc_plot3[names(real_combos),"bvc"] = real_combos
+perm_greater_boolean = df_bvc_plot3[,as.character(c(1:n_perm))] > df_bvc_plot3$bvc
+df_bvc_plot3$n_perm_greater = rowSums(perm_greater_boolean)
+
+perm_greater_boolean_abs = abs(df_bvc_plot3[,as.character(c(1:(n_perm-1)))]) > abs(df_bvc_plot3$bvc)
+df_bvc_plot3$abs_n_perm_greater = rowSums(perm_greater_boolean_abs)
+
+df_bvc_plot3$p = df_bvc_plot3$n_perm_greater / n_perm
+df_bvc_plot3$q = p.adjust(df_bvc_plot3$p, method = "BH")
+length(which(df_bvc_plot3$p < 0.05))
+length(which(df_bvc_plot3$q < 0.05))
+
+df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
+df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
+length(which(df_bvc_plot3$abs_p < 0.05))
+length(which(df_bvc_plot3$abs_q < 0.05))
 # df_bvc_plot3$dup = sapply(1:nrow(df_bvc_plot3), function(x) length(which(duplicated(df_bvc_plot3[x,as.character(1:100000)]))))
 # # df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
 # 

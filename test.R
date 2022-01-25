@@ -95,3 +95,8 @@ write.csv(adj_sub_mean,    paste0("~/scratch/brain/results/zdeg", cur_level, "_a
 write.csv(data_sub_mean,   paste0("~/scratch/brain/results/zdeg", cur_level, "_data_subsample_means.csv"))
 write.csv(counts_sub_mean, paste0("~/scratch/brain/results/zdeg", cur_level, "_counts_subsample_means.csv"))
 write.csv(cz,              paste0("~/scratch/brain/results/zdeg", cur_level, "_summary.csv"))
+
+# Goes to bcs
+library(qs)
+qs::qsave(bb, "~/Downloads/bb_012122.qs")
+qs::qsave()
