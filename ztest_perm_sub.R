@@ -6,8 +6,7 @@ singleRunGeneDefined = function(markers, returnP = T) {
   cluster_d = c()
   for (i in 1:nrow(zdf)) {
     gene = zdf$gene[i]
-    cluster_cells = colnames(bb)[which(bb$cluster == zdf$cluster[i])]
-    gene_pop_cells <- colnames(bb)[which(exp[gene, cluster_cells] > 0)]
+    gene_pop_cells <- colnames(bb)[which(exp[gene,] > 0 & bb$cluster == zdf$cluster[i])]
     gene_pop_exp = avg_exp[gene_pop_cells]
     other_exp = avg_exp[which(! colnames(bb) %in% gene_pop_cells)]
     
