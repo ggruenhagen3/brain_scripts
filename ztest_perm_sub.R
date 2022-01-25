@@ -99,7 +99,7 @@ perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
 colnames(perm_df) = clusters
 
-write.csv(perm_df, paste0("~/scratch/brain/results/ztest_perm_10k_", cluster_level, "_by_goi_010522.csv"))
+write.csv(perm_df, paste0("~/scratch/brain/results/ztest_perm_10k_", cluster_level, "_by_goi_012522.csv"))
 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
