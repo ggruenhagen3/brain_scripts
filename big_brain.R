@@ -6528,3 +6528,7 @@ print(p)
 dev.off()
 
 # print(ggplot(pdf, aes(x = time, y = value)) + geom_point(data = pdf[which(!pdf$isMean),], size = 2.5, alpha = 0.2, aes(color = variable)) + geom_point(data = pdf[which(pdf$isMean),], size = 2.5, color = "black") + geom_smooth(data = pdf[which(pdf$isMean),], method = "loess", se = F, color = "gray40") + theme_classic() + ylab("R2") + xlab("Time (min to flash freeze)") + ggtitle(paste0("bDEG Hits Up at ", i_clean, ". Depth_adj R2 w/ Adjusted")) + scale_x_continuous(breaks = rev(unique(pdf$time)), labels = rev(unique(pdf$time))) + NoLegend())
+
+sub_meta = aggregate(depth_5_35 + depth_15_45 + depth_25_55 + depth_35_65 + depth_45_75 + depth_55_85 + depth_65_95 + build_5_35 + build_15_45 + build_25_55 + build_35_65 + build_45_75 + build_55_85 + build_65_95 ~ subsample, bb@meta.data, mean)
+mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")
+

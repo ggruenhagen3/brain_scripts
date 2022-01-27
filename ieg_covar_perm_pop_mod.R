@@ -194,8 +194,10 @@ df_bvc_plot3$abs_p = df_bvc_plot3$abs_n_perm_greater / n_perm
 df_bvc_plot3$abs_q = p.adjust(df_bvc_plot3$abs_p, method = "BH")
 length(which(df_bvc_plot3$abs_p < 0.05))
 length(which(df_bvc_plot3$abs_q < 0.05))
-df_bvc_plot3$dup = sapply(1:nrow(df_bvc_plot3), function(x) length(which(duplicated(df_bvc_plot3[x,as.character(1:100000)]))))
-# df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
+
+# df_bvc_plot3$dup = sapply(1:nrow(df_bvc_plot3), function(x) length(which(duplicated(df_bvc_plot3[x,as.character(1:100000)]))))
+# # df_bvc_plot3[which(df_bvc_plot3$abs_q < 0.05),c(1,2,"abs_bvc", "abs_n_perm_greater", "abs_p", "abs_q")]
+# 
 
 # # P value per combo
 # z_scores = t(scale(t(df_bvc_plot3[, c("bvc", as.character(1:n_perm))]))) # scale combos per row

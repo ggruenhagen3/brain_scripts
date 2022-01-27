@@ -1,12 +1,10 @@
 # Helper Functions ***********************************************************************
-singleRunGeneDefined = function(markers, returnP = T) {
-  avg_exp = colSums(exp[markers,])
-  avg_exp = avg_exp/bb$nFeature_RNA
+singleRunGeneDefined = function(avg_exp, returnP = T) {
   cluster_p = c()
   cluster_d = c()
   for (i in 1:nrow(zdf)) {
     gene = zdf$gene[i]
-    gene_pop_cells <- colnames(bb)[which(exp[gene,] > 0 & bb$cluster == zdf$cluster[i])]
+    gene_pop_cells = gene_pop_cells_list[[i]]
     gene_pop_exp = avg_exp[gene_pop_cells]
     other_exp = avg_exp[which(! colnames(bb) %in% gene_pop_cells)]
     
@@ -77,6 +75,7 @@ for (gene in pcrc) {
 }
 
 # Create Random Lists of Equal Size to the real
+print(paste0("Creating Random Lists Start Time: ", format(Sys.time(), "%X")))
 ran_lists = lapply(1:nperm, function(x) {
   this_ran_list = c()
   for (gene in pcrc) { this_ran_list = c(this_ran_list, sample(ran_pools[[gene]], 1)) }
@@ -88,28 +87,33 @@ exp = GetAssayData(bb, assay = "RNA", slot='counts')
 exp[which(exp > 0)] = 1
 clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
 
+# Create "IEG Scores" for the random lists
+print(paste0("Finding Random Lists' Score Start Time: ", format(Sys.time(), "%X")))
+ran_scores = lapply(1:nperm, function(x) colSums(exp[ran_lists[[x]],])/bb$nFeature_RNA )
+
+# Subset the expression matrix for greater speed
+exp = exp[unique(zdf$gene),]
+
+# Find Gene Pop Cells
+print(paste0("Finding Gene Pop Cells Start Time: ", format(Sys.time(), "%X")))
+gene_pop_cells_list = list()
+for (i in 1:nrow(zdf)) {
+  gene = zdf$gene[i]
+  gene_pop_cells_list[[i]] <- colnames(bb)[which(exp[gene,] > 0 & bb$cluster == zdf$cluster[i])]
+}
+ 
 # Find Results for the Real PCRC
 # real_res = singleRunGeneDefined(pcrc, returnP = F)
 
 library("parallel")
 print(paste0("Doing Perms Start Time: ", format(Sys.time(), "%X")))
 print("")
-perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], returnP = F), mc.cores = detectCores())
+perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_scores[[x]], returnP = F), mc.cores = detectCores())
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
 colnames(perm_df) = clusters
 
 write.csv(perm_df, paste0("~/scratch/brain/results/ztest_perm_10k_", cluster_level, "_by_goi_012522.csv"))
-
-zdf$real_d = singleRunGeneDefined(pcrc, returnP = F)
-zdf$ztest_p = singleRunGeneDefined(pcrc, returnP = T)
-zdf$ztest_bh = p.adjust(zdf$ztest_p, method = "BH")
-zdf$ztest_bon = p.adjust(zdf$ztest_p, method = "bonferroni")
-zdf$neg = sapply(1:nrow(zdf), function(x) length(which( perm_df[,x] <= zdf$real_d[x] )) )
-zdf$perm_p = ((nperm - zdf$neg) / nperm)
-zdf$perm_bh = p.adjust(zdf$perm_p, method = "BH")
-zdf$perm_bon = p.adjust(zdf$perm_p, method = "bonferroni")
-zdf$num_cells = sapply(1:nrow(zdf), function(x) length(which(bb@assays$RNA@counts[zdf$gene[x], which(bb$cluster == zdf$cluster[x])] > 0)))
 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
@@ -123,5 +127,5 @@ zdf$num_cells = sapply(1:nrow(zdf), function(x) length(which(bb@assays$RNA@count
 # p_df$p = ((nperm - p_df$neg) / nperm)
 # p_df$bh = p.adjust(p_df$p, method = "BH")
 # p_df$bon = p.adjust(p_df$p, method = "bonferroni")
-# ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
-# ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
+# # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
+# # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
