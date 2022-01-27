@@ -1,7 +1,5 @@
 # Helper Functions ***********************************************************************
-singleRunGeneDefined = function(markers, returnP = T) {
-  avg_exp = colSums(exp[markers,])
-  avg_exp = avg_exp/bb$nFeature_RNA
+singleRunGeneDefined = function(avg_exp, returnP = T) {
   cluster_p = c()
   cluster_d = c()
   for (i in 1:nrow(zdf)) {
@@ -87,6 +85,11 @@ ran_lists = lapply(1:nperm, function(x) {
 exp = GetAssayData(bb, assay = "RNA", slot='counts')
 exp[which(exp > 0)] = 1
 clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
+
+# Create "IEG Scores" for the random lists
+ran_scores = lapply(1:nperm, function(x) colSums(exp[ran_lists[[x]],])/bb$nFeature_RNA )
+
+# Subset the expression matrix for greater speed
 exp = exp[unique(zdf$gene),]
 
 # Find Results for the Real PCRC
@@ -95,7 +98,7 @@ exp = exp[unique(zdf$gene),]
 library("parallel")
 print(paste0("Doing Perms Start Time: ", format(Sys.time(), "%X")))
 print("")
-perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], returnP = F), mc.cores = detectCores())
+perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_scores[[x]], returnP = F), mc.cores = detectCores())
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
 colnames(perm_df) = clusters
