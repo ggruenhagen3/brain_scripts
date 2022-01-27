@@ -4,7 +4,7 @@ singleRunGeneDefined = function(avg_exp, returnP = T) {
   cluster_d = c()
   for (i in 1:nrow(zdf)) {
     gene = zdf$gene[i]
-    gene_pop_cells <- colnames(bb)[which(exp[gene,] > 0 & bb$cluster == zdf$cluster[i])]
+    gene_pop_cells = gene_pop_cells_list[[i]]
     gene_pop_exp = avg_exp[gene_pop_cells]
     other_exp = avg_exp[which(! colnames(bb) %in% gene_pop_cells)]
     
@@ -75,6 +75,7 @@ for (gene in pcrc) {
 }
 
 # Create Random Lists of Equal Size to the real
+print(paste0("Creating Random Lists Start Time: ", format(Sys.time(), "%X")))
 ran_lists = lapply(1:nperm, function(x) {
   this_ran_list = c()
   for (gene in pcrc) { this_ran_list = c(this_ran_list, sample(ran_pools[[gene]], 1)) }
@@ -87,11 +88,20 @@ exp[which(exp > 0)] = 1
 clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
 
 # Create "IEG Scores" for the random lists
+print(paste0("Finding Random Lists' Score Start Time: ", format(Sys.time(), "%X")))
 ran_scores = lapply(1:nperm, function(x) colSums(exp[ran_lists[[x]],])/bb$nFeature_RNA )
 
 # Subset the expression matrix for greater speed
 exp = exp[unique(zdf$gene),]
-  
+
+# Find Gene Pop Cells
+print(paste0("Finding Gene Pop Cells Start Time: ", format(Sys.time(), "%X")))
+gene_pop_cells_list = list()
+for (i in 1:nrow(zdf)) {
+  gene = zdf$gene[i]
+  gene_pop_cells_list[[i]] <- colnames(bb)[which(exp[gene,] > 0 & bb$cluster == zdf$cluster[i])]
+}
+ 
 # Find Results for the Real PCRC
 # real_res = singleRunGeneDefined(pcrc, returnP = F)
 
