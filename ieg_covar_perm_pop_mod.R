@@ -14,7 +14,25 @@ permSubsamples = function(x) {
   new_c = c(b_subs[which(! b_subs %in% new_b)], c_subs[which(! c_subs %in% new_b)])
   my_replace = c(new_b, new_c)
   names(my_replace) = c(sample(b_subs), sample(c_subs))
-  return(plyr::revalue(bb$subsample, my_replace))
+  return(my_replace)
+}
+# 10 and 9 Mat
+permSubsamplesMat = function(x) {
+  set.seed(x)
+  isEven = x %% 2 == 0
+  if (isEven) { num1 = 10; } else { num1 = 9; }
+  num2 = 19 - num1
+  real_subs = as.vector(unique(bb$subsample))
+  b_subs = real_subs[1:19]
+  c_subs = real_subs[20:38]
+  new_b = c(sample(b_subs, num1), sample(c_subs, num2))
+  new_c = c(b_subs[which(! b_subs %in% new_b)], c_subs[which(! c_subs %in% new_b)])
+  my_replace = c(new_b, new_c)
+  names(my_replace) = c(sample(b_subs), sample(c_subs))
+  this_ieg_mat = ieg_mat
+  rownames(this_ieg_mat) = plyr::revalue(rownames(this_ieg_mat), my_replace)
+  this_ieg_mat = this_ieg_mat[order(rownames(this_ieg_mat)),]
+  return(this_ieg_mat)
 }
 # Single Run Function
 combosRes = function(perm) {
@@ -50,6 +68,30 @@ combosRes = function(perm) {
   
   return(bvc)
 }
+# Single Run Function
+combosResIegMat = function(perm) {
+  # Set the random samples
+  ieg_mat = ieg_mat_list[[perm]]
+  
+  # Find the Correlation between Cluster Combos in Behave Samples
+  b_r_mat = cor(ieg_mat[which(startsWith(rownames(ieg_mat), "b")),], y = NULL, use = "pairwise.complete.obs") # use = "pairwise.complete.obs" removes the NA subsamples
+  b_r_mat[upper.tri(b_r_mat, diag = T)] = NA
+  
+  # Find the Correlation between Cluster Combos in Control Samples
+  c_r_mat = cor(ieg_mat[which(startsWith(rownames(ieg_mat), "c")),], y = NULL, use = "pairwise.complete.obs")
+  c_r_mat[upper.tri(c_r_mat, diag = T)] = NA
+  
+  bvc_mat = b_r_mat - c_r_mat
+  bvc_long = na.omit(melt(bvc_mat))
+  bvc = bvc_long[,3]
+  names(bvc) = paste0(bvc_long[,1], "_", bvc_long[,2])
+  
+  # end_time = proc.time()
+  # print(paste0("Total time: ", end_time["elapsed"] - ptm["elapsed"]))
+  cat(paste0("- Single Perm End Time: ", format(Sys.time(), "%X ")))
+  
+  return(bvc)
+}
 
 #==================================================================================================
 # Main Body =======================================================================================
@@ -59,6 +101,8 @@ combosRes = function(perm) {
 rna_path = "~/scratch/brain/"
 bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
 source(paste0(rna_path, "brain_scripts/all_f.R"))
+bb$subsample = factor(bb$subsample)
+bb$backup_subsample = bb$subsample
 set.seed(156) # seed for the script
 
 # Load IEG and IEG Like Genes
@@ -66,12 +110,17 @@ set.seed(156) # seed for the script
 # ieg_like = read.csv(paste0(rna_path, "/results/ieg_like_011521.txt"), stringsAsFactors = F)[,1]
 bb$ieg_like_score <- bb$ieg_score
 
+# Setup parallelization
+library("parallel")
+numCores = detectCores()
+
 # Load Populations
 # pop_df = read.csv("C:/Users/miles/Downloads/ieg_pops.csv")
 pop_df = read.csv(paste0(rna_path, "/data/ieg_pops.csv"))
 
 # Create Populations
 pop_list = list()
+ieg_long_list = list()
 for (i in 1:nrow(pop_df)) {
   print(i)
   my.level   = pop_df[i, "level"]
@@ -82,20 +131,21 @@ for (i in 1:nrow(pop_df)) {
   if (my.level == "all")        { bb$cluster = "All"               }
   if (my.gp == FALSE) { bb$gp = TRUE } else { bb$gp = bb@assays$RNA@counts[my.gp,] > 0 }
   bb@meta.data[, paste0("pop", i)] = bb$cluster == my.cluster & bb$gp
-  pop_list[[i]] = colnames(bb)[which( bb@meta.data[, paste0("pop", i)] )]
-}
+  pop_list[[i]] = colnames(bb)[which( bb@meta.data[, paste0("pop", i)] )]    
+  df = bb@meta.data[pop_list[[i]], c("ieg_like_score", "subsample")]
+  ieg_long_list[[i]] = aggregate(ieg_like_score ~ subsample, df, mean, drop = F)[,2]
+}  
+ieg_mat = as.matrix(do.call(cbind, ieg_long_list))
+rownames(ieg_mat) = levels(bb$subsample)
 
 # Setup Permutations
 n_perm = 100001
-# perm_labels = lapply(1:n_perm, function(x) sample(unname(as.vector(bb$subsample))))
-bb$subsample = factor(bb$subsample)
-bb$backup_subsample = bb$subsample
-perm_labels = lapply(1:n_perm, function(x) permSubsamples(x))
+# perm_labels = mclapply(1:n_perm, function(x) permSubsamples(x), mc.cores = numCores)
+ieg_mat_list = mclapply(1:n_perm, function(x) permSubsamplesMat(x), mc.cores = numCores)
 
 # Parallelize Finding Difference in Behave and Control for Cluster Combos
-library("parallel")
-numCores = detectCores()
-all_combos = mclapply(1:n_perm, function(perm) combosRes(perm), mc.cores = numCores)
+# all_combos = mclapply(1:n_perm, function(perm) combosRes(perm), mc.cores = numCores)
+all_combos = mclapply(1:n_perm, function(perm) combosResIegMat(perm), mc.cores = numCores)
 
 # For some reason, one of the 100k returned a vector of length 1377 instead of 1378.
 # Double check that all returned vectors are the right size
@@ -123,9 +173,8 @@ perm_bvc_df[,1] = NULL
 perm_bvc_df[,"100001"] = NULL
 
 # Real Results
-perm_labels = list()
-perm_labels[[1]] = bb$subsample
-real_combos = combosRes(1)
+ieg_mat_list = list(ieg_mat)
+real_combos = combosResIegMat(1)
 
 df_bvc_plot3 = perm_bvc_df
 df_bvc_plot3$bvc = 0
