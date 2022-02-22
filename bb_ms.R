@@ -1322,36 +1322,6 @@ circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
 })
 circos.text(-0.5, 0.5, sector.index = "1_RGC/MG", "# DEG", track.index = this_track_index)
 
-# BHVE EVO Enrichment
-this_track_index = this_track_index + 1
-circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
-  # 15 Level
-  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
-  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$pcrc.col[CELL_META$sector.numeric.index], border = NA)
-  
-  # 53 Level
-  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
-  for (i in 1:num_new_sub) {
-    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
-    xstart = 0 + (i-1)*1
-    xend = xstart + 1
-    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$pcrc.col[idx53], border = NA)
-    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25, bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE, adj = c(0.5, 0.5), cex = 0.6)
-  }
-})
-circos.text(-0.5, 0.5, sector.index = "1_RGC/MG", "PCRC", track.index = this_track_index)
-# for (clust15 in bb_df15$cluster[which(bb_df15$pcrc_isSig)]) {
-#   xstart = 0
-#   xend = bb_df15$new_sub[which(bb_df15$cluster == clust15)]
-#   circos.rect(xstart, 0, xend, 0.5, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
-# } # Denote significance with yellow border
-# for (clust53 in bb_df53$cluster[which(bb_df53$pcrc_isSig)]) {
-#   clust15 = bb_df15$cluster[which(bb_df15$num == bb_df53$parent[which(bb_df53$cluster == clust53)])]
-#   xstart = bb_df53$sub[which(bb_df53$cluster == clust53)]-1
-#   xend = bb_df53$sub[which(bb_df53$cluster == clust53)]
-#   circos.rect(xstart, 0.5, xend, 1, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
-# } # Denote significance with yellow border
-
 # IEG
 this_track_index = this_track_index + 1
 circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
@@ -1395,6 +1365,36 @@ circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
   }
 })
 circos.text(-.5, 0.5, sector.index = "1_RGC/MG", "NG", track.index = this_track_index)
+
+# BHVE EVO Enrichment
+this_track_index = this_track_index + 1
+circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
+  # 15 Level
+  pos = circlize:::polar2Cartesian(circlize(CELL_META$xcenter, CELL_META$ycenter))
+  circos.rect(CELL_META$cell.xlim[1], 0, CELL_META$cell.xlim[2], 1, col = bb_df15$pcrc.col[CELL_META$sector.numeric.index], border = NA)
+  
+  # 53 Level
+  num_new_sub = bb_df15$new_sub[CELL_META$sector.numeric.index]
+  for (i in 1:num_new_sub) {
+    idx53 = which(bb_df53$parent == CELL_META$sector.numeric.index & bb_df53$sub == i)
+    xstart = 0 + (i-1)*1
+    xend = xstart + 1
+    circos.rect(xstart, 0.5, xend, 1, col = bb_df53$pcrc.col[idx53], border = NA)
+    circos.text((xstart + xend)/2, CELL_META$ycenter + 0.25, bb_df53$cluster_label[idx53], facing = "downward", niceFacing = TRUE, adj = c(0.5, 0.5), cex = 0.6)
+  }
+})
+circos.text(-0.5, 0.5, sector.index = "1_RGC/MG", "PCRC", track.index = this_track_index)
+# for (clust15 in bb_df15$cluster[which(bb_df15$pcrc_isSig)]) {
+#   xstart = 0
+#   xend = bb_df15$new_sub[which(bb_df15$cluster == clust15)]
+#   circos.rect(xstart, 0, xend, 0.5, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+# } # Denote significance with yellow border
+# for (clust53 in bb_df53$cluster[which(bb_df53$pcrc_isSig)]) {
+#   clust15 = bb_df15$cluster[which(bb_df15$num == bb_df53$parent[which(bb_df53$cluster == clust53)])]
+#   xstart = bb_df53$sub[which(bb_df53$cluster == clust53)]-1
+#   xend = bb_df53$sub[which(bb_df53$cluster == clust53)]
+#   circos.rect(xstart, 0.5, xend, 1, col = NA, border = sigBorderCol, lwd = sigBorderThickness, sector.index = clust15, track.index = this_track_index)
+# } # Denote significance with yellow border
 
 # Cluster Colors
 circos.track(ylim = c(0, 1), bg.border = NA, panel.fun = function(x, y) {
