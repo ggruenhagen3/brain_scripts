@@ -3647,9 +3647,17 @@ head(all_coef[order(all_coef$mean, decreasing = T), c("X", "mean")])
 all_coef[match(names(sort(all_coef_bh[which(all_coef_bh < 0.05)])), all_coef$X), c("X", "mean", "stderr")]
 hist(all_coef$mean, breaks = 50)
 
-
+all_coef_melt = all_coef_melt[which(all_coef_melt$X %in% names(all_coef_bh[which(all_coef_bh < 0.05)])),]
+all_coef_melt$hgnc = gene_info$human[match(all_coef_melt$X, gene_info$mzebra)]
+all_coef_melt$hgnc[which(is.na(all_coef_melt$hgnc))] = as.vector(all_coef_melt$X[which(is.na(all_coef_melt$hgnc))])
+all_coef_melt$hgnc[which(all_coef_melt$hgnc != "LOC101476487")] = tolower(all_coef_melt$hgnc[which(all_coef_melt$hgnc != "LOC101476487")])
 all_coef_melt$X = factor(all_coef_melt$X, levels = all_coef$X[order(abs(all_coef$mean), decreasing = T)])
-ggplot(all_coef_melt[which(all_coef_melt$X %in% all_coef$X[order(abs(all_coef$mean), decreasing = T)[1:50]]),], aes(x = X, y = value, color = X, fill = X)) + geom_boxplot(alpha = 0.7) + geom_point(alpha = 0.2, position = position_jitter()) + theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("Importance to Model")
+all_coef_melt$hgnc = factor(all_coef_melt$hgnc, levels = unique(all_coef_melt$hgnc[order(all_coef_melt$X)]))
+all_coef_melt$abs_value = abs(all_coef_melt$value)
+# ggplot(all_coef_melt[which(all_coef_melt$X %in% all_coef$X[order(abs(all_coef$mean), decreasing = T)[1:50]]),], aes(x = X, y = abs_value, color = X, fill = X)) + geom_boxplot(alpha = 0.7) + geom_point(alpha = 0.2, position = position_jitter()) + theme_classic() + theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("Importance to Model") + scale_y_continuous(expand = c(0,0))
+pdf("~/research/brain/results/ml_genes.pdf", width = 6, height = 3)
+ggplot(all_coef_melt[which(all_coef_melt$X %in% all_coef$X[order(abs(all_coef$mean), decreasing = T)[1:50]]),], aes(x = hgnc, y = abs_value, color = hgnc, fill = hgnc)) + geom_boxplot(alpha = 0.7, outlier.shape = NA) + geom_point(alpha = 0.5, size = 0.5, position = position_jitter()) + theme_classic() + theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("Importance to Model") + scale_y_continuous(expand = c(0,0))
+dev.off()
 
 #*****************************************************************************************
 # Neurogenesis ===========================================================================
@@ -3882,6 +3890,8 @@ all_go = read.csv("~/research/brain/data/cluster_compare_all_levels_MF_042021.cs
 # all_go = read.csv("~/research/brain/data/53cluster_compare_all_levels_MF_042021.csv", stringsAsFactors = F)
 all_go = read.csv("~/Downloads/cluster15_compare_all_levels_CC_042121.csv", stringsAsFactors = F)
 all_go$p = -1
+all_go$bh = -1
+all_go$bon = -1
 levels_categories = data.frame()
 for (level_cur in 2:13) {
   print(level_cur)
@@ -3905,30 +3915,70 @@ for (level_cur in 2:13) {
   # Calculate p value
   findP = function(x) {
     contig_table = matrix(c(go_cur[x,"a"], go_cur[x,"b"], go_cur[x,"c"], go_cur[x,"d"]), nrow = 2, byrow = T)
-    fisher.test(contig_table)$p.value
+    fisher.test(contig_table, alternative = "greater")$p.value
   }
   go_cur$p = unlist(mclapply(1:nrow(go_cur), findP, mc.cores = numCores))
+  go_cur_adj = mclapply(unique(go_cur$ID), function(x) { data.frame(X = go_cur$X[which(go_cur$ID == x)], bh = p.adjust(go_cur$p[which(go_cur$ID == x)], method = "BH"), bon = p.adjust(go_cur$p[which(go_cur$ID == x)], method = "bonferroni") ) }, mc.cores = numCores)
+  go_cur_adj = do.call(rbind, go_cur_adj)
   all_go$p[go_cur_idx] = go_cur$p[match(all_go$X[go_cur_idx], go_cur$X)]
+  all_go[go_cur_idx, c("bh", "bon")] = go_cur_adj[match(all_go$X[go_cur_idx], go_cur_adj$X), c("bh", "bon")]
 }
-all_go$bh = p.adjust(all_go$p, method = "BH")
-all_go$bon = p.adjust(all_go$p, method = "bonferroni")
+# all_go$bh = p.adjust(all_go$p, method = "BH")
+# all_go$bon = p.adjust(all_go$p, method = "bonferroni")
 all_go$new_cluster = changeClusterID(all_go$Cluster, returnFactor = T)
+all_go$Cluster_ID = paste0(all_go$Cluster, "_", all_go$ID)
+all_go$level_ID = paste0(all_go$level, "_", all_go$ID)
+all_go$neg_log_p = -log10(all_go$p)
+all_go_sig = all_go[which(all_go$bh < 0.05),]
+all_go_sig = all_go_sig[which(! duplicated(all_go_sig$Cluster_ID) ),]
 
-all_go$bh_sig = all_go$bh < 0.05
-for (level_cur in 2:13) {
-  go_cur = all_go[which(all_go$level == level_cur),]
-  
-  # Loose
-  go_cur$bh = p.adjust(go_cur$p, method = "BH")
-  go_cur$bh_sig = go_cur$bh < 0.05
-  
-  go_cur_good_categories = aggregate(bh_sig ~ Description, go_cur, sum)
-  go_cur_good_categories = go_cur_good_categories$Description[which(go_cur_good_categories$bh_sig > 0)]
-  go_cur = go_cur[which(go_cur$Description %in% go_cur_good_categories),]
-  png(paste0("~/research/brain/results/go/dif_enrich_loose_53/", level_cur, ".png"), width = 1000, height = 1000, res = 90)
-  print(ggplot(go_cur, aes(x = Description, y = new_cluster, fill = bh_sig)) + geom_tile() + scale_fill_viridis_d() + ggtitle(paste0("Significantly Differentially Enriched MF Categories by BH at Level ", level_cur)) + xlab("Category") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
-  dev.off()
-}
+top.x = 5
+# all_go_sig_top = mclapply(rev(levels(all_go$new_cluster)), function(x) { tmp = all_go_sig[which(all_go_sig$new_cluster == x),]; tmp[order(tmp$level, rev(tmp$p), decreasing = T)[1:top.x],] }, mc.cores = numCores)
+all_go_sig_top = mclapply(rev(levels(all_go$new_cluster)), function(x) { tmp = all_go_sig[which(all_go_sig$new_cluster == x),]; tmp[order(tmp$p, decreasing = F)[1:top.x],] }, mc.cores = numCores)
+all_go_sig_top = do.call(rbind, all_go_sig_top)
+all_go_sig_top = all_go_sig_top[which(! is.na(all_go_sig_top$ID) ),]
+all_go_sig_top$Description_level = paste0(all_go_sig_top$Description, " (", all_go_sig_top$level, ")")
+all_go_sig_top$col = convert15$col[match(all_go_sig_top$Cluster, convert15$old)]
+
+all_go_sig_top_p = all_go[which(all_go$level_ID %in% all_go_sig_top$level_ID),]
+all_go_sig_top_p$Description_level = paste0(all_go_sig_top_p$Description, " (", all_go_sig_top_p$level, ")")
+all_go_sig_top_p$Description_level = factor(all_go_sig_top_p$Description_level, levels = unique(all_go_sig_top$Description_level))
+all_go_sig_top_p$col = all_go_sig_top$col[match(all_go_sig_top_p$X, all_go_sig_top$X)]
+scaled_nlp = mclapply(levels(all_go_sig_top_p$Description_level), function(x) data.frame(X = all_go_sig_top_p$X[which(all_go_sig_top_p$Description_level == x)], scaled_nlp = scale(all_go_sig_top_p$neg_log_p[which(all_go_sig_top_p$Description_level == x)])), mc.cores = numCores)
+scaled_nlp = do.call(rbind, scaled_nlp)
+all_go_sig_top_p$scaled_nlp = scaled_nlp$scaled_nlp[match(all_go_sig_top_p$X, scaled_nlp$X)]
+
+# Matrix GO (rows) by cluster (columns). Colored by -log10(Diff Enrich P)
+pdf("~/research/brain/results/supplement/cluster_deg_diff_enrich_top_sig.pdf", width = 10, height = 9)
+ggplot(all_go_sig_top_p, aes(x = new_cluster, y = Description_level, fill = scaled_nlp)) + geom_tile() + scale_fill_viridis_c(name = expression("Scaled -"*Log["10"]*"(p)")) + coord_fixed() + xlab("") + ylab("")  + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, color = convert15$col, size = 10), axis.text.y = element_text(color = all_go_sig_top$col[which(! duplicated(all_go_sig_top$Description_level))]))
+dev.off()
+
+# Matrix GO (rows) by cluster (columns). Colored by -log10(Diff Enrich P) and anything that is sig is automatically yellow
+pdf("~/research/brain/results/supplement/cluster_deg_diff_enrich_cap_top_sig.pdf", width = 10, height = 9)
+all_go_sig_top_p2 = all_go_sig_top_p
+all_go_sig_top_p2$neg_log_p[which(all_go_sig_top_p2$neg_log_p >= min(all_go_sig_top$neg_log_p))] = NA
+print(ggplot(all_go_sig_top_p2, aes(x = new_cluster, y = Description_level, fill = neg_log_p)) + geom_tile() + scale_fill_viridis_c(name = expression("-"*Log["10"]*"(p)"), na.value = "#FDE725") + coord_fixed() + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, color = convert15$col, size = 10), axis.text.y = element_text(color = all_go_sig_top$col[which(! duplicated(all_go_sig_top$Description_level))])))
+dev.off()
+
+# Boxplot of -log10(Diff Enrich P)
+all_go_sig_top_p$isSig = all_go_sig_top_p$Cluster_ID %in% all_go_sig_top$Cluster_ID
+ggplot(all_go_sig_top_p, aes(x = neg_log_p, y = Description_level)) + geom_boxplot(outlier.shape = NA) + geom_point(aes(color = new_cluster, size = isSig)) + theme_bw() + scale_size_manual(values = c(1, 3)) + scale_color_manual(values = convert15$col) + scale_x_continuous(expand = c(0,0.1)) + xlab(expression("-"*Log["10"]*"(p)")) + ylab("") + theme(axis.text.y = element_text(color = all_go_sig_top$col[which(! duplicated(all_go_sig_top$Description_level))]))
+
+# all_go$bh_sig = all_go$bh < 0.05
+# for (level_cur in 2:13) {
+#   go_cur = all_go[which(all_go$level == level_cur),]
+#   
+#   # Loose
+#   go_cur$bh = p.adjust(go_cur$p, method = "BH")
+#   go_cur$bh_sig = go_cur$bh < 0.05
+#   
+#   go_cur_good_categories = aggregate(bh_sig ~ Description, go_cur, sum)
+#   go_cur_good_categories = go_cur_good_categories$Description[which(go_cur_good_categories$bh_sig > 0)]
+#   go_cur = go_cur[which(go_cur$Description %in% go_cur_good_categories),]
+#   png(paste0("~/research/brain/results/go/dif_enrich_loose_53/", level_cur, ".png"), width = 1000, height = 1000, res = 90)
+#   print(ggplot(go_cur, aes(x = Description, y = new_cluster, fill = bh_sig)) + geom_tile() + scale_fill_viridis_d() + ggtitle(paste0("Significantly Differentially Enriched MF Categories by BH at Level ", level_cur)) + xlab("Category") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + coord_fixed())
+#   dev.off()
+# }
 
 # Top Hits
 # top_go_15 = read.csv("~/research/brain/data/15cluster_enrichGO_compareCluster_MF_042021.csv", stringsAsFactors = F)
@@ -4516,13 +4566,8 @@ ggplot(clown_meta_agr, aes(x = seurat_clusters, y = nCount_RNA, fill = sex, colo
 #*******************************************************************************
 # Brianna Markers ==============================================================
 #*******************************************************************************
-brianna53 = xlsx::read.xlsx("~/Downloads/53heatmapmarkerlist_george6.xlsx", sheetIndex = 1, startRow = 1)
-colnames(brianna53)[1] = "Category"
-colnames(brianna53)[4] = "Rank.Within"
-colnames(brianna53)[5] = "Rank.Overall"
-brianna53[, 6:ncol(brianna53)] = NULL
-brianna15 = brianna53
-# brianna15 = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george1.xlsx", sheetIndex = 1, startRow = 1)
+# *** BRIANNA 15 ***
+brianna15 = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george1.xlsx", sheetIndex = 1, startRow = 1)
 colnames(brianna15)[which(colnames(brianna15) == "Gene.")] = "Gene"
 brianna15$Category = str_replace_all(trimws(brianna15$Category, which = "both"), "[^[:alnum:]\\s]", "")
 brianna15$Category[which( startsWith(brianna15$Category, "Neuroanat") )]  = "NeuroanatNeurodev TF"
@@ -4530,59 +4575,115 @@ brianna15$LOCID = str_replace_all(trimws(brianna15$LOCID, which = "both"), "[^[:
 brianna15$gene_name = gtf$gene_name[match(brianna15$LOCID, gtf$loc)]
 brianna15$col = plyr::revalue(brianna15$Category, replace = c("Neuromodulator" = "#00E7EC", "Neuromodulatory Receptor" = "#FDD615", "NeuroanatNeurodev TF" = "#FE04FF"))
 
-drd1_idx = which(brianna15$Gene == "drd1")
-nr4_idx = which(brianna15$Gene == "nr4a2b (nurr1)")
-neurod1_idx = which(brianna15$Gene == "neurod1")
-neurod6b_idx = which(brianna15$Gene == "neurod6b")
-cck_idx = which(brianna15$Gene == "cck")
-nos1_idx = which(brianna15$Gene == "nos1")
-
-brianna15_idx = c(1:(neurod6b_idx-1), neurod1_idx, neurod6b_idx, (neurod1_idx+1):(cck_idx-1), nos1_idx, cck_idx, (cck_idx+1):(drd1_idx-1), (drd1_idx+1):(nr4_idx-1), drd1_idx, nr4_idx:nrow(brianna15))
-
-brianna15[which( grepl("LOC101487266", brianna15$LOCID) ), c("LOCID", "Gene", "gene_name")] = c("LOC101487266", "nr4a2b (nurr1)", "LOC101487266")
-
-# all_combos = expand.grid(unique(brianna15$gene_name), convert15$new.full)
-all_combos = expand.grid(unique(brianna15$gene_name), convert53$new)
+# Create a dataframe that has all the combos of clusters and genes
+all_combos = expand.grid(unique(brianna15$gene_name), convert15$new.full)
 colnames(all_combos) = c("gene_name", "cluster")
 all_combos[, colnames(brianna15)[which(! colnames(brianna15) %in% colnames(all_combos))]] = brianna15[match(all_combos$gene_name, brianna15$gene_name), colnames(brianna15)[which(! colnames(brianna15) %in% colnames(all_combos))]] 
 all_combos[, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = 0
 
-# for (cluster in convert15$new.full) {
-for (cluster in convert53$new) {
+# Find the expression levels of Brianna's genes
+for (cluster in convert15$new.full) {
   print(cluster)
   this_idx = which(all_combos$cluster == cluster)
-  # this_cluster_cells = colnames(bb)[which(bb$seuratclusters15 == convert15$old[which(convert15$new.full == cluster)])]
-  this_cluster_cells = colnames(bb)[which(bb$seuratclusters53 == convert53$old[which(convert53$new == cluster)])]
+  this_cluster_cells = colnames(bb)[which(bb$seuratclusters15 == convert15$old[which(convert15$new.full == cluster)])]
   clust_pct_fc = pct_dif_avg_logFC(bb, this_cluster_cells, colnames(bb)[which(! colnames(bb) %in% this_cluster_cells)], features = brianna15$gene_name)
   all_combos[this_idx, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = clust_pct_fc[match(all_combos$gene_name[this_idx], clust_pct_fc$genes), c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")]
 }
 
+# Transparancy theme
 all_combos$col4 = "gray98"
 all_combos$col4[which(all_combos$pct.1 >= 5 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 5 )],  "70")
 all_combos$col4[which(all_combos$pct.1 >= 10 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 10 )], "80")
 all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "90")
 all_combos$col4[which(all_combos$pct.1 >= 30 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 30 )], "ff")
 
-# all_combos$col4 = "gray98"
-# all_combos$col4[which(all_combos$pct.1 >= 10 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 10 )],  "40")
-# all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "60")
-# all_combos$col4[which(all_combos$pct.1 >= 40 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 40 )], "80")
-# all_combos$col4[which(all_combos$pct.1 >= 60 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 60 )], "ff")
+# Plot the matrix
+all_combos15 = all_combos
+brianna_order = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george2.xlsx", sheetIndex = 1, startRow = 1)
+all_combos$Gene = factor(all_combos$Gene, levels = brianna_order$Gene)
+all_combos$cluster = factor(all_combos$cluster, levels = convert15$new.full[order(as.numeric(convert15$new.num), decreasing = T)])
+pdf("~/research/brain/results/bri15_markers_heatmap_8.pdf", height = 3.5, width = 12)
+ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
 
-# brianna_order = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george2.xlsx", sheetIndex = 1, startRow = 1)
-# all_combos$Gene = factor(all_combos$Gene, levels = brianna_order$Gene)
-# pdf("~/research/brain/results/bri15_markers_heatmap_8.pdf", height = 3.5, width = 12)
-# ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
-# dev.off()
+# *** BRIANNA 53 ***
+brianna53 = xlsx::read.xlsx("~/Downloads/53heatmapmarkerlist_george6.xlsx", sheetIndex = 1, startRow = 1)
+colnames(brianna53)[1] = "Category"
+colnames(brianna53)[4] = "Rank.Within"
+colnames(brianna53)[5] = "Rank.Overall"
+brianna53[, 6:ncol(brianna53)] = NULL
+colnames(brianna53)[which(colnames(brianna53) == "Gene.")] = "Gene"
+brianna53$Category = str_replace_all(trimws(brianna53$Category, which = "both"), "[^[:alnum:]\\s]", "")
+brianna53$Category[which( startsWith(brianna53$Category, "Neuroanat") )]  = "NeuroanatNeurodev TF"
+brianna53$LOCID = str_replace_all(trimws(brianna53$LOCID, which = "both"), "[^[:alnum:]\\s]", "")
+brianna53$gene_name = gtf$gene_name[match(brianna53$LOCID, gtf$loc)]
+brianna53$col = plyr::revalue(brianna53$Category, replace = c("Neuromodulator" = "#00E7EC", "Neuromodulatory Receptor" = "#FDD615", "NeuroanatNeurodev TF" = "#FE04FF"))
 
+# Last minute changes the gene order of just a few genes
+drd1_idx = which(brianna53$Gene == "drd1")
+nr4_idx = which(brianna53$Gene == "nr4a2b (nurr1)")
+neurod1_idx = which(brianna53$Gene == "neurod1")
+neurod6b_idx = which(brianna53$Gene == "neurod6b")
+cck_idx = which(brianna53$Gene == "cck")
+nos1_idx = which(brianna53$Gene == "nos1")
+brianna53_idx = c(1:(neurod6b_idx-1), neurod1_idx, neurod6b_idx, (neurod1_idx+1):(cck_idx-1), nos1_idx, cck_idx, (cck_idx+1):(drd1_idx-1), (drd1_idx+1):(nr4_idx-1), drd1_idx, nr4_idx:nrow(brianna53))
+
+brianna53[which( grepl("LOC101487266", brianna53$LOCID) ), c("LOCID", "Gene", "gene_name")] = c("LOC101487266", "nr4a2b (nurr1)", "LOC101487266")
+
+# Create a dataframe that has all the combos of clusters and genes
+all_combos = expand.grid(unique(brianna53$gene_name), convert53$new)
+colnames(all_combos) = c("gene_name", "cluster")
+all_combos[, colnames(brianna53)[which(! colnames(brianna53) %in% colnames(all_combos))]] = brianna53[match(all_combos$gene_name, brianna53$gene_name), colnames(brianna53)[which(! colnames(brianna53) %in% colnames(all_combos))]] 
+all_combos[, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = 0
+
+# Find the expression levels of Brianna's genes
+for (cluster in convert53$new) {
+  print(cluster)
+  this_idx = which(all_combos$cluster == cluster)
+  # this_cluster_cells = colnames(bb)[which(bb$seuratclusters15 == convert15$old[which(convert15$new.full == cluster)])]
+  this_cluster_cells = colnames(bb)[which(bb$seuratclusters53 == convert53$old[which(convert53$new == cluster)])]
+  clust_pct_fc = pct_dif_avg_logFC(bb, this_cluster_cells, colnames(bb)[which(! colnames(bb) %in% this_cluster_cells)], features = brianna53$gene_name)
+  all_combos[this_idx, c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")] = clust_pct_fc[match(all_combos$gene_name[this_idx], clust_pct_fc$genes), c("avg_logFC", "pct.1", "pct.2", "pct_dif", "num.1", "num.2")]
+}
+
+# Transparancy theme
+all_combos$col4 = "gray98"
+all_combos$col4[which(all_combos$pct.1 >= 5 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 5 )],  "70")
+all_combos$col4[which(all_combos$pct.1 >= 10 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 10 )], "80")
+all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "90")
+all_combos$col4[which(all_combos$pct.1 >= 30 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 30 )], "ff")
+
+# Plot the matrix
 all_combos$cluster = factor(all_combos$cluster, levels = rev(unique(convert53$new)))
-all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene[brianna15_idx]))
+all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene[brianna53_idx]))
 test = acast(Gene ~ cluster, data = all_combos, value.var = 'pct.1')
 pheatmap::pheatmap(test)
 pdf("~/research/brain/results/bri53_markers_heatmap14.pdf", height = 10, width = 12)
 ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
+all_combos53 = all_combos
 
+#*** Brianna All ***
+all_combos15$Rank.Within = 1:nrow(all_combos15)
+all_combos15$level = "15"
+all_combos53$level = "53"
+ball_common_genes = brianna15$LOCID[which(brianna15$LOCID %in% brianna53$LOCID)]
+ball = rbind(all_combos15[which( all_combos15$LOCID %in% ball_common_genes ),], all_combos53[which( all_combos53$LOCID %in% ball_common_genes ),])
+ball$Gene[which(ball$LOCID == "LOC101464700")] = "emx3 (emx1)"
+ball$Gene = factor(ball$Gene, levels = unique(brianna53$Gene[brianna53_idx]))
+ball$cluster = factor(ball$cluster, levels = rev(convert_all$cluster))
+pdf("~/research/brain/results/bri_all_markers_heatmap.pdf", height = 12, width = 12)
+ggplot(ball, aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(size = ifelse(rev(convert_all$level) == "primary", 10, 8), face = ifelse(rev(convert_all$level) == "primary", "bold", "plain"), color = rev(convert_all$color))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
+
+ball.vln = unique(brianna15[,c("LOCID", "Gene", "gene_name")])
+# ball.vln = unique(all_combos15$Gene[which(! is.na(all_combos15$Gene) ),c("LOCID", "Gene")])
+ball.vln$Gene = factor(ball.vln$Gene, levels = brianna_order$Gene)
+pdf("~/research/brain/results/supplement/vlnplot_bri.pdf", height = 17, width = 8)
+StackedVlnPlot(obj = bb, features = ball.vln$gene_name, xcols = convert15$col, sec.axis.names = ball.vln$Gene )
+dev.off()
+
+# Read in the GTF (necessary for converting LOC to NCBI gene name)
 gtf = read.delim("~/research/all_research/GCF_000238955.4_M_zebra_UMD2a_genomic.gtf", header = F)
 gtf = gtf[which(gtf$V3 == "gene"),]
 # gtf = gtf[5:nrow(gtf),]
@@ -5707,6 +5808,10 @@ ggplot(tj.deg, aes(x = isSig, y = neg_log_bon, color = as.numeric(isSig))) + geo
 bb15$all_metric_tmp = bb15$pct_dif * bb15$avg_logFC * log(bb15$num.cells)
 cor(bb15$neg_log_bon[which(is.finite(bb15$all_metric_tmp))], bb15$all_metric_tmp[which(is.finite(bb15$all_metric_tmp))])
 
+testdf = rbind(data.frame(value = p_df15[,172+1], level = "15"), data.frame(value = p_df53[,213+1], level = "53"))
+ggplot(testdf, aes(x = value, color = level, fill = level)) + geom_histogram(alpha = 0.25) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) + theme_bw()
+10000 - length(which(testdf$value[which(testdf$level == "15")] > 0.73955740316691))
+10000 - length(which(testdf$value[which(testdf$level == "53")] > 0.754682436447482))
 
 # bvc = read.delim("C:/Users/miles/Downloads/brain/results/bb/sim_bhve_v_ctrl.tsv")
 bb15 = read.csv("C:/Users/miles/Downloads/brain/results/bb/bb_all_cluster_15_degs.csv")
@@ -5898,14 +6003,14 @@ ieg_sum$level_old = paste0(ieg_sum$level, "_", ieg_sum$cluster)
 ieg_sum$level_old_gp = paste0(ieg_sum$level_old, "_", ieg_sum$gene_pop)
 ieg_sum$cat_level_old_gp = paste0(ieg_sum$cat, "_", ieg_sum$level_old_gp)
 
-convert_all = data.frame(cluster = c(convert15$new.full, convert53$new), color = c(convert15$col, convert53$col), old = c(convert15$old, convert53$old), level = c(rep("primary", nrow(convert15)), rep("secondary", nrow(convert53))))
-# convert_all = convert_all[which(! duplicated(convert_all$cluster) ),]
+convert_all = data.frame(cluster = c(convert15$new.full, convert53$new), color = c(convert15$col, convert53$col), old = c(convert15$old, convert53$old))
+convert_all = convert_all[which(! duplicated(convert_all$cluster) ),]
 convert_all[, c("new.id", "new.gaba")]    = colsplit(convert_all$cluster, "_", names = c("new.id", "new.gaba"))
 convert_all[, c("new.parent", "new.sub")] = colsplit(convert_all$new.id, "\\.", names = c("new.id", "new.gaba"))
 convert_all$new.sub[which(is.na(convert_all$new.sub))] = 0
 convert_all[which(convert_all$cluster == "8-9_Glut"), c("new.parent", "new.sub")] = c(8, 12) # Assign a parent and subcluster to the 8-9_Glut special case
 convert_all = convert_all[order(as.numeric(convert_all$new.parent), as.numeric(convert_all$new.sub), decreasing = F),]
-# convert_all$level = plyr::revalue(as.character(convert_all$new.sub == 0), replace = c("TRUE" = "primary", "FALSE" = "secondary"))
+convert_all$level = plyr::revalue(as.character(convert_all$new.sub == 0), replace = c("TRUE" = "primary", "FALSE" = "secondary"))
 convert_all = rbind(data.frame(cluster = "All", color = viridis(1), new.id = 0, new.gaba = "all", new.parent = 0, new.sub = 0, level = "all", old = "All"), convert_all)
 convert_all$level_old = paste0(convert_all$level, "_", convert_all$old)
 
@@ -6147,6 +6252,144 @@ for (i in 1:nrow(cz)) {
     cz$counts_sign_pair = length(which(counts_pair_sign_vector > 0))
   }
 }
+
+
+# 9 Plot DEGs =====================================================
+bb15 = read.csv("C:/Users/miles/Downloads/bb15_deg_all_split_by_up_or_down_121621.csv")
+bb53 = read.csv("C:/Users/miles/Downloads/bb53_deg_all_split_by_up_or_down_121621.csv")
+bb15$sig_any = bb15$sig_bower_behavior == 1 | bb15$sig_gsi == 1 | bb15$sig_log_spawn_events == 1
+bb53$sig_any = bb53$sig_bower_behavior == 1 | bb53$sig_gsi == 1 | bb53$sig_log_spawn_events == 1
+bb15 = bb15[which(bb15$sig_any & bb15$mzebra %in% rownames(bb)),]
+bb53 = bb53[which(bb53$sig_any & bb53$mzebra %in% rownames(bb)),]
+# all_bdeg = unique(c(bb15$mzebra[which(bb15$sig_bower_behavior == 1)], bb53$mzebra[which(bb53$sig_bower_behavior == 1)]))
+# all_gdeg = unique(c(bb15$mzebra[which(bb15$sig_gsi == 1)], bb53$mzebra[which(bb53$sig_gsi == 1)]))
+# all_qdeg = unique(c(bb15$mzebra[which(bb15$sig_log_spawn_events == 1)], bb53$mzebra[which(bb53$sig_log_spawn_events == 1)]))
+# all_deg = data.frame(table(c(all_bdeg, all_gdeg, all_qdeg)))
+# all_deg = as.vector(all_deg$Var1[which(all_deg$Freq == 3)])
+all_deg = read.csv("C:/Users/miles/Downloads/overlap_of_bDEGs_qDEGs_gDEGs_012021.csv")[,5]
+ere = read.csv("C:/Users/miles/Downloads/ere_class.csv")[,2]
+my.pt.size = 0.6
+p_list = list()
+for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
+  print(cat)
+  if (cat == "bower_behavior") { cat_mod = "bower_activity_index" } else { cat_mod = cat }
+  this_bb15 = bb15[which(bb15[, paste0("sig_", cat)] == 1),]
+  this_bb53 = bb53[which(bb53[, paste0("sig_", cat)] == 1),]
+  # this_bb15_up = bb15[which(bb15[, cat_mod] > 0)]
+  # this_bb15_down = bb15[which(bb15[, cat_mod] < 0)]
+  score_df = data.frame(cell = colnames(bb), UMAP_1 = bb@reductions$umap@cell.embeddings[,"UMAP_1"], UMAP_2 = bb@reductions$umap@cell.embeddings[,"UMAP_2"], up_score = 0, down_score = 0, all_score = 0, ovlp_score = 0, ere_score = 0)
+  for (i in 1:nrow(this_bb15)) {
+    this_gene = this_bb15$mzebra[i]
+    this_cluster = this_bb15$cluster[i]
+    isUp = this_bb15[i, cat_mod] > 0
+    this_score = as.numeric(bb@assays$RNA@counts[this_gene,] > 0)
+    score_df$all_score[which(bb$seuratclusters15 == this_cluster)] = score_df$all_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)]
+    if (isUp) { score_df$up_score[which(bb$seuratclusters15 == this_cluster)] = score_df$up_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters15 == this_cluster)] = score_df$down_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
+    if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
+    if (this_gene %in% ere) { score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
+  }
+  for (i in 1:nrow(this_bb53)) {
+    this_gene = this_bb53$mzebra[i]
+    this_cluster = this_bb53$cluster[i]
+    isUp = this_bb53[i, cat_mod] > 0
+    this_score = as.numeric(bb@assays$RNA@counts[this_gene,] > 0)
+    score_df$all_score[which(bb$seuratclusters53 == this_cluster)] = score_df$all_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)]
+    if (isUp) { score_df$up_score[which(bb$seuratclusters53 == this_cluster)] = score_df$up_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters53 == this_cluster)] = score_df$down_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
+    if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
+    if (this_gene %in% ere) { score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
+  }
+  score_df = score_df[order(score_df$up_score, decreasing = F),]
+  # score_df$up_score[which(score_df$up_score == 0)] = NA
+  p_list[[paste0(cat, "_", "up")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = up_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  score_df = score_df[order(score_df$down_score, decreasing = F),]
+  # score_df$down_score[which(score_df$down_score == 0)] = NA
+  p_list[[paste0(cat, "_", "down")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = all_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  score_df = score_df[order(score_df$all_score, decreasing = F),]
+  # score_df$all_score[which(score_df$all_score == 0)] = NA
+  p_list[[paste0(cat, "_", "all")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = all_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  score_df = score_df[order(score_df$ovlp_score, decreasing = F),]
+  # score_df$ovlp_score[which(score_df$ovlp_score == 0)] = NA
+  p_list[[paste0(cat, "_", "ovlp")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = ovlp_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  p_list[[paste0(cat, "_", "ere")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = ere_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+}
+
+pdf("C:/Users/miles/Downloads/zack_15_deg_plot.pdf", width = 6*5, height = 6*3)
+p = plot_grid(plotlist=p_list, ncol = 5)
+print(p)
+dev.off()
+
+png("C:/Users/miles/Downloads/zack_15_deg_plot.png", width = 350*6, height = 350*3)
+p = plot_grid(plotlist=p_list, ncol = 5)
+print(p)
+dev.off()
+
+# print(ggplot(pdf, aes(x = time, y = value)) + geom_point(data = pdf[which(!pdf$isMean),], size = 2.5, alpha = 0.2, aes(color = variable)) + geom_point(data = pdf[which(pdf$isMean),], size = 2.5, color = "black") + geom_smooth(data = pdf[which(pdf$isMean),], method = "loess", se = F, color = "gray40") + theme_classic() + ylab("R2") + xlab("Time (min to flash freeze)") + ggtitle(paste0("bDEG Hits Up at ", i_clean, ". Depth_adj R2 w/ Adjusted")) + scale_x_continuous(breaks = rev(unique(pdf$time)), labels = rev(unique(pdf$time))) + NoLegend())
+
+sub_meta = aggregate(depth_5_35 + depth_15_45 + depth_25_55 + depth_35_65 + depth_45_75 + depth_55_85 + depth_65_95 + build_5_35 + build_15_45 + build_25_55 + build_35_65 + build_45_75 + build_55_85 + build_65_95 ~ subsample, bb@meta.data, mean)
+mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")
+
+#***************************************************
+# Neurogen Summary Figure ==========================
+#***************************************************
+neurogen53_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc.csv")
+neurogen53_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc.csv")
+neurogen53_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc.csv")
+neurogen15_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
+neurogen15_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
+neurogen15_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
+neurogen53_b$sig_b = neurogen53_b$sig_cond == 3 & neurogen53_b$hmp_cond < 0.05
+neurogen53_b$sig_g = neurogen53_g$sig_gsi == 5 & neurogen53_g$hmp < 0.05
+neurogen53_b$sig_s = neurogen53_s$sig_log_spawn_events == 5 & neurogen53_s$hmp < 0.05
+neurogen15_b$sig_b = neurogen15_b$sig_cond == 3 & neurogen15_b$hmp_cond < 0.05
+neurogen15_b$sig_g = neurogen15_g$sig_gsi == 5 & neurogen15_g$hmp < 0.05
+neurogen15_b$sig_s = neurogen15_s$sig_log_spawn_events == 5 & neurogen15_s$hmp < 0.05
+
+neurogen15_b$level_old = paste0("primary_", neurogen15_b$cluster)
+neurogen15_b$cluster_all = convert_all$cluster[match(neurogen15_b$level_old, convert_all$level_old)]
+neurogen53_b$level_old = paste0("secondary_", neurogen53_b$cluster)
+neurogen53_b$cluster_all = convert_all$cluster[match(neurogen53_b$level_old, convert_all$level_old)]
+
+neurogen53_b$pcol = unlist(lapply(1:nrow(neurogen53_b), function(x) {
+  this.col = "white"
+  if ( neurogen53_b[x,"sig_b"] ) { this.col = "#FDE725" }
+  if ( neurogen53_b[x,"sig_g"] ) { this.col = "#2AB07F" }
+  if ( neurogen53_b[x,"sig_s"] ) { this.col = "#433E85" }
+  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_g"] ) { this.col = "#94CC52" }
+  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_s"] ) { this.col = "#A09355" }
+  if ( neurogen53_b[x,"sig_g"] & neurogen53_b[x,"sig_s"] ) { this.col = "#377782" }
+  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_g"] & neurogen53_b[x,"sig_s"] ) { this.col = "#799c63" }
+  return(this.col)
+}))
+neurogen15_b$pcol = unlist(lapply(1:nrow(neurogen15_b), function(x) {
+  this.col = "white"
+  if ( neurogen15_b[x,"sig_b"] ) { this.col = "#FDE725" }
+  if ( neurogen15_b[x,"sig_g"] ) { this.col = "#2AB07F" }
+  if ( neurogen15_b[x,"sig_s"] ) { this.col = "#433E85" }
+  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_g"] ) { this.col = "#94CC52" }
+  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_s"] ) { this.col = "#A09355" }
+  if ( neurogen15_b[x,"sig_g"] & neurogen15_b[x,"sig_s"] ) { this.col = "#377782" }
+  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_g"] & neurogen15_b[x,"sig_s"] ) { this.col = "#799c63" }
+  return(this.col)
+}))
+
+cols_to_keep = c("pcol", "level_old", "cluster_all", "mzebra", "sig_b", "sig_g", "sig_s")
+neurogen_all = rbind(neurogen15_b[,cols_to_keep], neurogen53_b[,cols_to_keep])
+neurogen_all = neurogen_all[which(neurogen_all$pcol != "white"),]
+
+all <- neurogen_all %>% expand(cluster_all, mzebra)
+all$cluster_all_mzebra = paste0(all$cluster_all, "_", all$mzebra)
+all$pcol = "white"
+match_idx = which(all$cluster_all_mzebra %in% paste0(neurogen_all$cluster_all, "_", neurogen_all$mzebra))
+all[match_idx,cols_to_keep] = neurogen_all[match(all$cluster_all_mzebra[match_idx], paste0(neurogen_all$cluster_all, "_", neurogen_all$mzebra)), cols_to_keep]
+
+order_combos = data.frame(table(all$mzebra[which(all$pcol != "white")]))
+order_combos$border = data.frame(table(all$mzebra[which( all$sig_b )]))[,2]
+order_combos$gorder = data.frame(table(all$mzebra[which( all$sig_g )]))[,2]
+order_combos$qorder = data.frame(table(all$mzebra[which( all$sig_s )]))[,2]
+order_combos = order_combos[order(order_combos$qorder, order_combos$gorder, order_combos$border, decreasing = T),]
+all$mzebra = factor(all$mzebra, levels = order_combos$Var1)
+
+ggplot(all, aes(x = mzebra, y = cluster_all, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color), face=ifelse(rev(convert_all$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 
 #**********************************************************************
 # Temporal Data =======================================================
@@ -6475,7 +6718,6 @@ bb53 = bb53[which(bb53$sig_any & bb53$mzebra %in% rownames(bb)),]
 # all_deg = data.frame(table(c(all_bdeg, all_gdeg, all_qdeg)))
 # all_deg = as.vector(all_deg$Var1[which(all_deg$Freq == 3)])
 all_deg = read.csv("C:/Users/miles/Downloads/overlap_of_bDEGs_qDEGs_gDEGs_012021.csv")[,5]
-ere = read.csv("C:/Users/miles/Downloads/ere_class.csv")[,2]
 my.pt.size = 0.6
 p_list = list()
 for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
@@ -6485,7 +6727,7 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
   this_bb53 = bb53[which(bb53[, paste0("sig_", cat)] == 1),]
   # this_bb15_up = bb15[which(bb15[, cat_mod] > 0)]
   # this_bb15_down = bb15[which(bb15[, cat_mod] < 0)]
-  score_df = data.frame(cell = colnames(bb), UMAP_1 = bb@reductions$umap@cell.embeddings[,"UMAP_1"], UMAP_2 = bb@reductions$umap@cell.embeddings[,"UMAP_2"], up_score = 0, down_score = 0, all_score = 0, ovlp_score = 0, ere_score = 0)
+  score_df = data.frame(cell = colnames(bb), UMAP_1 = bb@reductions$umap@cell.embeddings[,"UMAP_1"], UMAP_2 = bb@reductions$umap@cell.embeddings[,"UMAP_2"], up_score = 0, down_score = 0, all_score = 0, ovlp_score = 0)
   for (i in 1:nrow(this_bb15)) {
     this_gene = this_bb15$mzebra[i]
     this_cluster = this_bb15$cluster[i]
@@ -6494,7 +6736,6 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
     score_df$all_score[which(bb$seuratclusters15 == this_cluster)] = score_df$all_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)]
     if (isUp) { score_df$up_score[which(bb$seuratclusters15 == this_cluster)] = score_df$up_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters15 == this_cluster)] = score_df$down_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
     if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
-    if (this_gene %in% ere) { score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
   }
   for (i in 1:nrow(this_bb53)) {
     this_gene = this_bb53$mzebra[i]
@@ -6504,7 +6745,6 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
     score_df$all_score[which(bb$seuratclusters53 == this_cluster)] = score_df$all_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)]
     if (isUp) { score_df$up_score[which(bb$seuratclusters53 == this_cluster)] = score_df$up_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters53 == this_cluster)] = score_df$down_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
     if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
-    if (this_gene %in% ere) { score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
   }
   score_df = score_df[order(score_df$up_score, decreasing = F),]
   # score_df$up_score[which(score_df$up_score == 0)] = NA
@@ -6518,16 +6758,15 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
   score_df = score_df[order(score_df$ovlp_score, decreasing = F),]
   # score_df$ovlp_score[which(score_df$ovlp_score == 0)] = NA
   p_list[[paste0(cat, "_", "ovlp")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = ovlp_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
-  p_list[[paste0(cat, "_", "ere")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = ere_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
 }
 
-pdf("C:/Users/miles/Downloads/zack_15_deg_plot.pdf", width = 6*5, height = 6*3)
-p = plot_grid(plotlist=p_list, ncol = 5)
+pdf("C:/Users/miles/Downloads/zack_9_deg_plot.pdf", width = 6*4, height = 6*3)
+p = plot_grid(plotlist=p_list, ncol = 4)
 print(p)
 dev.off()
 
-png("C:/Users/miles/Downloads/zack_15_deg_plot.png", width = 350*6, height = 350*3)
-p = plot_grid(plotlist=p_list, ncol = 5)
+png("C:/Users/miles/Downloads/zack_9_deg_plot.png", width = 1300, height = 1000)
+p = plot_grid(plotlist=p_list, ncol = 4)
 print(p)
 dev.off()
 
@@ -6536,70 +6775,389 @@ dev.off()
 sub_meta = aggregate(depth_5_35 + depth_15_45 + depth_25_55 + depth_35_65 + depth_45_75 + depth_55_85 + depth_65_95 + build_5_35 + build_15_45 + build_25_55 + build_35_65 + build_45_75 + build_55_85 + build_65_95 ~ subsample, bb@meta.data, mean)
 mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")
 
-#***************************************************
-# Neurogen Summary Figure ==========================
-#***************************************************
-neurogen53_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc.csv")
-neurogen53_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc.csv")
-neurogen53_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc.csv")
-neurogen15_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
-neurogen15_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
-neurogen15_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
-neurogen53_b$sig_b = neurogen53_b$sig_cond == 3 & neurogen53_b$hmp_cond < 0.05
-neurogen53_b$sig_g = neurogen53_g$sig_gsi == 5 & neurogen53_g$hmp < 0.05
-neurogen53_b$sig_s = neurogen53_s$sig_log_spawn_events == 5 & neurogen53_s$hmp < 0.05
-neurogen15_b$sig_b = neurogen15_b$sig_cond == 3 & neurogen15_b$hmp_cond < 0.05
-neurogen15_b$sig_g = neurogen15_g$sig_gsi == 5 & neurogen15_g$hmp < 0.05
-neurogen15_b$sig_s = neurogen15_s$sig_log_spawn_events == 5 & neurogen15_s$hmp < 0.05
+perm_sub = lapply(unique(bb$subsample), function(x) sample(1:38, length(which(bb$subsample == x)), replace = T))
+names(perm_sub) = unique(bb$subsample)
+bb$perm = sapply(bb$subsample, function(x) { new = perm_sub[[x]][length(perm_sub[[x]])]; perm_sub[[x]] <<- perm_sub[[x]][-length(perm_sub[[x]])]; return(new); })
 
-neurogen15_b$level_old = paste0("primary_", neurogen15_b$cluster)
-neurogen15_b$cluster_all = convert_all$cluster[match(neurogen15_b$level_old, convert_all$level_old)]
-neurogen53_b$level_old = paste0("secondary_", neurogen53_b$cluster)
-neurogen53_b$cluster_all = convert_all$cluster[match(neurogen53_b$level_old, convert_all$level_old)]
+perm_sub = lapply(unique(bb$subsample), function(x) { num_b = sample(9:10, 1); sample(1:38, length(which(bb$subsample == x)), replace = T); } )
 
-neurogen53_b$pcol = unlist(lapply(1:nrow(neurogen53_b), function(x) {
-  this.col = "white"
-  if ( neurogen53_b[x,"sig_b"] ) { this.col = "#FDE725" }
-  if ( neurogen53_b[x,"sig_g"] ) { this.col = "#2AB07F" }
-  if ( neurogen53_b[x,"sig_s"] ) { this.col = "#433E85" }
-  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_g"] ) { this.col = "#94CC52" }
-  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_s"] ) { this.col = "#A09355" }
-  if ( neurogen53_b[x,"sig_g"] & neurogen53_b[x,"sig_s"] ) { this.col = "#377782" }
-  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_g"] & neurogen53_b[x,"sig_s"] ) { this.col = "#799c63" }
-  return(this.col)
-}))
-neurogen15_b$pcol = unlist(lapply(1:nrow(neurogen15_b), function(x) {
-  this.col = "white"
-  if ( neurogen15_b[x,"sig_b"] ) { this.col = "#FDE725" }
-  if ( neurogen15_b[x,"sig_g"] ) { this.col = "#2AB07F" }
-  if ( neurogen15_b[x,"sig_s"] ) { this.col = "#433E85" }
-  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_g"] ) { this.col = "#94CC52" }
-  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_s"] ) { this.col = "#A09355" }
-  if ( neurogen15_b[x,"sig_g"] & neurogen15_b[x,"sig_s"] ) { this.col = "#377782" }
-  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_g"] & neurogen15_b[x,"sig_s"] ) { this.col = "#799c63" }
-  return(this.col)
-}))
+bb$perm1 = as.numeric(plyr::revalue(bb$subsample, replace = setNames(sample(1:38, 38), unique(bb$subsample))))
+bb$perm2 = permSubsamples(1) # the number you enter in the function is the seed for randomness
 
-cols_to_keep = c("pcol", "level_old", "cluster_all", "mzebra", "sig_b", "sig_g", "sig_s")
-neurogen_all = rbind(neurogen15_b[,cols_to_keep], neurogen53_b[,cols_to_keep])
-neurogen_all = neurogen_all[which(neurogen_all$pcol != "white"),]
+df = unique(bb@meta.data[, c("subsample", "perm1", "perm2")])
+rownames(df) = 1:38
+length(which( startsWith(df$subsample, "b") & df$perm1_b ))
+length(which( startsWith(df$subsample, "b") & df$perm2_b ))
 
-all <- neurogen_all %>% expand(cluster_all, mzebra)
-all$cluster_all_mzebra = paste0(all$cluster_all, "_", all$mzebra)
-all$pcol = "white"
-match_idx = which(all$cluster_all_mzebra %in% paste0(neurogen_all$cluster_all, "_", neurogen_all$mzebra))
-all[match_idx,cols_to_keep] = neurogen_all[match(all$cluster_all_mzebra[match_idx], paste0(neurogen_all$cluster_all, "_", neurogen_all$mzebra)), cols_to_keep]
+permSubsamples = function(x) {
+  set.seed(x)
+  isEven = x %% 2 == 0
+  if (isEven) { num1 = 10; } else { num1 = 9; }
+  num2 = 19 - num1
+  b_subs = 1:19
+  c_subs = 20:38
+  real_subs = as.vector(unique(bb$subsample))
+  b_subs_names = real_subs[1:19]
+  c_subs_names = real_subs[20:38]
+  new_b = c(sample(b_subs, num1), sample(c_subs, num2))
+  new_c = c(b_subs[which(! b_subs %in% new_b)], c_subs[which(! c_subs %in% new_b)])
+  my_replace = c(new_b, new_c)
+  names(my_replace) = c(sample(b_subs_names), sample(c_subs_names))
+  return(as.numeric(plyr::revalue(bb$subsample, my_replace)))
+}
 
-order_combos = data.frame(table(all$mzebra[which(all$pcol != "white")]))
-order_combos$border = data.frame(table(all$mzebra[which( all$sig_b )]))[,2]
-order_combos$gorder = data.frame(table(all$mzebra[which( all$sig_g )]))[,2]
-order_combos$qorder = data.frame(table(all$mzebra[which( all$sig_s )]))[,2]
-order_combos = order_combos[order(order_combos$qorder, order_combos$gorder, order_combos$border, decreasing = T),]
-all$mzebra = factor(all$mzebra, levels = order_combos$Var1)
+#*******************************************************************************
+# Supplement ===================================================================
+#*******************************************************************************
+subsample_df$pair.new = subsample_df$pair
+subsample_df$pair.new[1:19] = 1:19
+bsubdf = subsample_df[which( startsWith(subsample_df$subsample, "b") ),]
+csubdf = subsample_df[which( startsWith(subsample_df$subsample, "c") ),]
+subsample_df$pair.new[20:38] = bsubdf$pair.new[match(csubdf$pair, bsubdf$pair)]
+bb$pair.new = subsample_df$pair.new[match(bb$subsample, subsample_df$subsample)]
+bb$subsample.new = paste0( tolower(substr(bb$cond, 1, 1)), bb$pair.new  )
+bb$subsample.new = factor(bb$subsample.new, levels = unique(bb$subsample.new[order(bb$cond, rev(bb$sample), decreasing = T)]))
+my_pal = rainbow(19)
+my_pal = darken(my_pal, 0.15)
+show_col(my_pal)
+
+pdf("~/research/brain/results/supplement/ncountrna.pdf", width = 10, height = 4)
+# ggplot(bb@meta.data, aes(x = subsample, y = nCount_RNA, color = subsample)) + geom_boxplot(outlier.shape = NA) + geom_point(alpha = 0.05, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
+ggplot(bb@meta.data, aes(x = subsample.new, y = nCount_RNA, color = pair.new)) + geom_violin() + geom_boxplot(outlier.shape = NA, width=0.25) + geom_point(alpha = 0.025, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
+dev.off()
+
+pdf("~/research/brain/results/supplement/nfeaturerna.pdf", width = 10, height = 4)
+# ggplot(bb@meta.data, aes(x = subsample, y = nCount_RNA, color = subsample)) + geom_boxplot(outlier.shape = NA) + geom_point(alpha = 0.05, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
+ggplot(bb@meta.data, aes(x = subsample.new, y = nFeature_RNA, color = pair.new)) + geom_violin() + geom_boxplot(outlier.shape = NA, width=0.25) + geom_point(alpha = 0.025, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
+dev.off()
+
+pdf("~/research/brain/results/supplement/pctmt.pdf", width = 10, height = 4)
+# ggplot(bb@meta.data, aes(x = subsample, y = nCount_RNA, color = subsample)) + geom_boxplot(outlier.shape = NA) + geom_point(alpha = 0.05, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
+ggplot(bb@meta.data, aes(x = subsample.new, y = pct_mt, color = pair.new)) + geom_violin() + geom_boxplot(outlier.shape = NA, width=0.25) + geom_point(alpha = 0.025, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
+dev.off()
+
+# Reads (see line number 200)
+
+pdf("~/research/brain/results/supplement/reads_subsample.pdf", width = 10, height = 4)
+# ggplot(bb@meta.data, aes(x = subsample, y = nCount_RNA, color = subsample)) + geom_boxplot(outlier.shape = NA) + geom_point(alpha = 0.05, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
+ggplot(bb@meta.data, aes(x = subsample.new, y = reads, color = pair.new)) + geom_violin() + geom_boxplot(outlier.shape = NA, width=0.25) + geom_point(alpha = 0.01, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("") + ylab("Number of Reads")
+dev.off()
+
+# PCRC
+pcrc = read.csv("~/research/brain/data/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+convert15$new.full = str_replace(convert15$new.full, "Astro", "RGC")
+convert53$new = str_replace(convert53$new, "Astro", "RGC")
+Idents(bb) = factor(convert53$new[match(bb$seuratclusters53, convert53$old)], levels = convert53$new)
+real_res = markerExpPerCellPerClusterQuick(bb, pcrc)
+pdf("~/research/brain/results/pcrc2020_53_020922.pdf", width = 12, height = 5)
+real_res[[1]] + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ggtitle("") + ylab("Mean Normalized Expression of Castle-Divergent Genes") + xlab("") + ylab("")
+dev.off()
+
+Idents(bb) = factor(convert15$new.full[match(bb$seuratclusters15, convert15$old)], levels = convert15$new.full)
+real_res = markerExpPerCellPerClusterQuick(bb, pcrc, pt.alpha = 0.02)
+pdf("~/research/brain/results/pcrc2020_15_020922.pdf", width = 6, height = 5)
+real_res[[1]] + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 10)) + ggtitle("") + ylab("Mean Normalized Expression of Castle-Divergent Genes") + xlab("") + ylab("")
+dev.off()
+
+mat = bb@assays$RNA@counts[pcrc,]
+mat[which(mat>1)]=1
+bb$pcrc = colSums(mat)
+bb$pcrc.norm = bb$pcrc / bb$nFeature_RNA
+pdf("~/research/brain/results/pcrc2020_umap.pdf", width = 6, height = 6)
+print(FeaturePlot(bb, "pcrc", order = T, pt.size = 0.9)+ NoLegend() + ggtitle("") + scale_color_viridis_c()) 
+dev.off()
+
+pdf("~/research/brain/results/pcrc2020_norm_umap.pdf", width = 6, height = 6)
+print(FeaturePlot(bb, "pcrc.norm", order = T, pt.size = 0.9)+ NoLegend() + ggtitle("") + scale_color_viridis_c()) 
+dev.off()
+
+sum15 = data.frame(readxl::read_excel("~/Downloads/pcrc2020_enrichment.xlsx", sheet = "15 Summary"))
+sum53 = data.frame(readxl::read_excel("~/Downloads/pcrc2020_enrichment.xlsx", sheet = "53 Summary"))
+gp = data.frame(readxl::read_excel("~/Downloads/pcrc2020_enrichment.xlsx", sheet = "Gene Pop Summary"))
+gp15 = data.frame(readxl::read_excel("~/Downloads/pcrc2020_enrichment.xlsx", sheet = "Gene Pop By 15 Cluster Summary"))
+gp53 = data.frame(readxl::read_excel("~/Downloads/pcrc2020_enrichment.xlsx", sheet = "Gene Pop By 53 Cluster Summary"))
+
+sum15$level = "15"
+sum53$level = "53"
+gp15$level = "gp15"
+gp53$level = "gp53"
+
+sum15$new = convert15$new.full[match(sum15$cluster, convert15$old)]
+sum53$new = convert53$new[match(sum53$cluster, convert53$old)]
+
+sum.cluster = rbind(sum15[, c("cluster", "new", "d", "mag_pos", "p_perm")], sum53[, c("cluster", "new", "d", "mag_pos", "p_perm")])
+sum.cluster = sum.cluster[which(!duplicated(sum.cluster$new)),]
+sum.cluster$new = factor(sum.cluster$new, levels = convert_all$cluster)
+sum.cluster$neg_log_perm = -log10(sum.cluster$p_perm)
+sum.cluster$sig = sum.cluster$p_perm < 0.05
+sum.cluster$mag_pos = factor(sum.cluster$mag_pos, levels = c("negligible", "small", "medium", "large"))
+pdf("~/research/brain/results/pcrc_perm_and_d.pdf", width = 12, height = 5)
+ggplot(sum.cluster, aes(x = new, y = neg_log_perm, fill = mag_pos, color = sig)) + geom_bar(stat = "identity") + geom_hline(yintercept = -log10(0.05), color = "gray60", linetype = "dashed") + xlab("") + ylab(expression("-"*Log["10"]*" P")) + scale_y_continuous(expand = c(0,0)) + scale_fill_viridis(discrete = T,drop=TRUE, limits = levels(sum.cluster$mag_pos), name = "Effect Size") + scale_color_manual(values = c("white", "black"), guide="none") + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + labs(fill="Cohen's d") + ylab("")
+dev.off()
+
+zgp = read.csv("~/Downloads/goi_less_10k_122821_by_cat_hgnc.csv")
+# zgp$gp.col = plyr::revalue(zgp$cat, replace = c("receptor" = "#0CECDD", "tf" = "goldenrod1", "ligand" = "#FF67E7", "other" = "#C400FF"))
+# zgp$gp.col = plyr::revalue(zgp$cat, replace = c("receptor" = "#542E71", "tf" = "#FB3640", "ligand" = "#FDCA40", "other" = "#A799B7"))
+zgp$gp.col = plyr::revalue(zgp$cat, replace = c("receptor" = "goldenrod2", "tf" = "#FE04FF", "ligand" = "#002DD1", "other" = "#00E7EC"))
+
+convert_all2 = rbind(convert_all[2:nrow(convert_all),], convert_all[1,])
+
+gp$perm_p = gp$p
+gp$cluster = "All"
+gp$cluster_name = "All"
+gp$level = "all"
+gp$hgnc = gp$human
+# gp15$perm_p = gp15$p
+gp15$level = "primary"
+gp53$level = "secondary"
+gp15$gene = gp15$mzebra
+gp53$gene = gp53$mzebra
+gp15$cluster_name = gp15$cell_type
+gp53$cluster_name = gp53$cell_type
+cols.to.keep = c("level", "cluster", "cluster_name", "gene", "hgnc", "perm_p", "neg")
+gpsig = rbind(gp[which(gp$perm_p < 0.05), cols.to.keep], gp15[which(gp15$perm_p < 0.05), cols.to.keep], gp53[which(gp53$perm_p < 0.05), cols.to.keep])
+gpsig$level_old = paste0(gpsig$level, "_", gpsig$cluster)
+gpsig$level_old_gp = paste0(gpsig$level_old, "_", gpsig$gene)
+convert_all2$id = 1:nrow(convert_all2)
+gpsig$id = convert_all2$id[match(gpsig$level_old, convert_all2$level_old)]
+gpsig = gpsig[which(gpsig$gene %in% zgp$mzebra),]
+
+all_combos = expand.grid(convert_all2$level_old, unique(gpsig$gene))
+colnames(all_combos) = c("level_old", "gene")
+all_combos$level_old_gp = paste0(all_combos$level_old, "_", all_combos$gene)
+all_combos$isSig = all_combos$level_old_gp %in% gpsig$level_old_gp
+all_combos$neg = gpsig$neg[match(all_combos$level_old_gp, gpsig$level_old_gp)]
+all_combos$pos = 10000 - all_combos$neg
+all_combos$pct.pos = (all_combos$pos / 10000) * 100
+all_combos$pct.neg = (all_combos$neg / 10000) * 100
+all_combos$perm_p = gpsig$perm_p[match(all_combos$level_old_gp, gpsig$level_old_gp)]
+all_combos$neg_log_p = -log10(all_combos$perm_p)
+all_combos$col = "white"
+all_combos$col[which(all_combos$isSig)] = convert_all2$color[match(all_combos$level_old[which(all_combos$isSig)], convert_all2$level_old)]
+all_combos$cluster = convert_all2$cluster[match(all_combos$level_old, convert_all2$level_old)]
+all_combos$cluster = factor(all_combos$cluster, levels = convert_all2$cluster[which(convert_all2$cluster %in% all_combos$cluster[which(all_combos$isSig)])])
+all_combos = all_combos[which( !is.na(all_combos$cluster) ),]
+all_combos$id = convert_all2$id[match(all_combos$level_old, convert_all2$level_old)]
+all_combos$gene = factor(all_combos$gene, levels = unique(gpsig$gene[order(gpsig$id, decreasing = F)]))
+all_combos$hgnc = gene_info$human[match(all_combos$gene, gene_info$mzebra)]
+all_combos$gene_hgnc = paste0(all_combos$gene, " (", tolower(all_combos$hgnc), ")")
+all_combos$label = as.vector(all_combos$gene)
+all_combos$label[which(startsWith(all_combos$label, "LOC"))] = all_combos$gene_hgnc[which(startsWith(all_combos$label, "LOC"))]
+all_combos$label = factor(all_combos$label, levels = unique(all_combos$label[order(all_combos$gene)]))
+
+# ggplot(all_combos, aes(x = label, y = cluster, color = col, size = neg)) + geom_point() + theme_classic() + scale_color_identity() + scale_size_continuous(limits = c(9500, 10000), name = "# of Permutations Less Than Real") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, color = zgp$gp.col[match(levels(all_combos$gene), zgp$mzebra)]), axis.text.y = element_text(color = convert_all2$color[match(levels(all_combos$cluster), convert_all2$cluster)], face = ifelse(convert_all2$level[match(levels(all_combos$cluster), convert_all2$cluster)] == "secondary", "plain", "bold"), size = ifelse(convert_all2$level[match(levels(all_combos$cluster), convert_all2$cluster)] == "secondary", 8, 10))) + xlab("") + ylab("")
+
+# ggplot(all_combos, aes(x = label, y = cluster, color = col, size = neg_log_p)) + geom_point() + theme_classic() + scale_color_identity() + scale_size_continuous(name = expression("-"*Log["10"]*"(p)")) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, color = zgp$gp.col[match(levels(all_combos$gene), zgp$mzebra)]), axis.text.y = element_text(color = convert_all2$color[match(levels(all_combos$cluster), convert_all2$cluster)], face = ifelse(convert_all2$level[match(levels(all_combos$cluster), convert_all2$cluster)] == "secondary", "plain", "bold"), size = ifelse(convert_all2$level[match(levels(all_combos$cluster), convert_all2$cluster)] == "secondary", 8, 10))) + xlab("") + ylab("")
+
+pdf("~/research/brain/results/supplement/pcrc_gp.pdf", width = 20, height = 6)
+# Circle
+ggplot(all_combos, aes(x = label, y = cluster, color = col, size = pct.neg)) + geom_point() + theme_classic() + scale_color_identity() + scale_size_continuous(name = "% of Permutations Less Than Real") + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, color = zgp$gp.col[match(levels(all_combos$gene), zgp$mzebra)]), axis.text.y = element_text(color = convert_all2$color[match(levels(all_combos$cluster), convert_all2$cluster)], face = ifelse(convert_all2$level[match(levels(all_combos$cluster), convert_all2$cluster)] == "secondary", "plain", "bold"), size = ifelse(convert_all2$level[match(levels(all_combos$cluster), convert_all2$cluster)] == "secondary", 8, 10))) + xlab("") + ylab("")
+# Square
+# ggplot(all_combos, aes(x = label, y = cluster, fill = col)) + geom_tile() + scale_fill_identity() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), axis.text.y = element_text(color = convert_all$color[match(levels(all_combos$cluster), convert_all$cluster)], face = ifelse(convert_all$level[match(levels(all_combos$cluster), convert_all$cluster)] == "secondary", "plain", "bold"), size = ifelse(convert_all$level[match(levels(all_combos$cluster), convert_all$cluster)] == "secondary", 8, 10))) + xlab("") + ylab("")
+dev.off()
+
+# IEG
+pdf("~/research/brain/results/ieg_score_umap.pdf", width = 6, height = 6)
+print(FeaturePlot(bb, "ieg_score", order = T)+ NoLegend() + ggtitle("") + scale_color_viridis_c()) 
+dev.off()
+
+xmin = 0.02
+xmax = 0.04
+ieg_df15 = data.frame(score = bb$ieg_score, cond = bb$cond, old = bb$seuratclusters15, new = convert15$new.full[match(bb$seuratclusters15, convert15$old)], level = "15")
+ieg_df53 = data.frame(score = bb$ieg_score, cond = bb$cond, old = bb$seuratclusters53, new = convert53$new[match(bb$seuratclusters53, convert53$old)], level = "53")
+
+ieg_df15$new = factor(ieg_df15$new, levels = convert15$new.full)
+ieg_df15$cond = factor(ieg_df15$cond, levels = c("CTRL", "BHVE"))
+pdf("~/research/brain/results/ieg_by_cluster15_cond.pdf", width = 8, height = 5)
+ggplot(ieg_df15, aes(x = new, y = score, color = cond, fill = cond)) + geom_split_violin(alpha = 0.3, adjust = 8) + theme_classic() + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.75, position = position_dodge(width = .75)) + scale_fill_manual(values = c("#21918C", "goldenrod1")) + scale_color_manual(values = c("#21918C", "goldenrod1")) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, color = convert15$col, size = 15), axis.text.y = element_text(size = 15)) + xlab("") + ylab("IEG Score")
+dev.off()
+
+ieg_df53$new = factor(ieg_df53$new, levels = convert53$new)
+ieg_df53$cond = factor(ieg_df53$cond, levels = c("CTRL", "BHVE"))
+pdf("~/research/brain/results/ieg_by_cluster53_cond.pdf", width = 14, height = 5)
+ggplot(ieg_df53, aes(x = new, y = score, color = cond, fill = cond)) + geom_split_violin(alpha = 0.3, adjust = 8) + theme_classic() + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.75, position = position_dodge(width = .75)) + scale_fill_manual(values = c("#21918C", "goldenrod1")) + scale_color_manual(values = c("#21918C", "goldenrod1")) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, color = convert53$col, size = 12), axis.text.y = element_text(size = 15)) + xlab("") + ylab("IEG Score")
+dev.off()
+
+# Neurogen
+pdf("~/research/brain/results/neurogen_score_umap.pdf", width = 6, height = 6)
+print(FeaturePlot(bb, "neurogen_score", order = T)+ NoLegend() + ggtitle("") + scale_color_viridis_c()) 
+dev.off()
+
+neurogen_df15 = data.frame(score = bb$neurogen_score, cond = bb$cond, old = bb$seuratclusters15, new = convert15$new.full[match(bb$seuratclusters15, convert15$old)], level = "15")
+neurogen_df53 = data.frame(score = bb$neurogen_score, cond = bb$cond, old = bb$seuratclusters53, new = convert53$new[match(bb$seuratclusters53, convert53$old)], level = "53")
+
+neurogen_df = rbind(neurogen_df15, neurogen_df53)
+neurogen_df$new = factor(neurogen_df$new, levels = rev(convert_all$cluster))
+neurogen_df$cond = factor(neurogen_df$cond, levels = c("CTRL", "BHVE"))
+xmin = 0.2
+xmax = 0.5
+pdf("~/research/brain/results/neurogen_by_cluster_cond.pdf", width = 5, height = 15)
+ggplot(neurogen_df, aes(x = new, y = score, color = cond, fill = cond)) + geom_split_violin(alpha = 0.3) + theme_classic() + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.75, position = position_dodge(width = .75)) + coord_flip() + scale_fill_manual(values = c("#21918C", "goldenrod1")) + scale_color_manual(values = c("#21918C", "goldenrod1")) + theme(axis.text.y = element_text(color = rev(convert_all$color)))
+dev.off()
+
+neurogen_df15$new = factor(neurogen_df15$new, levels = convert15$new.full)
+neurogen_df15$cond = factor(neurogen_df15$cond, levels = c("CTRL", "BHVE"))
+pdf("~/research/brain/results/neurogen_by_cluster15_cond.pdf", width = 8, height = 5)
+ggplot(neurogen_df15, aes(x = new, y = score, color = cond, fill = cond)) + geom_split_violin(alpha = 0.3) + theme_classic() + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.75, position = position_dodge(width = .75)) + scale_fill_manual(values = c("#21918C", "goldenrod1")) + scale_color_manual(values = c("#21918C", "goldenrod1")) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, color = convert15$col, size = 15), axis.text.y = element_text(size = 15)) + xlab("") + ylab("Neurogenesis Score")
+dev.off()
+
+neurogen_df53$new = factor(neurogen_df53$new, levels = convert53$new)
+neurogen_df53$cond = factor(neurogen_df53$cond, levels = c("CTRL", "BHVE"))
+pdf("~/research/brain/results/neurogen_by_cluster53_cond.pdf", width = 14, height = 5)
+ggplot(neurogen_df53, aes(x = new, y = score, color = cond, fill = cond)) + geom_split_violin(alpha = 0.3) + theme_classic() + stat_summary(fun = mean, fun.min = mean, fun.max = mean, geom = "crossbar", width = 0.75, position = position_dodge(width = .75)) + scale_fill_manual(values = c("#21918C", "goldenrod1")) + scale_color_manual(values = c("#21918C", "goldenrod1")) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, color = convert53$col, size = 12), axis.text.y = element_text(size = 15)) + xlab("") + ylab("Neurogenesis Score")
+dev.off()
 
 
-ggplot(all, aes(x = mzebra, y = cluster_all, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color), face=ifelse(rev(convert_all$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+# PCA
+pca.df = data.frame(x = bb@reductions$pca@cell.embeddings[,1], y = bb@reductions$pca@cell.embeddings[,2], reads = bb$reads, ncount = bb$nCount_RNA, nfeature = bb$nFeature_RNA, subject = bb$subsample.new, sample = bb$sample, run = bb$run, cond = bb$cond)
+pca.sum.df = data.frame(subject = unique(bb$subsample.new), x = 0, y = 0)
+pca.sum.df$sample = pca.df$sample[match(pca.sum.df$subject, pca.df$subject)]
+for (i in 1:nrow(pca.sum.df)) {
+  pca.sum.df$x[i] = median(pca.df$x[which(pca.df$subject == pca.sum.df$subject[i])])
+  pca.sum.df$y[i] = median(pca.df$y[which(pca.df$subject == pca.sum.df$subject[i])])
+}
 
+pdf("~/research/brain/results/pca_subject.pdf", width = 6, height = 6)
+print(ggplot(pca.df, aes(x = x, y = y, color = subject)) + geom_point() + xlab("PCA 1") + ylab("PCA 2") + theme_classic() + NoLegend()) 
+dev.off()
+
+pdf("~/research/brain/results/pca_median.pdf", width = 6, height = 6)
+# + stat_ellipse() 
+print(ggplot(pca.sum.df, aes(x = x, y = y, color = sample, group = sample)) + geom_point() + xlab("PCA 1") + ylab("PCA 2") + theme_classic() + NoLegend() + geom_text_repel(aes(label = subject), size = 6)) 
+dev.off()
+
+pdf("~/research/brain/results/ncount_nfeature_subject.pdf", width = 6, height = 6)
+print(ggplot(pca.df, aes(x = ncount, y = nfeature, color = subject)) + geom_point() + xlab("Number of UMIs") + ylab("Number of Genes") + theme_classic() + NoLegend()) 
+dev.off()
+
+pdf("~/research/brain/results/ncount_read_sample.pdf", width = 6, height = 6)
+print(ggplot(pca.df, aes(x = ncount, y = reads, color = sample)) + geom_point() + xlab("Number of UMIs") + ylab("Number of Reads") + theme_classic() + NoLegend()) 
+dev.off()
+
+# ViolinPlot
+convert15 = convert15[order(as.numeric(convert15$new.num), decreasing = F),]
+Idents(bb) = factor(convert15$new.full[match(bb$seuratclusters15, convert15$old)], levels = convert15$new.full)
+bb15 = read.csv("~/research/brain/data/bb_all_sig_cluster_15_degs.csv")
+bb15$pct.dif = bb15$pct.1 - bb15$pct.2
+bb15 = bb15[which(bb15$avg_logFC > 0 & bb15$pct.dif > 0),]
+bb15$fc.pct = bb15$avg_logFC * bb15$pct.dif
+bb15.m4 = data.frame(cluster = unlist(lapply(0:14, function(x) rep(x, 4))), new = "", col = "", gene = "", reason = rep(c("Top DEG", "Top logFC", "Top % Dif", "Top FC * % Dif")), num.j = 0, logFC = 0, pct.dif = 0, rank = 0)
+bb15.m4[, c("new", "col")] = convert15[match(bb15.m4$cluster, convert15$old), c("new.full", "col")]
+for (i in 0:14) {
+  bb15.i = bb15[which(bb15$cluster == i),]
+  # bb15.i = bb15.i[order(bb15.i$p_val_adj, decreasing = F),]
+  bb15.i$rank = 1:nrow(bb15.i)
+  genes.to.add = c("", "", "", "")
+  num.j = c(1, 1, 1, 1)
+  
+  # 1. Top Seurat DEG
+  genes.to.add[1] = bb15.i$gene[1]
+  
+  # 2. Top logFC
+  j = 1
+  bb15.i = bb15.i[order(bb15.i$avg_logFC, decreasing = T),]
+  while (j == 1 || genes.to.add[2] %in% genes.to.add[1]) {
+    genes.to.add[2] = bb15.i$gene[j]
+    j = j + 1
+  }
+  num.j[2] = j -1
+  
+  # 3. Highest % Diff
+  j = 1
+  bb15.i = bb15.i[order(bb15.i$pct.dif, decreasing = T),]
+  while (j == 1 || genes.to.add[3] %in% genes.to.add[c(1,2)]) {
+    genes.to.add[3] = bb15.i$gene[j]
+    j = j + 1
+  }
+  num.j[3] = j -1
+
+  # 4. LogFC * % Diff
+  j = 1
+  bb15.i = bb15.i[order(bb15.i$fc.pct, decreasing = T),]
+  while (j == 1 || genes.to.add[4] %in% genes.to.add[c(1,2,3)]) {
+    genes.to.add[4] = bb15.i$gene[j]
+    j = j + 1
+  }
+  num.j[4] = j -1
+  
+  bb15.m4$gene[which(bb15.m4$cluster == i)] = genes.to.add
+  bb15.m4$num.j[which(bb15.m4$cluster == i)] = num.j
+  bb15.m4[which(bb15.m4$cluster == i), c("rank", "logFC", "pct.dif")] = bb15.i[match(genes.to.add, bb15.i$gene), c("rank", "avg_logFC", "pct.dif")]
+}
+
+bb15.m4$new = factor(bb15.m4$new, levels = convert15$new.full)
+bb15.m4 = bb15.m4[order(bb15.m4$new),]
+my_cols = unique(bb15.m4$col)
+names(my_cols) = convert15$new.full
+bb15.m4$hgnc = tolower(gene_info$human[match(bb15.m4$gene, gene_info$mzebra)])
+bb15.m4$hgnc[which( is.na(bb15.m4$hgnc) )] = bb15.m4$gene[which( is.na(bb15.m4$hgnc) )]
+pdf("~/research/brain/results/supplement/vlnplot_deg.pdf", height = 16, width = 8)
+StackedVlnPlot(obj = bb, features = bb15.m4$gene, xcols = unique(bb15.m4$col), ycols = bb15.m4$col, cols = my_cols, sec.axis.names = bb15.m4$hgnc)
+dev.off()
+
+# DEGs by LG
+deg.list = list()
+deg.list[["15"]] = read.csv("~/research/brain/data/bb_all_cluster_15_degs.csv")
+deg.list[["53"]] = read.csv("~/research/brain/data/bb_all_cluster_53_degs.csv")
+gtf$lg = lgConverter(gtf$V1)
+gtf$lg = factor(gtf$lg, levels = unique(gtf$lg))
+
+gtf.meta = aggregate(gene_name ~ lg, gtf, length)
+gtf$lg.num.genes = gtf.meta$gene_name[match(gtf$lg, gtf.meta$lg)]
+
+for (clevel in c("15", "53")) {
+  deg = deg.list[[clevel]] 
+  gtf.cols = c("lg", "lg.num.genes", "V4", "V5")
+  deg[, gtf.cols] = gtf[match(deg$X, gtf$gene_name), gtf.cols]
+  deg = deg[which(deg$p_val_adj < 0.05),]
+  
+  cluster.df = data.frame()
+  for (tc in unique(deg$cluster)) {
+    cdeg = deg[which(deg$cluster == tc),]
+    num.deg = nrow(cdeg)
+    num.deg.lg = aggregate(X ~ lg, cdeg, length, drop = F)[,2]
+    cluster.df = rbind(cluster.df, data.frame(clevel = clevel, cluster = tc, lg = gtf.meta$lg, num.deg = num.deg, num.deg.lg = num.deg.lg, num.lg.genes = gtf.meta$gene_name))
+  }
+  
+  cluster.df$num.deg.lg[which(is.na(cluster.df$num.deg.lg))] = 0
+  cluster.df$cluster = factor(cluster.df$cluster, levels = unique(deg$cluster))
+  cluster.df$num.deg.lg.norm.c = cluster.df$num.deg.lg / cluster.df$num.deg # Normalize by number of cluster DEGs
+  cluster.df$num.deg.lg.norm.lg = cluster.df$num.deg.lg / cluster.df$num.lg.genes # Normalize by number of LG genes
+  cluster.df$num.deg.lg.norm.c.lg = cluster.df$num.deg.lg.norm.c / cluster.df$num.lg.genes # Normalize by both
+  
+  ggplot(cluster.df, aes(x = lg, y = cluster, fill = num.deg.lg))           + geom_tile() + scale_fill_viridis_c() + theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + coord_fixed() + ggtitle("Raw")
+  ggplot(cluster.df, aes(x = lg, y = cluster, fill = num.deg.lg.norm.c))    + geom_tile() + scale_fill_viridis_c() + theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + coord_fixed() + ggtitle("Normalize by # of Cluster DEGs")
+  ggplot(cluster.df, aes(x = lg, y = cluster, fill = num.deg.lg.norm.lg))   + geom_tile() + scale_fill_viridis_c() + theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + coord_fixed() + ggtitle("Normalize by # of LG Genes")
+  ggplot(cluster.df, aes(x = lg, y = cluster, fill = num.deg.lg.norm.c.lg)) + geom_tile() + scale_fill_viridis_c() + theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + coord_fixed() + ggtitle("Normalize by Both")
+  
+}
+
+# GOI in primary and secondary clusters
+goi = read.csv("~/Downloads/goi_less_10k_122821_by_cat_hgnc.csv")
+goi$cat.col = plyr::revalue(goi$cat, replace = c("receptor" = "goldenrod2", "tf" = "#FE04FF", "ligand" = "#002DD1", "other" = "#00E7EC"))
+goi.cluster.df = data.frame()
+for (i in 2:nrow(convert_all)) {
+  if (convert_all$level[i] == "primary")   { bb$cluster = bb$seuratclusters15 }
+  if (convert_all$level[i] == "secondary") { bb$cluster = bb$seuratclusters53 }
+  this.cells = colnames(bb)[which(bb$cluster == convert_all$old[i])]
+  other.cells = colnames(bb)[which(bb$cluster != convert_all$old[i])]
+  this.df = pct_dif_avg_logFC(bb, cells.1 = this.cells, cells.2 = other.cells, features = goi$mzebra)
+  this.df$new = convert_all$cluster[i]
+  this.df$level = convert_all$level[i]
+  this.df$old = convert_all$old[i]
+  goi.cluster.df = rbind(goi.cluster.df, this.df)
+}
+
+goi.cluster.df$new = factor(goi.cluster.df$new, levels = convert_all$cluster[2:nrow(convert_all)])
+goi.cluster.df$genes = factor(goi.cluster.df$genes, levels = goi$mzebra[order(goi$cat)])
+goi.cluster.df$cat = goi$cat[match(goi.cluster.df$genes, goi$mzebra)]
+
+goi.cluster.df$avg_logFC[which(goi.cluster.df$avg_logFC < 0)] = 0
+goi.cluster.df$pct_dif[which(goi.cluster.df$pct_dif < 0)] = 0
+
+pdf("~/research/brain/results/goi_genes_in_clusters.pdf", width = 15, height = 20)
+ggplot(goi.cluster.df, aes(x = new, y = genes, size = pct_dif, color = avg_logFC)) + geom_point() + scale_color_viridis_c() + theme(axis.text.y = element_text(color = goi$cat.col[order(goi$cat)]), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, color = convert_all$color[2:nrow(convert_all)]))
+dev.off()
 
 # Local Ztest investigation
 zpops = data.frame(level = c("secondary", "secondary", "secondary", "secondary", "primary", "secondary", "secondary", "all", "all", "all", "all", "all", "all"), 
@@ -6608,7 +7166,7 @@ zpops = data.frame(level = c("secondary", "secondary", "secondary", "secondary",
                    gene = c("all", "all", "all", "all", "all", "all", "all", "adrb1", "LOC101464862", "LOC101466282", "ghrhr", "esr2", "gad2"))
 df = data.frame()
 for (i in 1:nrow(zpops)) {
-# for (i in 1) {
+  # for (i in 1) {
   print(i)
   level.i = zpops$level[i]
   cluster.i = zpops$cluster[i]
