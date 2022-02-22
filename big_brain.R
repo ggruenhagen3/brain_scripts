@@ -5968,16 +5968,17 @@ ggplot(cz_sig, aes(x = adj_mean_of_mean_dif, y = bower_activity_index, color = n
 
 # ClownFish ERE
 cdf = read.delim("~/scratch/brain/results/clown_ere_closest.bed")
+cdf$dist = cdf[,ncol(cdf)]
 cdf$loc = reshape2::colsplit(cdf[,12], ";", c("1", "2"))[,1]
 cdf$loc = reshape2::colsplit(cdf$loc, " ", c("1", "2"))[,2]
 cdf$gene_name = reshape2::colsplit(cdf[,12], "; gene_source", c("1", "2"))[,1]
 cdf$gene_name = reshape2::colsplit(cdf$gene_name, "gene_name ", c("1", "2"))[,2]
 cdf$gene = cdf$gene_name
 cdf$gene[which(cdf$gene == "")] = cdf$loc[which(cdf$gene == "")]
-cdf2 = cdf[which( abs(cdf$X0) < 25000 ),]
+cdf2 = cdf[which( abs(cdf$dist) < 25000 ),]
 cdf2$class = "distal"
-cdf2$class[which(cdf2$X0 <= 5000 & cdf2$X0 > 0)] = "promoter"
-cdf2$class[which(cdf2$X0 == 0)] = "intragenic"
+cdf2$class[which(cdf2$dist <= 5000 & cdf2$dist > 0)] = "promoter"
+cdf2$class[which(cdf2$dist == 0)] = "intragenic"
 cdf3 = cdf2[, c("gene", "class")]
 write.csv(cdf3, "~/scratch/brain/results/clown_ere_class.csv")
 
@@ -5993,6 +5994,7 @@ for (i in 1:5) {
 #************************************************************************
 # ieg_sum = read.csv("C:/Users/miles/Downloads/summary_sig_and_trend_IEG_hits_all_analyses_010321.csv")
 ieg_sum = read.csv("C:/Users/miles/Downloads/ieg_summary_data_by_cat_cluster_goi_010321.csv")
+ieg_sum = ieg_sum[which(ieg_sum$is_sig),]
 ieg_sum$hgnc = ieg_sum$gene
 ieg_sum$gene_pop = ieg_sum$mzebra
 ieg_sum$cluster[which(ieg_sum$cluster == FALSE)] = "All"
@@ -6099,23 +6101,28 @@ order_combos$qorder = data.frame(table(all_combos_small$gene_pop[which( ! is.na(
 order_combos = order_combos[order(order_combos$qorder, order_combos$gorder, order_combos$border, decreasing = T),]
 all_combos_small$gene_pop = factor(all_combos_small$gene_pop, levels = order_combos$Var1)
 
-pdf("C:/Users/miles/Downloads/ieg_summary_2.pdf", width = 9, height = 6)
-ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+all_combos_small$hgnc = tolower(gene_info$human[match(all_combos_small$gene_pop, gene_info$mzebra)])
+all_combos_small$hgnc[which(all_combos_small$gene_pop == "LOC101474236")] = "LOC101474236"
+all_combos_small$hgnc[which(all_combos_small$gene_pop == "All")] = "All"
+all_combos_small$hgnc = factor(all_combos_small$hgnc, levels = all_combos_small$hgnc[match(order_combos$Var1, all_combos_small$gene_pop)])
+
+pdf("C:/Users/miles/Downloads/ieg_summary_2_sig.pdf", width = 7, height = 5)
+ggplot(all_combos_small, aes(x = hgnc, y = cluster, fill = pcol_tran)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
 # all_combos_small$pcol[which(all_combos_small$pcol == "white")] = "gray60"
 # ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(aes(size = sig), width = 0.8, height = 0.8) + scale_color_identity() + scale_fill_identity() + scale_size_manual(values = c(0.8, 1.4)) + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 # all_combos_small$pcol[which(all_combos_small$pcol == "white")] = "gray60"
 # all_combos_small$pcol_tran[which(all_combos_small$pcol_tran == "white")] = "gray90"
 # all_combos_small = all_combos_small[order(all_combos_small$trending, decreasing = F),]
-# pdf("C:/Users/miles/Downloads/ieg_summary_1.pdf", width = 9, height = 6)
-# ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(width = 0.8, height = 0.8, size = 0.725) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
-# dev.off()
+pdf("C:/Users/miles/Downloads/ieg_summary_1.pdf", width = 7, height = 5)
+ggplot(all_combos_small, aes(x = hgnc, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(width = 0.8, height = 0.8, size = 0.725) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
+dev.off()
 # all_combos_small$pcol[which(all_combos_small$pcol == "white")] = "gray60"
 # all_combos_small = all_combos_small[order(all_combos_small$sig, decreasing = F),]
 # ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran2)) + geom_tile(color = "gray60") + geom_tile(data = all_combos_small[which(all_combos_small$sig),], aes(color = pcol), size = 1.5) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
 all_combos_small = all_combos_small[order(all_combos_small$trending, decreasing = F),]
-pdf("C:/Users/miles/Downloads/ieg_summary_3.pdf", width = 9, height = 6)
-ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(aes(size = trending)) + scale_color_identity() + scale_fill_identity() + scale_size_manual(values = c(0.6, 1), guide = F) + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
+pdf("C:/Users/miles/Downloads/ieg_summary_3.pdf", width = 7, height = 5)
+ggplot(all_combos_small, aes(x = hgnc, y = cluster, fill = pcol_tran, color = pcol)) + geom_tile(aes(size = trending)) + scale_color_identity() + scale_fill_identity() + scale_size_manual(values = c(0.6, 1), guide = F) + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
 dev.off()
 # ggplot(all_combos_small, aes(x = gene_pop, y = cluster, fill = pcol_tran)) + geom_tile() + geom_tile(data = all_combos_small[which(all_combos_small$trending),], aes(color = pcol), size = 0.8) + scale_color_identity() + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("")
 
@@ -6245,6 +6252,388 @@ for (i in 1:nrow(cz)) {
     cz$counts_sign_pair = length(which(counts_pair_sign_vector > 0))
   }
 }
+
+#**********************************************************************
+# Temporal Data =======================================================
+#**********************************************************************
+adj = readRDS("~/scratch/brain/results/adjusted_glmmseq_ffm_15.rds")
+# tdf_long = read.csv("C:/Users/miles/Downloads/build_spawn_depth_rolling30_010622.csv")
+# tdf_long = read.csv("~/scratch/brain/results/build_spawn_depth_rolling30_010622.csv")
+# tdf_wide = reshape(tdf_long, idvar = 'pid', timevar = 'colname', direction = 'wide')
+# tdf_wide = read.csv("~/scratch/brain/results/ieg_behavior_time_series_data_011722.csv")
+tdf_wide = read.csv("~/scratch/brain/results/ieg_behavior_time_series_data_011822.csv")
+tdf_wide = tdf_wide[,which( startsWith(colnames(tdf_wide), "trial_id") | startsWith(colnames(tdf_wide), "build") | startsWith(colnames(tdf_wide), "depth") )]
+zdf = read.csv("~/scratch/brain/results/bb15_deg_all_split_by_up_or_down_121621.csv")
+# zdf = read.csv("C:/Users/miles/Downloads/bb15_deg_all_split_by_up_or_down_121621.csv")
+zdf = zdf[which(zdf$mzebra %in% rownames(bb)),]
+zdf$sig_any = zdf$sig_bower_behavior == 1 | zdf$sig_gsi == 1 | zdf$sig_log_spawn_events == 1
+zdf = zdf[which(zdf$sig_any),]
+bb$cluster = bb$seuratclusters15
+bb$trial_id = factor(bb$trial_id)
+
+exp_mean = matrix(0L, nrow = 38, ncol = nrow(zdf))
+for (i in 1:nrow(zdf)) {
+  if (i %% 100 == 0) { cat(paste0(i, "."))}
+  zgene = zdf$mzebra[i]
+  zcluster = zdf$cluster[i]
+  # exp_df = data.frame(value = bb@assays$RNA@data[zgene, which(bb$cluster == zcluster)], trial_id = bb$trial_id[which(bb$cluster == zcluster)])
+  exp_df = data.frame(value = adj[zgene, which(bb$cluster == zcluster)], trial_id = bb$trial_id[which(bb$cluster == zcluster)])
+  exp_agr = aggregate(value ~ trial_id, exp_df, mean, drop = F)
+  exp_mean[,i] = exp_agr[, 2]
+}
+write.csv(exp_mean, "C:/Users/miles/Downloads/bb15_deg_data_means_sig.csv")
+
+# big_cor_df = cor_df = data.frame(cat = c(rep("build", 7), rep("depth", 7), rep("spawn", 7)), time = rep(seq(5, 65, by = 10), 3) )
+big_cor_df = cor_df = data.frame(cat = c(rep("build", 7), rep("depth", 7), rep("depth_adj", 7)), time = rep(seq(5, 65, by = 10), 3) )
+big_cor_df$time = factor(big_cor_df$time)
+big_cor_df$value = 0
+for( i in 1:nrow(zdf) ) {
+  if (i %% 10 == 0) { cat(paste0(i, "."))}
+  cat_list = c()
+  if (zdf[i, "sig_bower_behavior"] == 1)   { cat_list = c(cat_list, "bdeg15_cors") }
+  if (zdf[i, "sig_gsi"] == 1)              { cat_list = c(cat_list, "gdeg15_cors") }
+  if (zdf[i, "sig_log_spawn_events"] == 1) { cat_list = c(cat_list, "qdeg15_cors") }
+  # tdf_wide$value = exp_mean[match(levels(bb$trial_id), tdf_wide$pid), i]
+  tdf_wide$value = exp_mean[match(levels(bb$trial_id), tdf_wide$trial_id), i]
+  my_cors = sapply(2:(ncol(tdf_wide)-1), function(x) cor(tdf_wide[,x], tdf_wide[, ncol(tdf_wide)]) )
+  big_cor_df[, paste0("res", i)] = my_cors
+  big_cor_df$value = big_cor_df[, paste0("res", i)]
+  
+  # for (this_cat in cat_list) {
+  #   png(paste0("~/scratch/brain/results/", this_cat, "/res", i, ".png"), width = 400, height = 300)
+  #   print(ggplot(big_cor_df, aes(x = time, y = value, color = cat)) + geom_point(size = 2.5) + theme_classic() + ylab("Pearson r") + xlab("Time") + ggtitle("bDEGs w/ BHVE Up at the 15 Cluster Level - Adjusted"))
+  #   dev.off()
+  # }
+}
+# big_cor_df$value = NULL
+
+countChangeDir = function(x) {
+  value_dif = unname(cor_mat[,x])[1:6] - unname(cor_mat[,x])[2:7]
+  value_dif_sign = sign(value_dif)
+  return(sum(value_dif_sign[1:5] != value_dif_sign[2:6]))
+}
+
+# big_cor_df = read.csv("~/scratch/brain/results/bb15_deg_cors.csv")
+big_cor_df = read.csv("~/scratch/brain/results/bb15_deg_cors_011922.csv")
+big_cor_df$X = NULL
+big_0 = sapply(colnames(big_cor_df), function(x) length(which(is.na(big_cor_df[,x])))) 
+big_cor_df = big_cor_df[,which(big_0 < nrow(big_cor_df))]
+big_cor_df[,which(startsWith(colnames(big_cor_df), "res"))] = big_cor_df[,which(startsWith(colnames(big_cor_df), "res"))] ^ 2
+# cor_mat = as.matrix(big_cor_df[which(big_cor_df$cat == "build"), which(startsWith(colnames(big_cor_df), "res") & colnames(big_cor_df) %in% paste0("res", which(zdf$sig_bower_behavior == 1)) )])
+# rownames(cor_mat) = big_cor_df$time[which(big_cor_df$cat == "build")]
+cor_mat = as.matrix(big_cor_df[which(big_cor_df$cat == "depth_adj"), which(startsWith(colnames(big_cor_df), "res") & colnames(big_cor_df) %in% paste0("res", which(zdf$sig_bower_behavior == 1)) )])
+rownames(cor_mat) = big_cor_df$time[which(big_cor_df$cat == "depth_adj")]
+cor_mat = scale(cor_mat)
+hcl = "hi"
+my_callback = function(hcl, mat) { print(hcl); hcl <<- hcl; return(hcl) }
+pheatmap::pheatmap(cor_mat, cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2.pdf")
+dend = as.dendrogram(hcl)
+late_clust = c(dend[[1]][[1]][[1]] %>% labels, dend[[1]][[1]][[2]][[1]] %>% labels)
+cor_0    = sapply(1:ncol(cor_mat), function(x) countChangeDir(x))
+cor_mat = cor_mat[, which(cor_0 < 2)]
+# cor_mat1 = cor_mat[, which(cor_0 < 1)]
+cor_maxs = sapply(1:ncol(cor_mat), function(x) which.max(cor_mat[,x]))
+# cor_sort = sapply(1:ncol(cor_mat), function(x) which.max(cor_mat[,x]))
+clust5  = which(cor_maxs == 1)
+clust15 = which(cor_maxs == 2)
+clust25 = which(cor_maxs == 3)
+clust35 = which(cor_maxs == 4)
+clust45 = which(cor_maxs == 5)
+clust55 = which(cor_maxs == 6)
+clust65 = which(cor_maxs == 7)
+late = c(clust5, clust15, clust25)
+middle = c(clust25, clust35, clust45)
+early = c(clust45, clust55, clust65)
+pheatmap::pheatmap(cor_mat, cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2.pdf")
+pheatmap::pheatmap(cor_mat[,clust5], cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_5.pdf")
+pheatmap::pheatmap(cor_mat[,clust15], cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_15.pdf")
+pheatmap::pheatmap(cor_mat[,clust25], cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_25.pdf")
+pheatmap::pheatmap(cor_mat[,clust35], cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_35.pdf")
+pheatmap::pheatmap(cor_mat[,clust45], cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_45.pdf")
+pheatmap::pheatmap(cor_mat[,clust55], cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_55.pdf")
+pheatmap::pheatmap(cor_mat[,clust65], cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_65.pdf")
+pheatmap::pheatmap(cor_mat[,late]   , cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_late.pdf")
+pheatmap::pheatmap(cor_mat[,middle] , cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_middle.pdf")
+pheatmap::pheatmap(cor_mat[,early]  , cluster_rows = F, clustering_callback = my_callback, filename = "~/scratch/brain/results/depth_adj_bower_deg53_scaled_r2_early.pdf")
+
+for (i in list(5, 15, 25, 35, 45, 55, 65, "early", "middle", "late")) {
+  print(i)
+  if (class(i) == "numeric") {
+    i_clean = i + 25
+    this_clust = get(paste0("clust", i))
+  }
+  if (class(i) == "character") {
+    i_clean = str_to_title(i)
+    this_clust = get(i)
+  }
+  if (length(this_clust) > 0) {
+    png(paste0(paste0("~/scratch/brain/results/depth_adj_bower_deg53_", i, ".png")), width = 600, height = 500)
+    this_df = big_cor_df[which(big_cor_df$cat == "depth_adj"),c("time", colnames(cor_mat)[this_clust])]
+    if (length(this_clust) > 1) { this_df$mean = rowMeans(this_df[,colnames(cor_mat)[this_clust]]) }
+    else                        { this_df$mean = this_df[,colnames(cor_mat)[this_clust]] }
+    pdf = melt(this_df, id.var = "time")
+    pdf$time = as.numeric(as.vector(pdf$time)) + 25
+    pdf$isMean = pdf$variable == "mean"
+    # print(ggplot(pdf, aes(x = time, y = value, color = variable)) + geom_point(size = 2.5, alpha = 0.4) + theme_classic() + ylab("R2") + xlab("Time (min to flash freeze)") + ggtitle("bDEGs w/ BHVE Up at the 15 Cluster Level - Adjusted") + geom_smooth(method = "loess", se = F, alpha = 0.4) + scale_x_reverse() + NoLegend())
+    print(ggplot(pdf, aes(x = time, y = value)) + geom_point(data = pdf[which(!pdf$isMean),], size = 2.5, alpha = 0.2, aes(color = variable)) + geom_point(data = pdf[which(pdf$isMean),], size = 2.5, color = "black") + geom_smooth(data = pdf[which(pdf$isMean),], method = "loess", se = F, color = "gray40") + theme_classic() + ylab("R2") + xlab("Time (min to flash freeze)") + ggtitle(paste0("bDEG Hits Up at ", i_clean, ". Depth_adj R2 w/ Adjusted")) + scale_x_continuous(breaks = rev(unique(pdf$time)), labels = rev(unique(pdf$time))) + NoLegend())
+    dev.off()
+  }
+}
+
+zdf$peak = NA
+zdf$peak[as.numeric(substr(colnames(cor_mat), 4, 10))] = plyr::revalue(as.character(cor_maxs), replace = c("1" = "30", "2" = "40", "3" = '50', '4' = '60', '5' = '70', '6' = '80', '7' = '90'))
+zdf$n_change_dir = NA
+zdf$n_change_dir[as.numeric(substr(colnames(cor_mat), 4, 10))] = cor_0
+
+early_late_de = diffEnrichTG(zdf$hgnc[which(zdf$peak %in% c("30", "40", "50") & zdf$n_change_dir < 2)], zdf$hgnc[which(zdf$peak %in% c("70", "80", "90") & zdf$n_change_dir < 2)], path_to_gene_info = "~/scratch/m_zebra_ref/gene_info.txt")
+
+library(parallel)
+shuffled_res = unlist(mclapply(1:10000, function(x) shuffleCors(x), mc.cores=detectCores()))
+
+shuffleCors = function(x) {
+  set.seed(x)
+  this_cor_mat = do.call('cbind', lapply(1:ncol(cor_mat), function(col) unname(sample(cor_mat[,col]))))
+  this_cor_0    = c()
+  for(col in 1:ncol(this_cor_mat)) {
+    value_dif = unname(this_cor_mat[,col])[1:6] - unname(this_cor_mat[,col])[2:7]
+    value_dif_sign = sign(value_dif)
+    this_cor_0 = c(this_cor_0, sum(value_dif_sign[1:5] != value_dif_sign[2:6]))
+  }
+  return(length(which(this_cor_0 < 2)))
+}
+
+#******************************************************************
+# IEG FeaturePlot =================================================
+#******************************************************************
+ieg_cons = c("LOC101487312", "egr1", "npas4")
+ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
+ieg_like = c(ieg_cons, ieg_like[which(! ieg_like %in% ieg_cons)])
+mat = bb@assays$RNA@counts
+mat[which(mat > 1)] = 1
+ieg_query_col = "#21918c"
+ieg_target_col = "purple"
+ieg_both_col = "yellow"
+none_col = "gray90"
+my.pt.size = 0.4
+p_list = list()
+for (ieg_target in ieg_like) {
+  for (ieg_query in ieg_cons) {
+    codf = data.frame(ieg_query = mat[ieg_query,], ieg_target = mat[ieg_target,], UMAP_1 = bb@reductions$umap@cell.embeddings[,"UMAP_1"], UMAP_2 = bb@reductions$umap@cell.embeddings[,"UMAP_2"], col = none_col)
+    codf$col[which(codf$ieg_query == 1 & codf$ieg_target == 1)] = ieg_both_col
+    codf$col[which(codf$ieg_query == 1 & codf$ieg_target != 1)] = ieg_query_col
+    codf$col[which(codf$ieg_query != 1 & codf$ieg_target == 1)] = ieg_target_col
+    codf$sum = rowSums(codf[, c("ieg_query", "ieg_target")])
+    codf = codf[order(codf$sum, decreasing = F),]
+    p = ggplot(codf, aes(UMAP_1, UMAP_2, color = col)) + geom_point(size = my.pt.size) + theme_void() + scale_color_identity()
+    p_list[[length(p_list)+1]] = p
+  }
+}
+ppp = 3
+pdf("C:/Users/miles/Downloads/ieg_25_by_3_scatter_plot.pdf", width = 3*ppp, height = 25*ppp)
+# ppp = 100
+# png("C:/Users/miles/Downloads/ieg_25_by_3_scatter_plot.png", width = 3*ppp, height = 25*ppp)
+print(plot_grid(plotlist=p_list, ncol = 3))
+dev.off()
+
+# value_dif = unname(cor_mat[,3])[1:6] - unname(cor_mat[,3])[2:7]
+# value_dif_sign = sign(value_dif)
+# sum(value_dif_sign[1:5] == value_dif_sign[2:6])
+# testdf = data.frame(time = rep(unique(big_cor_df$time),2), value = c(unname(cor_mat[,3]), predict(sm.spline(unique(big_cor_df$time), unname(cor_mat[,3])), unique(big_cor_df$time), 1)), isSlope = c(rep(F, 7), rep(T, 7)))
+# png("~/scratch/brain/results/test3.png", width = 400, height = 300)
+# ggplot(testdf, aes(x = time, y = value, color = isSlope)) + geom_point() + geom_smooth(data = testdf[which(!testdf$isSlope),], method = "loess")
+# dev.off()
+
+# exp_mean_bower = exp_mean[,which(zdf$sig_bower_behavior == 1)]
+# mean_exp_mean_bower = rowMeans(exp_mean_bower)
+# exp_mean_bower_pos = exp_mean[,which(zdf$sig_bower_behavior == 1 & zdf$bower_activity_index > 0)]
+# mean_exp_mean_bower_pos = rowMeans(exp_mean_bower_pos)
+# tdf_wide$value = mean_exp_mean_bower_pos[match(levels(bb$trial_id), tdf_wide$pid)]
+# 
+# my_cors = sapply(2:(ncol(tdf_wide)-1), function(x) cor(tdf_wide[,x], tdf_wide[, ncol(tdf_wide)]) )
+# cor_df = data.frame(value = my_cors, cat = c(rep("build", 7), rep("depth", 7), rep("spawn", 7)), time = rep(seq(5, 65, by = 10), 3) )
+# # cor_df$time = factor(cor_df$time)
+# ggplot(cor_df, aes(x = time, y = value, color = cat)) + geom_point(size = 2.5) + theme_classic() + ylab("Pearson r") + xlab("Time") + ggtitle("bDEGs w/ BHVE Up at the 15 Cluster Level - Data Slot") + geom_smooth(method = "loess")
+# 5-35 > 30
+# 90 to 30
+
+bb15_b = read.csv("C:/Users/miles/Downloads/bb15_b_extra_columns.csv")
+bb15_d = read.csv("C:/Users/miles/Downloads/bb15_d_extra_columns.csv")
+bb53_b = read.csv("C:/Users/miles/Downloads/bb53_b_extra_columns.csv")
+bb53_d = read.csv("C:/Users/miles/Downloads/bb53_d_extra_columns.csv")
+
+bb15_b$peak = factor(bb15_b$peak, unique(bb15_b$peak[which(!is.na(bb15_b$peak))]))
+
+peak_df = data.frame(time = rep(unique(bb15_b$peak[which(!is.na(bb15_b$peak))]), 4), cat = c(rep("build_15", 7), rep("depth_adj_15", 7), rep("build_53",7), rep("depth_adj_53",7)), num_peak = c(as.numeric(table(bb15_b$peak[which(bb15_b$n_change_dir < 2)])), as.numeric(table(bb15_d$peak[which(bb15_d$n_change_dir < 2)])), as.numeric(table(bb53_b$peak[which(bb53_b$n_change_dir < 2)])), as.numeric(table(bb53_d$peak[which(bb53_d$n_change_dir < 2)]))))
+peak_df$time = as.numeric(as.vector(peak_df$time))
+peak_df$time = factor(peak_df$time, levels = sort(unique(peak_df$time)))
+ggplot(peak_df, aes(x = time, fill = cat, y = num_peak)) + geom_bar(position = position_dodge2(), stat = 'identity') + ylab("Number of DEGs that Peak at the Time Bin") + xlab("Time Bin")
+
+bb15_b_genes = bb15_b$mzebra[which(bb15_b$n_change_dir < 2)]
+bb15_b_genes = bb15_b_genes[which(duplicated(bb15_b_genes))]
+bb15_b_dup = bb15_b[which(bb15_b$mzebra %in% bb15_b_genes & bb15_b$n_change_dir < 2), c("mzebra", "peak")]
+bb15_b_dup[order(bb15_b_dup$mzebra),]
+
+bb15_d_genes = bb15_d$mzebra[which(bb15_d$n_change_dir < 2)]
+bb15_d_genes = bb15_d_genes[which(duplicated(bb15_d_genes))]
+bb15_d_dup = bb15_d[which(bb15_d$mzebra %in% bb15_d_genes & bb15_d$n_change_dir < 2), c("mzebra", "peak")]
+bb15_d_dup[order(bb15_d_dup$mzebra),]
+
+bb53_b_genes = bb53_b$mzebra[which(bb53_b$n_change_dir < 2)]
+bb53_b_genes = bb53_b_genes[which(duplicated(bb53_b_genes))]
+bb53_b_dup = bb53_b[which(bb53_b$mzebra %in% bb53_b_genes & bb53_b$n_change_dir < 2), c("mzebra", "peak", "X", "n_change_dir")]
+bb53_b_dup[order(bb53_b_dup$mzebra),]
+
+# IEG Temporal =====================================================
+ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
+ieg_sum = read.csv("C:/Users/miles/Downloads/ieg_summary_data_by_cat_cluster_goi_010321.csv")
+ieg_sum = ieg_sum[which(ieg_sum$is_sig),]
+ieg_sum$hgnc = ieg_sum$gene
+ieg_sum$gene_pop = ieg_sum$mzebra
+ieg_sum$cluster[which(ieg_sum$cluster == FALSE)] = "All"
+ieg_sum$gene_pop[which(ieg_sum$gene_pop == FALSE)] = "All"
+ieg_sum$level_old = paste0(ieg_sum$level, "_", ieg_sum$cluster)
+ieg_sum$level_old_gp = paste0(ieg_sum$level_old, "_", ieg_sum$gene_pop)
+ieg_sum$cat_level_old_gp = paste0(ieg_sum$cat, "_", ieg_sum$level_old_gp)
+ieg_sum = ieg_sum[which(ieg_sum$cat != "gsi"),]
+bb$trial_id = factor(bb$trial_id)
+
+tdf = read.csv("C:/Users/miles/Downloads/ieg_behavior_time_series_data_011822.csv")
+tdf = tdf[,which( startsWith(colnames(tdf), "trial_id") | startsWith(colnames(tdf), "build") | startsWith(colnames(tdf), "depth") | startsWith(colnames(tdf), "spawn") )]
+tdf = tdf[,which(! endsWith(colnames(tdf), ".1") ),]
+tdf = tdf[,which(! (startsWith(colnames(tdf), "depth") & ! endsWith(colnames(tdf), "adj")) )]
+tdf$trial_id = factor(tdf$trial_id, levels = levels(bb$trial_id))
+
+num_cell_df = data.frame()
+big_mean_df = data.frame(matrix(0L, nrow = 38, ncol = nrow(ieg_sum)*length(ieg_like)), row.names = levels(bb$trial_id))
+big_cor_df = data.frame(matrix(0L, nrow = 7, ncol = nrow(ieg_sum)*length(ieg_like)), row.names = c(30, 40, 50, 60, 70, 80, 90))
+colnames(big_mean_df) = colnames(big_cor_df) = sapply(ieg_sum$cat_level_old_gp, function(x) paste0(ieg_like, "_", x))
+for (i in 1:nrow(ieg_sum)) {
+  cat(paste0(i, "."))
+  for (ieg_like_gene in ieg_like) {
+    my.cat = ieg_sum$cat[i]
+    my.gene = ieg_sum$mzebra[i]
+    my.level = ieg_sum$level[i]
+    my.cluster = ieg_sum$cluster[i]
+    if (my.level == "primary")   { bb$cluster = bb$seuratclusters15 }
+    if (my.level == "secondary") { bb$cluster = bb$seuratclusters53 }
+    if (my.level == "all")       { bb$cluster = "All"               }
+    if (my.cat == "bower") { this_tdf = tdf[,which( startsWith(colnames(tdf), "depth") )] }
+    if (my.cat == "quiver") { this_tdf = tdf[,which( startsWith(colnames(tdf), "spawn") )] }
+    if (my.gene == F) { my.gene.cells = rep(T, ncol(bb)) } else { my.gene.cells = bb@assays$RNA@counts[my.gene,] > 0 }
+    df = data.frame(value = bb@assays$RNA@data[ieg_like_gene, which(my.gene.cells & bb$cluster == my.cluster)], trial_id = bb$trial_id[which(my.gene.cells & bb$cluster == my.cluster)])
+    
+    my_x = bb@assays$RNA@counts[ieg_like_gene, ] > 0 & my.gene.cells & bb$cluster == my.cluster
+    num_cell_df = rbind( num_cell_df, data.frame(ieg_pop = ieg_sum$cat_level_old_gp[i], ieg_like = ieg_like_gene, num_cell = length(which(my_x)), num_pair = length(unique(bb$pair[which(my_x)])), num_ind = length(unique(bb$subsample[which(my_x)])), num_sample = length(unique(bb$sample[which(my_x)])), num_sample_paired = length(unique(substr(bb$sample[which(my_x)], 2, 2))), inds = paste0(unique(bb$subsample[which(my_x)]), collapse = ", ") ))
+    if (num_cell_df$num_pair[nrow(num_cell_df)] == 19) {
+      mean_df = aggregate(value ~ trial_id, df, mean, drop = F)
+      big_mean_df[,paste0(ieg_like_gene, "_", ieg_sum$cat_level_old_gp[i])] = mean_df[,2]
+      big_cor_df[,paste0(ieg_like_gene, "_", ieg_sum$cat_level_old_gp[i])] = sapply(1:ncol(this_tdf), function(x) cor(mean_df[,2], this_tdf[,x]) ^ 2 ) 
+    }
+    
+  }
+}
+print("Done")
+
+cor_wide = as.data.frame(pivot_longer(big_cor_df, cols = colnames(big_cor_df)))
+cor_wide$time = unlist(lapply(rownames(big_cor_df), function(x) rep(x, ncol(big_cor_df))))
+cor_wide$time = as.numeric(cor_wide$time)
+cor_wide[, c("ieg_like", "cat_level_old_gp")] = reshape2::colsplit(cor_wide$name, "_", c("1", "2"))
+for (ieg_like_gene in ieg_like) {
+  pdf(paste0("C:/Users/miles/Downloads/brain/results/bb/ieg_time/", ieg_like_gene, ".pdf") , width = 5, height = 5)
+  print(ggplot(cor_wide[which(cor_wide$ieg_like == ieg_like_gene),], aes(x = time, y = value)) + geom_point(alpha = 0.4) + geom_smooth(method = "loess", se = T) + NoLegend() + ylab("R2") + xlab("Time (min to flash freeze)") + ggtitle(paste0("All IEG Results w/ IEG: ", ieg_like_gene)))
+  dev.off()
+}
+
+# cor_mean = aggregate(value ~ time + ieg_like, cor_wide, mean)
+# pdf(paste0("C:/Users/miles/Downloads/ieg_mean_cor.pdf") , width = 5, height = 5)
+# print(ggplot(cor_mean, aes(x = time, y = value, color = ieg_like)) + geom_point() + geom_smooth(method = "loess", se = F) + NoLegend() + ylab("R2") + xlab("Time (min to flash freeze)") + scale_x_continuous(breaks = rev(unique(cor_wide$time)), labels = rev(unique(cor_wide$time))) + ggtitle("All IEG Means"))
+# dev.off()
+pdf(paste0("C:/Users/miles/Downloads/ieg_mean_cor_conf_int.pdf") , width = 5, height = 5)
+print(ggplot(cor_wide, aes(x = time, y = value, color = ieg_like)) + geom_smooth(method = "loess", se = T) + NoLegend() + ylab("R2") + xlab("Time (min to flash freeze)") + scale_x_continuous(breaks = rev(unique(cor_wide$time)), labels = rev(unique(cor_wide$time))) + ggtitle("All IEG Means"))
+dev.off()
+
+ieg_mean_bower = read.csv("C:/Users/miles/Downloads/ieg_summary_subsample_means_bower.csv")
+ieg_mean = ieg_mean_bower
+ieg_mean[,1] = NULL
+tdf$subsample = bb$subsample[match(tdf$trial_id, bb$trial_id)]
+tdf = tdf[order(tdf$subsample),]
+my_r2 = data.frame()
+for (i in 1:ncol(ieg_mean)) {
+  this_col = colnames(tdf)[which(! colnames(tdf) %in% c("trial_id", "subsample"))]
+  this_r2 = sapply(this_col, function(x) cor(ieg_mean[,i], tdf[,x]) ^ 2 ) 
+  my_r2 = rbind(my_r2, data.frame(r2 = this_r2, cat = reshape2::colsplit(this_col, "_", c("1", "2"))[,1], time = rep(c(30, 40, 50, 60, 70, 80, 90), 3) ))
+}
+
+my_cor_mean = aggregate(r2 ~ cat + time, my_r2, mean)
+ggplot(my_cor_mean, aes(x = time, y = r2, color = cat)) + geom_point() + geom_smooth(method = "loess", se = F)
+
+# 9 Plot DEGs =====================================================
+bb15 = read.csv("C:/Users/miles/Downloads/bb15_deg_all_split_by_up_or_down_121621.csv")
+bb53 = read.csv("C:/Users/miles/Downloads/bb53_deg_all_split_by_up_or_down_121621.csv")
+bb15$sig_any = bb15$sig_bower_behavior == 1 | bb15$sig_gsi == 1 | bb15$sig_log_spawn_events == 1
+bb53$sig_any = bb53$sig_bower_behavior == 1 | bb53$sig_gsi == 1 | bb53$sig_log_spawn_events == 1
+bb15 = bb15[which(bb15$sig_any & bb15$mzebra %in% rownames(bb)),]
+bb53 = bb53[which(bb53$sig_any & bb53$mzebra %in% rownames(bb)),]
+# all_bdeg = unique(c(bb15$mzebra[which(bb15$sig_bower_behavior == 1)], bb53$mzebra[which(bb53$sig_bower_behavior == 1)]))
+# all_gdeg = unique(c(bb15$mzebra[which(bb15$sig_gsi == 1)], bb53$mzebra[which(bb53$sig_gsi == 1)]))
+# all_qdeg = unique(c(bb15$mzebra[which(bb15$sig_log_spawn_events == 1)], bb53$mzebra[which(bb53$sig_log_spawn_events == 1)]))
+# all_deg = data.frame(table(c(all_bdeg, all_gdeg, all_qdeg)))
+# all_deg = as.vector(all_deg$Var1[which(all_deg$Freq == 3)])
+all_deg = read.csv("C:/Users/miles/Downloads/overlap_of_bDEGs_qDEGs_gDEGs_012021.csv")[,5]
+my.pt.size = 0.6
+p_list = list()
+for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
+  print(cat)
+  if (cat == "bower_behavior") { cat_mod = "bower_activity_index" } else { cat_mod = cat }
+  this_bb15 = bb15[which(bb15[, paste0("sig_", cat)] == 1),]
+  this_bb53 = bb53[which(bb53[, paste0("sig_", cat)] == 1),]
+  # this_bb15_up = bb15[which(bb15[, cat_mod] > 0)]
+  # this_bb15_down = bb15[which(bb15[, cat_mod] < 0)]
+  score_df = data.frame(cell = colnames(bb), UMAP_1 = bb@reductions$umap@cell.embeddings[,"UMAP_1"], UMAP_2 = bb@reductions$umap@cell.embeddings[,"UMAP_2"], up_score = 0, down_score = 0, all_score = 0, ovlp_score = 0)
+  for (i in 1:nrow(this_bb15)) {
+    this_gene = this_bb15$mzebra[i]
+    this_cluster = this_bb15$cluster[i]
+    isUp = this_bb15[i, cat_mod] > 0
+    this_score = as.numeric(bb@assays$RNA@counts[this_gene,] > 0)
+    score_df$all_score[which(bb$seuratclusters15 == this_cluster)] = score_df$all_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)]
+    if (isUp) { score_df$up_score[which(bb$seuratclusters15 == this_cluster)] = score_df$up_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters15 == this_cluster)] = score_df$down_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
+    if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
+  }
+  for (i in 1:nrow(this_bb53)) {
+    this_gene = this_bb53$mzebra[i]
+    this_cluster = this_bb53$cluster[i]
+    isUp = this_bb53[i, cat_mod] > 0
+    this_score = as.numeric(bb@assays$RNA@counts[this_gene,] > 0)
+    score_df$all_score[which(bb$seuratclusters53 == this_cluster)] = score_df$all_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)]
+    if (isUp) { score_df$up_score[which(bb$seuratclusters53 == this_cluster)] = score_df$up_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters53 == this_cluster)] = score_df$down_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
+    if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
+  }
+  score_df = score_df[order(score_df$up_score, decreasing = F),]
+  # score_df$up_score[which(score_df$up_score == 0)] = NA
+  p_list[[paste0(cat, "_", "up")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = up_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  score_df = score_df[order(score_df$down_score, decreasing = F),]
+  # score_df$down_score[which(score_df$down_score == 0)] = NA
+  p_list[[paste0(cat, "_", "down")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = all_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  score_df = score_df[order(score_df$all_score, decreasing = F),]
+  # score_df$all_score[which(score_df$all_score == 0)] = NA
+  p_list[[paste0(cat, "_", "all")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = all_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  score_df = score_df[order(score_df$ovlp_score, decreasing = F),]
+  # score_df$ovlp_score[which(score_df$ovlp_score == 0)] = NA
+  p_list[[paste0(cat, "_", "ovlp")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = ovlp_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+}
+
+pdf("C:/Users/miles/Downloads/zack_9_deg_plot.pdf", width = 6*4, height = 6*3)
+p = plot_grid(plotlist=p_list, ncol = 4)
+print(p)
+dev.off()
+
+png("C:/Users/miles/Downloads/zack_9_deg_plot.png", width = 1300, height = 1000)
+p = plot_grid(plotlist=p_list, ncol = 4)
+print(p)
+dev.off()
+
+# print(ggplot(pdf, aes(x = time, y = value)) + geom_point(data = pdf[which(!pdf$isMean),], size = 2.5, alpha = 0.2, aes(color = variable)) + geom_point(data = pdf[which(pdf$isMean),], size = 2.5, color = "black") + geom_smooth(data = pdf[which(pdf$isMean),], method = "loess", se = F, color = "gray40") + theme_classic() + ylab("R2") + xlab("Time (min to flash freeze)") + ggtitle(paste0("bDEG Hits Up at ", i_clean, ". Depth_adj R2 w/ Adjusted")) + scale_x_continuous(breaks = rev(unique(pdf$time)), labels = rev(unique(pdf$time))) + NoLegend())
+
 sub_meta = aggregate(depth_5_35 + depth_15_45 + depth_25_55 + depth_35_65 + depth_45_75 + depth_55_85 + depth_65_95 + build_5_35 + build_15_45 + build_25_55 + build_35_65 + build_45_75 + build_55_85 + build_65_95 ~ subsample, bb@meta.data, mean)
 mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")
 

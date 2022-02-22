@@ -108,6 +108,16 @@ colnames(perm_df) = clusters
 
 write.csv(perm_df, paste0("~/scratch/brain/results/ztest_perm_10k_", cluster_level, "_by_goi_012522.csv"))
 
+zdf$real_d = singleRunGeneDefined(pcrc, returnP = F)
+zdf$ztest_p = singleRunGeneDefined(pcrc, returnP = T)
+zdf$ztest_bh = p.adjust(zdf$ztest_p, method = "BH")
+zdf$ztest_bon = p.adjust(zdf$ztest_p, method = "bonferroni")
+zdf$neg = sapply(1:nrow(zdf), function(x) length(which( perm_df[,x] <= zdf$real_d[x] )) )
+zdf$perm_p = ((nperm - zdf$neg) / nperm)
+zdf$perm_bh = p.adjust(zdf$perm_p, method = "BH")
+zdf$perm_bon = p.adjust(zdf$perm_p, method = "bonferroni")
+zdf$num_cells = sapply(1:nrow(zdf), function(x) length(which(bb@assays$RNA@counts[zdf$gene[x], which(bb$cluster == zdf$cluster[x])] > 0)))
+
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
 # for (gene in zGenePops) {
@@ -120,5 +130,5 @@ write.csv(perm_df, paste0("~/scratch/brain/results/ztest_perm_10k_", cluster_lev
 # p_df$p = ((nperm - p_df$neg) / nperm)
 # p_df$bh = p.adjust(p_df$p, method = "BH")
 # p_df$bon = p.adjust(p_df$p, method = "bonferroni")
-# # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
-# # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
+# ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
+# ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
