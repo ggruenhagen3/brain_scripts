@@ -2051,3 +2051,5 @@ test = colorRampPalette(brewer.pal(8, "Set3"))(19)
 pdf("~/research/brain/results/bb_subsample_num_nuc_2.pdf", width = 3, height = 6)
 ggplot(subsample_df, aes(x = num, y = pool, size = num_nuc, color = pair)) + geom_point() + theme_classic() + xlab("") + ylab("") + scale_color_manual(values = test, guide = "none") + theme(axis.ticks.x = element_blank(), axis.line.x.bottom = element_blank(), axis.text.x = element_blank())
 dev.off()
+
+# local comment
