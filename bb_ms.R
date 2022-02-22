@@ -9,8 +9,6 @@ source(paste0(rna_path, "brain_scripts/all_f.R"))
 
 # *** 1B. 15 cluster and 53 cluster level UMAP *** #
 # Define 15 level colors
-for (k in 1:15) {
-print(k)
 library("scales")
 cols15 = gc.ramp <- hue_pal()(15)
 cols15 = cols15[c(10:15, 1:9)]
@@ -78,7 +76,6 @@ names(clust53_new_col_list2) = colsplit(convert53$new, "_", c("num", "ex"))[,1]
 pdf (paste0("~/research/brain/results/cols_", k, "_rev.pdf"), width = 5, height = 5)
 print(DimPlot(bb, label = T, pt.size = 1) + scale_color_manual(values = clust53_new_col_list2) + NoLegend())
 dev.off()
-}
 
 pdf("C:/Users/miles/Downloads/brain/results/bb/53_clusters_on_15_light_dark_label_04012021.pdf", width = 12, height = 12)
 print(DimPlot(bb, label = T, pt.size = 1) + scale_color_manual(values = clust53_new_col_list2) + NoLegend())
@@ -1652,7 +1649,7 @@ bb15 = bb15[order(bb15$sig_bower_behavior),]
 bb15$neg_log_bower_10 = bb15$neg_log_bower ^ (1/10)
 brk_f = pretty_breaks(n = 3)
 bower_labels = brk_f(bb15$neg_log_bower_10, n=3)
-pdf("~/research/brain/results/bb15_bower_volcano_like_10th.pdf", width = 6, height = 5)
+pdf("C:/Users/miles/Downloads/brain/results/bb15_bower_volcano_like_10th.pdf", width = 6, height = 5)
 ggplot(bb15, aes(x = bower_activity_index, y = neg_log_bower_10, color = col_bower, alpha = as.logical(sig_bower_behavior))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(bower_labels), "^10"), breaks = bower_labels) + theme_bw()
 dev.off()
 
@@ -1660,7 +1657,7 @@ bb15 = bb15[order(bb15$sig_gsi),]
 bb15$neg_log_gsi_10 = bb15$neg_log_gsi ^ (1/10)
 brk_f = pretty_breaks(n = 3)
 gsi_labels = brk_f(bb15$neg_log_gsi_10, n=3)
-pdf("~/research/brain/results/bb15_gsi_volcano_like_10th.pdf", width = 6, height = 5)
+pdf("C:/Users/miles/Downloads/brain/results/bb15_gsi_volcano_like_10th.pdf", width = 6, height = 5)
 ggplot(bb15, aes(x = gsi, y = neg_log_gsi_10, color = col_gsi, alpha = as.logical(sig_gsi))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(gsi_labels), "^10"), breaks = gsi_labels) + theme_bw()
 dev.off()
 
@@ -1668,7 +1665,7 @@ bb15 = bb15[order(bb15$sig_log_spawn_events),]
 bb15$neg_log_spawn_10 = bb15$neg_log_spawn ^ (1/10)
 brk_f = pretty_breaks(n = 3)
 spawn_labels = brk_f(bb15$neg_log_spawn_10, n=3)
-pdf("~/research/brain/results/bb15_spawn_volcano_like_10th.pdf", width = 6, height = 5)
+pdf("C:/Users/miles/Downloads/brain/results/bb15_spawn_volcano_like_10th.pdf", width = 6, height = 5)
 ggplot(bb15, aes(x = log_spawn_events, y = neg_log_spawn_10, color = col_spawn, alpha = as.logical(sig_log_spawn_events))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(spawn_labels), "^10"), breaks = spawn_labels) + theme_bw()
 dev.off()
 
@@ -1677,7 +1674,7 @@ bb53 = bb53[order(bb53$sig_bower_behavior),]
 bb53$neg_log_bower_10 = bb53$neg_log_bower ^ (1/10)
 brk_f = pretty_breaks(n = 3)
 bower_labels = brk_f(bb53$neg_log_bower_10, n=3)
-pdf("~/research/brain/results/bb53_bower_volcano_like_10th.pdf", width = 6, height = 5)
+pdf("C:/Users/miles/Downloads/brain/results/bb53_bower_volcano_like_10th.pdf", width = 6, height = 5)
 ggplot(bb53, aes(x = bower_activity_index, y = neg_log_bower_10, color = col_bower, alpha = as.logical(sig_bower_behavior))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(bower_labels), "^10"), breaks = bower_labels) + theme_bw()
 dev.off()
 
@@ -1685,7 +1682,7 @@ bb53 = bb53[order(bb53$sig_gsi),]
 bb53$neg_log_gsi_10 = bb53$neg_log_gsi ^ (1/10)
 brk_f = pretty_breaks(n = 3)
 gsi_labels = brk_f(bb53$neg_log_gsi_10, n=3)
-pdf("~/research/brain/results/bb53_gsi_volcano_like_10th.pdf", width = 6, height = 5)
+pdf("C:/Users/miles/Downloads/brain/results/bb53_gsi_volcano_like_10th.pdf", width = 6, height = 5)
 ggplot(bb53, aes(x = gsi, y = neg_log_gsi_10, color = col_gsi, alpha = as.logical(sig_gsi))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(gsi_labels), "^10"), breaks = gsi_labels) + theme_bw()
 dev.off()
 
@@ -1693,7 +1690,7 @@ bb53 = bb53[order(bb53$sig_log_spawn_events),]
 bb53$neg_log_spawn_10 = bb53$neg_log_spawn ^ (1/10)
 brk_f = pretty_breaks(n = 3)
 spawn_labels = brk_f(bb53$neg_log_spawn_10, n=3)
-pdf("~/research/brain/results/bb53_spawn_volcano_like_10th.pdf", width = 6, height = 5)
+pdf("C:/Users/miles/Downloads/brain/results/bb53_spawn_volcano_like_10th.pdf", width = 6, height = 5)
 ggplot(bb53, aes(x = log_spawn_events, y = neg_log_spawn_10, color = col_spawn, alpha = as.logical(sig_log_spawn_events))) + geom_point() + scale_color_identity() + xlab("Beta Estimate") + ylab(expression(-Log["10"]*" P")) + scale_alpha_manual(values = c(0.2, 0.75), guide = 'none') + scale_y_continuous(labels = paste0(as.character(spawn_labels), "^10"), breaks = spawn_labels) + theme_bw()
 dev.off()
 

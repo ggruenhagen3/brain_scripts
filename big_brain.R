@@ -5898,14 +5898,14 @@ ieg_sum$level_old = paste0(ieg_sum$level, "_", ieg_sum$cluster)
 ieg_sum$level_old_gp = paste0(ieg_sum$level_old, "_", ieg_sum$gene_pop)
 ieg_sum$cat_level_old_gp = paste0(ieg_sum$cat, "_", ieg_sum$level_old_gp)
 
-convert_all = data.frame(cluster = c(convert15$new.full, convert53$new), color = c(convert15$col, convert53$col), old = c(convert15$old, convert53$old))
-convert_all = convert_all[which(! duplicated(convert_all$cluster) ),]
+convert_all = data.frame(cluster = c(convert15$new.full, convert53$new), color = c(convert15$col, convert53$col), old = c(convert15$old, convert53$old), level = c(rep("primary", nrow(convert15)), rep("secondary", nrow(convert53))))
+# convert_all = convert_all[which(! duplicated(convert_all$cluster) ),]
 convert_all[, c("new.id", "new.gaba")]    = colsplit(convert_all$cluster, "_", names = c("new.id", "new.gaba"))
 convert_all[, c("new.parent", "new.sub")] = colsplit(convert_all$new.id, "\\.", names = c("new.id", "new.gaba"))
 convert_all$new.sub[which(is.na(convert_all$new.sub))] = 0
 convert_all[which(convert_all$cluster == "8-9_Glut"), c("new.parent", "new.sub")] = c(8, 12) # Assign a parent and subcluster to the 8-9_Glut special case
 convert_all = convert_all[order(as.numeric(convert_all$new.parent), as.numeric(convert_all$new.sub), decreasing = F),]
-convert_all$level = plyr::revalue(as.character(convert_all$new.sub == 0), replace = c("TRUE" = "primary", "FALSE" = "secondary"))
+# convert_all$level = plyr::revalue(as.character(convert_all$new.sub == 0), replace = c("TRUE" = "primary", "FALSE" = "secondary"))
 convert_all = rbind(data.frame(cluster = "All", color = viridis(1), new.id = 0, new.gaba = "all", new.parent = 0, new.sub = 0, level = "all", old = "All"), convert_all)
 convert_all$level_old = paste0(convert_all$level, "_", convert_all$old)
 
@@ -6475,6 +6475,7 @@ bb53 = bb53[which(bb53$sig_any & bb53$mzebra %in% rownames(bb)),]
 # all_deg = data.frame(table(c(all_bdeg, all_gdeg, all_qdeg)))
 # all_deg = as.vector(all_deg$Var1[which(all_deg$Freq == 3)])
 all_deg = read.csv("C:/Users/miles/Downloads/overlap_of_bDEGs_qDEGs_gDEGs_012021.csv")[,5]
+ere = read.csv("C:/Users/miles/Downloads/ere_class.csv")[,2]
 my.pt.size = 0.6
 p_list = list()
 for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
@@ -6484,7 +6485,7 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
   this_bb53 = bb53[which(bb53[, paste0("sig_", cat)] == 1),]
   # this_bb15_up = bb15[which(bb15[, cat_mod] > 0)]
   # this_bb15_down = bb15[which(bb15[, cat_mod] < 0)]
-  score_df = data.frame(cell = colnames(bb), UMAP_1 = bb@reductions$umap@cell.embeddings[,"UMAP_1"], UMAP_2 = bb@reductions$umap@cell.embeddings[,"UMAP_2"], up_score = 0, down_score = 0, all_score = 0, ovlp_score = 0)
+  score_df = data.frame(cell = colnames(bb), UMAP_1 = bb@reductions$umap@cell.embeddings[,"UMAP_1"], UMAP_2 = bb@reductions$umap@cell.embeddings[,"UMAP_2"], up_score = 0, down_score = 0, all_score = 0, ovlp_score = 0, ere_score = 0)
   for (i in 1:nrow(this_bb15)) {
     this_gene = this_bb15$mzebra[i]
     this_cluster = this_bb15$cluster[i]
@@ -6493,6 +6494,7 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
     score_df$all_score[which(bb$seuratclusters15 == this_cluster)] = score_df$all_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)]
     if (isUp) { score_df$up_score[which(bb$seuratclusters15 == this_cluster)] = score_df$up_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters15 == this_cluster)] = score_df$down_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
     if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
+    if (this_gene %in% ere) { score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
   }
   for (i in 1:nrow(this_bb53)) {
     this_gene = this_bb53$mzebra[i]
@@ -6502,6 +6504,7 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
     score_df$all_score[which(bb$seuratclusters53 == this_cluster)] = score_df$all_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)]
     if (isUp) { score_df$up_score[which(bb$seuratclusters53 == this_cluster)] = score_df$up_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] } else { score_df$down_score[which(bb$seuratclusters53 == this_cluster)] = score_df$down_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
     if (this_gene %in% all_deg) { score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] = score_df$ovlp_score[which(bb$seuratclusters53 == this_cluster)] + this_score[which(bb$seuratclusters53 == this_cluster)] }
+    if (this_gene %in% ere) { score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] = score_df$ere_score[which(bb$seuratclusters15 == this_cluster)] + this_score[which(bb$seuratclusters15 == this_cluster)] }
   }
   score_df = score_df[order(score_df$up_score, decreasing = F),]
   # score_df$up_score[which(score_df$up_score == 0)] = NA
@@ -6515,15 +6518,16 @@ for (cat in c("bower_behavior", "gsi", "log_spawn_events")) {
   score_df = score_df[order(score_df$ovlp_score, decreasing = F),]
   # score_df$ovlp_score[which(score_df$ovlp_score == 0)] = NA
   p_list[[paste0(cat, "_", "ovlp")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = ovlp_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
+  p_list[[paste0(cat, "_", "ere")]] = ggplot(score_df, aes(x = UMAP_1, y = UMAP_2, color = ere_score)) + geom_point(size = my.pt.size) + scale_color_gradientn(colors = viridis(100), na.value = "grey80") + theme_void() + NoLegend()
 }
 
-pdf("C:/Users/miles/Downloads/zack_9_deg_plot.pdf", width = 6*4, height = 6*3)
-p = plot_grid(plotlist=p_list, ncol = 4)
+pdf("C:/Users/miles/Downloads/zack_15_deg_plot.pdf", width = 6*5, height = 6*3)
+p = plot_grid(plotlist=p_list, ncol = 5)
 print(p)
 dev.off()
 
-png("C:/Users/miles/Downloads/zack_9_deg_plot.png", width = 1300, height = 1000)
-p = plot_grid(plotlist=p_list, ncol = 4)
+png("C:/Users/miles/Downloads/zack_15_deg_plot.png", width = 350*6, height = 350*3)
+p = plot_grid(plotlist=p_list, ncol = 5)
 print(p)
 dev.off()
 
@@ -6532,3 +6536,96 @@ dev.off()
 sub_meta = aggregate(depth_5_35 + depth_15_45 + depth_25_55 + depth_35_65 + depth_45_75 + depth_55_85 + depth_65_95 + build_5_35 + build_15_45 + build_25_55 + build_35_65 + build_45_75 + build_55_85 + build_65_95 ~ subsample, bb@meta.data, mean)
 mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")
 
+#***************************************************
+# Neurogen Summary Figure ==========================
+#***************************************************
+neurogen53_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc.csv")
+neurogen53_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc.csv")
+neurogen53_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc.csv")
+neurogen15_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
+neurogen15_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
+neurogen15_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
+neurogen53_b$sig_b = neurogen53_b$sig_cond == 3 & neurogen53_b$hmp_cond < 0.05
+neurogen53_b$sig_g = neurogen53_g$sig_gsi == 5 & neurogen53_g$hmp < 0.05
+neurogen53_b$sig_s = neurogen53_s$sig_log_spawn_events == 5 & neurogen53_s$hmp < 0.05
+neurogen15_b$sig_b = neurogen15_b$sig_cond == 3 & neurogen15_b$hmp_cond < 0.05
+neurogen15_b$sig_g = neurogen15_g$sig_gsi == 5 & neurogen15_g$hmp < 0.05
+neurogen15_b$sig_s = neurogen15_s$sig_log_spawn_events == 5 & neurogen15_s$hmp < 0.05
+
+neurogen15_b$level_old = paste0("primary_", neurogen15_b$cluster)
+neurogen15_b$cluster_all = convert_all$cluster[match(neurogen15_b$level_old, convert_all$level_old)]
+neurogen53_b$level_old = paste0("secondary_", neurogen53_b$cluster)
+neurogen53_b$cluster_all = convert_all$cluster[match(neurogen53_b$level_old, convert_all$level_old)]
+
+neurogen53_b$pcol = unlist(lapply(1:nrow(neurogen53_b), function(x) {
+  this.col = "white"
+  if ( neurogen53_b[x,"sig_b"] ) { this.col = "#FDE725" }
+  if ( neurogen53_b[x,"sig_g"] ) { this.col = "#2AB07F" }
+  if ( neurogen53_b[x,"sig_s"] ) { this.col = "#433E85" }
+  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_g"] ) { this.col = "#94CC52" }
+  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_s"] ) { this.col = "#A09355" }
+  if ( neurogen53_b[x,"sig_g"] & neurogen53_b[x,"sig_s"] ) { this.col = "#377782" }
+  if ( neurogen53_b[x,"sig_b"] & neurogen53_b[x,"sig_g"] & neurogen53_b[x,"sig_s"] ) { this.col = "#799c63" }
+  return(this.col)
+}))
+neurogen15_b$pcol = unlist(lapply(1:nrow(neurogen15_b), function(x) {
+  this.col = "white"
+  if ( neurogen15_b[x,"sig_b"] ) { this.col = "#FDE725" }
+  if ( neurogen15_b[x,"sig_g"] ) { this.col = "#2AB07F" }
+  if ( neurogen15_b[x,"sig_s"] ) { this.col = "#433E85" }
+  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_g"] ) { this.col = "#94CC52" }
+  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_s"] ) { this.col = "#A09355" }
+  if ( neurogen15_b[x,"sig_g"] & neurogen15_b[x,"sig_s"] ) { this.col = "#377782" }
+  if ( neurogen15_b[x,"sig_b"] & neurogen15_b[x,"sig_g"] & neurogen15_b[x,"sig_s"] ) { this.col = "#799c63" }
+  return(this.col)
+}))
+
+cols_to_keep = c("pcol", "level_old", "cluster_all", "mzebra", "sig_b", "sig_g", "sig_s")
+neurogen_all = rbind(neurogen15_b[,cols_to_keep], neurogen53_b[,cols_to_keep])
+neurogen_all = neurogen_all[which(neurogen_all$pcol != "white"),]
+
+all <- neurogen_all %>% expand(cluster_all, mzebra)
+all$cluster_all_mzebra = paste0(all$cluster_all, "_", all$mzebra)
+all$pcol = "white"
+match_idx = which(all$cluster_all_mzebra %in% paste0(neurogen_all$cluster_all, "_", neurogen_all$mzebra))
+all[match_idx,cols_to_keep] = neurogen_all[match(all$cluster_all_mzebra[match_idx], paste0(neurogen_all$cluster_all, "_", neurogen_all$mzebra)), cols_to_keep]
+
+order_combos = data.frame(table(all$mzebra[which(all$pcol != "white")]))
+order_combos$border = data.frame(table(all$mzebra[which( all$sig_b )]))[,2]
+order_combos$gorder = data.frame(table(all$mzebra[which( all$sig_g )]))[,2]
+order_combos$qorder = data.frame(table(all$mzebra[which( all$sig_s )]))[,2]
+order_combos = order_combos[order(order_combos$qorder, order_combos$gorder, order_combos$border, decreasing = T),]
+all$mzebra = factor(all$mzebra, levels = order_combos$Var1)
+
+
+ggplot(all, aes(x = mzebra, y = cluster_all, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color), face=ifelse(rev(convert_all$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+
+
+# Local Ztest investigation
+zpops = data.frame(level = c("secondary", "secondary", "secondary", "secondary", "primary", "secondary", "secondary", "all", "all", "all", "all", "all", "all"), 
+                   cluster = c(31, 5, 20, 17, 1, 21, 22, "all", "all", "all", "all", "all", "all"), 
+                   label = c("2.1_OPC", "1.1_RGC", "1.2_RGC", "5.2_GABA th+", "9_Glut hrh3+ (LOC101478323)", "4.3_GABA", "4.4_GABA", "adrb1+", "ghr+", "nr3c2+ (LOC101466282)", "ghrhr+", "esr2+", "gad2+"), 
+                   gene = c("all", "all", "all", "all", "all", "all", "all", "adrb1", "LOC101464862", "LOC101466282", "ghrhr", "esr2", "gad2"))
+df = data.frame()
+for (i in 1:nrow(zpops)) {
+# for (i in 1) {
+  print(i)
+  level.i = zpops$level[i]
+  cluster.i = zpops$cluster[i]
+  label.i = zpops$label[i]
+  gene.i = zpops$gene[i]
+  for (pcrc.gene in pcrc) {
+    bb$cluster = bb$seuratclusters15
+    if (level.i == "secondary") { bb$cluster = bb$seuratclusters53 }
+    if (level.i == "all")       { bb$cluster = "all"               }
+    bb$gene = T
+    if (gene.i != "all") { bb$gene = bb@assays$RNA@counts[gene.i,] > 0 }
+    bb$pcrc.gene = bb@assays$RNA@counts[pcrc.gene,] > 0
+    zpop = colnames(bb)[which(bb$cluster == cluster.i & bb$gene & bb$pcrc.gene)]
+    df = rbind(df, data.frame( i = i, level = level.i, cluster = cluster.i, gene = gene.i, pcrc.gene = pcrc.gene, num.cells = length(zpop), this.z = sum(1/bb$nFeature_RNA[zpop]), other.z = sum(1/bb$nFeature_RNA[! colnames(bb) %in% zpop]) ))
+  }
+}
+
+df$this.v.other = df$this.z / df$other.z
+# ggplot(df, aes(x = label.i, y = this.v.other, fill = pcrc.gene)) + geom_bar(stat = 'identity') + ylab("[PCRC Gene Present / # of Genes] in Pop vs [PCRC Gene Present / # of Genes] NOT in Pop") + NoLegend()
+write.csv(df, "C:/Users/miles/Downloads/pcrc_genes_driving_effects.csv")
