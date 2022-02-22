@@ -4,6 +4,8 @@ singleRunGeneDefined = function(markers, returnP = T) {
   avg_exp = avg_exp/bb$nFeature_RNA
   cluster_p = c()
   cluster_d = c()
+  cluster_up = c()
+  cluster_down = c()
   for (i in 1:nrow(zdf)) {
     gene = zdf$gene[i]
     gene_pop_cells <- colnames(bb)[which(exp[gene,] > 0 & bb$cluster == zdf$cluster[i])]
@@ -15,9 +17,13 @@ singleRunGeneDefined = function(markers, returnP = T) {
     all_exp = c(gene_pop_exp, other_exp)
     test= effsize::cohen.d(all_exp, c(rep("cluster", length(gene_pop_exp)), rep("other",   length(other_exp))))
     d=test$estimate
+    up=test$conf.int[2]
+    down = test$conf.int[1]
     
     cluster_p = c(cluster_p, p)
     cluster_d = c(cluster_d, d)
+    cluster_up = c(cluster_up, up)
+    cluster_down = c(cluster_down, down)
   }
   
   cat(paste0("- Single Perm End Time: ", format(Sys.time(), "%X ")))
@@ -87,7 +93,8 @@ ran_lists = lapply(1:nperm, function(x) {
 exp = GetAssayData(bb, assay = "RNA", slot='counts')
 exp[which(exp > 0)] = 1
 clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
-
+exp = exp[unique(zdf$gene),]
+  
 # Find Results for the Real PCRC
 # real_res = singleRunGeneDefined(pcrc, returnP = F)
 
