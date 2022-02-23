@@ -29,6 +29,131 @@ httr::set_config(config(ssl_verifypeer = FALSE))
 # Helper Functions #
 ####################
 
+
+createGeneScore = function(obj, genes, new.col.name = "gene_score", normalize.by.n.features = T) {
+  #' Create a gene score: the # of genes from the input expressed in each cell.
+  #' By default, the gene score is normalized by the # of features in each cell.
+  #'
+  #' @param obj Seurat object
+  #' @param genes vector of genes
+  #' @param new.col.name name of meta.data column to store the score in
+  #' @param normalize.by.n.features normalize gene score by # of features in the cell?
+  
+  # Change Matrix to Prescence/Absence
+  mat = obj@assays$RNA@counts[genes,]
+  mat[which(mat > 1)] = 1
+  
+  # Add the new column
+  obj@meta.data[, new.col.name] = colSums(mat)
+  
+  # Normalize by # of Features
+  if (normalize.by.n.features) { obj@meta.data[, new.col.name] = obj@meta.data[, new.col.name] / obj$nFeature_RNA }
+  
+  return(obj)
+}
+
+lgConverter = function(vect, path_to_info = "~/research/all_research/M_zebra_UMD2a_assembly_report.txt") {
+  #' Convert LG to NCBI and vice versa.
+  #'
+  #' @param vect input vector of either lg/ncbi that needs to be converted to the other
+  #' @param path_to_info path to M_zebra_UMD2a_assembly_report.txt file
+  
+  # Read Assembly Report
+  converter = read.delim(path_to_info, skip = 35)
+  colnames(converter)[c(1, 7)] = c("lg", "ncbi")
+  converter$lg[which(converter$Sequence.Role == "unplaced-scaffold")] = "unplaced"
+  
+  # Automatically Detect Input
+  num.vect.lg = length(which(vect %in% converter$lg))
+  num.vect.ncbi = length(which(vect %in% converter$ncbi))
+  if (num.vect.lg > num.vect.ncbi)  {
+    print("Detected LG. Now converting to NCBI.")
+    new = "ncbi"
+    old = "lg"
+  } else {
+    print("Detected NCBI. Now converting to LG.")
+    new = "lg"
+    old = "ncbi"
+  }
+  
+  # Do the conversion
+  converted = converter[match(vect, converter[,old]), new]
+  return(converted)
+}
+
+pairedBoxViolin = function(obj, data, pop_level, pop_id, matrixGene = NULL, geneInPop = NULL, my.scale = "width", my.bw = 0.3) {
+  #' CREATE A BOXPLOT/VIOLINPLOT FOR BHVE VS CTRL
+  #' 
+  #' Enter either a vector (such as gene_score for all cells) or matrix (such as the adjusted matrix)
+  #' in the data parameter. A visualization of BHVE vs CTRL by subsample will be output.
+  #' 
+  #' Hint: pop_level can be "goi", in which case you can input a gene for pop_id.
+  #' 
+  #' @param obj Seurat object
+  #' @param data either a vector or matrix of genes by cells
+  #' @param pop_level the cluster level, either 15, 53, goi
+  #' @param pop_id the cluster/gene to get data from
+  #' @param matrixGene if data is matrix, then enter a gene that you wish to plot (aka, the row for the gene will be extracted for plotting)
+  #' @param geneInPop use only cells that express this gene (no matter what the pop_level)
+  #' @return p a ggplot object that contains a boxplot, violinplot, and paired points for BHVE vs CTRL
+ 
+  pop_level = as.character(pop_level)
+  
+  # If the input is a matrix, get the necessary gene name
+  if (! is.null(dim(data)) ) {
+    data_vect = data[matrixGene,]
+  } else {
+    data_vect = data
+  }
+  
+  # Determine the cluster level
+  if (pop_level == "15") { 
+    
+    obj$cluster = obj$seuratclusters15
+    clusters = sort(unique(obj$cluster))
+    pop_id = as.numeric(pop_id)
+    # Ensure that the pop_id is in the clusters for the chosen level
+    if (! pop_id %in% clusters ) { warning("pop_id is not in the clusters"); return(NULL); }
+    
+  } else if (pop_level == "53") {
+    
+    obj$cluster = obj$seuratclusters53
+    clusters = sort(unique(obj$cluster))
+    pop_id = as.numeric(pop_id)
+    # Ensure that the pop_id is in the clusters for the chosen level
+    if (! pop_id %in% clusters ) { warning("pop_id is not in the clusters"); return(NULL); }
+    
+  } else if (pop_level == "goi") {
+    if (! pop_id %in% rownames(obj) ) { warning("The input gene (pop_id) is not in the rownames of the input Seurat object."); return(NULL); }
+    obj$cluster = obj@assays$RNA@counts[pop_id, ] > 0
+    pop_id = TRUE
+  } else {
+    warning("Not a valid pop_level. Please select one of the following: 15, 53, goi"); return(NULL);
+  }
+  
+  obj$geneInPop = T
+  if (! is.null(geneInPop) ) {
+    if (! geneInPop %in% rownames(obj) ) { warning("The input gene (geneInPop) is not in the rownames of the input Seurat object."); return(NULL); }
+    obj$geneInPop = obj@assays$RNA@counts[geneInPop, ] > 0
+  }
+  
+  # Select data from the chosen cluster
+  p_df = data.frame(value = data_vect, cluster = obj$cluster, geneInPop = obj$geneInPop, subsample = obj$subsample, pair = obj$pair)
+  p_df = p_df[which(p_df$cluster == pop_id & p_df$geneInPop),]
+  
+  # Find means per subsample
+  p_agr = aggregate(value ~ subsample + pair, p_df, mean)
+  p_agr$cond = plyr::revalue(as.character(substr(p_agr$subsample, 1, 1) == "b"), replace = c("TRUE" = "BHVE", "FALSE" = "CTRL"))
+  p_agr$cond = factor(p_agr$cond, levels = c("CTRL", "BHVE"))
+  
+  # Plot
+  my_pal = c("darkcyan", "gold")
+  p = ggplot(p_agr, aes(y = value, x = cond, color = cond, fill = cond)) + geom_violin(position="dodge", alpha=0.6, scale="width", trim=TRUE, kernel = "cosine", bw=my.bw) + geom_boxplot(fill = "white", alpha = 0.7, width=0.3, size=0.4, outlier.shape=NA, outlier.colour="transparent") + geom_jitter(alpha=0.7, pch=21, size=4, position=position_jitter(width=0.1,height=0)) + scale_fill_manual(values = my_pal) + scale_color_manual(values = c("black", "black")) + stat_summary(data=p_agr, fun="mean", geom="line", linetype = "dashed", aes(group=factor(pair))) + theme_classic() + theme(legend.position = "none") + xlab("")
+  
+  return(p)
+}
+
+
 clusterProportionsP = function(obj, group1, group2, cluster_meta_name = 'seurat_clusters', ind_meta_name = 'subsample') {
   #' Test for Differences in Cluster Proportions Between 2 Groups of Individuals
   #' @param obj Seurat object
@@ -88,6 +213,81 @@ clusterProportionsP = function(obj, group1, group2, cluster_meta_name = 'seurat_
   cluster_p_df$prop_sub_in_clust_bh = p.adjust(cluster_p_df$prop_sub_in_clust_p, method = "BH")
   
   return(list(sub_df, clust_df, sub_clust_df, cluster_p_df))
+}
+
+toppGene = function(list1, org1 = NULL, path_to_gene_info = "C:/Users/miles/Downloads/all_research/gene_info.txt", my_cats = c("GeneOntologyMolecularFunction", "GeneOntologyBiologicalProcess", "GeneOntologyCellularComponent", "HumanPheno", "MousePheno", "Domain", "Pathway", "Interaction", "GeneFamily", "Disease")) {
+  
+  # Detect the organism of the input list
+  org_list = list1
+  org_list_length = length(org_list)
+  if (is.null(org1)) {
+    human_length = length(which( toupper(org_list)      == org_list ))
+    mouse_length = length(which( str_to_title(org_list) == org_list ))
+    max_human_mouse_length = max(c(human_length, mouse_length))
+    org1 = ifelse(max_human_mouse_length == human_length, "human", "mouse")
+    org1 = ifelse(max_human_mouse_length > 0.75 * org_list_length, "human", "mzebra")
+    message(paste0("Organism not provided. Detected organism: ", org1))
+  }
+  message()
+  
+  
+  # Load mzebra conversion info if necessary
+  if (org1 == "mzebra") {
+    gene_info = read.table(path_to_gene_info, sep="\t", header = T, stringsAsFactors = F)   
+  }
+  
+  
+  # Gene Conversion
+  org_list_length_1 = length(org_list)
+  if (org1 == "mouse")  { org_list = toupper(org_list) }
+  if (org1 == "mzebra") { org_list = gene_info$human[match(org_list, gene_info$mzebra)] }
+  org_list = org_list[which( (! is.na(org_list)) & org_list != "" )]
+  org_list_length_2 = length(org_list)
+  org_list = unique(org_list) # Remove Duplicates
+  org_list_length_3 = length(org_list)
+  
+  # API Gene Lookup
+  human_str = paste0(org_list, collapse = '", "')
+  gene_query = paste0('{ "Symbols": ["', human_str, '"] }')
+  h <- new_handle()
+  handle_setopt(h, copypostfields = gene_query)
+  handle_setheaders(h, "Content-Type" = "text/json")
+  curl_download("https://toppgene.cchmc.org/API/lookup", destfile = "gene_out.json", handle = h)
+  res = fromJSON(file = "gene_out.json")
+  human_ids = as.data.table(t(rbindlist(res)))
+  org_list = as.vector(unlist(human_ids[,2]))
+  
+  org_list = unique(org_list)
+  org_list = org_list[which( !is.na(org_list) )]
+  org_list_length_4 = length(org_list)
+  final_list_length = org_list_length_4
+  message(paste0( "Original Length ", org_list_length_1, " (100%) -> Gene Conversion ", org_list_length_2, " (", format(round(org_list_length_2/org_list_length_1 * 100, 2), nsmall = 2), "% of Original) -> Remove Duplicates ", org_list_length_3, " (", format(round(org_list_length_3/org_list_length_1 * 100, 2), nsmall = 2), "% of Original) -> Find Entrez Accessions ", org_list_length_4, " (", format(round(org_list_length_4/org_list_length_1 * 100, 2), nsmall = 2), "% of Original)" ))
+  message()
+  
+  
+  # Construct JSON Query
+  message("Constructing JSON Query Strings")
+  json_query = paste0('{ "Genes": [', paste0(org_list, collapse = ','), '], "Categories": [') # Add the Genes
+  for (j in 1:length(my_cats)) {
+    my_cat = my_cats[j]
+    json_query = paste0(json_query, '{ "Type": "', my_cat, '", "PValue": 1, "MinGenes": 0, "MaxGenes": 1000000000, "MaxResults": 1000000000, "Correction": "FDR" }')
+    if (j != length(my_cats)) { json_query = paste0(json_query, ", ") }
+  } # end cat for
+  json_query = paste0(json_query, '] } }')
+  
+  # Curl ToppGene Results Using Their API
+  message(paste0("Retrieving ToppGene Output. This may take a few seconds."))
+  h <- new_handle()
+  handle_setopt(h, copypostfields = json_query)
+  handle_setheaders(h, "Content-Type" = "text/json", "Accept-Encoding" = "gzip", "Connection" = "keep-alive")
+  curl_download("https://toppgene.cchmc.org/API/enrich", destfile = "list_out.json", handle = h)
+  res = fromJSON(file = "list_out.json")
+  df = as.data.table(do.call(rbind,res$Annotations))
+  df = df[,1:which(colnames(df) == "GenesInTermInQuery")]
+  df = as.data.table(unnest(df, cols = colnames(df)))
+  df$Category = plyr::revalue(df$Category, replace = c('GeneOntologyBiologicalProcess' = 'BP', 'GeneOntologyCellularComponent' = 'CC', 'GeneOntologyMolecularFunction' = 'MF', "HumanPheno" = "Human Phenotype", "MousePheno" = "Mouse Phenotype"))
+  
+  return(df)
 }
 
 diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_info = "C:/Users/miles/Downloads/all_research/gene_info.txt", my_cats = c("GeneOntologyMolecularFunction", "GeneOntologyBiologicalProcess", "GeneOntologyCellularComponent", "HumanPheno", "MousePheno", "Domain", "Pathway", "Interaction", "GeneFamily", "Disease")) {
@@ -172,7 +372,7 @@ diffEnrichTG = function(list1, list2, org1 = NULL, org2 = NULL, path_to_gene_inf
     message(paste0("Retrieving ToppGene Output for List", i, ". This may take a few seconds."))
     h <- new_handle()
     handle_setopt(h, copypostfields = json_queries[i])
-    handle_setheaders(h, "Content-Type" = "text/json", "Connection" = "keep-alive", "Accept-Encoding" = "gzip")
+    handle_setheaders(h, "Content-Type" = "text/json", "Accept-Encoding" = "gzip", "Connection" = "keep-alive")
     curl_download("https://toppgene.cchmc.org/API/enrich", destfile = "list_out.json", handle = h)
     res = fromJSON(file = "list_out.json")
     df = as.data.table(do.call(rbind,res$Annotations))
