@@ -6331,18 +6331,31 @@ mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")
 #***************************************************
 # Neurogen Summary Figure ==========================
 #***************************************************
-neurogen53_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc.csv")
-neurogen53_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc.csv")
-neurogen53_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_53cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc.csv")
-neurogen15_s = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
-neurogen15_g = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
-neurogen15_b = read.csv("C:/Users/miles/Downloads/out_neurogen_by_goi_by_cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc (1).csv")
-neurogen53_b$sig_b = neurogen53_b$sig_cond == 3 & neurogen53_b$hmp_cond < 0.05
-neurogen53_b$sig_g = neurogen53_g$sig_gsi == 5 & neurogen53_g$hmp < 0.05
-neurogen53_b$sig_s = neurogen53_s$sig_log_spawn_events == 5 & neurogen53_s$hmp < 0.05
+neurogen15_s = read.csv("C:/Users/miles/Downloads/neurogen_all_analyses_hmp_output_for_george_022522/neurogen_all_analyses_hmp_output_for_george_022522/out_neurogen_by_goi_by_cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_020122_hgnc.csv")
+neurogen15_g = read.csv("C:/Users/miles/Downloads/neurogen_all_analyses_hmp_output_for_george_022522/neurogen_all_analyses_hmp_output_for_george_022522/out_neurogen_by_goi_by_cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_020122_hgnc.csv")
+neurogen15_b = read.csv("C:/Users/miles/Downloads/neurogen_all_analyses_hmp_output_for_george_022522/neurogen_all_analyses_hmp_output_for_george_022522/out_neurogen_by_goi_by_cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_020122_hgnc.csv")
+neurogen53_s = read.csv("C:/Users/miles/Downloads/neurogen_all_analyses_hmp_output_for_george_022522/neurogen_all_analyses_hmp_output_for_george_022522/out_neurogen_by_goi_by_53cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_020122_hgnc.csv")
+neurogen53_g = read.csv("C:/Users/miles/Downloads/neurogen_all_analyses_hmp_output_for_george_022522/neurogen_all_analyses_hmp_output_for_george_022522/out_neurogen_by_goi_by_53cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_020122_hgnc.csv")
+neurogen53_b = read.csv("C:/Users/miles/Downloads/neurogen_all_analyses_hmp_output_for_george_022522/neurogen_all_analyses_hmp_output_for_george_022522/out_neurogen_by_goi_by_53cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_020122_hgnc.csv")
+
+neurogen15_s$cluster_gene = paste0(neurogen15_s$cluster, "_", neurogen15_s$goi)
+neurogen15_g$cluster_gene = paste0(neurogen15_g$cluster, "_", neurogen15_g$goi)
+neurogen15_b$cluster_gene = paste0(neurogen15_b$cluster, "_", neurogen15_b$goi)
+neurogen53_s$cluster_gene = paste0(neurogen53_s$cluster, "_", neurogen53_s$goi)
+neurogen53_g$cluster_gene = paste0(neurogen53_g$cluster, "_", neurogen53_g$goi)
+neurogen53_b$cluster_gene = paste0(neurogen53_b$cluster, "_", neurogen53_b$goi)
+
+neurogen15_s$sig_s = neurogen15_s$sig_log_spawn_events == 5 & neurogen15_s$hmp < 0.05
+neurogen15_g$sig_g = neurogen15_g$sig_gsi == 5 & neurogen15_g$hmp < 0.05
 neurogen15_b$sig_b = neurogen15_b$sig_cond == 3 & neurogen15_b$hmp_cond < 0.05
-neurogen15_b$sig_g = neurogen15_g$sig_gsi == 5 & neurogen15_g$hmp < 0.05
-neurogen15_b$sig_s = neurogen15_s$sig_log_spawn_events == 5 & neurogen15_s$hmp < 0.05
+neurogen53_s$sig_s = neurogen53_s$sig_log_spawn_events == 5 & neurogen53_s$hmp < 0.05
+neurogen53_g$sig_g = neurogen53_g$sig_gsi == 5 & neurogen53_g$hmp < 0.05
+neurogen53_b$sig_b = neurogen53_b$sig_cond == 3 & neurogen53_b$hmp_cond < 0.05
+
+neurogen53_b$sig_g = neurogen53_g$sig_g[match(neurogen53_b$cluster_gene, neurogen53_g$cluster_gene)]
+neurogen53_b$sig_s = neurogen53_s$sig_s[match(neurogen53_b$cluster_gene, neurogen53_s$cluster_gene)]
+neurogen15_b$sig_g = neurogen15_g$sig_g[match(neurogen15_b$cluster_gene, neurogen15_g$cluster_gene)]
+neurogen15_b$sig_s = neurogen15_s$sig_s[match(neurogen15_b$cluster_gene, neurogen15_s$cluster_gene)]
 
 neurogen15_b$level_old = paste0("primary_", neurogen15_b$cluster)
 neurogen15_b$cluster_all = convert_all$cluster[match(neurogen15_b$level_old, convert_all$level_old)]
@@ -6387,9 +6400,130 @@ order_combos$border = data.frame(table(all$mzebra[which( all$sig_b )]))[,2]
 order_combos$gorder = data.frame(table(all$mzebra[which( all$sig_g )]))[,2]
 order_combos$qorder = data.frame(table(all$mzebra[which( all$sig_s )]))[,2]
 order_combos = order_combos[order(order_combos$qorder, order_combos$gorder, order_combos$border, decreasing = T),]
-all$mzebra = factor(all$mzebra, levels = order_combos$Var1)
 
-ggplot(all, aes(x = mzebra, y = cluster_all, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color), face=ifelse(rev(convert_all$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+all$mzebra = factor(all$mzebra, levels = order_combos$Var1)
+all$hgnc = gene_info$human[match(all$mzebra, gene_info$mzebra)]
+all$label = as.vector(all$mzebra)
+all$label[which(startsWith(all$label, "LOC"))] = paste0(all$mzebra[which(startsWith(all$label, "LOC"))], " (", tolower(all$hgnc[which(startsWith(all$label, "LOC"))]), ")")
+all$label = factor(all$label, levels = unique(all$label[order(all$mzebra)]))
+all = all[which(! is.na(all$cluster_all) ),]
+all$cluster_all = factor(all$cluster_all, levels = convert_all$cluster)
+
+pdf("C:/Users/miles/Downloads/neurogen_sum.pdf", width = 14, height  = 6)
+# ggplot(all, aes(x = label, y = cluster_all, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color[which(convert_all$cluster %in% all$cluster_all)]), face=ifelse(rev(convert_all$level[which(convert_all$cluster %in% all$cluster_all)]) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level[which(convert_all$cluster %in% all$cluster_all)]) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0)) + coord_fixed()
+ggplot(all, aes(x = label, y = cluster_all, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = convert_all$color[which(convert_all$cluster %in% all$cluster_all)], face=ifelse(convert_all$level[which(convert_all$cluster %in% all$cluster_all)] =="secondary","plain","bold"), size=ifelse(convert_all$level[which(convert_all$cluster %in% all$cluster_all)] =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0)) + coord_fixed()
+dev.off()
+
+# 2
+ieg_sum = read.csv("C:/Users/miles/Downloads/bower_quiver_gsi_cluster_goi_beta_effects_for_dotplot_030122.csv")
+ieg_sum$is_sig = ieg_sum$plot
+ieg_sum = ieg_sum[which(ieg_sum$is_sig),]
+ieg_sum$hgnc = ieg_sum$gene
+ieg_sum$gene_pop = ieg_sum$goi
+ieg_sum$cluster[which(ieg_sum$cluster == FALSE)] = "All"
+ieg_sum$gene_pop[which(ieg_sum$gene_pop == FALSE)] = "All"
+ieg_sum$level_old = paste0(ieg_sum$level, "_", ieg_sum$cluster)
+ieg_sum$level_old_gp = paste0(ieg_sum$level_old, "_", ieg_sum$gene_pop)
+ieg_sum$cat_level_old_gp = paste0(ieg_sum$cat, "_", ieg_sum$level_old_gp)
+
+convert_all = data.frame(cluster = c(convert15$new.full, convert53$new), color = c(convert15$col, convert53$col), old = c(convert15$old, convert53$old))
+convert_all = convert_all[which(! duplicated(convert_all$cluster) ),]
+convert_all[, c("new.id", "new.gaba")]    = reshape2::colsplit(convert_all$cluster, "_", names = c("new.id", "new.gaba"))
+convert_all[, c("new.parent", "new.sub")] = reshape2::colsplit(convert_all$new.id, "\\.", names = c("new.id", "new.gaba"))
+convert_all$new.sub[which(is.na(convert_all$new.sub))] = 0
+convert_all[which(convert_all$cluster == "8-9_Glut"), c("new.parent", "new.sub")] = c(8, 12) # Assign a parent and subcluster to the 8-9_Glut special case
+convert_all = convert_all[order(as.numeric(convert_all$new.parent), as.numeric(convert_all$new.sub), decreasing = F),]
+convert_all$level = plyr::revalue(as.character(convert_all$new.sub == 0), replace = c("TRUE" = "primary", "FALSE" = "secondary"))
+convert_all = rbind(data.frame(cluster = "All", color = viridis::viridis(1), new.id = 0, new.gaba = "all", new.parent = 0, new.sub = 0, level = "all", old = "All"), convert_all)
+convert_all$level_old = paste0(convert_all$level, "_", convert_all$old)
+convert_all$cluster = stringr::str_replace(convert_all$cluster, "Astro", "RGC")
+
+all_combos = expand.grid(convert_all$level_old, unique(ieg_sum$gene_pop[which(ieg_sum$gene_pop != FALSE)]) )
+colnames(all_combos) = c("level_old", "gene_pop")
+all_combos$level_old_gp = paste0(all_combos$level_old, "_", all_combos$gene_pop)
+all_combos[,colnames(convert_all)] = convert_all[match(all_combos$level_old, convert_all$level_old),]
+all_combos$hgnc = gene_info$human[match(all_combos$gene_pop, gene_info$mzebra)]
+all_combos$hgnc[which(is.na(all_combos$hgnc))] = "All"
+all_combos$bsig = NA
+all_combos$gsig = NA
+all_combos$qsig = NA
+
+for (i in 1:nrow(ieg_sum)) {
+  my.sig = ieg_sum$is_sig[i]
+  my.cat = ieg_sum$cat[i]
+  my.x = ieg_sum$level_old_gp[i]
+  my.idx = which(all_combos$level_old_gp == my.x)
+  my.cat.col = plyr::revalue(my.cat, replace = c("bower" = "bsig", "gsi" = "gsig", "quiver" = "qsig"))
+  if (! is.na(my.cat.col) )
+    all_combos[my.idx, my.cat.col] = my.sig
+  if (my.x == "secondary_36_bhlhe22")
+    all_combos[my.idx, "bsig"] = T
+}
+
+all_combos$pcol = "white"
+non_na_rows = which( ! is.na(all_combos$bsig) | ! is.na(all_combos$gsig) | ! is.na(all_combos$qsig) )
+all_combos$pcol[non_na_rows] = unlist(lapply(non_na_rows, function(x) {
+  this.col = "error"
+  if ( ! is.na(all_combos[x,"bsig"]) ) { this.col = "#FDE725" }
+  if ( ! is.na(all_combos[x,"gsig"]) ) { this.col = "#2AB07F" }
+  if ( ! is.na(all_combos[x,"qsig"]) ) { this.col = "#433E85" }
+  if ( ! is.na(all_combos[x,"bsig"]) & ! is.na(all_combos[x,"gsig"]) ) { this.col = "#94CC52" }
+  if ( ! is.na(all_combos[x,"bsig"]) & ! is.na(all_combos[x,"qsig"]) ) { this.col = "#A09355" }
+  if ( ! is.na(all_combos[x,"gsig"]) & ! is.na(all_combos[x,"qsig"]) ) { this.col = "#377782" }
+  if ( ! is.na(all_combos[x,"bsig"]) & ! is.na(all_combos[x,"gsig"]) & ! is.na(all_combos[x,"qsig"]) ) { this.col = "#799c63" }
+  return(this.col)
+}))
+
+all_combos$tran = "FALSE"
+non_na_rows = which( ! is.na(all_combos$bsig) | ! is.na(all_combos$gsig) | ! is.na(all_combos$qsig) )
+all_combos$tran[non_na_rows] = unlist(lapply(non_na_rows, function(x) {
+  this.tran = "FF"
+  if ( ! is.na(all_combos[x,"bsig"]) &  ! all_combos[x,"bsig"] ) { this.tran = "85" }
+  if ( ! is.na(all_combos[x,"gsig"]) &  ! all_combos[x,"gsig"] ) { this.tran = "85" }
+  if ( ! is.na(all_combos[x,"qsig"]) &  ! all_combos[x,"qsig"] ) { this.tran = "85" }
+  return(this.tran)
+}))
+all_combos$pcol_tran = "white"
+all_combos$pcol_tran[non_na_rows] = paste0(all_combos$pcol[non_na_rows], all_combos$tran[non_na_rows])
+all_combos$sig_level = plyr::revalue(as.character(all_combos$tran), replace = c("FALSE" = "FALSE", "FF" = "TRUE", "85" = "trending"))
+all_combos$sig = F
+all_combos$sig[which(all_combos$sig_level == "TRUE")] = T
+all_combos$trending = F
+all_combos$trending[which(all_combos$sig_level == "trending")] = T
+all_combos$pcol_tran2 = "white"
+all_combos$pcol_tran2[non_na_rows] = paste0(all_combos$pcol[non_na_rows], "85")
+
+all_combos$cluster = factor(all_combos$cluster, levels = rev(convert_all$cluster))
+all_combos$hgnc = factor(all_combos$hgnc, levels = c("All", sort(unique(all_combos$hgnc[which(all_combos$hgnc != "All")]))))
+
+ggplot(all_combos, aes(x = hgnc, y = cluster, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color), face=ifelse(rev(convert_all$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+
+num_hits_by_clust = data.frame(table(all_combos$cluster[which(all_combos$pcol != "white" & all_combos$cluster != "All")]))
+num_hits_by_gp    = data.frame(table(all_combos$gene_pop[which(all_combos$pcol != "white" & all_combos$cluster != "All")]))
+convert_all$num_hits = num_hits_by_clust$Freq[match(convert_all$cluster, num_hits_by_clust$Var1)]
+convert_all_small = convert_all[which(convert_all$num_hits != 0 & convert_all$cluster != "All"),]
+all_combos_small = all_combos[which(all_combos$cluster %in% convert_all_small$cluster),]
+all_combos_small$cluster = factor(all_combos_small$cluster, levels = rev(convert_all_small$cluster))
+all_combos_small$gp_hits = num_hits_by_gp$Freq[match(all_combos_small$gene_pop, num_hits_by_gp$Var1)]
+all_combos_small = all_combos_small[which(all_combos_small$gp_hits > 0),]
+length(which(! all_combos_small$pcol %in% c("white", "#FDE725", "#2AB07F", "#433E85")))
+all_combos_small[which(! all_combos_small$pcol %in% c("white", "#FDE725", "#2AB07F", "#433E85")),]
+
+order_combos = data.frame(table(all_combos_small$gene_pop[which(all_combos_small$pcol != "white")]))
+order_combos$border = data.frame(table(all_combos_small$gene_pop[which( ! is.na(all_combos_small$bsig) )]))[,2]
+order_combos$gorder = data.frame(table(all_combos_small$gene_pop[which( ! is.na(all_combos_small$gsig) )]))[,2]
+order_combos$qorder = data.frame(table(all_combos_small$gene_pop[which( ! is.na(all_combos_small$qsig) )]))[,2]
+order_combos = order_combos[order(order_combos$qorder, order_combos$gorder, order_combos$border, decreasing = T),]
+all_combos_small$gene_pop = factor(all_combos_small$gene_pop, levels = order_combos$Var1)
+
+all_combos_small$hgnc = tolower(gene_info$human[match(all_combos_small$gene_pop, gene_info$mzebra)])
+all_combos_small$hgnc[which(all_combos_small$gene_pop == "LOC101474236")] = "LOC101474236"
+all_combos_small$hgnc[which(all_combos_small$gene_pop == "All")] = "All"
+all_combos_small$hgnc = factor(all_combos_small$hgnc, levels = unique(all_combos_small$hgnc[match(order_combos$Var1, all_combos_small$gene_pop)]))
+
+pdf("C:/Users/miles/Downloads/neurogen_summary_3_sig.pdf", width = 10, height = 5)
+ggplot(all_combos_small, aes(x = hgnc, y = cluster, fill = pcol_tran)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+dev.off()
 
 #**********************************************************************
 # Temporal Data =======================================================
