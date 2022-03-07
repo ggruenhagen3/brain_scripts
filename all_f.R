@@ -29,6 +29,105 @@ httr::set_config(config(ssl_verifypeer = FALSE))
 # Helper Functions #
 ####################
 
+createGeneScore = function(obj, genes, new.col.name = "gene_score", normalize.by.n.features = T) {
+  #' Create a gene score: the # of genes from the input expressed in each cell.
+  #' By default, the gene score is normalized by the # of features in each cell.
+  #'
+  #' @param obj Seurat object
+  #' @param genes vector of genes
+  #' @param new.col.name name of meta.data column to store the score in
+  #' @param normalize.by.n.features normalize gene score by # of features in the cell?
+  
+  # Change Matrix to Prescence/Absence
+  mat = obj@assays$RNA@counts[genes,]
+  mat[which(mat > 1)] = 1
+  
+  # Add the new column
+  obj@meta.data[, new.col.name] = colSums(mat)
+  
+  # Normalize by # of Features
+  if (normalize.by.n.features) { obj@meta.data[, new.col.name] = obj@meta.data[, new.col.name] / obj$nFeature_RNA }
+  
+  return(obj)
+}
+
+lgConverter = function(vect, path_to_info = "~/research/all_research/M_zebra_UMD2a_assembly_report.txt") {
+  #' Convert LG to NCBI and vice versa.
+  #'
+  #' @param vect input vector of either lg/ncbi that needs to be converted to the other
+  #' @param path_to_info path to M_zebra_UMD2a_assembly_report.txt file
+  
+  # Read Assembly Report
+  converter = read.delim(path_to_info, skip = 35)
+  colnames(converter)[c(1, 7)] = c("lg", "ncbi")
+  converter$lg[which(converter$Sequence.Role == "unplaced-scaffold")] = "unplaced"
+  
+  # Automatically Detect Input
+  num.vect.lg = length(which(vect %in% converter$lg))
+  num.vect.ncbi = length(which(vect %in% converter$ncbi))
+  if (num.vect.lg > num.vect.ncbi)  {
+    print("Detected LG. Now converting to NCBI.")
+    new = "ncbi"
+    old = "lg"
+  } else {
+    print("Detected NCBI. Now converting to LG.")
+    new = "lg"
+    old = "ncbi"
+  }
+  
+  # Do the conversion
+  converted = converter[match(vect, converter[,old]), new]
+  return(converted)
+}
+
+StackedVlnPlot = function(obj, features, pt.size = 0, plot.margin = unit(c(-0.75, 0, -0.75, 0), "cm"), xcols = NULL, ycols = NULL, sec.axis.names = NULL, ...) {
+  
+  mytheme <- theme_classic() + theme(legend.position = "none", axis.title.x = element_blank(), axis.title.y = element_text(angle = 0, vjust = 0.5), title = element_blank(), plot.margin=grid::unit(c(0,0,0,0),"cm"), axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  mytheme$axis.line.y <- mytheme$axis.line.y <- mytheme$axis.line
+  mytheme$axis.line.y$colour <- 'white'
+  
+  modify_vlnplot<- function(obj, 
+                            feature, 
+                            sec.axis.name = NULL,
+                            ycol = NULL,
+                            pt.size = 0, 
+                            plot.margin = unit(c(0, 1, 0, 1), "cm"),
+                            ...) {
+    p<- VlnPlot(obj, features = feature, pt.size = pt.size, ... )  +
+      xlab("") + ylab(feature) + ggtitle("") + mytheme + scale_y_continuous(expand =  c(0,0))
+    if ( ! is.null(sec.axis.name) ) { p = p + scale_y_continuous(expand =  c(0,0), sec.axis = sec_axis(trans=~.*1, name = sec.axis.name)) + theme(axis.title.y.right = element_text(angle = 0, vjust = 0.5)) }
+    if ( ! is.null(ycol) ) { p = p + theme(axis.title.y = element_text(angle = 0, vjust = 0.5, color = ycol)) }
+    # p <- VlnPlot(obj, features = feature, pt.size = pt.size, ... ) + theme_void() + NoLegend() + theme(axis.title.x = element_blank(), title = element_blank(), plot.margin=grid::unit(c(0,0,0,0),"cm")) + ylab(feature) + scale_y_continuous(feature, expand =  c(0,0))
+    return(p)
+  }
+  
+  ## extract the max value of the y axis
+  extract_max<- function(p){
+    ymax<- max(ggplot_build(p)$layout$panel_scales_y[[1]]$range$range)
+    return(ceiling(ymax))
+  }
+  
+  
+  plot_list<- purrr::map(1:length(features), function(x) modify_vlnplot(obj = obj, feature = features[x], ycol = ycols[x], sec.axis.name = sec.axis.names[x], ...))
+  
+  # Add back x-axis title to bottom plot. patchwork is going to support this?
+  plot_list[[length(plot_list)]]<- plot_list[[length(plot_list)]] +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 15), axis.ticks.x = element_line())
+  if (! is.null(xcols) ) {
+    plot_list[[length(plot_list)]]<- plot_list[[length(plot_list)]] +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 15, color = xcols), axis.ticks.x = element_line())
+  }
+  
+  # change the y-axis tick to only max value 
+  # ymaxs<- purrr::map_dbl(plot_list, extract_max)
+  # plot_list<- purrr::map2(plot_list, ymaxs, function(x,y) x + 
+  #                           scale_y_continuous(breaks = c(y)) + 
+  #                           expand_limits(y = y))
+  
+  p<- patchwork::wrap_plots(plotlist = plot_list, ncol = 1)
+  return(p)
+}
+
 clusterProportionsP = function(obj, group1, group2, cluster_meta_name = 'seurat_clusters', ind_meta_name = 'subsample') {
   #' Test for Differences in Cluster Proportions Between 2 Groups of Individuals
   #' @param obj Seurat object
@@ -308,6 +407,10 @@ changeClusterID = function(clust_vect, clust_level = NULL, returnFactor = F) {
   convert15$new = gsub("Ex", "Glut", convert15$new)
   convert53$new = gsub("In", "GABA", convert53$new)
   convert53$new = gsub("Ex", "Glut", convert53$new)
+  
+  # Changed Astro to RGC
+  convert15$new = str_replace(convert15$new, "Astro", "RGC")
+  convert53$new = str_replace(convert53$new, "Astro", "RGC")
   
   # Allow converters to sort numerically
   convert15 = cbind(convert15, colsplit(convert15$new, pattern = "_", names = c("new.num", "new.gaba")))
@@ -1532,7 +1635,7 @@ markerExpPerCellPerClusterQuickDemux = function(obj, markers) {
 }
 
 
-markerExpPerCellPerClusterQuick = function(obj, markers) {
+markerExpPerCellPerClusterQuick = function(obj, markers, include_stars = F, pt.alpha = 0.05) {
   #' Same as markerExpPerCellPerCluster using the default settings and using some shortcuts
   # Defaults from original function
   n_markers = T
@@ -1548,7 +1651,11 @@ markerExpPerCellPerClusterQuick = function(obj, markers) {
   exp[which(exp > 0)] = 1
   per_cluster_df = data.frame()
   d_df = data.frame()
-  clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  # clusters = sort(unique(as.vector(Idents(obj))))
+  clusters = levels(Idents(obj))
+  if (! any(is.na(as.numeric( levels(Idents(obj)) )))) {
+    clusters = sort(unique(as.numeric(as.vector(Idents(obj)))))
+  }
   
   for (cluster in clusters) {
     cluster_cells <- WhichCells(obj, idents = cluster)
@@ -1584,14 +1691,17 @@ markerExpPerCellPerClusterQuick = function(obj, markers) {
   colnames(per_cluster_df) <- c("cluster", "avg_cluster_exp", "p", "mag_pos")
   per_cluster_df$avg_cluster_exp = as.numeric(as.vector(per_cluster_df$avg_cluster_exp))
   per_cluster_df$p_val_adj = unlist(sapply(1:length(clusters), function(x) rep(d_df$p_val_adj[which(d_df$cluster == clusters[x])], length(which(per_cluster_df$cluster == clusters[x]))) ))
-  per_cluster_df$star = ifelse(per_cluster_df$p_val_adj < 0.001, "***",
-                               ifelse(per_cluster_df$p_val_adj < 0.01, "**",
-                                      ifelse(per_cluster_df$p_val_adj < 0.05, "*", "")))
+  per_cluster_df$star = ""
+  if (include_stars) {
+    per_cluster_df$star = ifelse(per_cluster_df$p_val_adj < 0.001, "***",
+                                 ifelse(per_cluster_df$p_val_adj < 0.01, "**",
+                                        ifelse(per_cluster_df$p_val_adj < 0.05, "*", "")))
+  }
   per_cluster_df$cluster = factor(per_cluster_df$cluster, levels = clusters)
   per_cluster_df$mag_pos = factor(per_cluster_df$mag_pos, levels = c("negligible", "small", "medium", "large"))
-  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=mag_pos, color=mag_pos)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = 0.05) + xlab("Cluster") + ylab("") + ggtitle(title_str) + scale_color_viridis(discrete = T,drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size") + scale_fill_viridis(discrete = T, drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size")
+  p = ggplot(per_cluster_df, aes(cluster, avg_cluster_exp, fill=mag_pos, color=mag_pos)) + geom_text(aes(x= cluster, y = Inf, vjust = 1, label = star)) + geom_boxplot(alpha=0.6) +  geom_jitter(position=position_dodge2(width = 0.6), alpha = pt.alpha) + xlab("Cluster") + ylab("") + ggtitle(title_str) + scale_color_viridis(discrete = T,drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size") + scale_fill_viridis(discrete = T, drop=TRUE, limits = levels(per_cluster_df$mag_pos), name = "Effect Size")
 
-  print(head(per_cluster_df[which(per_cluster_df$cluster == 0),]))
+  # print(head(per_cluster_df[which(per_cluster_df$cluster == 0),]))
 
   return(list(p, p1, d_df, per_cluster_df))
 }
@@ -1855,7 +1965,33 @@ paintMarkers = function(obj, markers, filepath, mywidth=1200, myheight=500, mypt
   } # end for
 }
 
+makeEmptyVectorMatFormat = function(n.row, n.col, first_column = NULL) {
+  #' Prints a string that is R code for a vector. The string is formatted to
+  #' like a matrix with "" repated in n.row by n.col.
+  #' 
+  #' @param n.row number of rows
+  #' @param n.col number of columns
+  #' @param first_column fill the first column with these values
+  str = "a = c("
+  for (i in 1:(n.row*n.col)) {
+    element = ""
+    if ( i %% n.col == 1 ) { element = first_column[floor(i / n.col)+1] }
+    if (i == n.row*n.col) { # if it's the last element, don't put a comma
+      str = paste0(str, '"', element, '")') 
+    } else {
+      str = paste0(str, '"', element, '", ') 
+      if (i %% n.col == 0) { str = paste0(str, '\n      ') }
+    }
+  }
+  str = paste0(str, "")
+  cat(str)
+}
+
 printVectorAsNewVector <- function(vect) {
+  #' Prints a vector in R as a string, so that way you can copy the string and
+  #' make the vector in another terminal.
+  #' 
+  #' @param vect vector to print as a strong
   str = "newVect = c("
   for (i in 1:length(vect)) {
     element = vect[i]
