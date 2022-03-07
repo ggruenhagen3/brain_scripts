@@ -4368,6 +4368,16 @@ plot(polys)
 # test1 = test1[order( test1$y ),]
 # ggplot(test1, aes(x, y, color = level)) + geom_point()
 
+#*******************************************************************************
+# Add Hulls Around Cluster =====================================================
+#*******************************************************************************
+library("ggforce")
+library("concaveman")
+df = data.frame(cluster15 = bb$seuratclusters15, cluster53 = bb$seuratclusters53, col15 = convert15$col[match(bb$seuratclusters15, convert15$old)], col53 = convert53$col[match(bb$seuratclusters53, convert53$old)])
+df[,c("UMAP_1", "UMAP_2")] = as.data.frame(bb@reductions$umap@cell.embeddings)
+ggplot(df, aes(UMAP_1, UMAP_2, color = col53)) + geom_point(size = 0.6) + theme_classic() + geom_mark_hull(aes(group = col15, fill = col15, color = col15), concavity = 20, expand = unit(2.5, "mm")) + scale_color_identity() + scale_fill_identity()
+
+
 #***********************************************************************************
 # scGNN ============================================================================
 #***********************************************************************************
@@ -4562,6 +4572,8 @@ clown_meta_agr = aggregate(nCount_RNA ~ seurat_clusters + subsample2, data = clo
 clown_meta_agr$sex = startsWith(clown_meta_agr$subsample2, "f")
 clown_meta_agr$sex = plyr::revalue(as.character(clown_meta_agr$sex), replace = c("TRUE" = "Female", "FALSE" = "Male"))
 ggplot(clown_meta_agr, aes(x = seurat_clusters, y = nCount_RNA, fill = sex, color = sex)) + geom_boxplot(alpha = 0.3) + geom_point(position = position_jitterdodge(), width = 0.05, alpha = 0.6) + scale_color_manual(values = my_pal) + scale_fill_manual(values = my_pal) + ylab("Number of Cells")
+
+# Clown UMAP
 
 #*******************************************************************************
 # Brianna Markers ==============================================================
