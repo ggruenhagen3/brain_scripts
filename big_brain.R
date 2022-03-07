@@ -4597,6 +4597,16 @@ all_combos$col4[which(all_combos$pct.1 >= 10 )] = paste0(all_combos$col[which(al
 all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "90")
 all_combos$col4[which(all_combos$pct.1 >= 30 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 30 )], "ff")
 
+# Transparancy theme continuous
+all_combos$col5 = "gray98"
+OldRange = (25 - 5)  
+NewRange = (100 - 70)  
+some.alpha.values = floor( (((all_combos$pct.1[which(all_combos$pct.1 >= 5)] - 5) * NewRange) / OldRange) + 70 )
+some.alpha.values[which(some.alpha.values >= 100)] = 100
+some.alpha.values = as.character(some.alpha.values)
+some.alpha.values[which(some.alpha.values == "100")] = "ff"
+all_combos$col5[which(all_combos$pct.1 >= 5 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 5 )], some.alpha.values)
+
 # Plot the matrix
 all_combos15 = all_combos
 brianna_order = xlsx::read.xlsx("~/Downloads/heatmapmarkerlist_george2.xlsx", sheetIndex = 1, startRow = 1)
@@ -4653,6 +4663,16 @@ all_combos$col4[which(all_combos$pct.1 >= 10 )] = paste0(all_combos$col[which(al
 all_combos$col4[which(all_combos$pct.1 >= 20 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 20 )], "90")
 all_combos$col4[which(all_combos$pct.1 >= 30 )] = paste0(all_combos$col[which(all_combos$pct.1 >= 30 )], "ff")
 
+# Transparancy theme continuous
+all_combos$col5 = "gray98"
+OldRange = (25 - 5)  
+NewRange = (100 - 70)  
+some.alpha.values = floor( (((all_combos$pct.1[which(all_combos$pct.1 >= 5)] - 5) * NewRange) / OldRange) + 70 )
+some.alpha.values[which(some.alpha.values >= 100)] = 100
+some.alpha.values = as.character(some.alpha.values)
+some.alpha.values[which(some.alpha.values == "100")] = "ff"
+all_combos$col5[which(all_combos$pct.1 >= 5 )]  = paste0(all_combos$col[which(all_combos$pct.1 >= 5 )], some.alpha.values)
+
 # Plot the matrix
 all_combos$cluster = factor(all_combos$cluster, levels = rev(unique(convert53$new)))
 all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene[brianna53_idx]))
@@ -4672,8 +4692,8 @@ ball = rbind(all_combos15[which( all_combos15$LOCID %in% ball_common_genes ),], 
 ball$Gene[which(ball$LOCID == "LOC101464700")] = "emx3 (emx1)"
 ball$Gene = factor(ball$Gene, levels = unique(brianna53$Gene[brianna53_idx]))
 ball$cluster = factor(ball$cluster, levels = rev(convert_all$cluster))
-pdf("~/research/brain/results/bri_all_markers_heatmap.pdf", height = 12, width = 12)
-ggplot(ball, aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(size = ifelse(rev(convert_all$level) == "primary", 10, 8), face = ifelse(rev(convert_all$level) == "primary", "bold", "plain"), color = rev(convert_all$color))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+pdf("~/research/brain/results/bri_all_markers_heatmap2.pdf", height = 12, width = 12)
+ggplot(ball, aes(x = Gene, y = cluster, fill = col5)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic", size = 10), axis.text.y = element_text(size = ifelse(rev(convert_all$level) == "primary", 10, 8), face = ifelse(rev(convert_all$level) == "primary", "bold", "plain"), color = rev(convert_all$color))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
 
 ball.vln = unique(brianna15[,c("LOCID", "Gene", "gene_name")])
