@@ -7319,6 +7319,7 @@ for (i in 1:nrow(zpops)) {
 }
 
 df$this.v.other = df$this.z / df$other.z
+# work comment
 # ggplot(df, aes(x = label.i, y = this.v.other, fill = pcrc.gene)) + geom_bar(stat = 'identity') + ylab("[PCRC Gene Present / # of Genes] in Pop vs [PCRC Gene Present / # of Genes] NOT in Pop") + NoLegend()
 write.csv(df, "C:/Users/miles/Downloads/pcrc_genes_driving_effects.csv")
 # work comment
