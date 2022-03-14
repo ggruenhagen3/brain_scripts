@@ -1655,6 +1655,15 @@ all_r$isFirst = all_r$RELATEDNESS_PHI > 0.225 & all_r$RELATEDNESS_PHI < 0.48
 ggplot(all_r, aes(INDV1, INDV2, fill = RELATEDNESS_PHI)) + geom_raster() + scale_fill_viridis_c() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
 ggplot(all_r, aes(INDV1, INDV2, fill = isFirst)) + geom_raster() + scale_fill_viridis_d() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
 
+#*******************************************************************************
+# Add Hulls Around Cluster =====================================================
+#*******************************************************************************
+library("ggforce")
+library("concaveman")
+df = data.frame(cluster15 = bb$seuratclusters15, cluster53 = bb$seuratclusters53, col15 = convert15$col[match(bb$seuratclusters15, convert15$old)], col53 = convert53$col[match(bb$seuratclusters53, convert53$old)])
+df[,c("UMAP_1", "UMAP_2")] = as.data.frame(bb@reductions$umap@cell.embeddings)
+ggplot(df, aes(UMAP_1, UMAP_2, color = col53)) + geom_point(size = 0.6) + theme_void() + geom_mark_hull(aes(group = col15, fill = col15, color = col15), concavity = 20, expand = unit(2.5, "mm")) + scale_color_identity() + scale_fill_identity()
+
 #******************************************************************************************
 # Sierra ==================================================================================
 #******************************************************************************************
@@ -4689,11 +4698,20 @@ all_combos15$level = "15"
 all_combos53$level = "53"
 ball_common_genes = brianna15$LOCID[which(brianna15$LOCID %in% brianna53$LOCID)]
 ball = rbind(all_combos15[which( all_combos15$LOCID %in% ball_common_genes ),], all_combos53[which( all_combos53$LOCID %in% ball_common_genes ),])
+
+# Zack last minute changes
+other = read.csv("~/Downloads/goi_less_10k_122821_by_cat_hgnc.csv")
+other = other[which(other$cat == "other"),]
+ball$col6 = ball$col5
+ball$col6[which( ball$gene_name %in% other$mzebra & startsWith(ball$col5, "#")  )] = paste0("#002DD1", substr(ball$col6[which( ball$gene_name %in% other$mzebra & startsWith(ball$col5, "#")  )], 8, 9))
+new.order = unique(brianna53$Gene[brianna53_idx])
+new.order = c(new.order[which(!new.order %in% ball$Gene[which(ball$gene_name %in% other$mzebra)])], new.order[which(new.order %in% ball$Gene[which(ball$gene_name %in% other$mzebra)])])
+
 ball$Gene[which(ball$LOCID == "LOC101464700")] = "emx3 (emx1)"
-ball$Gene = factor(ball$Gene, levels = unique(brianna53$Gene[brianna53_idx]))
+ball$Gene = factor(ball$Gene, levels = new.order)
 ball$cluster = factor(ball$cluster, levels = rev(convert_all$cluster))
-pdf("~/research/brain/results/bri_all_markers_heatmap2.pdf", height = 12, width = 12)
-ggplot(ball, aes(x = Gene, y = cluster, fill = col5)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic", size = 10), axis.text.y = element_text(size = ifelse(rev(convert_all$level) == "primary", 10, 8), face = ifelse(rev(convert_all$level) == "primary", "bold", "plain"), color = rev(convert_all$color))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
+pdf("~/research/brain/results/bri_all_markers_heatmap4.pdf", height = 12, width = 12)
+ggplot(ball, aes(x = Gene, y = cluster, fill = col6)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic", size = 10), axis.text.y = element_text(size = ifelse(rev(convert_all$level) == "primary", 10, 8), face = ifelse(rev(convert_all$level) == "primary", "bold", "plain"), color = rev(convert_all$color))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
 
 ball.vln = unique(brianna15[,c("LOCID", "Gene", "gene_name")])
