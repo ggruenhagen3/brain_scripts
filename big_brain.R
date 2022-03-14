@@ -6013,10 +6013,11 @@ for (i in 1:5) {
 # IEG Summary Figure ====================================================
 #************************************************************************
 # ieg_sum = read.csv("C:/Users/miles/Downloads/summary_sig_and_trend_IEG_hits_all_analyses_010321.csv")
-ieg_sum = read.csv("C:/Users/miles/Downloads/ieg_summary_data_by_cat_cluster_goi_010321.csv")
-ieg_sum = ieg_sum[which(ieg_sum$is_sig),]
+# ieg_sum = read.csv("C:/Users/miles/Downloads/ieg_summary_data_by_cat_cluster_goi_010321.csv")
+ieg_sum = read.csv("C:/Users/miles/Downloads/ieg_bower_quiver_gsi_cluster_goi_beta_effects_for_dotplot.csv")
+ieg_sum = ieg_sum[which(ieg_sum$plot),]
 ieg_sum$hgnc = ieg_sum$gene
-ieg_sum$gene_pop = ieg_sum$mzebra
+ieg_sum$gene_pop = ieg_sum$goi
 ieg_sum$cluster[which(ieg_sum$cluster == FALSE)] = "All"
 ieg_sum$gene_pop[which(ieg_sum$gene_pop == FALSE)] = "All"
 ieg_sum$level_old = paste0(ieg_sum$level, "_", ieg_sum$cluster)
@@ -6045,7 +6046,7 @@ all_combos$gsig = NA
 all_combos$qsig = NA
 
 for (i in 1:nrow(ieg_sum)) {
-  my.sig = ieg_sum$is_sig[i]
+  my.sig = TRUE
   my.cat = ieg_sum$cat[i]
   my.x = ieg_sum$level_old_gp[i]
   my.idx = which(all_combos$level_old_gp == my.x)
@@ -6087,7 +6088,7 @@ all_combos$pcol_tran2 = "white"
 all_combos$pcol_tran2[non_na_rows] = paste0(all_combos$pcol[non_na_rows], "85")
 
 all_combos$cluster = factor(all_combos$cluster, levels = rev(convert_all$cluster))
-all_combos$hgnc = factor(all_combos$hgnc, levels = c("All", sort(unique(all_combos$hgnc[which(all_combos$hgnc != "All")]))))
+# all_combos$hgnc = factor(all_combos$hgnc, levels = c("All", sort(unique(all_combos$hgnc[which(all_combos$hgnc != "All")]))))
 
 ggplot(all_combos, aes(x = hgnc, y = cluster, fill = pcol)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all$color), face=ifelse(rev(convert_all$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 
@@ -6126,7 +6127,7 @@ all_combos_small$hgnc[which(all_combos_small$gene_pop == "LOC101474236")] = "LOC
 all_combos_small$hgnc[which(all_combos_small$gene_pop == "All")] = "All"
 all_combos_small$hgnc = factor(all_combos_small$hgnc, levels = all_combos_small$hgnc[match(order_combos$Var1, all_combos_small$gene_pop)])
 
-pdf("C:/Users/miles/Downloads/ieg_summary_2_sig.pdf", width = 7, height = 5)
+pdf("C:/Users/miles/Downloads/ieg_summary_3_sig.pdf", width = 7, height = 5)
 ggplot(all_combos_small, aes(x = hgnc, y = cluster, fill = pcol_tran)) + geom_tile(color = "gray60") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic"), axis.text.y = element_text(colour = rev(convert_all_small$color), face=ifelse(rev(convert_all_small$level) =="secondary","plain","bold"), size=ifelse(rev(convert_all_small$level) =="secondary", 8, 10))) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
 # all_combos_small$pcol[which(all_combos_small$pcol == "white")] = "gray60"
@@ -6435,16 +6436,16 @@ ggplot(all, aes(x = label, y = cluster_all, fill = pcol)) + geom_tile(color = "g
 dev.off()
 
 # 2
-ieg_sum = read.csv("C:/Users/miles/Downloads/bower_quiver_gsi_cluster_goi_beta_effects_for_dotplot_030122.csv")
-ieg_sum$is_sig = ieg_sum$plot
-ieg_sum = ieg_sum[which(ieg_sum$is_sig),]
-ieg_sum$hgnc = ieg_sum$gene
-ieg_sum$gene_pop = ieg_sum$goi
-ieg_sum$cluster[which(ieg_sum$cluster == FALSE)] = "All"
-ieg_sum$gene_pop[which(ieg_sum$gene_pop == FALSE)] = "All"
-ieg_sum$level_old = paste0(ieg_sum$level, "_", ieg_sum$cluster)
-ieg_sum$level_old_gp = paste0(ieg_sum$level_old, "_", ieg_sum$gene_pop)
-ieg_sum$cat_level_old_gp = paste0(ieg_sum$cat, "_", ieg_sum$level_old_gp)
+neurogen_sum = read.csv("C:/Users/miles/Downloads/bower_quiver_gsi_cluster_goi_beta_effects_for_dotplot_030122.csv")
+neurogen_sum$is_sig = neurogen_sum$plot
+neurogen_sum = neurogen_sum[which(neurogen_sum$is_sig),]
+neurogen_sum$hgnc = neurogen_sum$gene
+neurogen_sum$gene_pop = neurogen_sum$goi
+neurogen_sum$cluster[which(neurogen_sum$cluster == FALSE)] = "All"
+neurogen_sum$gene_pop[which(neurogen_sum$gene_pop == FALSE)] = "All"
+neurogen_sum$level_old = paste0(neurogen_sum$level, "_", neurogen_sum$cluster)
+neurogen_sum$level_old_gp = paste0(neurogen_sum$level_old, "_", neurogen_sum$gene_pop)
+neurogen_sum$cat_level_old_gp = paste0(neurogen_sum$cat, "_", neurogen_sum$level_old_gp)
 
 convert_all = data.frame(cluster = c(convert15$new.full, convert53$new), color = c(convert15$col, convert53$col), old = c(convert15$old, convert53$old))
 convert_all = convert_all[which(! duplicated(convert_all$cluster) ),]
@@ -6458,7 +6459,7 @@ convert_all = rbind(data.frame(cluster = "All", color = viridis::viridis(1), new
 convert_all$level_old = paste0(convert_all$level, "_", convert_all$old)
 convert_all$cluster = stringr::str_replace(convert_all$cluster, "Astro", "RGC")
 
-all_combos = expand.grid(convert_all$level_old, unique(ieg_sum$gene_pop[which(ieg_sum$gene_pop != FALSE)]) )
+all_combos = expand.grid(convert_all$level_old, unique(neurogen_sum$gene_pop[which(neurogen_sum$gene_pop != FALSE)]) )
 colnames(all_combos) = c("level_old", "gene_pop")
 all_combos$level_old_gp = paste0(all_combos$level_old, "_", all_combos$gene_pop)
 all_combos[,colnames(convert_all)] = convert_all[match(all_combos$level_old, convert_all$level_old),]
@@ -6468,10 +6469,10 @@ all_combos$bsig = NA
 all_combos$gsig = NA
 all_combos$qsig = NA
 
-for (i in 1:nrow(ieg_sum)) {
-  my.sig = ieg_sum$is_sig[i]
-  my.cat = ieg_sum$cat[i]
-  my.x = ieg_sum$level_old_gp[i]
+for (i in 1:nrow(neurogen_sum)) {
+  my.sig = neurogen_sum$is_sig[i]
+  my.cat = neurogen_sum$cat[i]
+  my.x = neurogen_sum$level_old_gp[i]
   my.idx = which(all_combos$level_old_gp == my.x)
   my.cat.col = plyr::revalue(my.cat, replace = c("bower" = "bsig", "gsi" = "gsig", "quiver" = "qsig"))
   if (! is.na(my.cat.col) )
@@ -7339,8 +7340,5 @@ for (i in 1:nrow(zpops)) {
 }
 
 df$this.v.other = df$this.z / df$other.z
-# work comment
 # ggplot(df, aes(x = label.i, y = this.v.other, fill = pcrc.gene)) + geom_bar(stat = 'identity') + ylab("[PCRC Gene Present / # of Genes] in Pop vs [PCRC Gene Present / # of Genes] NOT in Pop") + NoLegend()
 write.csv(df, "C:/Users/miles/Downloads/pcrc_genes_driving_effects.csv")
-# work comment
-# local comment
