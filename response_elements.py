@@ -13,7 +13,7 @@ def parseArgs():
     parser.add_argument("-o", "--output", help="Output file in BED format", nargs="?",
                         default="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/UMD2a_ERE.bed",
                         const="/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/results/UMD2a_ERE.bed")
-    parser.add_argument("-r", "--res_ele", help="Response Element. Valid Options are: ere, are, pre, and gre.", nargs="?",
+    parser.add_argument("-r", "--res_ele", help="Response Element. Valid Options are: ere, are, pre, gre, tre, and cre.", nargs="?",
                         default="ere",
                         const="ere")
     parser.add_argument("-v", "--vcf", help="Make output vcf-like?", action="store_true")
@@ -56,6 +56,10 @@ def main():
         motif = "G.ACA...TGT.C"
     elif res_ele == "gre":
         motif = "AGAACA...TGTTCT"
+    elif res_ele == "tre":
+        motif = "AGGTCA....AGGTCA"
+    elif res_ele == "cre":
+        motif = "TGACGTCA"
     else:
         print("Not a valid response element. See help.")
 
