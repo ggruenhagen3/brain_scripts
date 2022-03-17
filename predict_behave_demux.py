@@ -40,7 +40,9 @@ import seaborn as sns
 pandas.options.mode.chained_assignment = None  # default='warn'
 
 # Load Data
-pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/demux_data/cluster0_data.csv", index_col = 0)
+# pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/demux_data/cluster0_data.csv", index_col = 0)
+# pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/scgnn_imputed_subsample.csv", index_col = 0)
+pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/scgnn_imputed_subsample_cluster15.csv", index_col = 0)
 sub_meta = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/demux_data/subsample_meta2.csv", index_col = 0)
 sub_meta['cond_bin'] = numpy.array(sub_meta['cond'] == 'BHVE') * 1
 
@@ -81,10 +83,10 @@ Pair ===========================================================================
 all_pairs = list(set(sub_meta['pair']))
 all_pair_idx = numpy.concatenate([ sub_meta.loc[sub_meta['pair'].isin([p]),].index for p in all_pairs ])
 params = {'bhve_metric': ['bower_activity_index'],
-          'num_biggest': [30, 35, 45, 55, 60, 65, 70, 75],
+          'num_biggest': [0, 50, 100, 150, 200, 250, 500, 1000, 1250, 1500, 1750],
           'reg_type':    ['lin', 'lasso', 'bag'],
           'scale_type': ['none', 'std', 'minmax'],
-          'num_k': [0, 25, 30, 35, 40, 50],
+          'num_k': [0, 50, 100, 200, 250],
           'doPCA': [False]}
 big_df = pandas.DataFrame(list(product(params['bhve_metric'], params['num_biggest'], params['reg_type'], params['scale_type'], params['num_k'], params['doPCA'])),
                           columns=['bhve_metric', 'num_biggest', 'reg_type', 'scale_type', 'num_k', 'doPCA'])
@@ -95,15 +97,15 @@ big_df[["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] 
 for i in big_df.index:
     print(str(i) + "/" + str(len(big_df.index)))
     bhve_metric, num_biggest, reg_type, scale_type, num_k, doPCA = big_df.loc[i, ["bhve_metric", "num_biggest", "reg_type", 'scale_type', 'num_k', 'doPCA']]
-    # bhve_metric, num_biggest, reg_type, scale_type, num_k, doPCA = big_df.loc[217, ["bhve_metric", "num_biggest", "reg_type", 'scale_type', 'num_k', 'doPCA']]
-    # bhve_metric, num_biggest, reg_type, scale_type, num_k, doPCA = ['bower_activity_index', 45, 'bag', 'std', 0, False]
-    all_res = sub_meta[['subsample', 'cond']]
-    all_res['real'] = sub_meta[bhve_metric]
-    all_res['pred'] = 0
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        all_ypred = pool.starmap(pairPred, zip(all_pairs, repeat(bhve_metric), repeat(num_biggest), repeat(reg_type), repeat(scale_type), repeat(num_k), repeat(doPCA)))
-        all_res.loc[all_pair_idx, 'pred'] = numpy.concatenate(all_ypred)
-        big_df.loc[i, ["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] = analyzeRes(all_res)
+bhve_metric, num_biggest, reg_type, scale_type, num_k, doPCA = big_df.loc[284, ["bhve_metric", "num_biggest", "reg_type", 'scale_type', 'num_k', 'doPCA']]
+# bhve_metric, num_biggest, reg_type, scale_type, num_k, doPCA = ['bower_activity_index', 45, 'bag', 'std', 0, False]
+all_res = sub_meta[['subsample', 'cond']]
+all_res['real'] = sub_meta[bhve_metric]
+all_res['pred'] = 0
+with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    all_ypred = pool.starmap(pairPred, zip(all_pairs, repeat(bhve_metric), repeat(num_biggest), repeat(reg_type), repeat(scale_type), repeat(num_k), repeat(doPCA)))
+    all_res.loc[all_pair_idx, 'pred'] = numpy.concatenate(all_ypred)
+    big_df.loc[i, ["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] = analyzeRes(all_res)
 
 
 best_idx = (-big_df['all_cor']).argsort()
@@ -159,13 +161,14 @@ analyzeRes(all_res)
 """
 Pair RC =====================================================================================================
 """
+bhve_metric = 'cond_bin'
 all_pairs = list(set(sub_meta['pair']))
 all_pair_idx = numpy.concatenate([ sub_meta.loc[sub_meta['pair'].isin([p]),].index for p in all_pairs ])
-params = {'num_biggest': [0],
-          'num_biggest2': [40, 45, 50, 55, 60, 65, 70, 75],
+params = {'num_biggest': [0, 50, 100, 250, 500],
+          'num_biggest2': [0],
           'scale_type': ['none', 'std', 'minmax'],
-          'num_k2': [0, 5, 10, 15, 20, 25, 40, 50],
-          'my_a': [0.5, 0.75, 1, 1.25, 1.5]}
+          'num_k2': [0],
+          'my_a': [1]}
 big_df = pandas.DataFrame(list(product(params['num_biggest'], params['num_biggest2'], params['scale_type'], params['num_k2'], params['my_a'])),
                           columns=['num_biggest', 'num_biggest2', 'scale_type', 'num_k2', 'my_a'])
 bad_idx = big_df.loc[(big_df['num_biggest'] != 0) & (big_df['num_k2'] > big_df['num_biggest'])].index
@@ -176,16 +179,32 @@ for i in big_df.index:
     print(str(i) + "/" + str(len(big_df.index)))
     num_biggest, num_biggest2, scale_type, num_k2, my_a = big_df.loc[i, ["num_biggest", 'num_biggest2', 'scale_type', 'num_k2', 'my_a']]
     # num_biggest, scale_type, num_k2, my_a = [50, 'none', 5, 1]
-    all_res = sub_meta[['subsample', 'cond']]
-    all_res['real'] = sub_meta[bhve_metric]
-    all_res['pred'] = 0
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        all_ypred = pool.starmap(pairPredRC, zip(all_pairs, repeat(num_biggest), repeat(num_biggest2), repeat(scale_type), repeat(num_k2), repeat(my_a)))
-        all_res.loc[all_pair_idx, 'pred'] = numpy.concatenate(all_ypred)
-        big_df.loc[i, ["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] = analyzeRes(all_res)
+all_res = sub_meta[['subsample', 'cond']]
+all_res['real'] = sub_meta[bhve_metric]
+all_res['pred'] = 0
+with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    all_ypred = pool.starmap(pairPredRC, zip(all_pairs, repeat(num_biggest), repeat(num_biggest2), repeat(scale_type), repeat(num_k2), repeat(my_a)))
+    all_res.loc[all_pair_idx, 'pred'] = numpy.concatenate(all_ypred)
+    big_df.loc[i, ["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] = analyzeRes(all_res)
 
 
 big_df.sort_values('all_cor', ascending = False)
+
+bhve_metric = 'cond_bin'
+num_biggest, num_biggest2, scale_type, num_k2, my_a = big_df.loc[2, ["num_biggest", 'num_biggest2', 'scale_type', 'num_k2', 'my_a']]
+all_res = sub_meta[['subsample', 'cond']]
+all_res['real'] = sub_meta[bhve_metric]
+all_res['pred'] = 0
+with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    all_ypred = pool.starmap(pairPredRCWithCoef, zip(all_pairs, repeat(num_biggest), repeat(num_biggest2), repeat(scale_type), repeat(num_k2), repeat(my_a)))
+    all_ypred_ypred = []
+    all_ypred_coef = []
+    for x in all_ypred:
+        all_ypred_ypred.append(x[0])
+        all_ypred_coef.append(x[1][0])
+    all_res.loc[all_pair_idx, 'pred'] = numpy.concatenate(all_ypred_ypred)
+    all_coef = pandas.DataFrame(all_ypred_coef).transpose()
+    all_coef.index = pd_df.columns
 
 """
 Pool =====================================================================================================
@@ -217,6 +236,48 @@ for i in big_df.index:
         big_df.loc[i, ["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] = analyzeRes(all_res)
 
 big_df.sort_values('all_cor', ascending = False)
+
+"""
+scGNN Clusters
+"""
+all_pairs = list(set(sub_meta['pair']))
+num_biggest, num_biggest2, scale_type, num_k2, my_a = [0, 0, 'minmax', 0, 1]  # universal params
+bhve_metric = 'cond_bin'
+big_pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/scgnn_imputed_subsample_cluster53.csv", index_col = 0)
+clust_res = pandas.DataFrame(numpy.zeros((15, 7)), columns = ["cluster", "mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"])
+for cluster in range(0, 53):
+    pd_df = big_pd_df.loc[big_pd_df['cluster53'] == cluster]
+    pd_df.index = pd_df['subsample']
+    pd_df = pd_df.drop(['subsample', 'cluster53'], axis = 1)
+    if len(pd_df.index) == 38:
+        print(cluster)
+        all_res = sub_meta[['subsample', 'cond']]
+        all_res['real'] = sub_meta[bhve_metric]
+        all_res['pred'] = 0
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+            all_ypred = pool.starmap(pairPredRC, zip(all_pairs, repeat(num_biggest), repeat(num_biggest2), repeat(scale_type), repeat(num_k2), repeat(my_a)))
+            all_res.loc[all_pair_idx, 'pred'] = numpy.concatenate(all_ypred)
+            clust_res.loc[cluster, ["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] = analyzeRes(all_res)
+
+all_pairs = list(set(sub_meta['pair']))
+num_biggest, num_biggest2, scale_type, num_k2, my_a = [0, 0, 'minmax', 0, 1]  # universal params
+bhve_metric = 'cond_bin'
+big_pd_df = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/data/scgnn_imputed_subsample_cluster15.csv", index_col = 0)
+clust_res = pandas.DataFrame(numpy.zeros((15, 7)), columns = ["cluster", "mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"])
+for cluster in range(0, 14):
+    pd_df = big_pd_df.loc[big_pd_df['cluster15'] == cluster]
+    pd_df['subsample'] = list(sub_meta['subsample'])
+    pd_df.index = pd_df['subsample']
+    pd_df = pd_df.drop(['subsample', 'cluster15'], axis = 1)
+    if len(pd_df.index) == 38:
+        print(cluster)
+        all_res = sub_meta[['subsample', 'cond']]
+        all_res['real'] = sub_meta[bhve_metric]
+        all_res['pred'] = 0
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+            all_ypred = pool.starmap(pairPredRC, zip(all_pairs, repeat(num_biggest), repeat(num_biggest2), repeat(scale_type), repeat(num_k2), repeat(my_a)))
+            all_res.loc[all_pair_idx, 'pred'] = numpy.concatenate(all_ypred)
+            clust_res.loc[cluster, ["mean_b", "mean_c", "mean_dif", "num_b_in_c", "num_c_in_b", "all_cor"]] = analyzeRes(all_res)
 
 
 # for bhve_metric in params['bhve_metric']:
@@ -319,6 +380,30 @@ def pairPredRC(pair_num, num_biggest, num_biggest2, scale_type, num_k2, my_a = 1
     # print(rc.decision_function(xtest))
     return ypred
 
+def pairPredRCWithCoef(pair_num, num_biggest, num_biggest2, scale_type, num_k2, my_a = 1, my_s = 'auto'):
+    train_loc = sub_meta.loc[~sub_meta['pair'].isin([pair_num]),].index
+    test_loc = sub_meta.loc[sub_meta['pair'].isin([pair_num]),].index
+    xtrain = pd_df.loc[train_loc, ]
+    xtest  = pd_df.loc[test_loc, ]
+    ytrain = sub_meta.loc[train_loc, bhve_metric]
+    ytest = sub_meta.loc[test_loc, bhve_metric]
+    if num_biggest != 0:
+        xtrain, xtest = biggestBVCDif(xtrain, xtest, num_biggest=num_biggest)
+    if num_biggest2 != 0:
+        xtrain, xtest = biggestBVCDif2(xtrain, xtest, num_biggest2=num_biggest2)
+    if scale_type != "none":
+        xtrain, xtest = myScale(xtrain, xtest, type=scale_type)
+    rc = RidgeClassifier(alpha=my_a, solver=my_s).fit(xtrain, ytrain)
+    if num_k2 != 0:
+        imp = abs(rc.coef_)
+        xtrain = xtrain.iloc[0::, (-imp).argsort()[0][0:num_k2]]
+        xtest = xtest.iloc[0::, (-imp).argsort()[0][0:num_k2]]
+    rc = rc.fit(xtrain, ytrain)
+    ypred = rc.predict(xtest)
+    coef = rc.coef_
+    # print(rc.predict(xtest))
+    ypred = rc.decision_function(xtest)
+    return ypred, rc.coef_
 
 def singleIndPred(this_sub, bhve_metric, num_biggest, reg_type, scale_type, num_k, doPCA):
     train_loc = pd_df.index[pd_df.index != this_sub]

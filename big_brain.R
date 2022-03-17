@@ -6005,7 +6005,7 @@ ggplot(cz_sig, aes(x = neg_log_p_spawn, y = neg_log_p_bower)) + geom_point()
 ggplot(cz_sig, aes(x = adj_mean_of_mean_dif, y = bower_activity_index, color = neg_log_p_bower)) + geom_point() + scale_color_gradientn(colors = viridis(100))
 
 # ClownFish ERE
-cdf = read.delim("~/scratch/brain/results/clown_ere_closest.bed")
+cdf = read.delim("~/scratch/brain/results/clown_ere_closest.bed", header = F)
 cdf$dist = cdf[,ncol(cdf)]
 cdf$loc = reshape2::colsplit(cdf[,12], ";", c("1", "2"))[,1]
 cdf$loc = reshape2::colsplit(cdf$loc, " ", c("1", "2"))[,2]
@@ -6013,6 +6013,8 @@ cdf$gene_name = reshape2::colsplit(cdf[,12], "; gene_source", c("1", "2"))[,1]
 cdf$gene_name = reshape2::colsplit(cdf$gene_name, "gene_name ", c("1", "2"))[,2]
 cdf$gene = cdf$gene_name
 cdf$gene[which(cdf$gene == "")] = cdf$loc[which(cdf$gene == "")]
+# cdf = cdf[which(cdf[,12] != "."),]
+# cdf$gene = cdf$gene_name = cdf$loc
 cdf2 = cdf[which( abs(cdf$dist) < 25000 ),]
 cdf2$class = "distal"
 cdf2$class[which(cdf2$dist <= 5000 & cdf2$dist > 0)] = "promoter"
@@ -7360,3 +7362,13 @@ for (i in 1:nrow(zpops)) {
 df$this.v.other = df$this.z / df$other.z
 # ggplot(df, aes(x = label.i, y = this.v.other, fill = pcrc.gene)) + geom_bar(stat = 'identity') + ylab("[PCRC Gene Present / # of Genes] in Pop vs [PCRC Gene Present / # of Genes] NOT in Pop") + NoLegend()
 write.csv(df, "C:/Users/miles/Downloads/pcrc_genes_driving_effects.csv")
+
+mat = readRDS("~/scratch/brain/data/scgnn_imputed.rds")
+test = as.data.frame(mat)
+big_mat = data.frame()
+for (i in 0:14) {
+  print(i)
+  test[, c("subsample", "inc")] = c(bb$subsample, bb$seuratclusters15 == i)
+  test2 = aggregate(. ~ subsample + inc, test, mean)
+  big_mat = rbind(big_mat, test2[which(test2$inc == F),])
+}
