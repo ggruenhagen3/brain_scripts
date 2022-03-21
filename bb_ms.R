@@ -1509,6 +1509,31 @@ dev.off()
 # dev.off()
 
 #*******************************************************************************
+# Radar ========================================================================
+#*******************************************************************************
+to100 = function(x) {
+  OldRange = (max(x) - min(x))  
+  NewRange = (100 - 0)  
+  NewValue = (((x - min(x)) * NewRange) / OldRange) + 0
+  return(NewValue)
+}
+library(ggradar)
+bb_df53_small = bb_df53[,c("old", "ieg", "num.deg", "ng", "pcrc")]
+colnames(bb_df53_small)[1] = "group"
+bb_df53_small_scaled = lapply(colnames(bb_df53_small)[2:ncol(bb_df53_small)], function(x) to100(bb_df53_small[,x]))
+bb_df53_small_scaled = cbind(bb_df53_small$group, do.call('cbind', bb_df53_small_scaled))
+colnames(bb_df53_small_scaled) = colnames(bb_df53_small)
+p_list = list()
+for (i in 1:nrow(bb_df53_small_scaled)) {
+  this_bb_df53_small_scaled = as.data.frame(t(bb_df53_small_scaled[i,]))
+  p_list[[length(p_list)+1]] = ggradar(this_bb_df53_small_scaled, grid.min = 0, grid.mid = 50, grid.max = 100, group.point.size = 0, group.line.width = 1, grid.label.size = 0, axis.label.size = 0, fill = T)
+}
+cowplot::plot_grid(plotlist = p_list)
+
+library(fmsb)
+radarchart(test2)
+
+#*******************************************************************************
 # bDEGS ========================================================================
 #*******************************************************************************
 # badeg = read.csv("~/research/brain/results/deg_depth_build_badeg_glmmseq_demux_all_clusters_all_tests_pair_subjectinpair_pool_subjectinpool_sig_all_genes_100821_q_hgnc.csv")
@@ -2052,6 +2077,79 @@ pdf("~/research/brain/results/bb_subsample_num_nuc_2.pdf", width = 3, height = 6
 ggplot(subsample_df, aes(x = num, y = pool, size = num_nuc, color = pair)) + geom_point() + theme_classic() + xlab("") + ylab("") + scale_color_manual(values = test, guide = "none") + theme(axis.ticks.x = element_blank(), axis.line.x.bottom = element_blank(), axis.text.x = element_blank())
 dev.off()
 
-# local comment
+bb15 = read.csv("~/research/brain/data/bb_all_cluster_15_degs.csv")
+bb53 = read.csv("~/research/brain/data/bb_all_cluster_53_degs.csv")
 
-# work comment
+Idents(bb) = bb$seuratclusters15
+bb53.sum = data.frame()
+for (i in 0:52) {
+  print(i)
+  for (j in (i+1):52) {
+    cells.1 = colnames(bb)[which(bb$seuratclusters15 == i)]
+    cells.2 = colnames(bb)[which(bb$seuratclusters15 == j)]
+    marker1 = bb53[which(bb53$cluster == i & bb53$p_val_adj < 0.05 & bb53$avg_logFC > 0),]
+    marker2 = bb53[which(bb53$cluster == j & bb53$p_val_adj < 0.05 & bb53$avg_logFC > 0),]
+    bb53.sum = rbind(bb53.sum, data.frame(cluster1 = i, cluster2 = j, cells1 = length(cells.1), cells2 = length(cells.2), num = length(which(marker1$gene %in% marker2$gene))))
+  }
+}
+bb53.sum$parent1 = convert53$new.parent.old[match(bb53.sum$cluster1, convert53$old)]
+bb53.sum$parent2 = convert53$new.parent.old[match(bb53.sum$cluster2, convert53$old)]
+bb53.sum = bb53.sum[which(bb53.sum$parent1 == bb53.sum$parent2),]
+
+df = as.data.frame(bb@reductions$umap@cell.embeddings)
+df$seuratclusters15 = bb$seuratclusters15
+df$seuratclusters53 = bb$seuratclusters53
+df.agr = aggregate(. ~ seuratclusters53, data = df, mean)
+df.agr[, colnames(convert53)] = convert53[match(df.agr$seuratclusters53, convert53$old),]
+df.agr$num = as.vector(table(bb$seuratclusters53))
+df.agr$col53 = df.agr$col
+df.agr$col15 = df.agr$new.parent.old.col
+df.agr$size = log10(df.agr$num)
+ggplot(df.agr, aes(x = UMAP_1, y = UMAP_2, color = col, size = num)) + geom_point() + scale_color_identity() + theme_classic()
+
+pdf("~/research/brain/results/bb_simple_1.pdf", width = 6, height = 6)
+p = ggplot(df.agr, aes(UMAP_1, UMAP_2, color = col53, size = size)) + geom_curve(aes(x = x1, y = y1, xend = x2, yend = y2, color = parent.col, alpha = size), data = bb53.sum) + scale_size_identity()
+p = p + geom_point() + theme_void() + NoLegend() + geom_mark_hull(aes(group = col15, fill = col15), linetype = "blank", concavity = 60, expand = unit(3, "mm"), alpha = 0.4, size = 0.6) + scale_color_identity() + scale_fill_identity()
+print(p)
+dev.off()
+
+library("ggforce")
+big_df = data.frame(cluster15 = bb$seuratclusters15, cluster53 = bb$seuratclusters53, col15 = convert15$col[match(bb$seuratclusters15, convert15$old)], col53 = convert53$col[match(bb$seuratclusters53, convert53$old)])
+big_df[,c("UMAP_1", "UMAP_2")] = as.data.frame(bb@reductions$umap@cell.embeddings)
+ggplot(big_df, aes(UMAP_1, UMAP_2, color = col53)) + geom_point(size = 0.6) + theme_void() + geom_mark_hull(aes(group = col15, fill = col15, color = col15), concavity = 20, expand = unit(2.5, "mm")) + scale_color_identity() + scale_fill_identity()
+
+df.agr$agr = T
+big_df$agr = F
+big_df$num = NA
+big_df$size = NA
+big.df.agr = rbind(big_df[,c("UMAP_1", "UMAP_2", "col15", "col53", "agr", "num", "size")], df.agr[, c("UMAP_1", "UMAP_2", "col15", "col53", "agr", "num", "size")])
+
+bb53.sum[, c("x1", "y1")] = df.agr[match(bb53.sum$cluster1, df.agr$seuratclusters53), c("UMAP_1", "UMAP_2")]
+bb53.sum[, c("x2", "y2")] = df.agr[match(bb53.sum$cluster2, df.agr$seuratclusters53), c("UMAP_1", "UMAP_2")]
+bb53.sum = bb53.sum[which(bb53.sum$x1 != bb53.sum$x2),]
+bb53.sum$log_num = log10(bb53.sum$num)
+bb53.sum$parent.col = convert53$new.parent.old.col[match(bb53.sum$parent1, convert53$new.parent.old)]
+bb53.sum$size = bb53.sum$log_num / 5
+
+# p = ggplot(big.df.agr, aes(UMAP_1, UMAP_2, color = col53)) + geom_curve(aes(x = x1, y = y1, xend = x2, yend = y2, color = parent.col, size = num/100), data = bb53.sum) + scale_size_continuous(range = c(0.5, 2.5))
+# p + geom_point(aes(size = num)) + theme_void() + NoLegend() + geom_mark_hull(aes(group = col15, fill = col15, color = col15), concavity = 20, expand = unit(2.5, "mm"), alpha = 0.5, size = 0.8) + scale_color_identity() + scale_fill_identity()
+pdf("~/research/brain/results/bb_simple_2.pdf", width = 6, height = 6)
+p = ggplot(big.df.agr, aes(UMAP_1, UMAP_2, color = col53, size = size)) + geom_curve(aes(x = x1, y = y1, xend = x2, yend = y2, color = parent.col, alpha = size), data = bb53.sum) + scale_size_identity()
+p = p + geom_point() + theme_void() + NoLegend() + geom_mark_hull(aes(group = col15, fill = col15, color = col15), concavity = 25, expand = unit(2.5, "mm"), alpha = 0.4, size = 0.6) + scale_color_identity() + scale_fill_identity()
+print(p)
+dev.off()
+
+# Idents(bb) = bb$seuratclusters15
+# bb15.sum = data.frame()
+# for (i in 0:14) {
+#   print(i)
+#   for (j in (i+1):14) {
+#     cells.1 = colnames(bb)[which(bb$seuratclusters15 == i)]
+#     cells.2 = colnames(bb)[which(bb$seuratclusters15 == j)]
+#     this.combo = FindMarkers(bb, ident.1 = i, ident.2 = j)
+#     this.combo = this.combo[which(this.combo$p_val_adj < 0.05 & this.combo$avg_log2FC > 0),]
+#     this.combo$pct.dif = this.combo$pct.1 - this.combo$pct.2
+#     this.combo$spec.ind = this.combo$avg_log2FC * this.combo$pct.dif
+#     bb15.sum = data.frame(cluster1 = i, cluster2 = j, num1 = length(cells.1), num2 = length(cells.2), num = nrow(this.combo), sum.fc = sum(this.combo$avg_log2FC), sum.spec.ind = sum(this.combo$spec.ind))
+#   }
+# }
