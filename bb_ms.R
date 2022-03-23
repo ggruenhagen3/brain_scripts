@@ -9,8 +9,6 @@ source(paste0(rna_path, "brain_scripts/all_f.R"))
 
 # *** 1B. 15 cluster and 53 cluster level UMAP *** #
 # Define 15 level colors
-for (k in 1:15) {
-print(k)
 library("scales")
 cols15 = gc.ramp <- hue_pal()(15)
 cols15 = cols15[c(10:15, 1:9)]
@@ -24,8 +22,8 @@ convert53$new = gsub("Ex", "Glut", convert53$new)
 convert53$new2 = convert53$new
 
 # Split the parent and subcluster apart
-convert53 = separate(data = convert53, col = new2, into = c("new.id", "new.gaba"), sep = "_")
-convert53 = separate(data = convert53, col = new.id, into = c("new.parent", "new.sub"), sep = "\\.")
+convert53 = tidyr::separate(data = convert53, col = new2, into = c("new.id", "new.gaba"), sep = "_")
+convert53 = tidyr::separate(data = convert53, col = new.id, into = c("new.parent", "new.sub"), sep = "\\.")
 # Assign a parent and subcluster to the 8-9_Glut special case
 convert53$new.parent[which(convert53$old == 42)] = 8
 convert53$new.sub[which(convert53$old == 42)] = 12
@@ -34,7 +32,7 @@ convert15 = data.frame(old = 0:14, new = c("8_Ex", "9_Ex", "4_In", "15_In/Ex", "
 convert15$new = gsub("In", "GABA", convert15$new)
 convert15$new = gsub("Ex", "Glut", convert15$new)
 convert15$new.full = convert15$new
-convert15 = separate(data = convert15, col = new, into = c("new.num", "new.junk"), sep = "_")
+convert15 = tidyr::separate(data = convert15, col = new, into = c("new.num", "new.junk"), sep = "_")
 convert15 = convert15[order(as.numeric(convert15$new.num), decreasing = T),]
 convert15$col = cols15
 # Get the parent and color of the 53 cluster 
@@ -54,10 +52,10 @@ for (clust15_new_num in 1:15) {
     mod_values = mod_values[1:max_sub]
     new_cols = c()
     for (i in 1:max_sub) {
-      mod_col = lighten(this_col, mod_values[i])
+      mod_col = colorspace::lighten(this_col, mod_values[i])
       if (i %% 2 == 0) {
         #darken half the colors
-        mod_col = darken(this_col, mod_values[i])
+        mod_col = colorspace::darken(this_col, mod_values[i])
       } 
       new_cols = c(new_cols, mod_col)
     } # end max_sub for
@@ -78,7 +76,6 @@ names(clust53_new_col_list2) = colsplit(convert53$new, "_", c("num", "ex"))[,1]
 pdf (paste0("~/research/brain/results/cols_", k, "_rev.pdf"), width = 5, height = 5)
 print(DimPlot(bb, label = T, pt.size = 1) + scale_color_manual(values = clust53_new_col_list2) + NoLegend())
 dev.off()
-}
 
 pdf("C:/Users/miles/Downloads/brain/results/bb/53_clusters_on_15_light_dark_label_04012021.pdf", width = 12, height = 12)
 print(DimPlot(bb, label = T, pt.size = 1) + scale_color_manual(values = clust53_new_col_list2) + NoLegend())
