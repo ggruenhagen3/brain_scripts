@@ -5092,19 +5092,25 @@ pdf("~/scratch/brain/results/real_ran_counts_density.pdf", width = 7, height = 6
 ggplot(all_counts_df, aes(counts, color = isReal, fill = isReal)) + geom_density()
 dev.off()
 
-rc = read.delim("rc_fst_closest_bedtools.bed", header = F)
-rc = rc[which( abs(rc$V16) < 25000 ),]
+# rc = read.delim("rc_fst_closest_bedtools.bed", header = F)
+# rc = rc[which( abs(rc$V16) < 25000 ),]
+rc = read.delim("rock_test.fst", header = F)
 rc$gene_name = colsplit(rc$V15, "; ", c('1', '2'))[, 1]
 rc$gene_name = colsplit(rc$gene_name, "gene_id ", c('1', '2'))[, 2]
 colnames(rc) = c("CHROM", "BIN_START", "BIN_END", "N_VAR", "WEIGHTED_FST", "MEAN_FST", "CHROM_1", "REF", "BIOTYPE", "GENE_START", "GENE_END", "GTF_1", "DIR", "GTF_2", "GENE_INFO", "DIST_TO_GENE", "GENE_NAME" )
 rc$BIN_ID = paste0(rc$CHROM, "_", rc$BIN_START)
+rc$WEIGHTED_FST[which(rc$WEIGHTED_FST < 0)] = 0
+rc$Zfst = (( rc$WEIGHTED_FST - mean(rc$WEIGHTED_FST) ) / sd(rc$WEIGHTED_FST)) + 1
 
-pc = read.delim("pc_fst_closest_bedtools.bed", header = F)
-pc = pc[which( abs(pc$V16) < 25000 & pc$V1 == "NC_036790.1" & pc$V2 > 5950001 & pc$V3 < 25280000),]
+# pc = read.delim("pc_fst_closest_bedtools.bed", header = F)
+# pc = pc[which( abs(pc$V16) < 25000 & pc$V1 == "NC_036790.1" & pc$V2 > 5950001 & pc$V3 < 25280000),]
+pc = read.delim("pit_test.fst", header = F)
 pc$gene_name = colsplit(pc$V15, "; ", c('1', '2'))[, 1]
 pc$gene_name = colsplit(pc$gene_name, "gene_id ", c('1', '2'))[, 2]
 colnames(pc) = c("CHROM", "BIN_START", "BIN_END", "N_VAR", "WEIGHTED_FST", "MEAN_FST", "CHROM_1", "REF", "BIOTYPE", "GENE_START", "GENE_END", "GTF_1", "DIR", "GTF_2", "GENE_INFO", "DIST_TO_GENE", "GENE_NAME" )
 pc$BIN_ID = paste0(pc$CHROM, "_", pc$BIN_START)
+pc$WEIGHTED_FST[which(pc$WEIGHTED_FST < 0)] = 0
+pc$Zfst = (( pc$WEIGHTED_FST - mean(pc$WEIGHTED_FST) ) / sd(pc$WEIGHTED_FST)) + 1
 
 pcrc_merged = merge(pc, rc, by = "BIN_ID", suffixes = c("_PC", "_RC"))
 pcrc_thresh = pcrc_merged[which(pcrc_merged$WEIGHTED_FST_PC >= 0.2 & pcrc_merged$WEIGHTED_FST_RC >= 0.3),]
@@ -5114,6 +5120,63 @@ write.csv(pcrc_thresh, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin_df
 
 pcrc = sort(unique(rc$GENE_NAME[which(rc$GENE_NAME %in% pc$GENE_NAME)]))
 write.csv(pcrc, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak.csv")
+
+
+# colnames(rc) = paste0(colnames(rc), "_RC")
+# colnames(pc) = paste0(colnames(pc), "_PC")
+genome = read.delim("~/scratch/m_zebra_ref/umd2a_genome.bed", header = F)
+merge.df = data.frame()
+for (i in 1:nrow(genome)) {
+  this.bin.start = seq(from = 1, to = genome$V2[i], by = 10000)
+  this.bin.end = this.bin.start+10000
+  this.merge.df = data.frame(CHROM = genome$V1[i], BIN_START = this.bin.start, BIN_END = this.bin.end)
+  # this.merge.df$BIN_END[which(this.merge.df$BIN_START == plyr::round_any(genome$V2[i], 10000, f = floor) )] = 
+  merge.df = rbind(merge.df, this.merge.df)
+}
+
+rna_path = "~/scratch/brain/"
+source(paste0(rna_path, "brain_scripts/all_f.R"))
+merge.df$LG = lgConverter(merge.df$CHROM, path_to_info = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
+merge.df$LG_CAP = toupper(merge.df$LG)
+merge.df$BIN_ID = paste0(merge.df$CHROM, "_", merge.df$BIN_START)
+merge.df = merge.df[, c("LG", "LG_CAP", "CHROM", "BIN_START", "BIN_END", "BIN_ID")]
+merge.df[, c("DIST_TO_GENE_RC", "GENE_RC", "WEIGHTED_FST_RC", "ZFST_RC", "DIST_TO_GENE_PC", "GENE_PC", "WEIGHTED_FST_PC", "ZFST_PC")] = NA
+merge.df[, c("DIST_TO_GENE_RC", "GENE_RC","WEIGHTED_FST_RC", "ZFST_RC")] = rc[match(merge.df$BIN_ID, rc$BIN_ID), c("DIST_TO_GENE", "GENE_NAME", "WEIGHTED_FST", "Zfst")]
+merge.df[, c("DIST_TO_GENE_PC", "GENE_PC","WEIGHTED_FST_PC", "ZFST_PC")] = pc[match(merge.df$BIN_ID, pc$BIN_ID), c("DIST_TO_GENE", "GENE_NAME", "WEIGHTED_FST", "Zfst")]
+
+merge.df[, c("PC_BIN_HIT", "RC_BIN_HIT", "PCRC_BIN_HIT", "LG11_Peak")] = F
+merge.df$PC_BIN_HIT = merge.df$WEIGHTED_FST_PC >= 0.2 & abs(merge.df$DIST_TO_GENE_PC) < 25000 & merge.df$CHROM == "NC_036790.1" & merge.df$BIN_START > 5950001 & merge.df$BIN_END < 25280000
+merge.df$RC_BIN_HIT = merge.df$WEIGHTED_FST_RC >= 0.2 & abs(merge.df$DIST_TO_GENE_RC) < 25000 & merge.df$CHROM == "NC_036790.1" & merge.df$BIN_START > 5950001 & merge.df$BIN_END < 25280000
+merge.df$PCRC_BIN_HIT  = merge.df$BIN_ID %in% pcrc_thresh$BIN_ID
+merge.df$LG11_Peak = merge.df$CHROM == "NC_036790.1" & merge.df$BIN_START > 5950001 & merge.df$BIN_END < 25280000
+
+merge.df$cat = "all"
+merge.df$cat[which(merge.df$LG11_Peak)] = "LG11 Peak"
+merge.df$cat[which(merge.df$PCRC_BIN_HIT)] = "PCRC"
+
+merge.df$HAS_GENE = F
+merge.df$GENE = ""
+merge.df$PCRC_GENE_HIT = F
+merge.df$PCRC_GENE = ""
+bin_size = 10000
+gtf$gene_start_round = (floor(gtf$V4  / bin_size) * bin_size) + 1
+gtf$gene_end_round   = ceiling(gtf$V5 / bin_size) * bin_size
+gtf$BIN_ID = paste0(gtf$V1, "_", gene_start_round)
+for (i in 1:nrow(gtf)) {
+  if (i %% 1000 == 0)
+    cat(paste0(i, "."))
+  gene_start_round = gtf$gene_start_round[i]
+  gene_end_round = gtf$gene_end_round[i]
+  gene_bins = seq(gene_start_round, gene_end_round, by = bin_size)
+  gene_bins = paste0(gtf$V1[i], "_", gene_bins)
+  merge.df$HAS_GENE[match(gene_bins, merge.df$bin)] = T
+  merge.df$GENE[match(gene_bins, merge.df$BIN_ID)] = gtf$gene_name[i]
+  if(gtf$gene_name[i] %in% pcrc_bin) {
+    merge.df$PCRC_GENE_HIT[match(gene_bins, merge.df$BIN_ID)] = T
+    merge.df$PCRC_GENE[match(gene_bins, merge.df$BIN_ID)] = gtf$gene_name[i]
+  }
+}
+write.csv(merge.df, "~/scratch/brain/fst/pcrc_fst_2020_for_zack_032122.csv")
 
 #*******************************************************************************
 # Zack Models for IEG, Neurogen, and PCRC ======================================
@@ -7363,6 +7426,7 @@ df$this.v.other = df$this.z / df$other.z
 # ggplot(df, aes(x = label.i, y = this.v.other, fill = pcrc.gene)) + geom_bar(stat = 'identity') + ylab("[PCRC Gene Present / # of Genes] in Pop vs [PCRC Gene Present / # of Genes] NOT in Pop") + NoLegend()
 write.csv(df, "C:/Users/miles/Downloads/pcrc_genes_driving_effects.csv")
 
+# scgnn Leave-One-Out
 mat = readRDS("~/scratch/brain/data/scgnn_imputed.rds")
 test = as.data.frame(mat)
 big_mat = data.frame()
@@ -7370,5 +7434,82 @@ for (i in 0:14) {
   print(i)
   test[, c("subsample", "inc")] = c(bb$subsample, bb$seuratclusters15 == i)
   test2 = aggregate(. ~ subsample + inc, test, mean)
-  big_mat = rbind(big_mat, test2[which(test2$inc == F),])
+  test2 = test2[which(test2$inc == F), ]
+  test2$inc = i
+  big_mat = rbind(big_mat, test2)
 }
+colnames(big_mat)[which(colnames(big_mat) == "inc")] = "cluster15"
+write.csv(big_mat, "~/scratch/brain/data/scgnn_imputed_cluster15_loo.csv")
+
+# Response Elements in MC
+ere = read.csv("~/scratch/brain/data/cichlid_ere_class.csv")
+ere$gene_class = paste0(ere$gene, "_", ere$class)
+ere$gene_class_n = 0
+ere$gene_n = 0
+
+all.gene.class = c()
+all.gene = c()
+files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*ere.closest.bed.class.csv", full.names=TRUE, recursive=FALSE)
+for (f in files) {
+  this.ere = read.csv(f)
+  this.ere$gene_class = paste0(this.ere$gene, "_", this.ere$class)
+  
+  match.class = this.ere$gene_class[which(this.ere$gene_class %in% ere$gene_class)]
+  ere$gene_class_n[match(match.class, ere$gene_class)] = ere$gene_class_n[match(match.class, ere$gene_class)] + 1
+  
+  match.gene = this.ere$gene[which(this.ere$gene %in% ere$gene)]
+  ere$gene_n[match(match.gene, ere$gene)] = ere$gene_n[match(match.gene, ere$gene)] + 1
+  
+  all.gene.class = c(all.gene.class, unique(this.ere$gene_class))
+  all.gene = c(all.gene = unique(this.ere$gene))
+}
+table(ere$gene_class_n)
+table(ere$gene_n)
+
+all.df = data.frame(gene.class = all.gene.class)
+all.df[, c("gene", "class")] = reshape2::colsplit(all.df$gene.class, "_", c("1", "2"))
+all.gene.sum = as.data.frame(table(all.df$gene))
+colnames(all.gene.sum)[1] = "gene"
+all.gene.sum$inMZ = all.gene.sum$gene %in% ere$gene
+length(which(all.gene.sum$Freq == 38))
+length(which(all.gene.sum$Freq == 38 & all.gene.sum$inMZ))
+all.gene.class.sum = as.data.frame(table(all.df$gene.class))
+colnames(all.gene.class.sum)[1] = "gene.class"
+all.gene.class.sum$inMZ = all.gene.class.sum$gene.class %in% ere$gene_class
+length(which(all.gene.class.sum$Freq == 38))
+length(which(all.gene.class.sum$Freq == 38 & all.gene.class.sum$inMZ))
+write.csv(all.gene.sum,       "~/scratch/brain/results/mc_ere_gene.csv")
+write.csv(all.gene.class.sum, "~/scratch/brain/results/mc_ere_gene_class.csv")
+
+# 
+bb15 = read.csv("~/scratch/brain/results/bb15_all_data_for_all_sig_cluster_genes.csv")
+bb15.gene = unique(bb15$X.x)
+r_mat15 = r_mat[bb15.gene, bb15.gene]
+diag(r_mat15) = 0
+pheatmap::pheatmap(r_mat15, show_rownames = F, show_colnames = F, filename = "~/scratch/brain/results/r_mat_bower15_all_cells.png")
+
+# samtools mpileup -f ~/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.fna -l test.bed -b bamlist.txt
+ere = read.csv("~/scratch/brain/")
+ere.bed = read.delim("~/scratch/brain/data/cichlid_gre_closest.bed", header = F)
+ere.bed$id = paste0(ere.bed$V1, ":", ere.bed$V2, "-", ere.bed$V3)
+files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*gre.closest.bed", full.names=TRUE, recursive=FALSE)
+files = files[which(endsWith(files, ".bed"))]
+mc.id.vect = c()
+for (f in files) {
+  this.ere.bed = read.delim(f, header = F)
+  this.ere.bed$id = paste0(this.ere.bed$V1, ":", this.ere.bed$V2, "-", this.ere.bed$V3)
+  mc.id.vect = c(mc.id.vect, this.ere.bed$id)
+}
+
+mc.df = as.data.frame(table(mc.id.vect))
+colnames(mc.df) = c("id", "mcCount")
+mc.df$id = as.vector(mc.df$id)
+mc.df$mcCount = as.vector(mc.df$mcCount)
+mc.df$inMZ = mc.df$id %in% ere.bed$id
+print(length(which(mc.df$inMZ & mc.df$mcCount == 38)))
+print(length(which(mc.df$inMZ == FALSE & mc.df$mcCount == 38)))
+print(nrow(ere.bed))
+mc.df$chrom = reshape2::colsplit(mc.df$id, ":", c("1", "2"))[,1]
+mc.df[, c("start", "stop")] = reshape2::colsplit(reshape2::colsplit(mc.df$id, ":", c("1", "2"))[,2], "-", c("1", "2"))
+write.table(mc.df[, c("chrom", "start", "stop")], "~/scratch/brain/data/cichlid_gre_all_loci.bed", quote =  F, row.names = F, col.names = F)
+
