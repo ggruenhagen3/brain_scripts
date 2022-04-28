@@ -58,7 +58,7 @@ rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
 bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
-Idents(bb) = bb$seuratclusters15
+Idents(bb) = bb$seuratclusters53
 
 # Set Number of Permutations
 nperm = 10000
@@ -127,7 +127,7 @@ colnames(perm_df) = clusters
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
   
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_pcrc_neurogen_mod_10k_15_122721.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_pcrc_neurogen_mod_10k_53_122721.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
@@ -142,7 +142,7 @@ write.csv(perm_df, "~/scratch/brain/results/ztest_perm_pcrc_neurogen_mod_10k_15_
 # p_df$bon = p.adjust(p_df$p/100, method = "BH")
 # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
 # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
-
+# 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
 # # for (gene in zGenePops) {
