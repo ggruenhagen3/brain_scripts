@@ -65,7 +65,7 @@ nperm = 10000
 
 # Load in Real PCRC List
 # pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
-zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_122121.csv")[,1]
+# zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_122121.csv")[,1]
 pcrc = c(c("cobl", "LOC101479283", "wdr73", "plekhg4b", "grik5", "LOC101476487", "LOC101476914", "ddr1", "LOC101477204", "plekhf2"), c("csf1r", "LOC101480727", "vegfa", "LOC101484715", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466"))
 
 # Sort genes by their # of UMIs
