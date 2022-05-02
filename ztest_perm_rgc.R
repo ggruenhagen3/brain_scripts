@@ -61,7 +61,7 @@ bb = readRDS(paste0(rna_path, "data/rgc_subclusters.rds"))
 Idents(bb) = bb$rgc_subcluster
 
 # Set Number of Permutations
-nperm = 10000
+nperm = 100000
 
 # Load in Real PCRC List
 # pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
@@ -121,7 +121,7 @@ colnames(perm_df) = clusters
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
 
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_10k_mod_z_050222.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_100k_mod_z_050222.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
