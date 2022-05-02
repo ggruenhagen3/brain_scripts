@@ -64,7 +64,8 @@ Idents(bb) = bb$rgc_subcluster
 nperm = 10000
 
 # Load in Real PCRC List
-pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+# pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+pcrc = c(c("cobl", "LOC101479283", "wdr73", "plekhg4b", "grik5", "LOC101476487", "LOC101476914", "ddr1", "LOC101477204", "plekhf2"), c("csf1r", "LOC101480727", "vegfa", "LOC101484715", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466"))
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -141,7 +142,7 @@ write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_10k_033022.csv")
 # for (cluster in clusters) {
 #   # print(gene)
 #   # pgene = str_replace(gene, "-", ".")
-#   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster+1]))
+#   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster]))
 #   # neg = length(which( perm_df[,pgene] <= real_res[which(zGenePops == gene)] ))
 #   p_df = rbind(p_df, data.frame(cluster, neg))
 # }
