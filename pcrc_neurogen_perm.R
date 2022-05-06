@@ -151,32 +151,32 @@ rgc_sub = readRDS("~/scratch/brain/data/rgc_subclusters_reclustered_q_c_nb_score
 # 3d. Is the correlation between module score and cycling score in RGCs more negative than permutations?
 # 3e. Is the correlation between module score for CDGs and cycling score in RGCs more negative than permutations?
 # 3f. Is the correlation between module score for pNGs and cycling score in RGCs more negative than permutations?
-rgc_sub$mod_score_pcrc = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust), ] > 0)
-rgc_sub$mod_score_neurogen = colSums(rgc_sub@assays$RNA@counts[c(neurogen_clust), ] > 0)
-rgc_sub$mod_score = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust, neurogen_clust), ] > 0)
-
-real_mod_qui = cor(rgc_sub$mod_score, rgc_sub$quiescent_score)
-real_mod_cyc = cor(rgc_sub$mod_score, rgc_sub$cycling_score)
-real_mod_pcrc_qui = cor(rgc_sub$mod_score_pcrc, rgc_sub$quiescent_score)
-real_mod_pcrc_cyc = cor(rgc_sub$mod_score_pcrc, rgc_sub$cycling_score)
-real_mod_neurogen_qui = cor(rgc_sub$mod_score_neurogen, rgc_sub$quiescent_score)
-real_mod_neurogen_cyc = cor(rgc_sub$mod_score_neurogen, rgc_sub$cycling_score)
-
-print("")
-print(paste0("Starting Permutations Examing the Relationship b/w the Module and Quiescent/Cycling RGCs: ", format(Sys.time(), "%X ")))
-perm_mod_rgc = mclapply(1:nperm, function(x) permModuleRGCCor(x), mc.cores = detectCores())
-print(paste0("Permutations of the Module Done: ", format(Sys.time(), "%X ")))
-perm_mod_rgc_df = as.data.frame(t(as.data.frame(perm_mod_rgc)))
-colnames(perm_mod_rgc_df) = c("perm_num", "perm_mod_qui", "perm_mod_cyc", "perm_mod_pcrc_qui", "perm_mod_pcrc_cyc", "perm_mod_neurogen_qui", "perm_mod_neurogen_cyc")
-rownames(perm_mod_rgc_df) = perm_mod_rgc_df$perm_num
-print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_qui          >= real_mod_qui))))
-print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Cycling: ",   length(which(perm_mod_rgc_df$perm_mod_cyc          <= real_mod_cyc))))
-print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_pcrc_qui     >= real_mod_pcrc_qui))))
-print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_pcrc_cyc     <= real_mod_pcrc_cyc))))
-print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_neurogen_qui >= real_mod_neurogen_qui))))
-print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_neurogen_cyc <= real_mod_neurogen_cyc))))
-
-write.csv(perm_mod_rgc_df, "~/scratch/brain/results/wgcna_dbscan_perm_mod_rgc_050622.csv")
+# rgc_sub$mod_score_pcrc = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust), ] > 0)
+# rgc_sub$mod_score_neurogen = colSums(rgc_sub@assays$RNA@counts[c(neurogen_clust), ] > 0)
+# rgc_sub$mod_score = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust, neurogen_clust), ] > 0)
+# 
+# real_mod_qui = cor(rgc_sub$mod_score, rgc_sub$quiescent_score)
+# real_mod_cyc = cor(rgc_sub$mod_score, rgc_sub$cycling_score)
+# real_mod_pcrc_qui = cor(rgc_sub$mod_score_pcrc, rgc_sub$quiescent_score)
+# real_mod_pcrc_cyc = cor(rgc_sub$mod_score_pcrc, rgc_sub$cycling_score)
+# real_mod_neurogen_qui = cor(rgc_sub$mod_score_neurogen, rgc_sub$quiescent_score)
+# real_mod_neurogen_cyc = cor(rgc_sub$mod_score_neurogen, rgc_sub$cycling_score)
+# 
+# print("")
+# print(paste0("Starting Permutations Examing the Relationship b/w the Module and Quiescent/Cycling RGCs: ", format(Sys.time(), "%X ")))
+# perm_mod_rgc = mclapply(1:nperm, function(x) permModuleRGCCor(x), mc.cores = detectCores())
+# print(paste0("Permutations of the Module Done: ", format(Sys.time(), "%X ")))
+# perm_mod_rgc_df = as.data.frame(t(as.data.frame(perm_mod_rgc)))
+# colnames(perm_mod_rgc_df) = c("perm_num", "perm_mod_qui", "perm_mod_cyc", "perm_mod_pcrc_qui", "perm_mod_pcrc_cyc", "perm_mod_neurogen_qui", "perm_mod_neurogen_cyc")
+# rownames(perm_mod_rgc_df) = perm_mod_rgc_df$perm_num
+# print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_qui          >= real_mod_qui))))
+# print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Cycling: ",   length(which(perm_mod_rgc_df$perm_mod_cyc          <= real_mod_cyc))))
+# print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_pcrc_qui     >= real_mod_pcrc_qui))))
+# print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_pcrc_cyc     <= real_mod_pcrc_cyc))))
+# print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_neurogen_qui >= real_mod_neurogen_qui))))
+# print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_neurogen_cyc <= real_mod_neurogen_cyc))))
+# 
+# write.csv(perm_mod_rgc_df, "~/scratch/brain/results/wgcna_dbscan_perm_mod_rgc_050622.csv")
 
 # 4.
 # Do any individual genes in the module have a correlation with quiescent/cycling/neuroblast score
