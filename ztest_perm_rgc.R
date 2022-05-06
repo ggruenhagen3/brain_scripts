@@ -136,7 +136,7 @@ write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_wgcna_dbscan_050622.c
 # p_df$bon = p.adjust(p_df$p/100, method = "BH")
 # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
 # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
-
+# 
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
 # # for (gene in zGenePops) {
