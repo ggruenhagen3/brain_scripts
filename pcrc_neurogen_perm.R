@@ -91,10 +91,14 @@ cor_mat = cor(x = t(as.matrix(data_mat)))
 cor_mat = cor_mat[pcrc, neurogen]
 cor_mat[is.na(cor_mat)] = 0
 
-# mod_me2 bulk module
-pcrc_clust = c("cobl", "ddr1", "fhod3", "LOC101476487", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73")
-neurogen_clust = c("LOC101476922", "boc", "LOC101487687", "epha3", "erbb2", "met", "metrn", "pax6", "smo", "LOC101480727", "LOC101469466", "vegfa", "LOC101469419")
-  
+# # mod_me2 bulk module
+# pcrc_clust = c("cobl", "ddr1", "fhod3", "LOC101476487", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73")
+# neurogen_clust = c("LOC101476922", "boc", "LOC101487687", "epha3", "erbb2", "met", "metrn", "pax6", "smo", "LOC101480727", "LOC101469466", "vegfa", "LOC101469419")
+
+# mod_me2 rgc neuroblast module
+pcrc_clust = c("LOC101476487")
+neurogen_clust = c("LOC101476922")
+
 # # mod_me2 rgc module
 # pcrc_clust     = c("cobl", "ddr1", "fhod3", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73")
 # neurogen_clust =  c("boc", "LOC101487687", "epha3", "metrn", "LOC101480727", "vegfa", "LOC101469419")
@@ -218,6 +222,6 @@ for (i in 1:nrow(cor_all_q_w_perm)) {
 }
 cor_q_sum$cdg = cor_c_sum$cdg = cor_n_sum$cdg = rownames(cor_q_sum) %in% pcrc
 cor_q_sum$png = cor_c_sum$png = cor_n_sum$png = rownames(cor_q_sum) %in% neurogen
-write.csv(cor_q_sum, "~/scratch/brain/results/mod_me2_bulk_cor_perm_q.csv")
-write.csv(cor_c_sum, "~/scratch/brain/results/mod_me2_bulk_cor_perm_c.csv")
-write.csv(cor_n_sum, "~/scratch/brain/results/mod_me2_bulk_cor_perm_n.csv")
+write.csv(cor_q_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_q.csv")
+write.csv(cor_c_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_c.csv")
+write.csv(cor_n_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_n.csv")
