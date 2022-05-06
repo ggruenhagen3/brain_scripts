@@ -66,7 +66,7 @@ nperm = 100000
 # Load in Real PCRC List
 # pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
 # pcrc = c(c("cobl", "LOC101479283", "wdr73", "plekhg4b", "grik5", "LOC101476487", "LOC101476914", "ddr1", "LOC101477204", "plekhf2"), c("csf1r", "LOC101480727", "vegfa", "LOC101484715", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466"))
-pcrc = c(c("LOC101479283", "cobl", "wdr73", "grik5", "iglon5", "LOC101477204"), c("epha3", "LOC101480727", "neo1", "pax6", "boc", "LOC101465090", "vegfa", "LOC101487591", "LOC101482557", "LOC101464345", "metrn", "cyfip2", "LOC101466433", "numb", "LOC101487687", "LOC101469419", "LOC101478875", "tenm4"))
+pcrc = c("cobl", "ddr1", "fhod3", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73", "boc", "LOC101487687", "epha3", "metrn", "LOC101480727", "vegfa", "LOC101469419")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -121,7 +121,7 @@ colnames(perm_df) = clusters
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
 
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_100k_mod_z_050222.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_wgcna_dbscan_050622.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
@@ -153,5 +153,5 @@ write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_100k_mod_z_050222.csv
 # p_df$p = ((nperm - p_df$neg) / nperm)
 # p_df$bh = p.adjust(p_df$p, method = "BH")
 # p_df$bon = p.adjust(p_df$p, method = "bonferroni")
-# # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
-# # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
+# ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
+# ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
