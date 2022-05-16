@@ -2241,7 +2241,7 @@ myAverageExpression <- function(obj, slot="data", assay="RNA", features = NULL, 
   for (ident in levels(Idents(obj))) {
     print(paste("Averaging Expression for", ident))
     if (identical(features, NULL)) {
-      features = rownames(obj)
+      features = rownames(obj@assays$RNA@data)
     }
     
     this_cells <- WhichCells(obj, idents = ident)

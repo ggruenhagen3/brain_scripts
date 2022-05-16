@@ -4,8 +4,6 @@ singleRun = function(markers, returnP = T) {
   avg_exp = avg_exp/bb$nFeature_RNA
   cluster_p = c()
   cluster_d = c()
-  cluster_up = c()
-  cluster_down = c()
   for (cluster in clusters) {
     cluster_cells <- WhichCells(bb, idents = cluster)
     clust_exp = avg_exp[cluster_cells]
@@ -16,13 +14,9 @@ singleRun = function(markers, returnP = T) {
     all_exp = c(clust_exp, other_exp)
     test= effsize::cohen.d(all_exp, c(rep("cluster", length(clust_exp)), rep("other",   length(other_exp))))
     d=test$estimate
-    up=test$conf.int[2]
-    down = test$conf.int[1]
     
     cluster_p = c(cluster_p, p)
     cluster_d = c(cluster_d, d)
-    cluster_up = c(cluster_up, up)
-    cluster_down = c(cluster_down, down)
   }
   if (returnP) 
     return(cluster_p)
@@ -35,8 +29,6 @@ singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
   avg_exp = avg_exp/bb$nFeature_RNA
   cluster_p = c()
   cluster_d = c()
-  cluster_up = c()
-  cluster_down = c()
   for (gene in genePops) {
     gene_pop_cells <- colnames(bb)[which(exp[gene,] > 0)]
     gene_pop_exp = avg_exp[gene_pop_cells]
@@ -47,13 +39,9 @@ singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
     all_exp = c(gene_pop_exp, other_exp)
     test= effsize::cohen.d(all_exp, c(rep("cluster", length(gene_pop_exp)), rep("other",   length(other_exp))))
     d=test$estimate
-    up=test$conf.int[2]
-    down = test$conf.int[1]
     
     cluster_p = c(cluster_p, p)
-    cluster_d = c(cluster_d, d)    
-    cluster_up = c(cluster_up, up)
-    cluster_down = c(cluster_down, down)
+    cluster_d = c(cluster_d, d)
   }
   
   cat(paste0("- Single Perm End Time: ", format(Sys.time(), "%X ")))
@@ -61,7 +49,7 @@ singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
   if (returnP) 
     return(cluster_p)
   else
-    return(cluster_down)
+    return(cluster_d)
 }
 
 # Body *************************************************************************************
@@ -69,16 +57,16 @@ singleRunGeneDefined = function(markers, genePops = zGenePops, returnP = T) {
 rna_path = "~/scratch/brain/"
 source(paste0(rna_path, "brain_scripts/all_f.R"))
 library("SeuratObject")
-bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
-Idents(bb) = bb$seuratclusters15
+bb = readRDS(paste0(rna_path, "data/rgc_subclusters.rds"))
+Idents(bb) = bb$rgc_subcluster
 
 # Set Number of Permutations
-nperm = 10000
+nperm = 100000
 
 # Load in Real PCRC List
 # pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
-# zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_122121.csv")[,1]
-pcrc = c("cobl", "ddr1", "fhod3", "LOC101476487", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73", "LOC101476922", "boc", "LOC101487687", "epha3", "erbb2", "met", "metrn", "pax6", "smo", "LOC101480727", "LOC101469466", "vegfa", "LOC101469419")
+# pcrc = c(c("cobl", "LOC101479283", "wdr73", "plekhg4b", "grik5", "LOC101476487", "LOC101476914", "ddr1", "LOC101477204", "plekhf2"), c("csf1r", "LOC101480727", "vegfa", "LOC101484715", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466"))
+pcrc = c("cobl", "ddr1", "fhod3", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73", "boc", "LOC101487687", "epha3", "metrn", "LOC101480727", "vegfa", "LOC101469419")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -116,15 +104,9 @@ exp = GetAssayData(bb, assay = "RNA", slot='counts')
 exp[which(exp > 0)] = 1
 clusters = sort(unique(as.numeric(as.vector(Idents(bb)))))
 
-# Find Results for the Random Gene Lists
-# perm_res = lapply(1:nperm, function(x) singleRun(ran_lists[[x]], returnP = F))
-# real_res = singleRun(pcrc, returnP = F)
-# real_res_log = -log10(real_res)
-
 library("parallel")
 print(paste0("Doing Perms Start Time: ", format(Sys.time(), "%X")))
 print("")
-# perm_res = mclapply(1:nperm, function(x) singleRunGeneDefined(ran_lists[[x]], genePops = zGenePops, returnP = F), mc.cores = detectCores())
 perm_res = mclapply(1:nperm, function(x) singleRun(ran_lists[[x]], returnP = F), mc.cores = detectCores())
 perm_df = as.data.frame(t(as.data.frame(perm_res)))
 rownames(perm_df) = 1:nperm
@@ -137,9 +119,9 @@ colnames(perm_df) = clusters
 # perm_df_melt = melt(perm_df)
 # perm_df_melt$neg_log_p = -log10(perm_df_melt$value)
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
-  
+
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_wgcna_dbscan_mod_10k_15_050522.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_wgcna_dbscan_050622.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
@@ -162,6 +144,7 @@ write.csv(perm_df, "~/scratch/brain/results/ztest_perm_wgcna_dbscan_mod_10k_15_0
 #   # print(gene)
 #   # pgene = str_replace(gene, "-", ".")
 #   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster+1]))
+#   # neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster]))
 #   # neg = length(which( perm_df[,pgene] <= real_res[which(zGenePops == gene)] ))
 #   p_df = rbind(p_df, data.frame(cluster, neg))
 # }
