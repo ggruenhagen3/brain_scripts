@@ -6432,6 +6432,652 @@ dev.off()
 sub_meta = aggregate(depth_5_35 + depth_15_45 + depth_25_55 + depth_35_65 + depth_45_75 + depth_55_85 + depth_65_95 + build_5_35 + build_15_45 + build_25_55 + build_35_65 + build_45_75 + build_55_85 + build_65_95 ~ subsample, bb@meta.data, mean)
 mean_df = read.csv("~/Downloads/ieg_summary_subsample_means_bower.csv")
 
+# Chasing Rainbows =============================================================
+n_high = rownames(cor_all_n)[which(cor_all_n > 0.25)]
+bb$n_high = colSums(bb@assays$RNA@counts[n_high,] > 0)
+bb$n_high_norm = bb$n_high / bb$nFeature_RNA
+
+# From genes that have a correlation w/ neuroblast score > 0.2, which ones
+# have the interesting pattern?
+n_high2 = c("elavl3", "sox4", "LOC101477131", "LOC101488104", "LOC101469831", "ppp1r14b", "LOC101476487", "mex3a", "sox11", "LOC101481616", "LOC101468963", "slco5a1", "cbfa2t3", "LOC101481498", "LOC101486422", "neurod4", "plxna2", "plxna4", "LOC101465246", "celsr3", "LOC101464304", "LOC105940918", "LOC101466237", "LOC101478303", "gpc2", "LOC101467528", "chd7")
+sorta_interesting = c("LOC101487065", "st18", "LOC101480282", "LOC101481351", "notch1")
+bb$n_high2 = colSums(bb@assays$RNA@counts[n_high2,] > 0)
+bb$n_high2_norm = bb$n_high2 / bb$nFeature_RNA
+hist(bb$n_high2_norm)
+bb$n_high2_cells = bb$n_high2_norm > quantile(bb$n_high2_norm, 0.99)
+Idents(bb) = bb$n_high2_cells
+n_high2_markers = FindMarkers(bb, ident.1 = T, ident.2 = F, logfc.threshold = 0.25, only.pos = T)
+n_high2_markers = n_high2_markers[which(n_high2_markers$p_val_adj < 0.05),]
+Idents(bb) = bb$seuratclusters53
+
+# Find the correlation w/ this new list
+
+#***************************************************
+# scGNN Pair =======================================
+#***************************************************
+readImpMat = function(path) {
+  df_pair = data.table::fread(path)
+  df_pair = t(df_pair)
+  colnames(df_pair) = df_pair[1,]
+  colnames(df_pair) = gene_names[as.numeric(colnames(df_pair))]
+  df_pair = df_pair[-1,]
+  df_pair = cbind(data.table::data.table(subsample = unname(as.vector(bb$subsample[match(rownames(df_pair), colnames(bb))]))), df_pair)
+  df_pair_mean = df_pair[, lapply(.SD, mean), by=subsample]
+  return(df_pair_mean)
+}
+gene_names = rownames(bb)
+base_folder = "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/CichlidDataFolder/"
+for (pair_idx in 1:19) {
+  df_pair_n = readImpMat(paste0(base_folder, pair_idx, "_pair/_recon.csv"))
+  df_pair_y = readImpMat(paste0(base_folder, pair_idx, "_pair/include/_recon.csv"))
+}
+
+#***************************************************
+# Neurogen and PCRC Correlations Final =============
+#***************************************************
+# neurogen = read.csv("~/scratch/brain/data/conserved_neurogenesis_positive88_zfish_mouse_cichlid.csv")[,3]
+# pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+neurogen = read.csv("C:/Users/miles/Downloads/conserved_neurogenesis_positive88_zfish_mouse_cichlid.csv")[,3]
+pcrc = read.csv("C:/Users/miles/Downloads/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+
+# Load Modules
+df = read.csv("C:/Users/miles/Downloads/wgcna_dbscan_module.csv")
+df_rgc = read.csv("C:/Users/miles/Downloads/wgcna_dbscan_rgc_module.csv")
+b_mod = df$gene[which(df$mod_me2)]
+b_mod_cdg = df$gene[which(df$mod_me2 & df$cdg)]
+b_mod_png = df$gene[which(df$mod_me2 & df$png)]
+r_mod = df_rgc$gene[which(df_rgc$mod_me2)]
+r_mod_cdg = df_rgc$gene[which(df_rgc$mod_me2 & df_rgc$cdg)]
+r_mod_png = df_rgc$gene[which(df_rgc$mod_me2 & df_rgc$png)]
+
+# Paint Modules
+
+# RGC Mod and Quiescence
+rgc_sub$mod_score = colSums(rgc_sub@assays$RNA@counts[r_mod,] > 0)
+cor(rgc_sub$mod_score, rgc_sub$quiescent_score)
+cor(rgc_sub$mod_score, rgc_sub$cycling_score)
+cor(rgc_sub$mod_score, rgc_sub$neuroblast_score)
+
+# Correlations of all genes w/ quiescent, cycling, and neuroblast score.
+quiescent_genes <- c("ckb","fabp7","LOC101463785","LOC101486618", "hes1", "LOC101470264", "s100b")
+cor_all_q = cor(x = as.matrix(t(rgc_sub@assays$RNA@data)), y = rgc_sub$quiescent_score)
+cor2_all_q = data.frame(cor_all_q, mod_cdg = rownames(cor_all_q) %in% r_mod_cdg, mod_png = rownames(cor_all_q) %in% r_mod_png, in_cdg = rownames(cor_all_q) %in% pcrc, in_png = rownames(cor_all_q) %in% neurogen)
+cor2_all_q = cor2_all_q[order(cor2_all_q$cor_all_q, decreasing = T),]
+cor2_all_q$pos_rank = 1:nrow(cor2_all_q)
+cor2_all_q = cor2_all_q[order(cor2_all_q$cor_all_q, decreasing = F),]
+cor2_all_q$neg_rank = 1:nrow(cor2_all_q)
+cor2_all_q_in = cor2_all_q[which(cor2_all_q$in_cdg | cor2_all_q$in_png),]
+cor_rm_genes = cor2_all_q[which(! rownames(cor2_all_q) %in% quiescent_genes ),]
+cor_rm_genes = cor_rm_genes[order(cor_rm_genes$cor_all_q, decreasing = T),]
+cor_rm_genes$pos_rank_fair = 1:nrow(cor_rm_genes)
+cor2_all_q_in$pos_rank_fair = cor_rm_genes$pos_rank_fair[match(rownames(cor2_all_q_in), rownames(cor_rm_genes))]
+
+cycling_genes <- c("ccnd1", "LOC112431276", "LOC106675461", "mcm5", "pcna", "ascl1", "mcm7", "ranbp1")
+cor2_all_q_in = cor2_all_q[which(cor2_all_q$in_cdg | cor2_all_q$in_png),]
+cor_all_c = cor(x = as.matrix(t(rgc_sub@assays$RNA@data)), y = rgc_sub$cycling_score)
+cor2_all_c = data.frame(cor_all_c, mod_cdg = rownames(cor_all_q) %in% r_mod_cdg, mod_png = rownames(cor_all_q) %in% r_mod_png, in_cdg = rownames(cor_all_q) %in% pcrc, in_png = rownames(cor_all_q) %in% neurogen)
+cor2_all_c = cor2_all_c[order(cor2_all_c$cor_all_c, decreasing = T),]
+cor2_all_c$pos_rank = 1:nrow(cor2_all_c)
+cor2_all_c = cor2_all_c[order(cor2_all_c$cor_all_c, decreasing = F),]
+cor2_all_c$neg_rank = 1:nrow(cor2_all_c)
+cor2_all_c_in = cor2_all_c[which(cor2_all_c$in_cdg | cor2_all_c$in_png),]
+cor_rm_genes = cor2_all_c[which(! rownames(cor2_all_c) %in% cycling_genes ),]
+cor_rm_genes = cor_rm_genes[order(cor_rm_genes$cor_all_c, decreasing = T),]
+cor_rm_genes$pos_rank_fair = 1:nrow(cor_rm_genes)
+cor2_all_c_in$pos_rank_fair = cor_rm_genes$pos_rank_fair[match(rownames(cor2_all_c_in), rownames(cor_rm_genes))]
+
+neuroblast_genes <- c("elavl3", "sox4","LOC101469831","LOC101477131", "ppp1r14b","dlx2","dlx5","tbr1","bhlhe22")
+cor_all_n = cor(x = as.matrix(t(rgc_sub@assays$RNA@data)), y = rgc_sub$neuroblast_score)
+cor2_all_n = data.frame(cor_all_n, mod_cdg = rownames(cor_all_n) %in% r_mod_cdg, mod_png = rownames(cor_all_n) %in% r_mod_png, in_cdg = rownames(cor_all_n) %in% pcrc, in_png = rownames(cor_all_n) %in% neurogen)
+cor2_all_n = cor2_all_n[order(cor2_all_n$cor_all_n, decreasing = T),]
+cor2_all_n$pos_rank = 1:nrow(cor2_all_n)
+cor2_all_n = cor2_all_n[order(cor2_all_n$cor_all_n, decreasing = F),]
+cor2_all_n$neg_rank = 1:nrow(cor2_all_n)
+cor2_all_n_in = cor2_all_n[which(cor2_all_n$in_cdg | cor2_all_n$in_png),]
+cor_rm_genes = cor2_all_n[which(! rownames(cor2_all_n) %in% neuroblast_genes ),]
+cor_rm_genes = cor_rm_genes[order(cor_rm_genes$cor_all_n, decreasing = T),]
+cor_rm_genes$pos_rank_fair = 1:nrow(cor_rm_genes)
+cor2_all_n_in$pos_rank_fair = cor_rm_genes$pos_rank_fair[match(rownames(cor2_all_n_in), rownames(cor_rm_genes))]
+
+# Comparison to Perms
+test = read.csv("C:/Users/miles/Downloads/mod_me2_bulk_cor_perm_q.csv")
+# real_mean = mean(cor_mat[pcrc_clust, neurogen_clust])
+# random_combos = read.csv("C:/Users/miles/Downloads/pcrc_neurogen_random_combos_1_million_042822.csv")
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_random_combos.pdf", height = 3, width = 3)
+# ggplot(random_combos, aes(x = x)) + geom_histogram() + geom_vline(xintercept = real_mean) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# random_combos = read.csv("C:/Users/miles/Downloads/pcrc_neurogen_random_combos2_1_million_042922.csv")
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_random_combos2_small.pdf", height = 2, width = 3)
+# ggplot(random_combos, aes(x = x)) + geom_histogram() + geom_vline(xintercept = real_mean) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# perm_mod_means = read.csv("C:/Users/miles/Downloads/pcrc_neurogen_perm_042822.csv")
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_shuffled_module_small.pdf", height = 2, width = 3)
+# ggplot(perm_mod_means, aes(x = perm_mod_mean)) + geom_histogram() + geom_vline(xintercept = real_mean) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# perm_rgc_cors = read.csv("C:/Users/miles/Downloads/pcrc_neurogen_perm_mod_rgc_042822.csv")
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_perm_mod_qui.pdf", height = 3, width = 3)
+# ggplot(perm_rgc_cors, aes(x = perm_mod_qui)) + geom_histogram() + geom_vline(xintercept = real_mod_qui) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_perm_mod_cyc.pdf", height = 3, width = 3)
+# ggplot(perm_rgc_cors, aes(x = perm_mod_qui)) + geom_histogram() + geom_vline(xintercept = real_mod_cyc) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_perm_mod_pcrc_qui.pdf", height = 3, width = 3)
+# ggplot(perm_rgc_cors, aes(x = perm_mod_pcrc_qui)) + geom_histogram() + geom_vline(xintercept = real_mod_pcrc_qui) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_perm_mod_pcrc_cyc.pdf", height = 3, width = 3)
+# ggplot(perm_rgc_cors, aes(x = perm_mod_pcrc_cyc)) + geom_histogram() + geom_vline(xintercept = real_mod_pcrc_cyc) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_perm_mod_neurogen_qui.pdf", height = 3, width = 3)
+# ggplot(perm_rgc_cors, aes(x = perm_mod_neurogen_qui)) + geom_histogram() + geom_vline(xintercept = real_mod_neurogen_qui) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+# pdf("C:/Users/miles/Downloads/pcrc_neurogen_perm_mod_neurogen_cyc.pdf", height = 3, width = 3)
+# ggplot(perm_rgc_cors, aes(x = perm_mod_neurogen_cyc)) + geom_histogram() + geom_vline(xintercept = real_mod_neurogen_cyc) + xlab("Pearson's r") + ylab("Number of Permutations") + theme_classic() + scale_y_continuous(expand = c(0,0))
+# dev.off()
+
+# Bulk Module Discovery
+library("WGCNA")
+library("dbscan")
+data_mat_t = t(data_mat)
+pcrc_neurogen_rowSums = rowSums(bb@assays$RNA@counts[c(pcrc, neurogen),] > 0)
+data_mat_c = t(bb@assays$RNA@data[names(pcrc_neurogen_rowSums)[which(pcrc_neurogen_rowSums > 0)],])
+powers = c(c(1:10), seq(from = 12, to=20, by=2))
+sft_c = pickSoftThreshold(data_mat_c, powerVector = powers, verbose = 5)
+adjacency = adjacency(data_mat_c, type = "signed", power = 1)
+TOM = adjacency
+# TOM = TOMsimilarity(adjacency, TOMType = "none")
+dissTOM = 1-TOM
+geneTree = hclust(as.dist(dissTOM), method = "average")
+dynamicMods = cutreeDynamic(dendro = geneTree, distM = dissTOM, pamRespectsDendro = FALSE, minClusterSize = 5);
+table(dynamicMods)
+df = data.frame(gene = colnames(data_mat_c), module = dynamicMods, cdg = colnames(data_mat_c) %in% pcrc, png = colnames(data_mat_c) %in% neurogen, in_mod_me = colnames(data_mat_c) %in% c(pcrc_clust, neurogen_clust))
+cl5 <- hdbscan(dissTOM, minPts = 5)
+df$dbscan = cl5$cluster
+df$dbscan_membership = cl5$membership_prob
+df$combined = paste0(df$module, "_", df$dbscan)
+df[which(df$module == 1 & df$dbscan == 2),]
+df$mod_me2 = df$module == 1 & df$dbscan == 2
+mod_me2 = df$gene[which(df$mod_me2)]
+write.csv(df, "~/scratch/brain/results/wgcna_dbscan_module.csv")
+
+# RGC Module Discovery
+rgc_mat_c = t(rgc_sub@assays$RNA@data[df$gene[which(df$mod_me2)],])
+# rgc_mat_c = t(rgc_sub@assays$RNA@data[df$gene[which(df$mod_me2 & !df$gene %in% c("LOC101476487", "LOC101476922", "met"))],])
+powers = c(c(1:10), seq(from = 12, to=20, by=2))
+sft_c = pickSoftThreshold(rgc_mat_c, powerVector = powers, verbose = 5)
+adjacency = adjacency(rgc_mat_c, type = "signed", power = 20)
+TOM = adjacency
+# TOM = TOMsimilarity(adjacency, TOMType = "none")
+dissTOM = 1-TOM
+geneTree = hclust(as.dist(dissTOM), method = "average")
+dynamicMods = cutreeDynamic(dendro = geneTree, distM = dissTOM, pamRespectsDendro = FALSE, minClusterSize = 2)
+table(dynamicMods)
+df_rgc = data.frame(gene = colnames(rgc_mat_c), module = dynamicMods, cdg = colnames(rgc_mat_c) %in% pcrc, png = colnames(rgc_mat_c) %in% neurogen, in_mod_me = colnames(rgc_mat_c) %in% c(pcrc_clust, neurogen_clust))
+cl5_rgc <- hdbscan(dissTOM, minPts = 2)
+df_rgc$dbscan = cl5_rgc$cluster
+df_rgc$dbscan_membership = cl5_rgc$membership_prob
+df_rgc$combined = paste0(df_rgc$module, "_", df_rgc$dbscan)
+df_rgc[which(df_rgc$module == 1 & df_rgc$dbscan == 2),]
+df_rgc$mod_me2 = df_rgc$module == 1 & df_rgc$dbscan == 4
+write.csv(df_rgc, "~/scratch/brain/results/wgcna_dbscan_rgc_module.csv")
+
+# Bulk Module vs Other Modules R and Memberhsip Probabilities
+all_mod_df = aggregate(dbscan_membership ~ combined, df, length)
+colnames(all_mod_df)[2] = "n"
+all_mod_df$membership_mean = aggregate(dbscan_membership ~ combined, df, mean)[,2]
+all_mod_df = all_mod_df[which(all_mod_df$n >= 5),]
+all_mod_df$other_membership_mean = 0
+all_mod_df$membership_se = all_mod_df$other_membership_se = 0
+all_mod_df$this_mod_other_r_mean = all_mod_df$this_mod_r_mean = 0
+all_mod_df$this_mod_other_r_se = all_mod_df$this_mod_r_se = 0
+all_mod_df$this_mod_r_p = 1
+# all_mod_df$this_mod_other_mem_mean = all_mod_df$this_mod_mem_mean = 0
+all_mod_df$this_mod_mem_p = 1
+cor_mat_not_zero = cor(data_mat_c)
+cor_mat_not_zero = cor_mat_not_zero[which(rownames(cor_mat_not_zero) %in% pcrc), which(rownames(cor_mat_not_zero) %in% neurogen)]
+cor_df = melt(cor_mat_not_zero)
+for (this_mod in all_mod_df$combined) {
+  if (all_mod_df$n[which(all_mod_df$combined == this_mod)] >= 5) {
+    mod_cor_idx = which(cor_df$Var1 %in% df$gene[which(df$combined == this_mod & df$cdg)] & cor_df$Var2 %in% df$gene[which(df$combined == this_mod & df$png)])
+    mod_cor = cor_df$value[mod_cor_idx]
+    not_mod_cor = cor_df$value[-mod_cor_idx]
+    all_mod_df$this_mod_r_mean[which(all_mod_df$combined == this_mod)] = mean(mod_cor)
+    all_mod_df$this_mod_r_se[which(all_mod_df$combined == this_mod)] = sd(mod_cor)/sqrt(length(mod_cor))
+    all_mod_df$this_mod_other_r_mean[which(all_mod_df$combined == this_mod)] = mean(not_mod_cor)
+    all_mod_df$this_mod_other_r_se[which(all_mod_df$combined == this_mod)] = sd(not_mod_cor)/sqrt(length(not_mod_cor))
+    all_mod_df$this_mod_r_p[which(all_mod_df$combined == this_mod)] = t.test(mod_cor, not_mod_cor, alternative = "greater")$p.value
+    all_mod_df$this_mod_mem_p[which(all_mod_df$combined == this_mod)] = t.test(df$dbscan_membership[which(df$combined == this_mod)], df$dbscan_membership[which(df$combined != this_mod)], alternative = "greater")$p.value
+    all_mod_df$other_membership_mean[which(all_mod_df$combined == this_mod)] = mean(df$dbscan_membership[which(df$combined != this_mod)])
+    all_mod_df$membership_se[which(all_mod_df$combined == this_mod)] = sd(df$dbscan_membership[which(df$combined == this_mod)])/sqrt(length(which(df$combined == this_mod)))
+    all_mod_df$other_membership_se[which(all_mod_df$combined == this_mod)] = sd(df$dbscan_membership[which(df$combined != this_mod)])/sqrt(length(which(df$combined != this_mod)))
+  }
+}
+all_mod_df$this_mod_r_bon = p.adjust(all_mod_df$this_mod_r_p, method = "bonferroni")
+all_mod_df$this_mod_mem_bon = p.adjust(all_mod_df$this_mod_mem_p, method = "bonferroni")
+write.csv(all_mod_df, "~/scratch/brain/results/wgcna_dbscan_module_stats.csv")
+
+# RGC Module vs Other Modules R and Memberhsip Probabilities
+all_mod_df_rgc = aggregate(dbscan_membership ~ combined, df_rgc, length)
+colnames(all_mod_df_rgc)[2] = "n"
+all_mod_df_rgc$membership_mean = aggregate(dbscan_membership ~ combined, df_rgc, mean)[,2]
+all_mod_df_rgc = all_mod_df_rgc[which(all_mod_df_rgc$n >= 2),]
+all_mod_df_rgc$other_membership_mean = 0
+all_mod_df_rgc$membership_se = all_mod_df_rgc$other_membership_se = 0
+all_mod_df_rgc$this_mod_other_r_mean = all_mod_df_rgc$this_mod_r_mean = 0
+all_mod_df_rgc$this_mod_other_r_se = all_mod_df_rgc$this_mod_r_se = 0
+all_mod_df_rgc$this_mod_r_p = 1
+# all_mod_df_rgc$this_mod_other_mem_mean = all_mod_df_rgc$this_mod_mem_mean = 0
+all_mod_df_rgc$this_mod_mem_p = 1
+cor_mat_not_zero = cor(rgc_mat_c)
+cor_mat_not_zero = cor_mat_not_zero[which(rownames(cor_mat_not_zero) %in% pcrc), which(rownames(cor_mat_not_zero) %in% neurogen)]
+cor_df_rgc = melt(cor_mat_not_zero)
+for (this_mod in all_mod_df_rgc$combined) {
+  if (all_mod_df_rgc$n[which(all_mod_df_rgc$combined == this_mod)] >= 2) {
+    mod_cor_idx = which(cor_df_rgc$Var1 %in% df_rgc$gene[which(df_rgc$combined == this_mod & df_rgc$cdg)] & cor_df_rgc$Var2 %in% df_rgc$gene[which(df_rgc$combined == this_mod & df_rgc$png)])
+    mod_cor = cor_df_rgc$value[mod_cor_idx]
+    not_mod_cor = cor_df_rgc$value[-mod_cor_idx]
+    all_mod_df_rgc$this_mod_r_mean[which(all_mod_df_rgc$combined == this_mod)] = mean(mod_cor)
+    all_mod_df_rgc$this_mod_r_se[which(all_mod_df_rgc$combined == this_mod)] = sd(mod_cor)/sqrt(length(mod_cor))
+    all_mod_df_rgc$this_mod_other_r_mean[which(all_mod_df_rgc$combined == this_mod)] = mean(not_mod_cor)
+    all_mod_df_rgc$this_mod_other_r_se[which(all_mod_df_rgc$combined == this_mod)] = sd(not_mod_cor)/sqrt(length(not_mod_cor))
+    all_mod_df_rgc$other_membership_mean[which(all_mod_df_rgc$combined == this_mod)] = mean(df_rgc$dbscan_membership[which(df_rgc$combined != this_mod)])
+    all_mod_df_rgc$membership_se[which(all_mod_df_rgc$combined == this_mod)] = sd(df_rgc$dbscan_membership[which(df_rgc$combined == this_mod)])/sqrt(length(which(df_rgc$combined == this_mod)))
+    all_mod_df_rgc$other_membership_se[which(all_mod_df_rgc$combined == this_mod)] = sd(df_rgc$dbscan_membership[which(df_rgc$combined != this_mod)])/sqrt(length(which(df_rgc$combined != this_mod)))
+    if (all_mod_df_rgc$n[which(all_mod_df_rgc$combined == this_mod)] >= 3) {
+      all_mod_df_rgc$this_mod_r_p[which(all_mod_df_rgc$combined == this_mod)] = t.test(mod_cor, not_mod_cor, alternative = "greater")$p.value
+      all_mod_df_rgc$this_mod_mem_p[which(all_mod_df_rgc$combined == this_mod)] = t.test(df_rgc$dbscan_membership[which(df_rgc$combined == this_mod)], df_rgc$dbscan_membership[which(df_rgc$combined != this_mod)], alternative = "greater")$p.value
+    }
+  }
+}
+all_mod_df_rgc$this_mod_r_bon = p.adjust(all_mod_df_rgc$this_mod_r_p, method = "bonferroni")
+all_mod_df_rgc$this_mod_mem_bon = p.adjust(all_mod_df_rgc$this_mod_mem_p, method = "bonferroni")
+write.csv(all_mod_df_rgc, "~/scratch/brain/results/wgcna_dbscan_rgc_module_stats.csv")
+
+
+#***************************************************
+# Neurogen and PCRC Correlations ===================
+#***************************************************
+# neurogen = read.csv("~/scratch/brain/data/conserved_neurogenesis_positive88_zfish_mouse_cichlid.csv")[,3]
+# pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+neurogen = read.csv("C:/Users/miles/Downloads/conserved_neurogenesis_positive88_zfish_mouse_cichlid.csv")[,3]
+pcrc = read.csv("C:/Users/miles/Downloads/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+neurogen = neurogen[which(!duplicated(neurogen))]
+data_mat = bb@assays$RNA@data[c(pcrc, neurogen),]
+
+cor_mat = cor(x = t(as.matrix(data_mat)))
+cor_mat = cor_mat[pcrc, neurogen]
+cor_mat[is.na(cor_mat)] = 0
+pcrc_clust = c("cobl", "LOC101479283", "wdr73", "plekhg4b", "grik5", "LOC101476487", "LOC101476914", "ddr1", "LOC101477204", "plekhf2")
+neurogen_clust = c("csf1r", "LOC101480727", "vegfa", "LOC101484715", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466")
+not_pcrc_clust = rownames(cor_mat)[which(!rownames(cor_mat) %in% pcrc_clust)]
+not_neurogen_clust = colnames(cor_mat)[which(!colnames(cor_mat) %in% neurogen_clust)]
+row_annot = data.frame(module = rep("none", nrow(cor_mat)), row.names = rownames(cor_mat))
+col_annot = data.frame(module = rep("none", ncol(cor_mat)), row.names = colnames(cor_mat))
+row_annot$module[which(rownames(row_annot) %in% pcrc_clust)] = "module"
+col_annot$module[which(rownames(col_annot) %in% neurogen_clust)] = "module"
+# pheatmap::pheatmap(cor_mat, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test.pdf")
+# pheatmap::pheatmap(cor_mat, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test.pdf")
+pheatmap::pheatmap(t(cor_mat), show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/mod_me.pdf")
+
+mod_cor = as.vector(cor_mat[pcrc_clust, neurogen_clust])
+not_mod_cor = as.vector(cor_mat[not_pcrc_clust, not_neurogen_clust])
+not_mod_cor2 = as.vector(cor_mat)
+not_mod_cor2 = not_mod_cor2[which(! not_mod_cor2 %in% mod_cor)]
+t.test(mod_cor, not_mod_cor)
+t.test(mod_cor, not_mod_cor2)
+
+for (i in unique(bb$sample)) {
+  cor_mat = cor(x = t(as.matrix(data_mat[, which(bb$sample != i)])))
+  cor_mat = cor_mat[pcrc, neurogen]
+  cor_mat[is.na(cor_mat)] = 0
+  pcrc_clust = c("cobl", "LOC101479283", "wdr73", "plekhg4b", "grik5", "LOC101476487", "LOC101476914", "ddr1", "LOC101477204", "plekhf2")
+  neurogen_clust = c("csf1r", "LOC101480727", "vegfa", "LOC101484715", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466")
+  row_annot = data.frame(module = rep("none", nrow(cor_mat)), row.names = rownames(cor_mat))
+  col_annot = data.frame(module = rep("none", ncol(cor_mat)), row.names = colnames(cor_mat))
+  row_annot$module[which(rownames(row_annot) %in% pcrc_clust)] = "module"
+  col_annot$module[which(rownames(col_annot) %in% neurogen_clust)] = "module"
+  # pheatmap::pheatmap(cor_mat, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test.pdf")
+  pheatmap::pheatmap(cor_mat, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = paste0("C:/Users/miles/Downloads/brain/results/bb/pcrc_neurogen/module_loo_in_pool_", i, ".pdf"))
+}
+
+# Z-Test
+convert15$new.full = str_replace(convert15$new.full, "Astro", "RGC")
+convert53$new = str_replace(convert53$new, "Astro", "RGC")
+Idents(bb) = factor(convert53$new[match(bb$seuratclusters53, convert53$old)], levels = convert53$new)
+real_res = markerExpPerCellPerClusterQuick(bb, c(pcrc_clust, neurogen_clust))
+pdf("C:/Users/miles/Downloads/pcrc_neurogen_mod_53_042722.pdf", width = 12, height = 5)
+real_res[[1]] + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ggtitle("") + ylab("Mean Normalized Expression of Castle-Divergent Genes") + xlab("") + ylab("")
+dev.off()
+Idents(bb) = factor(convert15$new.full[match(bb$seuratclusters15, convert15$old)], levels = rev(convert15$new.full))
+real_res = markerExpPerCellPerClusterQuick(bb, c(pcrc_clust, neurogen_clust), pt.alpha = 0)
+pdf("C:/Users/miles/Downloads/pcrc_neurogen_mod_15_small_042922.pdf", width = 7, height = 5)
+real_res[[1]] + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ggtitle("") + ylab("Mean Normalized Expression of Castle-Divergent Genes") + xlab("") + ylab("")
+dev.off()
+Idents(rgc_sub) = rgc_sub$seurat_clusters
+real_res = markerExpPerCellPerClusterQuick(rgc_sub, c(pcrc_clust, neurogen_clust))
+pdf("C:/Users/miles/Downloads/pcrc_neurogen_mod_rgc_042722.pdf", width = 6, height = 4)
+real_res[[1]] + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + ggtitle("") + ylab("Mean Normalized Expression of Castle-Divergent Genes") + xlab("") + ylab("")
+dev.off()
+rgc_sub$mod_score_pcrc = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust), ] > 0)
+rgc_sub$mod_score_neurogen = colSums(rgc_sub@assays$RNA@counts[c(neurogen_clust), ] > 0)
+rgc_sub$mod_score = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust, neurogen_clust), ] > 0)
+rgc_sub$mod_score_norm = rgc_sub$mod_score / rgc_sub$nCount_RNA
+cor(rgc_sub$mod_score, rgc_sub$quiescent_score)
+cor(rgc_sub$mod_score, rgc_sub$cycling_score)
+
+test = as.data.frame(table(paste0(rgc_sub$mod_score, "_", rgc_sub$quiescent_score)))
+test[, c("mod_score", "quiescent_score")] = reshape2::colsplit(test$Var1, "_", c("1", "2"))
+ggplot(test, aes(x = quiescent_score, y = mod_score, size = Freq)) + geom_point()
+ggplot(rgc_sub@meta.data, aes(x = quiescent_score, y = mod_score)) + geom_point()
+FeaturePlot(rgc_sub, features = c("quiescent_score", "mod_score"), pt.size = 1.1, order = T, blend = T)
+mean_score = aggregate(mod_score ~ quiescent_score, rgc_sub@meta.data, mean)
+mean_score$num = aggregate(mod_score ~ quiescent_score, rgc_sub@meta.data, length)[,2]
+ggplot(mean_score, aes(x = quiescent_score, y = mod_score, size = num)) + geom_point()
+mean_score = aggregate(quiescent_score ~ mod_score, rgc_sub@meta.data, mean)
+mean_score$num = aggregate(quiescent_score ~ mod_score, rgc_sub@meta.data, length)[,2]
+ggplot(mean_score, aes(x = mod_score, y = quiescent_score, size = num)) + geom_point()
+
+test = as.data.frame(table(paste0(rgc_sub$mod_z_score, "_", rgc_sub$quiescent_score)))
+test[, c("mod_z_score", "quiescent_score")] = reshape2::colsplit(test$Var1, "_", c("1", "2"))
+ggplot(test, aes(x = quiescent_score, y = mod_z_score, size = Freq)) + geom_point()
+ggplot(rgc_sub@meta.data, aes(x = quiescent_score, y = mod_z_score)) + geom_point()
+FeaturePlot(rgc_sub, features = c("quiescent_score", "mod_z_score"), pt.size = 1.1, order = T, blend = T)
+mean_score = aggregate(mod_z_score ~ quiescent_score, rgc_sub@meta.data, mean)
+mean_score$num = aggregate(mod_z_score ~ quiescent_score, rgc_sub@meta.data, length)[,2]
+ggplot(mean_score, aes(x = quiescent_score, y = mod_z_score, size = num)) + geom_point()
+mean_score = aggregate(quiescent_score ~ mod_z_score, rgc_sub@meta.data, mean)
+mean_score$num = aggregate(quiescent_score ~ mod_z_score, rgc_sub@meta.data, length)[,2]
+ggplot(mean_score, aes(x = mod_z_score, y = quiescent_score, size = num)) + geom_point()
+
+# WGCNA Other Modules Examination
+non_modme2_mod_df = data.frame(mod = unique(df$combined[which(df$combined != "1_2")]))
+non_modme2_mod_df$length = sapply(non_modme2_mod_df$mod, function(x) length(which(df$combined == x)))
+non_modme2_mod_df = non_modme2_mod_df[which(non_modme2_mod_df$length >= 5),]
+non_modme2_mod_df$membership_mean = sapply(non_modme2_mod_df$mod, function(x) mean(df$dbscan_membership[which(df$combined == x)]))
+non_modme2_mod_df$membership_p = sapply(non_modme2_mod_df$mod, function(x) t.test(df$dbscan_membership[which(df$mod_me2)], df$dbscan_membership[which(df$combined == x)])$p.value)
+non_modme2_mod_df$membership_q = p.adjust(non_modme2_mod_df$membership_p, method = "BH")
+
+
+pheatmap_res = pheatmap::pheatmap(cor_mat, cutree_rows = 2, cutree_cols = 4, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test_bulk_modules.pdf")
+pheatmap_res = pheatmap::pheatmap(cor_rgc, cutree_rows = 3, cutree_cols = 3, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test_rgc.pdf")
+tree_row = pheatmap_res[[1]]
+dynamicMods = cutreeDynamic(dendro = tree_row, distM = dist(cor_mat), deepSplit = 2, pamRespectsDendro = FALSE, minClusterSize = 5);
+library(cluster)
+cor_mat_rows_k = data.frame(module = as.character(pam(dist(1 - cor_mat), 2, diss = T)[["clustering"]]), row.names = rownames(cor_mat))
+cor_mat_cols_k = data.frame(module = as.character(pam(dist(1 - t(cor_mat)), 2, diss = T)[["clustering"]]), row.names = colnames(cor_mat))
+pheatmap_res = pheatmap::pheatmap(cor_mat, annotation_row = cor_mat_rows_k, annotation_col = cor_mat_cols_k, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test_bulk_modules_k2.pdf")
+cor_mat_full_rows_k = data.frame(module = as.character(pam(dist(1 - cor_mat_full), 2)[["clustering"]]), row.names = rownames(cor_mat_full))
+cor_mat_full_cols_k = data.frame(module = as.character(pam(dist(1 - t(cor_mat_full)), 2)[["clustering"]]), row.names = colnames(cor_mat_full))
+pheatmap_res = pheatmap::pheatmap(cor_mat_full, annotation_row = cor_mat_full_rows_k, annotation_col = cor_mat_full_cols_k, clustering_distance_rows = dist(1-cor_mat_full), clustering_distance_colss = dist(1-cor_mat_full), show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test_bulk_full_modules_k2.pdf")
+
+library(parallel)
+cl <- makeCluster(24, type = "PSOCK")
+# fit = pvclust::parPvclust(cl=cl, data = cor_mat_full, method.hclust = "average", method.dist = "correlation", nboot = 1000)
+fit = pvclust::parPvclust(cl=cl, data = as.matrix(data_mat_c), method.hclust = "average", method.dist = "correlation", nboot = 1000)
+
+library("dbscan")
+cor_rgc = cor(as.matrix(t(rgc_data_mat[c(pcrc_clust, neurogen_clust),])))
+# cor_rgc = cor_rgc[pcrc_clust, neurogen_clust]
+# cor_rgc[is.na(cor_rgc)] = 0
+cl <- hdbscan(cor_rgc, minPts = 5)
+test = data.frame(gene = rownames(cor_rgc), cluster = cl$cluster, membership = cl$membership_prob, cdg = rownames(cor_rgc) %in% pcrc, png = rownames(cor_rgc) %in% neurogen)
+cor_mat_full = cor(t(as.matrix(data_mat)))
+cor_mat_full[is.na(cor_mat_full)] = 0
+cl_bulk <- hdbscan(cor_mat_full, minPts = 5)
+table(cl_bulk$cluster)
+cl_bulk$cluster_scores
+cl_bulk_df = data.frame(gene = rownames(cor_mat_full), cluster = cl_bulk$cluster, membership = cl_bulk$membership_prob, cdg = rownames(cor_mat_full) %in% pcrc, png = rownames(cor_mat_full) %in% neurogen, in_mod_me = rownames(cor_mat_full) %in% c(pcrc_clust, neurogen_clust))
+
+# MODA
+library("MODA")
+test = WeightedModulePartitionHierarchical(t(rgc_data_mat[c(pcrc_clust, neurogen_clust),]), foldername = "~/scratch/brain/results/moda/", indicatename = "test2", power = 2)
+
+# Scores
+counts_mat = bb@assays$RNA@counts
+counts_mat[which(counts_mat > 0)] = 1
+bb$pcrc_score = colSums(counts_mat[pcrc,])
+bb$neurogen_score = colSums(counts_mat[neurogen,])
+FeaturePlot(bb, "pcrc_score", order = T, label = T, pt.size = 0.8)
+FeaturePlot(bb, "neurogen_score", order = T, label = T, pt.size = 0.8)
+
+cor_mat_counts = cor(x = t(as.matrix(counts_mat[c(pcrc, neurogen),])))
+cor_mat_counts = cor_mat_counts[pcrc, neurogen]
+cor_mat_counts[is.na(cor_mat_counts)] = 0
+pcrc_mod     = c("cobl", "LOC101479283", "wdr73", "plekhg4b", "LOC101476914", "ddr1", "plekhf2")
+neurogen_mod = c("csf1r", "vegfa", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466")
+row_annot_bin = data.frame(module = rep("none", nrow(cor_mat_counts)), row.names = rownames(cor_mat_counts))
+col_annot_bin = data.frame(module = rep("none", ncol(cor_mat_counts)), row.names = colnames(cor_mat_counts))
+row_annot_bin$module[which(rownames(row_annot_bin) %in% pcrc_mod)] = "module"
+col_annot_bin$module[which(rownames(col_annot_bin) %in% neurogen_mod)] = "module"
+pheatmap::pheatmap(cor_mat_counts, annotation_row = row_annot_bin, annotation_col = col_annot_bin, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/cor_binary_new.pdf")
+# pheatmap::pheatmap(cor_mat_counts, annotation_row = row_annot, annotation_col = col_annot, show_rownames = T, show_colnames = T,  border_color = NA, cellwidth = 10, cellheight = 10, file = "C:/Users/miles/Downloads/cor_binary_names.pdf")
+
+# Greatest Overlapping Cluster
+gene_pos_cluster15 = list()
+gene_pos_cluster53 = list()
+for (i in c(pcrc, neurogen)) {
+  gene_pos_cluster15[[i]] = as.vector(bb$seuratclusters15[which(bb@assays$RNA@counts[i,] != 0)])
+  gene_pos_cluster53[[i]] = as.vector(bb$seuratclusters53[which(bb@assays$RNA@counts[i,] != 0)])
+}
+ovlp_mat_num15 = matrix(0L, nrow = nrow(cor_mat), ncol = ncol(cor_mat), dimnames = list(rownames(cor_mat), colnames(cor_mat)))
+ovlp_mat_ident15 = matrix(-1, nrow = nrow(cor_mat), ncol = ncol(cor_mat), dimnames = list(rownames(cor_mat), colnames(cor_mat)))
+ovlp_mat_ident53 = ovlp_mat_ident15
+ovlp_mat_pct53 = ovlp_mat_pct15 = ovlp_mat_num53 = ovlp_mat_num15
+for (i in 1:length(pcrc)) {
+  print(i)
+  pcrc_gene = pcrc[i]
+  pcrc_cells = gene_pos_cells[[pcrc_gene]]
+  n_pcrc_cells = length(pcrc_cells)
+  # pcrc_cluster15 = gene_pos_cluster15[[pcrc_gene]]
+  # pcrc_cluster53 = gene_pos_cluster53[[pcrc_gene]]
+  # n_pcrc_cells = length(pcrc_cluster15)
+  for (j in 1:length(neurogen)) {
+    neurogen_gene = neurogen[j]
+    neurogen_cells = gene_pos_cells[[neurogen_gene]]
+    n_neurogen_cells = length(neurogen_cells)
+    ovlp = pcrc_cells[which(pcrc_cells %in% neurogen_cells)]
+    ovlp15 = as.vector(bb$seuratclusters15[ovlp])
+    ovlp53 = as.vector(bb$seuratclusters53[ovlp])
+    
+    if (length(ovlp) > 20) {
+      ovlp15_df = as.data.frame(table(ovlp15))
+      top_cluster15 = ovlp15_df$ovlp15[which(ovlp15_df$Freq == max(ovlp15_df$Freq))][1]
+      top_cluster15_ovlp_num = max(ovlp15_df$Freq)
+      top_cluster15_ovlp_pct = top_cluster15_ovlp_num / length(ovlp)
+      
+      ovlp53_df = as.data.frame(table(ovlp53))
+      top_cluster53 = ovlp53_df$ovlp53[which(ovlp53_df$Freq == max(ovlp53_df$Freq))][1]
+      top_cluster53_ovlp_num = max(ovlp53_df$Freq)
+      top_cluster53_ovlp_pct = top_cluster53_ovlp_num / length(ovlp)
+      
+      ovlp_mat_num15[pcrc_gene, neurogen_gene] = top_cluster15_ovlp_num
+      ovlp_mat_num53[pcrc_gene, neurogen_gene] = top_cluster53_ovlp_num
+      ovlp_mat_pct15[pcrc_gene, neurogen_gene] = top_cluster15_ovlp_pct
+      ovlp_mat_pct53[pcrc_gene, neurogen_gene] = top_cluster53_ovlp_pct
+      ovlp_mat_ident15[pcrc_gene, neurogen_gene] = top_cluster15
+      ovlp_mat_ident53[pcrc_gene, neurogen_gene] = top_cluster53
+    }
+   
+  }
+}
+pheatmap::pheatmap(ovlp_mat_num15, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/num_ovlp_cluster15.pdf")
+pheatmap::pheatmap(ovlp_mat_pct15, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/pct_ovlp_cluster15.pdf")
+pheatmap::pheatmap(ovlp_mat_num53, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/num_ovlp_cluster53.pdf")
+pheatmap::pheatmap(ovlp_mat_pct53, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/pct_ovlp_cluster53.pdf")
+system("rclone copy ~/scratch/brain/results/pct_ovlp_cluster53.pdf dropbox:BioSci-Streelman/George/Brain/bb/results/pcrc/neurogen/")
+
+
+# Cook's Distance
+test_df = data.frame(value1 = data_mat["cobl",], value2 = data_mat["csf1r",])
+lm1 = lm(value2 ~ value1, test_df)
+test_cookd = cooks.distance(lm1)
+test2_df = test_df
+test2_df$cookd = test_cookd
+ggplot(test2_df, aes(x = value1, y = value2, color = cookd)) + geom_point() + scale_color_viridis()
+
+# Number of overlapping cells
+gene_pos_cells = list()
+for (i in c(pcrc, neurogen)) {
+  gene_pos_cells[[i]] = colnames(bb)[which(bb@assays$RNA@counts[i,] != 0)]
+}
+ovlp_mat_num = matrix(0L, nrow = nrow(cor_mat), ncol = ncol(cor_mat), dimnames = list(rownames(cor_mat), colnames(cor_mat)))
+ovlp_mat_pct = ovlp_mat_num
+cor_ovlp_mat = ovlp_mat_num
+for (i in 1:length(pcrc)) {
+  print(i)
+  pcrc_gene = pcrc[i]
+  pcrc_cells = gene_pos_cells[[pcrc_gene]]
+  n_pcrc_cells = length(pcrc_cells)
+  for (j in 1:length(neurogen)) {
+    neurogen_gene = neurogen[j]
+    neurogen_cells = gene_pos_cells[[neurogen_gene]]
+    n_neurogen_cells = length(neurogen_cells)
+    ovlp = pcrc_cells[which(pcrc_cells %in% neurogen_cells)]
+    ovlp_mat_num[pcrc_gene, neurogen_gene] = length(ovlp)
+    ovlp_mat_pct[pcrc_gene, neurogen_gene] = (length(ovlp)*2)/(n_pcrc_cells + n_neurogen_cells)
+    cor_ovlp_mat[pcrc_gene, neurogen_gene] = cor(data_mat[pcrc_gene, ovlp], data_mat[neurogen_gene, ovlp])
+  }
+}
+pheatmap::pheatmap(ovlp_mat_num, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/num_ovlp.pdf")
+pheatmap::pheatmap(ovlp_mat_pct, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/pct_ovlp.pdf")
+cor_ovlp_mat[is.na(cor_ovlp_mat)] = 0
+pheatmap::pheatmap(cor_ovlp_mat, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/bulk_w_module_gene_pos.pdf")
+score_mat = cor_ovlp_mat * ovlp_mat_num
+score_mat_pct = cor_ovlp_mat * ovlp_mat_pct
+pheatmap::pheatmap(score_mat, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/bulk_w_module_gene_pos_score.pdf")
+pheatmap::pheatmap(score_mat_pct, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = "~/scratch/brain/results/pct_ovlp_score.pdf")
+system("rclone copy ~/scratch/brain/results/bulk_w_module_gene_pos.pdf dropbox:BioSci-Streelman/George/Brain/bb/results/pcrc/neurogen/")
+
+clust_cells = unlist(gene_pos_cells[c(pcrc_clust, neurogen_clust)])
+clust_df = as.data.frame(table(clust_cells))
+clust_df = clust_df[order(clust_df$Freq, decreasing = T),]
+clust_df$cluster15 = bb$seuratclusters15[match(clust_df$clust_cells, colnames(bb))]
+clust_df$cluster53 = bb$seuratclusters53[match(clust_df$clust_cells, colnames(bb))]
+clust_cells_neurogen = unlist(gene_pos_cells[neurogen_clust])
+clust_cells_pcrc = unlist(gene_pos_cells[pcrc_clust])
+clust_df_neurogen = as.data.frame(table(clust_cells_neurogen))
+clust_df_pcrc = as.data.frame(table(clust_cells_pcrc))
+clust_df$n_neurogen = clust_df_neurogen$Freq[match(clust_df$clust_cells, clust_df_neurogen$clust_cells)]
+clust_df$n_pcrc = clust_df_pcrc$Freq[match(clust_df$clust_cells, clust_df_pcrc$clust_cells)]
+rgc_sub = readRDS("~/scratch/brain/data/rgc_subclusters_reclustered_q_c_nb_scores.rds")
+clust_df$rgc_sub = rgc_sub$seurat_clusters[match(clust_df$clust_cells, colnames(rgc_sub))]
+
+bb$pcrc_mod_score = clust_df$n_pcrc[match(colnames(bb), clust_df$clust_cells)]
+bb$neurogen_mod_score = clust_df$n_neurogen[match(colnames(bb), clust_df$clust_cells)]
+bb$pcrc_neurogen_mod_score = clust_df$Freq[match(colnames(bb), clust_df$clust_cells)]
+p_list = list()
+p_list[[1]] = FeaturePlot(bb, "pcrc_mod_score", order = T, label = F, pt.size = 0.8) + coord_fixed() + NoLegend() + ggtitle("") + theme_void()
+p_list[[2]] = FeaturePlot(bb, "neurogen_mod_score", order = T, label = F, pt.size = 0.8) + coord_fixed() + NoLegend() + ggtitle("") + theme_void()
+p_list[[3]] = FeaturePlot(bb, "pcrc_neurogen_mod_score", order = T, label = F, pt.size = 0.8) + coord_fixed() + NoLegend() + ggtitle("") + theme_void()
+pdf("~/scratch/brain/results/pcrc_neurogen_score.pdf", width = 18, height = 6) + coord_fixed() + NoLegend() + ggtitle("") + theme_void()
+cowplot::plot_grid(plotlist = p_list, ncol = 3)
+dev.off()
+
+# 15 Cluster Level
+big_cor_mat_mod = data.frame()
+for (i in 0:14) {
+  print(i)
+  this_data_mat = data_mat[,which(bb$seuratclusters15 == i)]
+  # this_data_mat = counts_mat[c(pcrc, neurogen),which(bb$seuratclusters15 == i)]
+  this_cor_mat = cor(x = t(as.matrix(this_data_mat)))
+  this_cor_mat = this_cor_mat[pcrc, neurogen]
+  this_cor_mat[is.na(this_cor_mat)] = 0
+  pheatmap::pheatmap(this_cor_mat, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = paste0("C:/Users/miles/Downloads/brain/results/bb/pcrc_neurogen/clust15_", i, ".pdf"))
+  # this_cor_mat[which(this_cor_mat > 0.35)] = 0.35
+  # pheatmap::pheatmap(this_cor_mat, annotation_row = row_annot, annotation_col = col_annot, show_rownames = T, show_colnames = T,  border_color = NA, cellwidth = 5, cellheight = 5, file = paste0("C:/Users/miles/Downloads/clust15_4_thresh.pdf"))
+  this_cor_mat_mod = melt(this_cor_mat[pcrc_clust, neurogen_clust])
+  this_cor_mat_mod$cluster15 = i
+  big_cor_mat_mod = rbind(big_cor_mat_mod, this_cor_mat_mod)
+}
+
+pdf("C:/Users/miles/Downloads/pcrc_neurogen_module_across_cluster15_binary.pdf", width = 8, height = 8)
+ggplot(big_cor_mat_mod, aes(x = Var1, y = Var2, fill = value)) + geom_tile() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + xlab("PCRC Module Genes") + ylab("Neurogen Module Genes") + scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)) + facet_wrap(~ cluster15, ncol = 5)
+dev.off()
+
+ggplot(rgc_sub@meta.data)
+
+for (g in rownames(data_mat)) {
+  cor(data_mat[, which(bb$seuratclusters53 %in% c(5, 20))])
+}
+
+
+# Zack Module
+strongest_rgc_pcrc_clust = c("LOC101479283", "cobl", "wdr73", "grik5", "iglon5", "LOC101477204")
+strongest_rgc_neurogen_clust = c("epha3", "LOC101480727", "neo1", "pax6", "boc", "LOC101465090", "vegfa", "LOC101487591", "LOC101482557", "LOC101464345", "metrn", "cyfip2", "LOC101466433", "numb", "LOC101487687", "LOC101469419", "LOC101478875", "tenm4")
+rgc_sub$mod_z_score_pcrc = colSums(rgc_sub@assays$RNA@counts[c(strongest_rgc_pcrc_clust), ] > 0)
+rgc_sub$mod_z_score_neurogen = colSums(rgc_sub@assays$RNA@counts[c(strongest_rgc_neurogen_clust), ] > 0)
+rgc_sub$mod_z_score = colSums(rgc_sub@assays$RNA@counts[c(strongest_rgc_pcrc_clust, strongest_rgc_neurogen_clust), ] > 0)
+rgc_sub$mod_z_score_norm = rgc_sub$mod_z_score / rgc_sub$nCount_RNA
+cor(rgc_sub$mod_z_score, rgc_sub$quiescent_score)
+cor(rgc_sub$mod_z_score, rgc_sub$cycling_score)
+cor(rgc_sub$mod_z_score_pcrc, rgc_sub$quiescent_score)
+cor(rgc_sub$mod_z_score_pcrc, rgc_sub$cycling_score)
+cor(rgc_sub$mod_z_score_neurogen, rgc_sub$quiescent_score)
+cor(rgc_sub$mod_z_score_neurogen, rgc_sub$cycling_score)
+
+row_annot_z = data.frame(module = rep("none", nrow(cor_mat)), row.names = rownames(cor_mat))
+col_annot_z = data.frame(module = rep("none", ncol(cor_mat)), row.names = colnames(cor_mat))
+row_annot_z$module[which(rownames(row_annot_z) %in% strongest_rgc_pcrc_clust)] = "module"
+col_annot_z$module[which(rownames(col_annot_z) %in% strongest_rgc_neurogen_clust)] = "module"
+this_data_mat = data_mat[,which(bb$seuratclusters15 == 4)]
+this_cor_mat = cor(x = t(as.matrix(this_data_mat)))
+this_cor_mat = this_cor_mat[pcrc, neurogen]
+this_cor_mat[is.na(this_cor_mat)] = 0
+this_cor_mat[which(this_cor_mat > 0.35)] = 0.35
+pheatmap::pheatmap(this_cor_mat, annotation_row = row_annot_z, annotation_col = col_annot_z, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = paste0("C:/Users/miles/Downloads/clust15_4_thresh.pdf"))
+
+additional_weaker_rgc_pcrc_clust = c("LOC101480383", "LOC101482188", "LOC101468916", "ptk2", "znf236", "fhod3", "lipe", "tmem145", "LOC101465895", "LOC101476643", "LOC112435568", "bckdhb", "emc2", "LOC101481043", "creb5", "LOC101476669", "LOC101471374", "LOC105941351", "LOC101476914", "mef2d", "ddr1", "plekhg4b")
+weaker_rgc_pcrc_clust = c(strongest_rgc_pcrc_clust, additional_weaker_rgc_pcrc_clust)
+weaker_rgc_neurogen_clust = strongest_rgc_neurogen_clust
+rgc_sub$mod_zw_score_pcrc = colSums(rgc_sub@assays$RNA@counts[c(weaker_rgc_pcrc_clust), ] > 0)
+rgc_sub$mod_zw_score_neurogen = colSums(rgc_sub@assays$RNA@counts[c(weaker_rgc_neurogen_clust), ] > 0)
+rgc_sub$mod_zw_score = colSums(rgc_sub@assays$RNA@counts[c(weaker_rgc_pcrc_clust, weaker_rgc_neurogen_clust), ] > 0)
+rgc_sub$mod_zw_score_norm = rgc_sub$mod_zw_score / rgc_sub$nCount_RNA
+cor(rgc_sub$mod_zw_score, rgc_sub$quiescent_score)
+cor(rgc_sub$mod_zw_score, rgc_sub$cycling_score)
+
+counter_pcrc_clust = c("LOC101467997", "zbtb32", "ptpn6", "bcam", "LOC101474911", "LOC101475841", "LOC101485679", "LOC101473612", "nbeal2", "LOC101464881", "znf516", "kcnn4", "LOC101480871", "LOC101469075", "LOC105941361", "eva1b", "LOC101470598", "LOC101485954")
+counter_neurogen_clust = c("runx3", "csf1r", "LOC101482059", "rbpj", "cxcr4", "nrp1", "LOC101463771", "LOC101472760", "LOC101488012", "LOC101486503")
+rgc_sub$mod_c_score_pcrc = colSums(rgc_sub@assays$RNA@counts[c(counter_pcrc_clust), ] > 0)
+rgc_sub$mod_c_score_neurogen = colSums(rgc_sub@assays$RNA@counts[c(counter_neurogen_clust), ] > 0)
+rgc_sub$mod_c_score = colSums(rgc_sub@assays$RNA@counts[c(counter_pcrc_clust, counter_neurogen_clust), ] > 0)
+rgc_sub$mod_c_score_norm = rgc_sub$mod_c_score / rgc_sub$nCount_RNA
+cor(rgc_sub$mod_c_score, rgc_sub$quiescent_score)
+cor(rgc_sub$mod_c_score, rgc_sub$cycling_score)
+
+# RGC Subclusters
+rgc_sub = readRDS("C:/Users/miles/Downloads/rgc_subclusters_reclustered_q_c_nb_scores.rds")
+rgc_data_mat = rgc_sub@assays$RNA@data[c(pcrc, neurogen),]
+big_cor_mat_mod_rgc = data.frame()
+for (i in 0:10) {
+  print(i)
+  this_data_mat = data_mat[,which(rgc_sub$seurat_clusters == i)]
+  this_cor_mat = cor(x = t(as.matrix(this_data_mat)))
+  this_cor_mat = this_cor_mat[pcrc, neurogen]
+  this_cor_mat[is.na(this_cor_mat)] = 0
+  pheatmap::pheatmap(this_cor_mat, annotation_row = row_annot, annotation_col = col_annot, show_rownames = F, show_colnames = F,  border_color = NA, cellwidth = 5, cellheight = 5, file = paste0("C:/Users/miles/Downloads/brain/results/bb/pcrc_neurogen/rgc_sub_", i, ".pdf"))
+  this_cor_mat_mod = melt(this_cor_mat[pcrc_clust, neurogen_clust])
+  this_cor_mat_mod$cluster15 = i
+  big_cor_mat_mod_rgc = rbind(big_cor_mat_mod_rgc, this_cor_mat_mod)
+}
+
+pdf("C:/Users/miles/Downloads/pcrc_neurogen_module_across_rgc_sub.pdf", width = 8, height = 8)
+ggplot(big_cor_mat_mod_rgc, aes(x = Var1, y = Var2, fill = value)) + geom_tile() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + xlab("PCRC Module Genes") + ylab("Neurogen Module Genes") + scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)) + facet_wrap(~ cluster15, ncol = 5)
+dev.off()
+
+rgc_data_mat = rgc_sub@assays$RNA@data[c(pcrc_clust, neurogen_clust), ]
+test = hclust(dist(as.matrix(rgc_data_mat)))
+pheatmap::pheatmap(as.matrix(rgc_data_mat), show_rownames = T, show_colnames = F, filename = "~/scratch/brain/results/mod_me_rgc_cell.pdf")
+pheatmap::pheatmap(as.matrix(rgc_data_mat), show_rownames = T, show_colnames = F, cluster_rows = test, cluster_cols = test, filename = "~/scratch/brain/results/mod_me_rgc_cell_test.pdf")
+
+rgc_data_mat2 = as.data.frame(t(rgc_data_mat))
+rgc_data_mat2$mod_score_norm = rgc_sub$mod_score_norm
+rgc_data_mat2_scaled = as.data.frame(scale(rgc_data_mat2))
+rgc_data_mat2_scaled$cluster = rgc_data_mat2$cluster = rgc_sub$seurat_clusters
+rgc_clust_df = melt(aggregate(. ~ cluster, rgc_data_mat2, mean))
+rgc_clust_df_scaled = melt(aggregate(. ~ cluster, rgc_data_mat2_scaled, mean))
+ggplot(rgc_clust_df, aes(x = cluster, y = variable, fill = value)) + geom_tile() + coord_fixed() + theme_classic() + scale_fill_viridis() + ggtitle("Raw") + ylab("") + xlab("RGC subcluster")
+ggplot(rgc_clust_df_scaled, aes(x = cluster, y = variable, fill = value)) + geom_tile() + coord_fixed() + theme_classic() + scale_fill_viridis() + ggtitle("Scaled by Row") + ylab("") + xlab("RGC subcluster")
+
 #***************************************************
 # Neurogen Summary Figure ==========================
 #***************************************************
@@ -7442,14 +8088,15 @@ colnames(big_mat)[which(colnames(big_mat) == "inc")] = "cluster15"
 write.csv(big_mat, "~/scratch/brain/data/scgnn_imputed_cluster15_loo.csv")
 
 # Response Elements in MC
-ere = read.csv("~/scratch/brain/data/cichlid_ere_class.csv")
+ere = read.csv("~/scratch/brain/data/cichlid_tre_class.csv")
+ere = ere[which(!duplicated(ere)),]
 ere$gene_class = paste0(ere$gene, "_", ere$class)
 ere$gene_class_n = 0
 ere$gene_n = 0
 
 all.gene.class = c()
 all.gene = c()
-files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*ere.closest.bed.class.csv", full.names=TRUE, recursive=FALSE)
+files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*_tre_closest.bed.class.csv", full.names=TRUE, recursive=FALSE)
 for (f in files) {
   this.ere = read.csv(f)
   this.ere$gene_class = paste0(this.ere$gene, "_", this.ere$class)
@@ -7461,43 +8108,38 @@ for (f in files) {
   ere$gene_n[match(match.gene, ere$gene)] = ere$gene_n[match(match.gene, ere$gene)] + 1
   
   all.gene.class = c(all.gene.class, unique(this.ere$gene_class))
-  all.gene = c(all.gene = unique(this.ere$gene))
+  all.gene = c(all.gene, unique(this.ere$gene))
 }
 table(ere$gene_class_n)
 table(ere$gene_n)
 
 all.df = data.frame(gene.class = all.gene.class)
 all.df[, c("gene", "class")] = reshape2::colsplit(all.df$gene.class, "_", c("1", "2"))
-all.gene.sum = as.data.frame(table(all.df$gene))
+all.gene.sum = as.data.frame(table(all.gene))
 colnames(all.gene.sum)[1] = "gene"
 all.gene.sum$inMZ = all.gene.sum$gene %in% ere$gene
+print(paste0("Gene Max: ", max(all.gene.sum$Freq)))
 length(which(all.gene.sum$Freq == 38))
 length(which(all.gene.sum$Freq == 38 & all.gene.sum$inMZ))
 all.gene.class.sum = as.data.frame(table(all.df$gene.class))
 colnames(all.gene.class.sum)[1] = "gene.class"
 all.gene.class.sum$inMZ = all.gene.class.sum$gene.class %in% ere$gene_class
+print(paste0("Gene+Class Max: ", max(all.gene.class.sum$Freq)))
 length(which(all.gene.class.sum$Freq == 38))
 length(which(all.gene.class.sum$Freq == 38 & all.gene.class.sum$inMZ))
-write.csv(all.gene.sum,       "~/scratch/brain/results/mc_ere_gene.csv")
-write.csv(all.gene.class.sum, "~/scratch/brain/results/mc_ere_gene_class.csv")
+write.csv(all.gene.sum,       "~/scratch/brain/results/mc_tre_gene.csv")
+write.csv(all.gene.class.sum, "~/scratch/brain/results/mc_tre_gene_class.csv")
 
-# 
-bb15 = read.csv("~/scratch/brain/results/bb15_all_data_for_all_sig_cluster_genes.csv")
-bb15.gene = unique(bb15$X.x)
-r_mat15 = r_mat[bb15.gene, bb15.gene]
-diag(r_mat15) = 0
-pheatmap::pheatmap(r_mat15, show_rownames = F, show_colnames = F, filename = "~/scratch/brain/results/r_mat_bower15_all_cells.png")
-
-# samtools mpileup -f ~/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.fna -l test.bed -b bamlist.txt
-ere = read.csv("~/scratch/brain/")
-ere.bed = read.delim("~/scratch/brain/data/cichlid_gre_closest.bed", header = F)
+ere = read.csv("~/scratch/brain/results/mc_tre_gene.csv")
+ere.bed = read.delim("~/scratch/brain/data/cichlid_tre_closest.bed", header = F)
 ere.bed$id = paste0(ere.bed$V1, ":", ere.bed$V2, "-", ere.bed$V3)
-files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*gre.closest.bed", full.names=TRUE, recursive=FALSE)
+files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*_snps.vcf.fna_tre_closest.bed", full.names=TRUE, recursive=FALSE)
 files = files[which(endsWith(files, ".bed"))]
 mc.id.vect = c()
 for (f in files) {
   this.ere.bed = read.delim(f, header = F)
   this.ere.bed$id = paste0(this.ere.bed$V1, ":", this.ere.bed$V2, "-", this.ere.bed$V3)
+  if ("NC_036780.1:12386112-12386127" %in% this.ere.bed$id) { print(f) }
   mc.id.vect = c(mc.id.vect, this.ere.bed$id)
 }
 
@@ -7511,5 +8153,111 @@ print(length(which(mc.df$inMZ == FALSE & mc.df$mcCount == 38)))
 print(nrow(ere.bed))
 mc.df$chrom = reshape2::colsplit(mc.df$id, ":", c("1", "2"))[,1]
 mc.df[, c("start", "stop")] = reshape2::colsplit(reshape2::colsplit(mc.df$id, ":", c("1", "2"))[,2], "-", c("1", "2"))
-write.table(mc.df[, c("chrom", "start", "stop")], "~/scratch/brain/data/cichlid_gre_all_loci.bed", quote =  F, row.names = F, col.names = F)
+write.table(mc.df[, c("chrom", "start", "stop")], "~/scratch/brain/data/cichlid_tre_all_loci.bed", sep = "\t", quote =  F, row.names = F, col.names = F)
+# samtools mpileup -f ~/scratch/m_zebra_ref/GCF_000238955.4_M_zebra_UMD2a_genomic.fna -l test.bed -b bamlist.txt
 
+# Check If Any Indels overlap with the HREs
+files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*_indels_tre_ovlp.bed", full.names=TRUE, recursive=FALSE)
+indel.ovlp = data.frame()
+for (f in files) {
+  ovlp.num = system(paste0("wc -l ", f), intern = TRUE)
+  ovlp.num = as.numeric(reshape2::colsplit(ovlp.num, " ", c("1", "2"))[,1])
+  if (ovlp.num > 0) {
+    print(f)
+    this.indel = read.delim(f, header = F)
+    this.indel$GENE = reshape2::colsplit(this.indel$V12, "; gene ", c("1", "2"))[,2]
+    this.indel$GENE = reshape2::colsplit(this.indel$GENE, ";", c("1", "2"))[,1]
+    indel.ovlp = rbind(indel.ovlp, data.frame(INDEL.CHROM = this.indel$V14, INDEL.POS = this.indel$V15, INDEL.REF = this.indel$V17, INDEL.ALT = this.indel$V18, GENE = this.indel$GENE, GENE.DIST = this.indel$V13))
+  }
+}
+nrow(indel.ovlp)
+indel.ovlp = indel.ovlp[which( abs(indel.ovlp$GENE.DIST) < 25000 ),]
+indel.ovlp$class = "distal"
+indel.ovlp$class[which(indel.ovlp$GENE.DIST <= 5000 & indel.ovlp$GENE.DIST > 0)] = "promoter"
+indel.ovlp$class[which(indel.ovlp$GENE.DIST == 0)] = "intragenic"
+indel.ovlp = indel.ovlp[, c("GENE", "class")]
+indel.ovlp = indel.ovlp[which(!duplicated(indel.ovlp)),]
+
+# Read Pileup
+loci = read.delim("~/scratch/brain/data/cichlid_tre_all_loci.bed", header = F, sep = "\t")
+subs = read.delim("~/scratch/brain/bs/JTS09/bamlist.txt", header = F, sep = "/")
+pile = data.table::fread("~/scratch/brain/bs/JTS09/pileup_tre.txt", header = F, data.table = F)
+col.i = 1:ncol(pile)
+col.i = col.i[which(col.i %% 3 == 0)] + 1
+col.i = col.i[1:(length(col.i)-1)]
+colnames(pile)[col.i] = subs[,12]
+pile$n_cover = rowSums(pile[,subs[,12]] > 0)
+pile$all_cover = pile$n_cover == 38
+pile$any_cover = pile$n_cover > 0
+
+ere = read.csv("~/scratch/brain/results/mc_tre_gene.csv")
+ere.bed = read.delim("~/scratch/brain/data/cichlid_tre_closest.bed", header = F)
+ere.bed$id = paste0(ere.bed$V1, ":", ere.bed$V2, "-", ere.bed$V3)
+files <- list.files(path="~/scratch/brain/bs/JTS09/", pattern="*_snps.vcf.fna_tre_closest.bed", full.names=TRUE, recursive=FALSE)
+files = files[which(endsWith(files, ".bed"))]
+mc.id.vect = c()
+for (f in files) {
+  this.ere.bed = read.delim(f, header = F)
+  this.ere.bed$gene = reshape2::colsplit(this.ere.bed$V12, "; gene ", c("1", "2"))[,2]
+  this.ere.bed$gene = reshape2::colsplit(this.ere.bed$gene, ";", c("1", "2"))[,1]
+  this.ere.bed$dist = this.ere.bed$V13
+  this.ere.bed$id = paste0(this.ere.bed$V1, ":", this.ere.bed$V2, "-", this.ere.bed$V3, ";", this.ere.bed$dist, "(", this.ere.bed$gene)
+  if ("NC_036780.1:12386112-12386127" %in% this.ere.bed$id) { print(f) }
+  mc.id.vect = c(mc.id.vect, this.ere.bed$id)
+}
+
+mc.df = as.data.frame(table(mc.id.vect))
+colnames(mc.df) = c("full.id", "mcCount")
+mc.df$id = as.vector(reshape2::colsplit(mc.df$full.id, ";", c("1", "2"))[,1])
+mc.df$CHROM = as.vector(reshape2::colsplit(mc.df$full.id, ":", c("1", "2"))[,1])
+mc.df$START = reshape2::colsplit(reshape2::colsplit(mc.df$full.id, ":", c("1", "2"))[,2], "-", c("1", "2"))[,1]
+mc.df$END = reshape2::colsplit(reshape2::colsplit(mc.df$full.id, "-", c("1", "2"))[,2], ";", c("1", "2"))[,1]
+mc.df$gene = as.vector(reshape2::colsplit(mc.df$full.id, "\\(", c("1", "2"))[,2])
+mc.df$dist = reshape2::colsplit(reshape2::colsplit(mc.df$full.id, ";", c("1", "2"))[,2], "\\(", c("1", "2"))[,1]
+mc.df$mcCount = as.vector(mc.df$mcCount)
+mc.df$inMZ = mc.df$id %in% ere.bed$id
+mc.df$class = "distal"
+mc.df$class[which( abs(mc.df$dist) > 25000 )] = "delete"
+mc.df$class[which(mc.df$dist <= 5000 & mc.df$dist > 0)] = "promoter"
+mc.df$class[which(mc.df$dist == 0)] = "intragenic"
+
+pile$full.id = unlist(lapply(1:nrow(pile), function(x) as.vector(mc.df$full.id[which(pile$V1[x] == mc.df$CHROM & pile$V2[x] >= mc.df$START & pile$V2[x] <= mc.df$END)])))
+
+pile.agr = aggregate(any_cover ~ full.id, pile, sum)
+pile.agr[, c("CHROM", "START", "END", "gene", "class", "dist", "mcCount", "inMZ")] = mc.df[match(pile.agr$full.id, mc.df$full.id), c("CHROM", "START", "END", "gene", "class", "dist", "mcCount", "inMZ")]
+pile.agr.agree = pile.agr[which(pile.agr$any_cover == 16), c("gene", "class", "inMZ")]
+pile.agr.agree = pile.agr.agree[which(pile.agr.agree$class != "delete"),]
+pile.agr.agree = pile.agr.agree[which(pile.agr.agree$gene %in% ere$gene),]
+pile.agr.agree = pile.agr.agree[which(! duplicated(pile.agr.agree$gene) ), c("gene", "inMZ")]
+pile.agr.agree = pile.agr.agree[order(pile.agr.agree$gene),]
+print(length(which(pile.agr.agree$inMZ)))
+write.csv(pile.agr.agree, "~/scratch/brain/results/mc_tre_gene_final.csv")
+
+# behavior DEG co-expression
+bb15 = read.csv("~/scratch/brain/results/bb15_all_data_for_all_sig_cluster_genes.csv")
+# bb15 = read.csv("~/scratch/brain/results/bb53_all_data_for_all_sig_cluster_genes.csv")
+bb15$X.x = stringr::str_replace(bb15$X.x, "\\.", "-")
+bb15.gene = unique(bb15$X.x)
+r_mat15 = r_mat[bb15.gene, bb15.gene]
+diag(r_mat15) = 0
+pheatmap::pheatmap(r_mat15, show_rownames = F, show_colnames = F, filename = "~/scratch/brain/results/r_mat_bower15_all_cells.png")
+write.csv(r_mat15, "~/scratch/brain/results/r_mat_bower15_all_cells.csv")
+
+for (i in 0:14) {
+  print(i)
+  this.deg = bb15[which(bb15$cluster.1 == i),]
+  this_r_mat = r_mat15[unique(this.deg$X.x), unique(this.deg$X.x)]
+  if (length(unique(this.deg$X.x)) > 1) {
+    this.fname =     paste0("~/scratch/brain/results/r_mat_bower15_", i, ".png")
+    this.fname.mat = paste0("~/scratch/brain/results/r_mat_bower15_", i, ".csv")
+    pheatmap::pheatmap(this_r_mat, show_rownames = F, show_colnames = F, filename = this.fname)
+    write.csv(this_r_mat, this.fname.mat)
+    system(paste0("rclone copy ", this.fname,     " dropbox:BioSci-Streelman/George/Brain/bb/results/zdeg/mod/bdeg15/"))
+    system(paste0("rclone copy ", this.fname.mat, " dropbox:BioSci-Streelman/George/Brain/bb/results/zdeg/mod/bdeg15/mat/"))
+  }
+}
+
+rgc = readRDS("C:/Users/miles/Downloads/rgc_subclusters.rds")
+pcrc = read.csv("C:/Users/miles/Downloads/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+Idents(rgc) = rgc$rgc_subcluster
+real_res = markerExpPerCellPerClusterQuick(rgc, pcrc)
