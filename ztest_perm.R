@@ -130,19 +130,19 @@ colnames(perm_df) = clusters
 write.csv(perm_df, "~/scratch/brain/results/ztest_perm_wgcna_dbscan_mod_10k_15_050522.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
-# p_df = data.frame()
-# perm_df_log = -log10(perm_df)
-# for (cluster in clusters) {
-#   neg = length(which(perm_df_log[,as.character(cluster)] <= real_res_log))
-#   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster + 1]))
-#   p_df = rbind(p_df, data.frame(cluster, neg))
-# }
-# p_df$cluster = factor(p_df$cluster, levels = clusters)
-# p_df$p = ((nperm - p_df$neg) / nperm) * 100
-# p_df$bon = p.adjust(p_df$p/100, method = "BH")
-# ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
-# ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
-# 
+p_df = data.frame()
+perm_df_log = -log10(perm_df)
+for (cluster in clusters) {
+  neg = length(which(perm_df_log[,as.character(cluster)] <= real_res_log))
+  neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster + 1]))
+  p_df = rbind(p_df, data.frame(cluster, neg))
+}
+p_df$cluster = factor(p_df$cluster, levels = clusters)
+p_df$p = ((nperm - p_df$neg) / nperm) * 100
+p_df$bon = p.adjust(p_df$p/100, method = "BH")
+ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
+ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
+
 # p_df = data.frame()
 # # perm_df_log = -log10(perm_df)
 # # for (gene in zGenePops) {
