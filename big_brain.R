@@ -3034,6 +3034,52 @@ for (i in 1:length(bri_clean)) {
 #==========================================================================================
 # BHVE vs CTRL Prediction =================================================================
 #==========================================================================================
+adj15 = readRDS("~/scratch/brain/data/adjusted_glmmseq_ffm_15.rds")
+adj53 = readRDS("~/scratch/brain/data/adjusted_glmmseq_ffm_53.rds")
+
+
+Idents(bb) = paste0(bb$subsample, "_", bb$seuratclusters15)
+features = rownames(adj15)
+result <- data.frame()
+for (ident in levels(Idents(bb))) {
+  print(paste("Averaging Expression for", ident))
+  this_cells <- WhichCells(bb, idents = ident)
+  if (length(this_cells) == 1) {
+    newRow <- setNames(t(as.data.frame(adj15[features,this_cells])), features)
+  } else {
+    newRow = setNames(t(as.data.frame(rowSums(adj15[features, this_cells]))/length(this_cells)), features)
+  }
+  names(newRow) <- features
+  result <- rbind(result, newRow) 
+  rownames(result)[length(rownames(result))] <- ident
+}
+result2 = result
+result2[, c("subsample", "cluster15")] = reshape2::colsplit(rownames(result), "_", c("1", "2"))
+result2 = result2[, c("subsample", "cluster15", colnames(result))]
+result2 = result2[order(result2$cluster15, result2$subsample),]
+write.csv(result2, "~/scratch/brain/data/adjusted_15_means.csv")
+
+Idents(bb) = paste0(bb$subsample, "_", bb$seuratclusters53)
+features = rownames(adj53)
+result <- data.frame()
+for (ident in levels(Idents(bb))) {
+  print(paste("Averaging Expression for", ident))
+  this_cells <- WhichCells(bb, idents = ident)
+  if (length(this_cells) == 1) {
+    newRow <- setNames(t(as.data.frame(adj53[features,this_cells])), features)
+  } else {
+    newRow = setNames(t(as.data.frame(rowSums(adj53[features, this_cells]))/length(this_cells)), features)
+  }
+  names(newRow) <- features
+  result <- rbind(result, newRow) 
+  rownames(result)[length(rownames(result))] <- ident
+}
+result2 = result
+result2[, c("subsample", "cluster53")] = reshape2::colsplit(rownames(result), "_", c("1", "2"))
+result2 = result2[, c("subsample", "cluster53", colnames(result))]
+result2 = result2[order(result2$cluster53, result2$subsample),]
+write.csv(result2, "~/scratch/brain/data/adjusted_53_means.csv")
+
 library(glmnet)
 mat = bb@assays$RNA@counts
 mat[which(mat > 1)] = 1
@@ -5092,9 +5138,9 @@ pdf("~/scratch/brain/results/real_ran_counts_density.pdf", width = 7, height = 6
 ggplot(all_counts_df, aes(counts, color = isReal, fill = isReal)) + geom_density()
 dev.off()
 
-# rc = read.delim("rc_fst_closest_bedtools.bed", header = F)
-# rc = rc[which( abs(rc$V16) < 25000 ),]
-rc = read.delim("rock_test.fst", header = F)
+rc = read.delim("rc_fst_closest_bedtools.bed", header = F)
+rc = rc[which( abs(rc$V16) < 25000 ),]
+# rc = read.delim("rock_test.fst", header = F)
 rc$gene_name = colsplit(rc$V15, "; ", c('1', '2'))[, 1]
 rc$gene_name = colsplit(rc$gene_name, "gene_id ", c('1', '2'))[, 2]
 colnames(rc) = c("CHROM", "BIN_START", "BIN_END", "N_VAR", "WEIGHTED_FST", "MEAN_FST", "CHROM_1", "REF", "BIOTYPE", "GENE_START", "GENE_END", "GTF_1", "DIR", "GTF_2", "GENE_INFO", "DIST_TO_GENE", "GENE_NAME" )
@@ -5102,9 +5148,9 @@ rc$BIN_ID = paste0(rc$CHROM, "_", rc$BIN_START)
 rc$WEIGHTED_FST[which(rc$WEIGHTED_FST < 0)] = 0
 rc$Zfst = (( rc$WEIGHTED_FST - mean(rc$WEIGHTED_FST) ) / sd(rc$WEIGHTED_FST)) + 1
 
-# pc = read.delim("pc_fst_closest_bedtools.bed", header = F)
-# pc = pc[which( abs(pc$V16) < 25000 & pc$V1 == "NC_036790.1" & pc$V2 > 5950001 & pc$V3 < 25280000),]
-pc = read.delim("pit_test.fst", header = F)
+pc = read.delim("pc_fst_closest_bedtools.bed", header = F)
+pc = pc[which( abs(pc$V16) < 25000 & pc$V1 == "NC_036790.1" & pc$V2 > 5950001 & pc$V3 < 25280000),]
+# pc = read.delim("pit_test.fst", header = F)
 pc$gene_name = colsplit(pc$V15, "; ", c('1', '2'))[, 1]
 pc$gene_name = colsplit(pc$gene_name, "gene_id ", c('1', '2'))[, 2]
 colnames(pc) = c("CHROM", "BIN_START", "BIN_END", "N_VAR", "WEIGHTED_FST", "MEAN_FST", "CHROM_1", "REF", "BIOTYPE", "GENE_START", "GENE_END", "GTF_1", "DIR", "GTF_2", "GENE_INFO", "DIST_TO_GENE", "GENE_NAME" )
@@ -5113,7 +5159,7 @@ pc$WEIGHTED_FST[which(pc$WEIGHTED_FST < 0)] = 0
 pc$Zfst = (( pc$WEIGHTED_FST - mean(pc$WEIGHTED_FST) ) / sd(pc$WEIGHTED_FST)) + 1
 
 pcrc_merged = merge(pc, rc, by = "BIN_ID", suffixes = c("_PC", "_RC"))
-pcrc_thresh = pcrc_merged[which(pcrc_merged$WEIGHTED_FST_PC >= 0.2 & pcrc_merged$WEIGHTED_FST_RC >= 0.3),]
+pcrc_thresh = pcrc_merged[which(pcrc_merged$WEIGHTED_FST_PC >= 0.2 & pcrc_merged$WEIGHTED_FST_RC >= 0.2),]
 pcrc_bin = sort(unique(pcrc_thresh$GENE_NAME))
 write.csv(pcrc_bin, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")
 write.csv(pcrc_thresh, "pc_20_rc_30_10kb_bins_25kb_genes_on_lg_11_peak_by_bin_df.csv")
@@ -5165,11 +5211,12 @@ gtf$BIN_ID = paste0(gtf$V1, "_", gene_start_round)
 for (i in 1:nrow(gtf)) {
   if (i %% 1000 == 0)
     cat(paste0(i, "."))
+  
   gene_start_round = gtf$gene_start_round[i]
   gene_end_round = gtf$gene_end_round[i]
   gene_bins = seq(gene_start_round, gene_end_round, by = bin_size)
   gene_bins = paste0(gtf$V1[i], "_", gene_bins)
-  merge.df$HAS_GENE[match(gene_bins, merge.df$bin)] = T
+  merge.df$HAS_GENE[match(gene_bins, merge.df$BIN_ID)] = T
   merge.df$GENE[match(gene_bins, merge.df$BIN_ID)] = gtf$gene_name[i]
   if(gtf$gene_name[i] %in% pcrc_bin) {
     merge.df$PCRC_GENE_HIT[match(gene_bins, merge.df$BIN_ID)] = T
@@ -7513,3 +7560,37 @@ mc.df$chrom = reshape2::colsplit(mc.df$id, ":", c("1", "2"))[,1]
 mc.df[, c("start", "stop")] = reshape2::colsplit(reshape2::colsplit(mc.df$id, ":", c("1", "2"))[,2], "-", c("1", "2"))
 write.table(mc.df[, c("chrom", "start", "stop")], "~/scratch/brain/data/cichlid_gre_all_loci.bed", quote =  F, row.names = F, col.names = F)
 
+mat = readRDS("~/scratch/brain/data/scgnn_imputed.rds")
+for (s in unique(bb$subsample)) {
+  print(s)
+  data_to_write <- as.data.frame(as.matrix(bb@assays$RNA@counts[colnames(mat), which(bb$subsample == s)]))
+  fwrite(x=data_to_write, row.names=TRUE, file=paste0("bb_subsample_", s, "_counts.csv.gz"), compress="gzip")
+}
+
+
+gene_names = rownames(bb)
+setwd("~/scratch/brain/CichlidDataFolder/")
+for (i in 1:length(unique(bb$pair))) {
+  print(i)
+  pair = unique(bb$pair)[i]
+  data_to_write <- as.matrix(bb@assays$RNA@counts[, which(bb$pair != pair)])
+  fwrite(x=data_to_write, row.names=TRUE, file=paste0("bb_exclude_pairnum_", i, "_pairname_", pair ,"_counts.csv.gz"), compress="gzip")
+  # data_to_write <- as.data.frame(as.matrix(bb@assays$RNA@counts[colnames(mat), which(bb$pair != pair)]))
+  # fwrite(x=data_to_write, row.names=TRUE, file=paste0("bb_include_pairnum_", i, "_pairname_", pair ,"_counts.csv.gz"), compress="gzip")
+}
+gene_names = rownames(bb)
+setwd("~/scratch/brain/CichlidDataFolder/")
+for (i in 1:length(unique(bb$pair))) {
+  print(i)
+  pair = unique(bb$pair)[i]
+  imp_mat = data.table::fread(paste0("~/scratch/brain/CichlidDataFolder/", i, "_pair/_recon.csv"))
+  imp_mat_idx = imp_mat$V1
+  if (is.character(imp_mat_idx[1])) {
+    data_to_write <- as.matrix(bb@assays$RNA@counts[imp_mat_idx, which(bb$pair == pair)])
+  } else {
+    imp_mat_genes = gene_names[imp_mat_idx]
+    data_to_write <- as.matrix(bb@assays$RNA@counts[imp_mat_genes, which(bb$pair == pair)])
+  }
+  fwrite(x=data_to_write, row.names=TRUE, file=paste0("~/scratch/brain/CichlidDataFolder/", i, "_pair/include/include_counts.csv.gz"), compress="gzip")
+  write.csv(data.frame(mzebra = imp_mat_genes), paste0("~/scratch/brain/CichlidDataFolder/", i, "_pair/genes_to_use.csv"))
+}
