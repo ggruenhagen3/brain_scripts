@@ -79,7 +79,7 @@ nperm = 10000
 # pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
 # zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_122121.csv")[,1]
 # pcrc = c("cobl", "ddr1", "fhod3", "LOC101476487", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73", "LOC101476922", "boc", "LOC101487687", "epha3", "erbb2", "met", "metrn", "pax6", "smo", "LOC101480727", "LOC101469466", "vegfa", "LOC101469419")
-c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
+pcrc = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
