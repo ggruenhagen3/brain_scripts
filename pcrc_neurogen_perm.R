@@ -96,8 +96,8 @@ cor_mat[is.na(cor_mat)] = 0
 # neurogen_clust = c("LOC101476922", "boc", "LOC101487687", "epha3", "erbb2", "met", "metrn", "pax6", "smo", "LOC101480727", "LOC101469466", "vegfa", "LOC101469419")
 
 # mod_me2 rgc neuroblast module
-pcrc_clust = c("LOC101476487")
-neurogen_clust = c("LOC101476922")
+pcrc_clust = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
+neurogen_clust = c()
 
 # # mod_me2 rgc module
 # pcrc_clust     = c("cobl", "ddr1", "fhod3", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73")
@@ -161,67 +161,67 @@ rgc_sub = readRDS("~/scratch/brain/data/rgc_subclusters_reclustered_q_c_nb_score
 # 3f. Is the correlation between module score for pNGs and cycling score in RGCs more negative than permutations?
 # rgc_sub$mod_score_pcrc = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust), ] > 0)
 # rgc_sub$mod_score_neurogen = colSums(rgc_sub@assays$RNA@counts[c(neurogen_clust), ] > 0)
-# rgc_sub$mod_score = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust, neurogen_clust), ] > 0)
-# 
-# real_mod_qui = cor(rgc_sub$mod_score, rgc_sub$quiescent_score)
+rgc_sub$mod_score = colSums(rgc_sub@assays$RNA@counts[c(pcrc_clust, neurogen_clust), ] > 0)
+
+real_mod_qui = cor(rgc_sub$mod_score, rgc_sub$quiescent_score)
 # real_mod_cyc = cor(rgc_sub$mod_score, rgc_sub$cycling_score)
 # real_mod_pcrc_qui = cor(rgc_sub$mod_score_pcrc, rgc_sub$quiescent_score)
 # real_mod_pcrc_cyc = cor(rgc_sub$mod_score_pcrc, rgc_sub$cycling_score)
 # real_mod_neurogen_qui = cor(rgc_sub$mod_score_neurogen, rgc_sub$quiescent_score)
 # real_mod_neurogen_cyc = cor(rgc_sub$mod_score_neurogen, rgc_sub$cycling_score)
 # 
-# print("")
-# print(paste0("Starting Permutations Examing the Relationship b/w the Module and Quiescent/Cycling RGCs: ", format(Sys.time(), "%X ")))
-# perm_mod_rgc = mclapply(1:nperm, function(x) permModuleRGCCor(x), mc.cores = detectCores())
-# print(paste0("Permutations of the Module Done: ", format(Sys.time(), "%X ")))
-# perm_mod_rgc_df = as.data.frame(t(as.data.frame(perm_mod_rgc)))
-# colnames(perm_mod_rgc_df) = c("perm_num", "perm_mod_qui", "perm_mod_cyc", "perm_mod_pcrc_qui", "perm_mod_pcrc_cyc", "perm_mod_neurogen_qui", "perm_mod_neurogen_cyc")
-# rownames(perm_mod_rgc_df) = perm_mod_rgc_df$perm_num
-# print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_qui          >= real_mod_qui))))
+print("")
+print(paste0("Starting Permutations Examing the Relationship b/w the Module and Quiescent/Cycling RGCs: ", format(Sys.time(), "%X ")))
+perm_mod_rgc = mclapply(1:nperm, function(x) permModuleRGCCor(x), mc.cores = detectCores())
+print(paste0("Permutations of the Module Done: ", format(Sys.time(), "%X ")))
+perm_mod_rgc_df = as.data.frame(t(as.data.frame(perm_mod_rgc)))
+colnames(perm_mod_rgc_df) = c("perm_num", "perm_mod_qui", "perm_mod_cyc", "perm_mod_pcrc_qui", "perm_mod_pcrc_cyc", "perm_mod_neurogen_qui", "perm_mod_neurogen_cyc")
+rownames(perm_mod_rgc_df) = perm_mod_rgc_df$perm_num
+print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_qui          >= real_mod_qui))))
 # print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Cycling: ",   length(which(perm_mod_rgc_df$perm_mod_cyc          <= real_mod_cyc))))
 # print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_pcrc_qui     >= real_mod_pcrc_qui))))
 # print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_pcrc_cyc     <= real_mod_pcrc_cyc))))
 # print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_neurogen_qui >= real_mod_neurogen_qui))))
 # print(paste0("Number of Permutations of the Module Stronger Than Real - Mod Quiescent: ", length(which(perm_mod_rgc_df$perm_mod_neurogen_cyc <= real_mod_neurogen_cyc))))
 # 
-# write.csv(perm_mod_rgc_df, "~/scratch/brain/results/wgcna_dbscan_perm_mod_rgc_050622.csv")
+write.csv(perm_mod_rgc_df, "~/scratch/brain/results/wgcna_dbscan_perm_mod_rgc_053122.csv")
 
 # 4.
 # Do any individual genes in the module have a correlation with quiescent/cycling/neuroblast score
 # greater than any perm?
-rgc_data_mat = rgc_sub@assays$RNA@data[c(pcrc_clust, neurogen_clust), ]
-cor_all_q = cor(x = as.matrix(t(rgc_data_mat)), y = rgc_sub$quiescent_score)
-cor_all_c = cor(x = as.matrix(t(rgc_data_mat)), y = rgc_sub$cycling_score)
-cor_all_n = cor(x = as.matrix(t(rgc_data_mat)), y = rgc_sub$neuroblast_score)
-
-print("")
-print(paste0("Starting Permutations Examing the Relationship b/w the Module and Quiescent/Cycling RGCs: ", format(Sys.time(), "%X ")))
-perm_mod_rgc_ind = mclapply(1:nperm, function(x) permModuleRGCCorInd(x), mc.cores = detectCores())
-print(paste0("Permutations of the Module Done: ", format(Sys.time(), "%X ")))
-cor_all_q_w_perm = data.frame(real = cor_all_q, row.names = rownames(cor_all_q))
-cor_all_c_w_perm = data.frame(real = cor_all_c, row.names = rownames(cor_all_c))
-cor_all_n_w_perm = data.frame(real = cor_all_n, row.names = rownames(cor_all_n))
-for (i in 1:nperm) { 
-  cor_all_q_w_perm[, as.character(i)] = perm_mod_rgc_ind[[i]][[1]]
-  cor_all_c_w_perm[, as.character(i)] = perm_mod_rgc_ind[[i]][[2]]
-  cor_all_n_w_perm[, as.character(i)] = perm_mod_rgc_ind[[i]][[3]]
-}
-colnames(cor_all_q_w_perm)[2:(nperm+1)] = colnames(cor_all_c_w_perm)[2:(nperm+1)] = colnames(cor_all_n_w_perm)[2:(nperm+1)] = 1:nperm
-write.csv(cor_all_q_w_perm, "~/scratch/brain/results/mod_me_cor_all_perms_q.csv")
-write.csv(cor_all_c_w_perm, "~/scratch/brain/results/mod_me_cor_all_perms_c.csv")
-write.csv(cor_all_n_w_perm, "~/scratch/brain/results/mod_me_cor_all_perms_n.csv")
-
-cor_q_sum = data.frame(real = cor_all_q, min_perm = do.call(pmin, cor_all_q_w_perm[, 2:(nperm+1)]), max_perm = do.call(pmax, cor_all_q_w_perm[, 2:(nperm+1)]))
-cor_c_sum = data.frame(real = cor_all_c, min_perm = do.call(pmin, cor_all_c_w_perm[, 2:(nperm+1)]), max_perm = do.call(pmax, cor_all_c_w_perm[, 2:(nperm+1)]))
-cor_n_sum = data.frame(real = cor_all_n, min_perm = do.call(pmin, cor_all_n_w_perm[, 2:(nperm+1)]), max_perm = do.call(pmax, cor_all_n_w_perm[, 2:(nperm+1)]))
-for (i in 1:nrow(cor_all_q_w_perm)) {
-  cat(paste0(i, "."))
-  cor_q_sum[i, "n_perm_greater"] = length(which( cor_all_q_w_perm[i, 2:(nperm+1)] > cor_all_q_w_perm[i, "real"] ))
-  cor_c_sum[i, "n_perm_greater"] = length(which( cor_all_c_w_perm[i, 2:(nperm+1)] > cor_all_c_w_perm[i, "real"] ))
-  cor_n_sum[i, "n_perm_greater"] = length(which( cor_all_n_w_perm[i, 2:(nperm+1)] > cor_all_n_w_perm[i, "real"] ))
-}
-cor_q_sum$cdg = cor_c_sum$cdg = cor_n_sum$cdg = rownames(cor_q_sum) %in% pcrc
-cor_q_sum$png = cor_c_sum$png = cor_n_sum$png = rownames(cor_q_sum) %in% neurogen
-write.csv(cor_q_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_q.csv")
-write.csv(cor_c_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_c.csv")
-write.csv(cor_n_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_n.csv")
+# rgc_data_mat = rgc_sub@assays$RNA@data[c(pcrc_clust, neurogen_clust), ]
+# cor_all_q = cor(x = as.matrix(t(rgc_data_mat)), y = rgc_sub$quiescent_score)
+# cor_all_c = cor(x = as.matrix(t(rgc_data_mat)), y = rgc_sub$cycling_score)
+# cor_all_n = cor(x = as.matrix(t(rgc_data_mat)), y = rgc_sub$neuroblast_score)
+# 
+# print("")
+# print(paste0("Starting Permutations Examing the Relationship b/w the Module and Quiescent/Cycling RGCs: ", format(Sys.time(), "%X ")))
+# perm_mod_rgc_ind = mclapply(1:nperm, function(x) permModuleRGCCorInd(x), mc.cores = detectCores())
+# print(paste0("Permutations of the Module Done: ", format(Sys.time(), "%X ")))
+# cor_all_q_w_perm = data.frame(real = cor_all_q, row.names = rownames(cor_all_q))
+# cor_all_c_w_perm = data.frame(real = cor_all_c, row.names = rownames(cor_all_c))
+# cor_all_n_w_perm = data.frame(real = cor_all_n, row.names = rownames(cor_all_n))
+# for (i in 1:nperm) { 
+#   cor_all_q_w_perm[, as.character(i)] = perm_mod_rgc_ind[[i]][[1]]
+#   cor_all_c_w_perm[, as.character(i)] = perm_mod_rgc_ind[[i]][[2]]
+#   cor_all_n_w_perm[, as.character(i)] = perm_mod_rgc_ind[[i]][[3]]
+# }
+# colnames(cor_all_q_w_perm)[2:(nperm+1)] = colnames(cor_all_c_w_perm)[2:(nperm+1)] = colnames(cor_all_n_w_perm)[2:(nperm+1)] = 1:nperm
+# write.csv(cor_all_q_w_perm, "~/scratch/brain/results/mod_me_cor_all_perms_q.csv")
+# write.csv(cor_all_c_w_perm, "~/scratch/brain/results/mod_me_cor_all_perms_c.csv")
+# write.csv(cor_all_n_w_perm, "~/scratch/brain/results/mod_me_cor_all_perms_n.csv")
+# 
+# cor_q_sum = data.frame(real = cor_all_q, min_perm = do.call(pmin, cor_all_q_w_perm[, 2:(nperm+1)]), max_perm = do.call(pmax, cor_all_q_w_perm[, 2:(nperm+1)]))
+# cor_c_sum = data.frame(real = cor_all_c, min_perm = do.call(pmin, cor_all_c_w_perm[, 2:(nperm+1)]), max_perm = do.call(pmax, cor_all_c_w_perm[, 2:(nperm+1)]))
+# cor_n_sum = data.frame(real = cor_all_n, min_perm = do.call(pmin, cor_all_n_w_perm[, 2:(nperm+1)]), max_perm = do.call(pmax, cor_all_n_w_perm[, 2:(nperm+1)]))
+# for (i in 1:nrow(cor_all_q_w_perm)) {
+#   cat(paste0(i, "."))
+#   cor_q_sum[i, "n_perm_greater"] = length(which( cor_all_q_w_perm[i, 2:(nperm+1)] > cor_all_q_w_perm[i, "real"] ))
+#   cor_c_sum[i, "n_perm_greater"] = length(which( cor_all_c_w_perm[i, 2:(nperm+1)] > cor_all_c_w_perm[i, "real"] ))
+#   cor_n_sum[i, "n_perm_greater"] = length(which( cor_all_n_w_perm[i, 2:(nperm+1)] > cor_all_n_w_perm[i, "real"] ))
+# }
+# cor_q_sum$cdg = cor_c_sum$cdg = cor_n_sum$cdg = rownames(cor_q_sum) %in% pcrc
+# cor_q_sum$png = cor_c_sum$png = cor_n_sum$png = rownames(cor_q_sum) %in% neurogen
+# write.csv(cor_q_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_q.csv")
+# write.csv(cor_c_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_c.csv")
+# write.csv(cor_n_sum, "~/scratch/brain/results/mod_me2_rgc_n_cor_perm_n.csv")
