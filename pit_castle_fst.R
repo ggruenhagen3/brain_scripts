@@ -336,3 +336,280 @@ test = ld[,mean(R2), by = list(BIN_ID)]
 # ld_complete$BIN_START2 = round_any(ld_complete$POS2, 10000, f = ceiling)
 # ld_complete$BIN_ID = paste0(ld_complete$CHROM, "_", ld_complete$BIN_START)
 
+#*******************************************************************************
+# Merge all ====================================================================
+#*******************************************************************************
+rc = read.delim("rock_castle_10kb.windowed.weir.fst")
+rc$BIN_ID = paste0(rc$CHROM, "_", rc$BIN_START)
+rc$RANK = order(order(rc$WEIGHTED_FST, decreasing = T))
+rc$QUANTILE = 1 - (rc$RANK / nrow(rc))
+rc$WEIGHTED_rc[which(rc$WEIGHTED_rc < 0)] = 0
+rc$ZFST = (( rc$WEIGHTED_FST - mean(rc$WEIGHTED_FST) ) / sd(rc$WEIGHTED_FST)) + 1
+rc$RANKZ = order(order(rc$ZFST, decreasing = T))
+rc$QUANTILEZ = 1 - (rc$RANKZ / nrow(rc))
+pc = read.delim("pit_castle_10kb.windowed.weir.fst")
+pc$BIN_ID = paste0(pc$CHROM, "_", pc$BIN_START)
+pc$RANK = order(order(pc$WEIGHTED_FST, decreasing = T))
+pc$QUANTILE = 1 - (pc$RANK / nrow(pc))
+pc$ZFST = (( pc$WEIGHTED_FST - mean(pc$WEIGHTED_FST) ) / sd(pc$WEIGHTED_FST)) + 1
+pc$RANKZ = order(order(pc$ZFST, decreasing = T))
+pc$QUANTILEZ = 1 - (pc$RANKZ / nrow(pc))
+
+pcrc_merged = merge(pc, rc, by = "BIN_ID", suffixes = c("_PC", "_RC"))
+
+tang_pc = read.delim("tang_pvc_10kb.windowed.weir.fst")
+tang_pc$RANK = order(order(tang_pc$WEIGHTED_FST, decreasing = T))
+tang_pc$QUANTILE = 1 - (tang_pc$RANK / nrow(tang_pc))
+tang_pc$ZFST = (( tang_pc$WEIGHTED_FST - mean(tang_pc$WEIGHTED_FST) ) / sd(tang_pc$WEIGHTED_FST)) + 1
+tang_pc$RANKZ = order(order(tang_pc$ZFST, decreasing = T))
+tang_pc$QUANTILEZ = 1 - (tang_pc$RANKZ / nrow(tang_pc))
+colnames(tang_pc) = paste0(colnames(tang_pc), "_TANGPC")
+tang_pc$BIN_ID = paste0(tang_pc$CHROM_TANGPC, "_", tang_pc$BIN_START_TANGPC)
+
+all_merged = merge(pcrc_merged, tang_pc, by = "BIN_ID")
+all_thresh = all_merged[which(all_merged$WEIGHTED_FST_PC >= 0.2 & all_merged$WEIGHTED_FST_RC >= 0.2 & all_merged$WEIGHTED_FST_TANGPC >= 0.2),]
+all_thresh_quantile = all_merged[which(all_merged$QUANTILE_PC >= 0.95 & all_merged$QUANTILE_RC >= 0.95 & all_merged$QUANTILE_TANGPC >= 0.95),]
+all_thresh_quantilez = all_merged[which(all_merged$QUANTILEZ_PC >= 0.95 & all_merged$QUANTILEZ_RC >= 0.95 & all_merged$QUANTILEZ_TANGPC >= 0.95),]
+all_merged$highlight = all_merged$BIN_ID %in% all_thresh_quantilez$BIN_ID
+head(all_thresh_quantilez[order(all_thresh_quantilez$QUANTILEZ_TANGPC, decreasing = T),c("BIN_ID", "ZFST_PC", "ZFST_RC", "ZFST_TANGPC")], 10)
+
+write.table(all_thresh_quantilez[,c("CHROM_PC", "BIN_START_PC", "BIN_END_PC")], "~/scratch/brain/fst/all_3.bed", sep = "\t", row.names = F, col.names = F, quote = F)
+all_thresh_closest = read.delim("~/scratch/brain/fst/all_3_closest.bed", header = F)
+all_thresh_closest$BIN_ID = paste0(all_thresh_closest[,1], "_", all_thresh_closest[,2])
+all_thresh_closest$GENE = colsplit(all_thresh_closest[,12], "; gene ", c("1", "2"))[,2]
+all_thresh_closest$GENE = colsplit(all_thresh_closest$GENE, "; ", c("1", "2"))[,1]
+all_thresh_closest[,13] = abs(all_thresh_closest[,13])
+all_thresh_quantilez$DIST = all_thresh_closest[match(all_thresh_quantilez$BIN_ID, all_thresh_closest$BIN_ID), 13]
+all_thresh_quantilez$GENE = all_thresh_closest[match(all_thresh_quantilez$BIN_ID, all_thresh_closest$BIN_ID), "GENE"]
+all_thresh_quantilez = all_thresh_quantilez[order(all_thresh_quantilez$QUANTILEZ_TANGPC, decreasing = T),]
+write.csv(all_thresh_quantilez, "~/scratch/brain/fst/all_3_quantilez_df.csv")
+write.csv(all_thresh_quantilez$GENE[which(all_thresh_quantilez$DIST < 25000 & all_thresh_quantilez$GENE != "")], "~/scratch/brain/fst/all_3_quantilez_genes.csv")
+write.csv(all_thresh_quantilez$GENE[which(all_thresh_quantilez$DIST < 25000 & all_thresh_quantilez$CHROM_PC == "NC_036790.1" & all_thresh_quantilez$BIN_START_PC > 5950001 & all_thresh_quantilez$BIN_END_PC < 25280000)], "~/scratch/brain/fst/all_3_quantilez_genes_lg11_peak.csv")
+
+p1 = ggplot(all_merged, aes(x = ZFST_PC, y = ZFST_RC,      color = highlight, alpha = highlight)) + geom_point() + scale_color_manual(values = c("gray50", "red")) + scale_alpha_manual(values = c(0.2, 1)) + NoLegend()
+p2 = ggplot(all_merged, aes(x = ZFST_PC, y = ZFST_TANGPC, color = highlight, alpha = highlight)) + geom_point() + scale_color_manual(values = c("gray50", "red")) + scale_alpha_manual(values = c(0.2, 1)) + NoLegend()
+p3 = ggplot(all_merged, aes(x = ZFST_RC, y = ZFST_TANGPC, color = highlight, alpha = highlight)) + geom_point() + scale_color_manual(values = c("gray50", "red")) + scale_alpha_manual(values = c(0.2, 1)) + NoLegend()
+
+png("~/scratch/brain/fst/all_zfst.png", width = 1200, height = 400, res=100)
+print(cowplot::plot_grid(plotlist = list(p1, p2, p3), ncol = 3))
+dev.off()
+
+fst = tang_pc
+fst$id = 1:nrow(fst)
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+fst$highlight = fst$BIN_ID %in% all_thresh_quantilez$BIN_ID
+test = sample(1:nrow(fst), 5000)
+my_breaks = which(! duplicated(fst$CHROM))
+fst = fst[order(fst$highlight),]
+image_name <- "~/scratch/brain/fst/tang_pc_highlight_051822.png"
+png(image_name, type="cairo", width = 12, height = 4, units = 'in', res=300)
+p = ggplot(fst, aes(id, ZFST_TANGPC, color = highlight)) + geom_point(alpha = 0.7, size = 1) + theme_classic() + scale_color_manual(values = rep(brewer.pal(n=8,name="Dark2"), 6)) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(breaks = my_breaks, labels = unique(fst$CHROM), expand=c(0,0)) + NoLegend() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ggtitle("Pit vs Castle in Tanganyka with Highlight")
+print(p)
+dev.off()
+
+#*******************************************************************************
+# PI ===========================================================================
+#*******************************************************************************
+
+# Pit vs Castle
+pit_pi = read.delim("~/scratch/brain/fst/sample_vcf/pit_pi_10kb.windowed.pi")
+pit_pi$PI[which(pit_pi$PI < 0)] = 0
+pit_pi$Z <- (( pit_pi$PI - mean(pit_pi$PI) ) / sd(pit_pi$PI)) + 1
+pit_pi$BIN_ID = paste0(pit_pi$CHROM, "_", pit_pi$BIN_START)
+
+castle_pi = read.delim("~/scratch/brain/fst/sample_vcf/castle_pi_10kb.windowed.pi")
+castle_pi$PI[which(castle_pi$PI < 0)] = 0
+castle_pi$Z <- (( castle_pi$PI - mean(castle_pi$PI) ) / sd(castle_pi$PI)) + 1
+castle_pi$BIN_ID = paste0(castle_pi$CHROM, "_", castle_pi$BIN_START)
+
+pvc_pi = merge(pit_pi, castle_pi, by = "BIN_ID", suffixes = c("_PIT", "_CASTLE"))
+pvc_pi$Z = pvc_pi$Z_PIT - pvc_pi$Z_CASTLE
+pvc_pi$CHROM = pvc_pi$CHROM_PIT
+pvc_pi$lg = lgConverter(pvc_pi$CHROM, path_to_info = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
+pvc_pi = pvc_pi[which(pvc_pi$lg != "MT"),]
+pvc_pi$PI_RANKZ = order(order(pvc_pi$Z, decreasing = T))
+pvc_pi$PI_QUANTILEZ = 1 - (pvc_pi$PI_RANKZ / nrow(pvc_pi))
+
+fst = pvc_pi
+fst$id = 1:nrow(fst)
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+my_breaks = which(! duplicated(fst$lg))
+image_name <- "~/scratch/brain/fst/pvc_zpi.png"
+png(image_name, type="cairo", width = 12, height = 4, units = 'in', res=300)
+p = ggplot(fst, aes(id, Z, color = lg)) + geom_point(alpha = 0.7, size = 1) + theme_classic() + scale_color_manual(values = rep(brewer.pal(n=8,name="Dark2"), 6)) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(breaks = my_breaks, labels = unique(fst$lg), expand=c(0,0)) + NoLegend() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ggtitle("Pit - Castle ZPI") + ylab("ZPI")
+print(p)
+dev.off()
+
+pvc_pi_fst = merge(pvc_pi, pc, by = "BIN_ID")
+pvc_pi_fst$CHROM = pvc_pi_fst$CHROM_PIT
+pvc_pi_fst$CHROM <- sub("^NW.*", "unplaced", pvc_pi_fst$CHROM)
+pvc_pi_fst$CHROM <- sub("^NC_027944.1", "unplaced", pvc_pi_fst$CHROM)
+pvc_pi_fst$CHROM <- gsub(".1$", "", pvc_pi_fst$CHROM)
+pvc_pi_fst$lg = paste0(pvc_pi_fst$lg, " (", pvc_pi_fst$CHROM, ")")
+pvc_pi_fst$highlight = "none"
+pvc_pi_fst$highlight[which(pvc_pi_fst$QUANTILEZ > 0.95)] = "ZFST +95%"
+pvc_pi_fst$highlight[which(pvc_pi_fst$PI_QUANTILEZ > 0.95)] = "ZPI +95%"
+pvc_pi_fst$highlight[which(pvc_pi_fst$PI_QUANTILEZ > 0.95 & pvc_pi_fst$QUANTILEZ > 0.95)] = "Both +95%"
+pvc_pi_fst$highlight = factor(pvc_pi_fst$highlight, levels = c("none", "ZFST +95%", "ZPI +95%", "Both +95%"))
+pvc_pi_fst$lg = factor(pvc_pi_fst$lg, levels = unique(pvc_pi_fst$lg))
+pvc_pi_fst = pvc_pi_fst[order(pvc_pi_fst$highlight),]
+png("~/scratch/brain/fst/pvc_zpi_fst.png", width = 2000, height = 1600, res = 200)
+ggplot(pvc_pi_fst, aes(x = ZFST, y = Z, color = highlight)) + geom_point(alpha = 0.5, size = 0.9) + scale_color_manual(values = c("#ffcdb2", "#e5989b", "#b5838d", "#6d6875")) + ylab("ZPI") + ggtitle("Pit v Castle (ZFST and ZPI)") + facet_wrap(~ lg, ncol = 5) + theme_classic() + guides(colour = guide_legend(override.aes = list(size=5)))
+dev.off()
+
+fst = pc
+fst$id = 1:nrow(fst)
+fst$WEIGHTED_FST[which(fst$WEIGHTED_FST < 0)] = 0
+fst$Zfst <- (( fst$WEIGHTED_FST - mean(fst$WEIGHTED_FST) ) / sd(fst$WEIGHTED_FST)) + 1
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+my_breaks = which(! duplicated(fst$CHROM))
+fst$highlight = pvc_pi_fst$highlight[match(fst$BIN_ID, pvc_pi_fst$BIN_ID)]
+fst$highlight[which( is.na(fst$highlight) )] = "none"
+fst = fst[order(fst$highlight),]
+png("~/scratch/brain/fst/pvc_zpi_fst_fst.png", type="cairo", width = 12, height = 4, units = 'in', res=300)
+p = ggplot(fst, aes(id, Zfst, color = highlight)) + geom_point(alpha = 0.7, size = 1) + theme_classic() + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(breaks = my_breaks, labels = unique(fst$CHROM), expand=c(0,0)) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ggtitle("Pit v Castle ZFST w/ Highlight") + scale_color_manual(values = c("#ffcdb2", "#e5989b", "#b5838d", "#6d6875")) + guides(colour = guide_legend(override.aes = list(size=3)))
+print(p)
+dev.off()
+
+# Rock vs Castle
+rock_pi = read.delim("~/scratch/brain/fst/sample_vcf/rock_pi_10kb.windowed.pi")
+rock_pi$PI[which(rock_pi$PI < 0)] = 0
+rock_pi$Z <- (( rock_pi$PI - mean(rock_pi$PI) ) / sd(rock_pi$PI)) + 1
+rock_pi$BIN_ID = paste0(rock_pi$CHROM, "_", rock_pi$BIN_START)
+
+rvc_pi = merge(rock_pi, castle_pi, by = "BIN_ID", suffixes = c("_ROCK", "_CASTLE"))
+rvc_pi$Z = rvc_pi$Z_ROCK - rvc_pi$Z_CASTLE
+rvc_pi$CHROM = rvc_pi$CHROM_ROCK
+rvc_pi$lg = lgConverter(rvc_pi$CHROM, path_to_info = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
+rvc_pi = rvc_pi[which(rvc_pi$lg != "MT"),]
+rvc_pi$PI_RANKZ = order(order(rvc_pi$Z, decreasing = T))
+rvc_pi$PI_QUANTILEZ = 1 - (rvc_pi$PI_RANKZ / nrow(rvc_pi))
+
+fst = rvc_pi
+fst$id = 1:nrow(fst)
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+my_breaks = which(! duplicated(fst$lg))
+image_name <- "~/scratch/brain/fst/rvc_zpi.png"
+png(image_name, type="cairo", width = 12, height = 4, units = 'in', res=300)
+p = ggplot(fst, aes(id, Z, color = lg)) + geom_point(alpha = 0.7, size = 1) + theme_classic() + scale_color_manual(values = rep(brewer.pal(n=8,name="Dark2"), 6)) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(breaks = my_breaks, labels = unique(fst$lg), expand=c(0,0)) + NoLegend() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ggtitle("Rock - Castle ZPI") + ylab("ZPI")
+print(p)
+dev.off()
+
+fst = pc
+fst$id = 1:nrow(fst)
+fst$WEIGHTED_FST[which(fst$WEIGHTED_FST < 0)] = 0
+fst$Zfst <- (( fst$WEIGHTED_FST - mean(fst$WEIGHTED_FST) ) / sd(fst$WEIGHTED_FST)) + 1
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+my_breaks = which(! duplicated(fst$CHROM))
+fst$RVC_ZFST_QUANTILEZ = rc$QUANTILEZ[match(fst$BIN_ID, rc$BIN_ID)]
+fst$RVC_PI_QUANTILEZ = rvc_pi$Z[match(fst$BIN_ID, rvc_pi$BIN_ID)]
+fst$PVC_PI_QUANTILEZ = pvc_pi$Z[match(fst$BIN_ID, pvc_pi$BIN_ID)]
+fst$highlight = "none"
+fst$highlight[which(fst$RVC_ZFST_QUANTILEZ > 0.95 & fst$RVC_PI_QUANTILEZ > 0.95 & fst$QUANTILEZ > 0.95 & fst$PVC_PI_QUANTILEZ > 0.95)] = "+95% ZFST&ZPI in PVC and RVC"
+fst$highlight = factor(fst$highlight, levels = c("none", "+95% ZFST&ZPI in PVC and RVC"))
+fst = fst[order(fst$highlight),]
+png("~/scratch/brain/fst/pvc_rvc_zfst_zpi.png", type="cairo", width = 12, height = 4, units = 'in', res=300)
+p = ggplot(fst, aes(id, Zfst, color = highlight)) + geom_point(alpha = 0.7, size = 1) + theme_classic() + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(breaks = my_breaks, labels = unique(fst$CHROM), expand=c(0,0)) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ggtitle("Pit v Castle ZFST w/ Highlight") + scale_color_manual(values = c("#ffcdb2", "#6d6875")) + guides(colour = guide_legend(override.aes = list(size=3)))
+print(p)
+dev.off()
+
+
+#*******************************************************************************
+# Tajima's D ===================================================================
+#*******************************************************************************
+
+# Pit vs Castle
+pit_d = read.delim("~/scratch/brain/fst/sample_vcf/pit_d_10kb.Tajima.D")
+colnames(pit_d)[4] = "D"
+pit_d$D[which(is.na(pit_d$D))] = 0
+pit_d$Z <- (( pit_d$D - mean(pit_d$D) ) / sd(pit_d$D)) + 1
+pit_d$BIN_ID = paste0(pit_d$CHROM, "_", pit_d$BIN_START)
+
+castle_d = read.delim("~/scratch/brain/fst/sample_vcf/castle_d_10kb.Tajima.D")
+colnames(castle_d)[4] = "D"
+castle_d$D[which(is.na(castle_d$D))] = 0
+castle_d$Z <- (( castle_d$D - mean(castle_d$D) ) / sd(castle_d$D)) + 1
+castle_d$BIN_ID = paste0(castle_d$CHROM, "_", castle_d$BIN_START)
+
+pvc_d = merge(pit_d, castle_d, by = "BIN_ID", suffixes = c("_PIT", "_CASTLE"))
+pvc_d$Z = pvc_d$Z_PIT - pvc_d$Z_CASTLE
+pvc_d$CHROM = pvc_d$CHROM_PIT
+pvc_d$lg = lgConverter(pvc_d$CHROM, path_to_info = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
+pvc_d = pvc_d[which(pvc_d$lg != "MT"),]
+pvc_d$D_RANKZ = order(order(pvc_d$Z, decreasing = T))
+pvc_d$D_QUANTILEZ = 1 - (pvc_d$D_RANKZ / nrow(pvc_d))
+pvc_d$DSS_RANKZ = order(order(pvc_d$Z, decreasing = F)) # SS == Selective Sweep
+pvc_d$DSS_QUANTILEZ = 1 - (pvc_d$D_RANKZ / nrow(pvc_d))
+
+fst = pvc_d
+fst$id = 1:nrow(fst)
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+my_breaks = which(! duplicated(fst$lg))
+image_name <- "~/scratch/brain/fst/pvc_zd.png"
+png(image_name, type="cairo", width = 12, height = 4, units = 'in', res=300)
+p = ggplot(fst, aes(id, Z, color = lg)) + geom_point(alpha = 0.7, size = 1) + theme_classic() + scale_color_manual(values = rep(brewer.pal(n=8,name="Dark2"), 6)) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(breaks = my_breaks, labels = unique(fst$lg), expand=c(0,0)) + NoLegend() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ggtitle("Pit - Castle ZD") + ylab("ZD")
+print(p)
+dev.off()
+
+# Rock vs Castle
+rock_d = read.delim("~/scratch/brain/fst/sample_vcf/rock_d_10kb.Tajima.D")
+colnames(rock_d)[4] = "D"
+rock_d$D[which(is.na(rock_d$D))] = 0
+rock_d$Z <- (( rock_d$D - mean(rock_d$D) ) / sd(rock_d$D)) + 1
+rock_d$BIN_ID = paste0(rock_d$CHROM, "_", rock_d$BIN_START)
+
+rvc_d = merge(rock_d, castle_d, by = "BIN_ID", suffixes = c("_ROCK", "_CASTLE"))
+rvc_d$Z = rvc_d$Z_ROCK - rvc_d$Z_CASTLE
+rvc_d$CHROM = rvc_d$CHROM_ROCK
+rvc_d$lg = lgConverter(rvc_d$CHROM, path_to_info = "~/scratch/m_zebra_ref/M_zebra_UMD2a_assembly_report.txt")
+rvc_d = rvc_d[which(rvc_d$lg != "MT"),]
+rvc_d$D_RANKZ = order(order(rvc_d$Z, decreasing = T))
+rvc_d$D_QUANTILEZ = 1 - (rvc_d$D_RANKZ / nrow(rvc_d))
+rvc_d$DSS_RANKZ = order(order(rvc_d$Z, decreasing = F)) # SS == Selective Sweep
+rvc_d$DSS_QUANTILEZ = 1 - (rvc_d$DSS_RANKZ / nrow(rvc_d))
+
+fst = rvc_d
+fst$id = 1:nrow(fst)
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+my_breaks = which(! duplicated(fst$lg))
+image_name <- "~/scratch/brain/fst/rvc_zd.png"
+png(image_name, type="cairo", width = 12, height = 4, units = 'in', res=300)
+p = ggplot(fst, aes(id, Z, color = lg)) + geom_point(alpha = 0.7, size = 1) + theme_classic() + scale_color_manual(values = rep(brewer.pal(n=8,name="Dark2"), 6)) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(breaks = my_breaks, labels = unique(fst$lg), expand=c(0,0)) + NoLegend() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ggtitle("Rock - Castle ZD") + ylab("ZD")
+print(p)
+dev.off()
+
+fst = pc
+fst$id = 1:nrow(fst)
+fst$WEIGHTED_FST[which(fst$WEIGHTED_FST < 0)] = 0
+fst$Zfst <- (( fst$WEIGHTED_FST - mean(fst$WEIGHTED_FST) ) / sd(fst$WEIGHTED_FST)) + 1
+fst$CHROM <- sub("^NW.*", "unplaced", fst$CHROM)
+fst$CHROM <- sub("^NC_027944.1", "unplaced", fst$CHROM)
+fst$CHROM <- gsub(".1$", "", fst$CHROM)
+my_breaks = which(! duplicated(fst$CHROM))
+fst$RVC_ZFST_QUANTILEZ = rc$QUANTILEZ[match(fst$BIN_ID, rc$BIN_ID)]
+fst$RVC_PI_QUANTILEZ = rvc_pi$PI_QUANTILEZ[match(fst$BIN_ID, rvc_pi$BIN_ID)]
+fst$PVC_PI_QUANTILEZ = pvc_pi$PI_QUANTILEZ[match(fst$BIN_ID, pvc_pi$BIN_ID)]
+fst$RVC_D_QUANTILEZ = rvc_d$D_QUANTILEZ[match(fst$BIN_ID, rvc_pi$BIN_ID)]
+fst$PVC_D_QUANTILEZ = pvc_d$D_QUANTILEZ[match(fst$BIN_ID, pvc_pi$BIN_ID)]
+print(paste0("Number of Bins that are 95th Quantile for ZFST & ZPI in PvC and RvC: ", length(which(fst$RVC_ZFST_QUANTILEZ > 0.95 & fst$RVC_PI_QUANTILEZ > 0.95 & fst$QUANTILEZ > 0.95 & fst$PVC_PI_QUANTILEZ > 0.95))))
+print(paste0("Number of Bins that are 95th Quantile for ZFST & ZD in PvC and RvC: ", length(which(fst$RVC_ZFST_QUANTILEZ > 0.95 & fst$RVC_D_QUANTILEZ > 0.95 & fst$QUANTILEZ > 0.95 & fst$PVC_D_QUANTILEZ > 0.95))))
+print(paste0("Number of Bins that are 95th Quantile for ZPI & ZD in PvC and RvC: ", length(which(fst$RVC_PI_QUANTILEZ > 0.95 & fst$RVC_D_QUANTILEZ > 0.95 & fst$PVC_PI_QUANTILEZ > 0.95 & fst$PVC_D_QUANTILEZ > 0.95))))
+print(paste0("Number of Bins that are 95th Quantile for ZFST & ZPI & ZD in PvC and RvC: ", length(which(fst$RVC_ZFST_QUANTILEZ > 0.95 & fst$RVC_D_QUANTILEZ > 0.95 & fst$RVC_PI_QUANTILEZ > 0.95 & fst$QUANTILEZ > 0.95 & fst$PVC_D_QUANTILEZ > 0.95 & fst$PVC_PI_QUANTILEZ))))
+fst$highlight = "none"
+fst$highlight[which(fst$RVC_ZFST_QUANTILEZ > 0.95 & fst$RVC_PI_QUANTILEZ > 0.95 & fst$QUANTILEZ > 0.95 & fst$PVC_PI_QUANTILEZ > 0.95)] = "+95% ZFST&ZPI in PVC and RVC"
+fst$highlight = factor(fst$highlight, levels = c("none", "+95% ZFST&ZPI in PVC and RVC"))
+

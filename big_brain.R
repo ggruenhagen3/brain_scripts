@@ -6537,22 +6537,75 @@ test = FindMarkers(rgc_sub, ident.1 = "BHVE", ident.2 = "CTRL")
 #***************************************************
 # scGNN Pair =======================================
 #***************************************************
-readImpMat = function(path) {
+readImpMat = function(path, gene_names = rownames(bb)) {
   df_pair = data.table::fread(path)
   df_pair = t(df_pair)
   colnames(df_pair) = df_pair[1,]
-  colnames(df_pair) = gene_names[as.numeric(colnames(df_pair))]
+  if (! all(is.na(as.numeric(colnames(df_pair)[1:5]))) ) { print("Need to convert numbers to genes."); colnames(df_pair) = gene_names[as.numeric(colnames(df_pair))] }
   df_pair = df_pair[-1,]
+  # print(df_pair[1:5, 1:5])
   df_pair = cbind(data.table::data.table(subsample = unname(as.vector(bb$subsample[match(rownames(df_pair), colnames(bb))]))), df_pair)
+  # print(df_pair[1:5, 1:5])
+  df_pair = df_pair[, lapply(.SD, as.numeric), by=subsample]
+  # return(df_pair)
   df_pair_mean = df_pair[, lapply(.SD, mean), by=subsample]
   return(df_pair_mean)
 }
-gene_names = rownames(bb)
 base_folder = "/storage/home/hcoda1/6/ggruenhagen3/scratch/brain/CichlidDataFolder/"
 for (pair_idx in 1:19) {
+  print(pair_idx)
   df_pair_n = readImpMat(paste0(base_folder, pair_idx, "_pair/_recon.csv"))
-  df_pair_y = readImpMat(paste0(base_folder, pair_idx, "_pair/include/_recon.csv"))
+  print(ncol(df_pair_n))
+  df_pair_n_genes = colnames(df_pair_n)[2:ncol(df_pair_n)]
+  df_pair_y = readImpMat(paste0(base_folder, pair_idx, "_pair/include/_recon.csv"), gene_names = df_pair_n_genes)
+  print(ncol(df_pair_y))
+  print(all(colnames(df_pair_y) %in% colnames(df_pair_n)))
+  
+  # Writing Data
+  genes_in_both = as.data.frame(table(c(colnames(df_pair_n)[2:ncol(df_pair_n)], colnames(df_pair_y)[2:ncol(df_pair_y)])))
+  genes_in_both = as.vector(genes_in_both[which(genes_in_both[,2] == 2),1])
+  genes_in_both = c("subsample", genes_in_both)
+  df_pair_n = df_pair_n[, ..genes_in_both]
+  df_pair_y = df_pair_y[, ..genes_in_both]
+  data.table::fwrite(df_pair_n, paste0(base_folder, pair_idx, "_pair/good_recon.csv"))
+  data.table::fwrite(df_pair_y, paste0(base_folder, pair_idx, "_pair/include/good_recon.csv"))
+  
+  # Genes that are non-zero in the pair
+  pair_sum = colSums(df_pair_y[,2:ncol(df_pair_y)])
+  non_zero_gene = names(pair_sum)[which(pair_sum > 0)]
+  new_cols = c("subsample", non_zero_gene)
+  data.table::fwrite(df_pair_n[, ..new_cols], paste0(base_folder, pair_idx, "_pair/good_recon_small.csv"))
+  data.table::fwrite(df_pair_y[, ..new_cols], paste0(base_folder, pair_idx, "_pair/include/good_recon_small.csv"))
 }
+
+# Adjusted Means
+adj = readRDS("~/scratch/brain/data/adjusted_glmmseq_ffm_15.rds")
+df_pair = as.data.table( t(adj) )
+df_pair = cbind(data.table::data.table(subsample = unname(as.vector(bb$subsample))), df_pair)
+df_pair = df_pair[, lapply(.SD, as.numeric), by=subsample]
+df_pair_mean = df_pair[, lapply(.SD, mean), by=subsample]
+write.csv(df_pair_mean, "~/scratch/brain/data/adjusted_15_means_051722.csv")
+
+df_pair = as.data.table( t(adj) )
+df_pair = cbind(data.table::data.table(subsample = unname(as.vector(bb$subsample)), cluster = unname(as.vector(bb$seuratclusters15))), df_pair)
+df_pair = df_pair[, lapply(.SD, as.numeric), by=.(subsample, cluster)]
+df_pair_mean = df_pair[, lapply(.SD, mean), by=.(subsample, cluster)]
+df_pair_mean = df_pair_mean[order(df_pair_mean$cluster, df_pair_mean$subsample)]
+write.csv(df_pair_mean, "~/scratch/brain/data/adjusted_15_means_15_051722.csv")
+
+adj = readRDS("~/scratch/brain/data/adjusted_glmmseq_ffm_53.rds")
+df_pair = as.data.table( t(adj) )
+df_pair = cbind(data.table::data.table(subsample = unname(as.vector(bb$subsample))), df_pair)
+df_pair = df_pair[, lapply(.SD, as.numeric), by=subsample]
+df_pair_mean = df_pair[, lapply(.SD, mean), by=subsample]
+write.csv(df_pair_mean, "~/scratch/brain/data/adjusted_53_means_051722.csv")
+
+df_pair = as.data.table( t(adj) )
+df_pair = cbind(data.table::data.table(subsample = unname(as.vector(bb$subsample)), cluster = unname(as.vector(bb$seuratclusters53))), df_pair)
+df_pair = df_pair[, lapply(.SD, as.numeric), by=.(subsample, cluster)]
+df_pair_mean = df_pair[, lapply(.SD, mean), by=.(subsample, cluster)]
+df_pair_mean = df_pair_mean[order(df_pair_mean$cluster, df_pair_mean$subsample)]
+write.csv(df_pair_mean, "~/scratch/brain/data/adjusted_53_means_53_051722.csv")
 
 #*******************************************************************************
 # PCRC Correlations Final ======================================================
@@ -8443,11 +8496,12 @@ for (i in 1:length(unique(bb$pair))) {
 }
 gene_names = rownames(bb)
 setwd("~/scratch/brain/CichlidDataFolder/")
-for (i in 1:length(unique(bb$pair))) {
+for (i in 1:19) {
   print(i)
-  pair = unique(bb$pair)[i]
   imp_mat = data.table::fread(paste0("~/scratch/brain/CichlidDataFolder/", i, "_pair/_recon.csv"))
   imp_mat_idx = imp_mat$V1
+  imp_mat_subs = unique(bb$subsample[match(colnames(imp_mat)[2:ncol(imp_mat)], colnames(bb))])
+  pair = bb$pair[which(!bb$subsample %in% imp_mat_subs)][1]
   if (is.character(imp_mat_idx[1])) {
     data_to_write <- as.matrix(bb@assays$RNA@counts[imp_mat_idx, which(bb$pair == pair)])
   } else {
@@ -8455,8 +8509,46 @@ for (i in 1:length(unique(bb$pair))) {
     data_to_write <- as.matrix(bb@assays$RNA@counts[imp_mat_genes, which(bb$pair == pair)])
   }
   fwrite(x=data_to_write, row.names=TRUE, file=paste0("~/scratch/brain/CichlidDataFolder/", i, "_pair/include/include_counts.csv.gz"), compress="gzip")
-  write.csv(data.frame(mzebra = imp_mat_genes), paste0("~/scratch/brain/CichlidDataFolder/", i, "_pair/genes_to_use.csv"))
+  # write.csv(data.frame(mzebra = imp_mat_genes), paste0("~/scratch/brain/CichlidDataFolder/", i, "_pair/genes_to_use.csv"))
 }
+
+subs = unique(bb$subsample)
+for (i in 1:38) {
+  print(i)
+  data_to_write <- as.matrix(bb@assays$RNA@counts[, which(bb$subsample == subs[i])])
+  fwrite(x=data_to_write, row.names=TRUE, file=paste0("~/scratch/brain/CichlidDataFolder/ind/", i, "/counts.csv.gz"), compress="gzip")
+}
+
+all_genes = rownames(bb)
+for (i in 1:38) {
+  print(i)
+  df_pair = data.table::fread(paste0("~/scratch/brain/CichlidDataFolder/ind/", i, "/_recon.csv"))
+  df_pair = t(df_pair)
+  colnames(df_pair) = df_pair[1,]
+  if (! all(is.na(as.numeric(colnames(df_pair)[1:5]))) ) { print("Need to convert numbers to genes."); colnames(df_pair) = gene_names[as.numeric(colnames(df_pair))] }
+  df_pair = df_pair[-1,]
+  df_pair = t(df_pair)
+  all_genes = all_genes[which(all_genes %in% rownames(df_pair))]
+}
+all_genes = sort(all_genes)
+all_imp = list()
+for (i in 1:38) {
+  print(i)
+  df_pair = data.table::fread(paste0("~/scratch/brain/CichlidDataFolder/ind/", i, "/_recon.csv"))
+  df_pair = t(df_pair)
+  colnames(df_pair) = df_pair[1,]
+  if (! all(is.na(as.numeric(colnames(df_pair)[1:5]))) ) { print("Need to convert numbers to genes."); colnames(df_pair) = gene_names[as.numeric(colnames(df_pair))] }
+  df_pair = df_pair[-1,]
+  df_pair = t(df_pair)
+  df_pair = df_pair[all_genes,]
+  all_imp[[i]] = df_pair
+}
+all_imp_mat = do.call(cbind, all_imp)
+all_imp_mat = t(all_imp_mat)
+all_imp_sub = cbind(data.table::data.table(subsample = unname(as.vector(bb$subsample[match(rownames(all_imp_mat), colnames(bb))]))), all_imp_mat)
+all_imp_sub = all_imp_sub[, lapply(.SD, as.numeric), by=subsample]
+all_imp_sub_mean = all_imp_sub[, lapply(.SD, mean), by=subsample]
+write.csv(all_imp_sub_mean, "~/scratch/brain/CichlidDataFolder/ind/ind_imp_mat.csv")
 
 rgc = readRDS("C:/Users/miles/Downloads/rgc_subclusters.rds")
 pcrc = read.csv("C:/Users/miles/Downloads/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
