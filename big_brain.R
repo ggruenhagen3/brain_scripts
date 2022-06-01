@@ -6497,6 +6497,41 @@ n_high2_markers = FindMarkers(bb, ident.1 = T, ident.2 = F, logfc.threshold = 0.
 n_high2_markers = n_high2_markers[which(n_high2_markers$p_val_adj < 0.05),]
 Idents(bb) = bb$seuratclusters53
 
+# Are any other genes differentially expressed in these cells?
+aro_bhve_up_cells = colnames(rgc_sub)[which(rgc_sub@assays$RNA@counts["LOC106675461",] > 0 & rgc_sub$seurat_clusters %in% c(3, 4, 6, 7) & rgc_sub$cond == "BHVE")]
+other_cells = colnames(rgc_sub)[which(rgc_sub$seurat_clusters %in% c(3, 4, 6, 7) & rgc_sub$cond == "CTRL")]
+rgc_sub$tmp = "none"
+rgc_sub$tmp[other_cells] = "other"
+rgc_sub$tmp[aro_bhve_up_cells] = "aro_bhve_up"
+Idents(rgc_sub) = rgc_sub$tmp
+aro_bhve_up_markers = FindMarkers(rgc_sub, ident.1 = "aro_bhve_up", ident.2 = "other")
+
+# What genes mark these cells?
+rgc_sub$tmp = "none"
+rgc_sub$tmp[aro_bhve_up_cells] = "aro_bhve_up"
+Idents(rgc_sub) = rgc_sub$tmp
+aro_bhve_up_cells_markers = FindMarkers(rgc_sub, ident.1 = "aro_bhve_up", ident.2 = "none")
+aro_bhve_up_cells_markers$gene = rownames(aro_bhve_up_cells_markers)
+aro_bhve_up_cells_markers$hgnc = gene_info$human[match(aro_bhve_up_cells_markers$gene, gene_info$mzebra)]
+
+# Are there any other DEGs?
+rgc_sub$cond_cluster = paste0(rgc_sub$cond, "_", rgc_sub$seurat_clusters)
+Idents(rgc_sub) = rgc_sub$cond_cluster
+rgc_sub_cond_deg = data.frame()
+for (i in 0:10) {
+  print(i)
+  this_deg = FindMarkers(rgc_sub, ident.1 = paste0("BHVE_", i), ident.2 = paste0("CTRL_", i))
+  this_deg = this_deg[which(this_deg$p_val_adj < 0.05),]
+  if (nrow(this_deg) > 0) {
+    this_deg$gene = rownames(this_deg)
+    this_deg$hgnc = gene_info$human[match(this_deg$gene, gene_info$mzebra)]
+    this_deg$cluster = i
+    rgc_sub_cond_deg = rbind(rgc_sub_cond_deg, this_deg)
+  }
+}
+Idents(rgc_sub) = rgc_sub$cond
+test = FindMarkers(rgc_sub, ident.1 = "BHVE", ident.2 = "CTRL")
+
 # Find the correlation w/ this new list
 
 #***************************************************
@@ -6518,6 +6553,90 @@ for (pair_idx in 1:19) {
   df_pair_n = readImpMat(paste0(base_folder, pair_idx, "_pair/_recon.csv"))
   df_pair_y = readImpMat(paste0(base_folder, pair_idx, "_pair/include/_recon.csv"))
 }
+
+#*******************************************************************************
+# PCRC Correlations Final ======================================================
+#*******************************************************************************
+library("WGCNA")
+library("dbscan")
+pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
+
+# Local
+data_mat = bb@assays$RNA@data[names(pcrc_rowSums)[which(pcrc_rowSums > 0)],]
+cor_mat = cor(x = t(as.matrix(data_mat)))
+cor_mat_pam_k = data.frame(module = as.character(pam(dist(1 - cor_mat), 2, diss = T)[["clustering"]]), row.names = rownames(cor_mat))
+max_cor_mat = max(cor_mat[which(cor_mat != 1)])
+cor_mat[which(cor_mat == 1)] = max_cor_mat
+pheatmap_res = pheatmap::pheatmap(dist(1 - cor_mat), show_rownames = T, show_colnames = T, annotation_row = cor_mat_pam_k, annotation_col = cor_mat_pam_k, clustering_distance_rows = dist(1-cor_mat), clustering_distance_cols = dist(1-cor_mat), border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test_cdg_right.pdf")
+hcl = "hi"
+my_callback = function(hcl, mat) { print(hcl); hcl <<- hcl; return(hcl) }
+pheatmap_res = pheatmap::pheatmap(cor_mat, show_rownames = T, show_colnames = T, clustering_callback = my_callback, annotation_row = cor_mat_pam_k, annotation_col = cor_mat_pam_k, clustering_distance_rows = "correlation", clustering_distance_cols = "correlation", border_color = NA, cellwidth = 7, cellheight = 7, file = "C:/Users/miles/Downloads/test_cdg_wrong.pdf")
+dend = as.dendrogram(hcl)
+dynamicMods = dynamicTreeCut::cutreeDynamic(dendro = hcl, distM = 1-cor_mat, pamRespectsDendro = FALSE, minClusterSize = 5);
+df = data.frame(module = dynamicMods, row.names = rownames(cor_mat))
+pheatmap_res = pheatmap::pheatmap(cor_mat, show_rownames = T, show_colnames = T, annotation_row = df, annotation_col = df, clustering_distance_rows = "correlation", clustering_distance_cols = "correlation", border_color = NA, cellwidth = 7, cellheight = 7, file = "C:/Users/miles/Downloads/test_cdg_wrong_dynamic.pdf")
+
+# cor_dist = as.dist(1-cor_mat)
+# pheatmap_res = pheatmap::pheatmap(cor_dist, show_rownames = T, show_colnames = T, clustering_distance_rows = cor_dist, clustering_distance_cols = cor_dist, border_color = NA, cellwidth = 7, cellheight = 7, file = "C:/Users/miles/Downloads/test_cdg_wrong2.pdf")
+
+# Bulk Module Discovery
+library("cluster")
+pcrc_rowSums = rowSums(bb@assays$RNA@counts[c(pcrc),] > 0)
+data_mat_c = t(bb@assays$RNA@data[names(pcrc_rowSums)[which(pcrc_rowSums > 0)],])
+powers = c(c(1:10), seq(from = 12, to=20, by=2))
+sft_c = pickSoftThreshold(data_mat_c, powerVector = powers, verbose = 5)
+adjacency = adjacency(data_mat_c, type = "signed", power = 1)
+TOM = adjacency
+dissTOM = 1-TOM
+
+mod_pam_raw = pam(dist(dissTOM), 2, diss = T)
+mod_pam = data.frame(module = as.character(mod_pam_raw[["clustering"]]), row.names = colnames(data_mat_c))
+pam_bulk_mod = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
+t.test(mod_pam_raw[["silinfo"]]$widths[which(mod_pam_raw[["silinfo"]]$widths[,1] == 2),3], mod_pam_raw[["silinfo"]]$widths[which(mod_pam_raw[["silinfo"]]$widths[,1] == 1),3], alternative = "greater")
+sd(mod_pam_raw[["silinfo"]]$widths[which(mod_pam_raw[["silinfo"]]$widths[,1] == 2),3])/sqrt(length(which(mod_pam_raw[["silinfo"]]$widths[,1] == 2)))
+kdf = data.frame(k = 1:152, avg.sil.width = 0)
+for (k in 2:152) {
+  kdf$avg.sil.width[k] = pam(dist(dissTOM), k, diss = T)[["silinfo"]]$avg.width
+}
+
+cor_mat = cor(data_mat_c)
+cor_df = melt(cor_mat)
+mod_cor = cor_df$value[which(cor_df$Var1 %in% pam_bulk_mod & cor_df$Var2 %in% pam_bulk_mod)]
+omod_cor = cor_df$value[which(! (cor_df$Var1 %in% pam_bulk_mod & cor_df$Var2 %in% pam_bulk_mod) )]
+omod_cor2 = cor_df$value[which( (!cor_df$Var1 %in% pam_bulk_mod) & (!cor_df$Var2 %in% pam_bulk_mod) )]
+t.test(mod_cor, omod_cor, alternative = "greater")
+t.test(mod_cor, omod_cor2, alternative = "greater")
+
+
+
+# RGC module discovery
+# pcrc_rowSums = rowSums(rgc_sub@assays$RNA@counts[c(pcrc),] > 0)
+# rgc_mat_c = t(rgc_sub@assays$RNA@data[names(pcrc_rowSums)[which(pcrc_rowSums > 0)],])
+# straight_to_RGC_module = c("cobl", "ddr1", "grik5", "iglon5", "lipe", "LOC101476914", "LOC101477204", "LOC101478087", "LOC101479283", "mef2d", "plekhf2", "plekhg4b", "wdr73")
+rgc_mat_c = t(rgc_sub@assays$RNA@data[pam_bulk_mod,])
+powers = c(c(1:10), seq(from = 12, to=20, by=2))
+sft_c = pickSoftThreshold(rgc_mat_c, powerVector = powers, verbose = 5)
+adjacency = adjacency(rgc_mat_c, type = "signed", power = 1)
+TOM = adjacency
+dissTOM = 1-TOM
+
+rgc_mod_pam_raw = pam(dist(dissTOM), 2, diss = T)
+rgc_mod_pam = data.frame(module = as.character(rgc_mod_pam_raw[["clustering"]]), row.names = colnames(rgc_mat_c))
+pam_rgc_mod = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "plekhg4b", "wdr73")
+t.test(rgc_mod_pam_raw[["silinfo"]]$widths[which(rgc_mod_pam_raw[["silinfo"]]$widths[,1] == 1),3], rgc_mod_pam_raw[["silinfo"]]$widths[which(rgc_mod_pam_raw[["silinfo"]]$widths[,1] == 2),3], alternative = "greater")
+sd(rgc_mod_pam_raw[["silinfo"]]$widths[which(rgc_mod_pam_raw[["silinfo"]]$widths[,1] == 1),3])/sqrt(length(which(rgc_mod_pam_raw[["silinfo"]]$widths[,1] == 1)))
+rgc_kdf = data.frame(k = 1:11, avg.sil.width = 0)
+for (k in 2:11) {
+  rgc_kdf$avg.sil.width[k] = pam(dist(dissTOM), k, diss = T)[["silinfo"]]$avg.width
+}
+rgc_cor_mat = cor(rgc_mat_c)
+rgc_cor_df = melt(rgc_cor_mat)
+mod_rgc_cor = rgc_cor_df$value[which(rgc_cor_df$Var1 %in% pam_rgc_mod & rgc_cor_df$Var2 %in% pam_rgc_mod)]
+omod_rgc_cor = rgc_cor_df$value[which(! (rgc_cor_df$Var1 %in% pam_rgc_mod & rgc_cor_df$Var2 %in% pam_rgc_mod) )]
+omod_rgc_cor2 = rgc_cor_df$value[which( (!rgc_cor_df$Var1 %in% pam_rgc_mod) & (!rgc_cor_df$Var2 %in% pam_rgc_mod) )]
+t.test(mod_rgc_cor, omod_rgc_cor, alternative = "greater")
+t.test(mod_rgc_cor, omod_rgc_cor2, alternative = "greater")
+
 
 #***************************************************
 # Neurogen and PCRC Correlations Final =============
@@ -8343,4 +8462,26 @@ rgc = readRDS("C:/Users/miles/Downloads/rgc_subclusters.rds")
 pcrc = read.csv("C:/Users/miles/Downloads/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
 Idents(rgc) = rgc$rgc_subcluster
 real_res = markerExpPerCellPerClusterQuick(rgc, pcrc)
+
+#******************************************************************************
+# Monocle 05/26/22 ============================================================
+#******************************************************************************
+library('viridis')
+library("SeuratWrappers")
+cds <- as.cell_data_set(bb)
+cds = cluster_cells(cds)
+cds = learn_graph(cds, use_partition = F)
+cds = order_cells(cds, root_cells = colnames(bb)[which(bb$seuratclusters53 == 20)])
+pdf("~/scratch/brain/results/bb_monocle_test253.pdf", width = 5, height = 5)
+plot_cells(cds, label_groups_by_cluster=FALSE,  color_cells_by = "seuratclusters53", show_trajectory_graph = TRUE, label_leaves=F, label_branch_points=F, label_roots=F)
+dev.off()
+pdf("~/scratch/brain/results/bb_monocle_test2.pdf", width = 5, height = 5)
+plot_cells(cds, color_cells_by = "pseudotime", show_trajectory_graph = TRUE, label_leaves=F, label_branch_points=F)
+dev.off()
+bb$pseudotime = cds@principal_graph_aux@listData$UMAP$pseudotime[match(colnames(bb), names(cds@principal_graph_aux@listData$UMAP$pseudotime))]
+max_time = max(bb$pseudotime[which(is.finite(bb$pseudotime))])
+bb$pseudotime[which(bb$pseudotime > max_time)] = max_time
+pdf("~/scratch/brain/results/bb_monocle_test2_seurat.pdf", width = 6, height = 6)
+print(FeaturePlot(bb, "pseudotime", order = T, pt.size = 0.8) + scale_color_gradientn(colors = plasma(100)))
+dev.off()
 
