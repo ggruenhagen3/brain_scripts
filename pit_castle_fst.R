@@ -316,3 +316,23 @@ for (i in 1:nrow(high_fst3)) {
   pit_lists[[i]] = res[[1]]
   castle_lists[[i]] = res[[2]]
 }
+
+#*******************************************************************************
+# Linkage Disequilibrium =======================================================
+#*******************************************************************************
+library(dplyr)
+library(plyr)
+library(data.table)
+ld = data.table::fread("~/scratch/brain/fst/sample_vcf/pit_ld_1kb.geno.ld")
+ld$BIN_START = round_any(ld$POS1, 10000, f = ceiling)
+ld$R2 = ld[,5]
+ld$BIN_ID = paste0(ld$CHROM, "_", ld$BIN_START)
+test = ld %>% group_by(BIN_START) %>% summarise(across(R2, mean, na.rm = TRUE))
+test = ld[,mean(R2), by = list(BIN_ID)]
+
+# ld_complete = ld[which( ! is.na(ld[,5]) ),]
+# ld_complete$BIN_START = round_any(ld_complete$POS1, 10000, f = ceiling)
+# ld_complete$BIN_START1 = round_any(ld_complete$POS1, 10000, f = ceiling)
+# ld_complete$BIN_START2 = round_any(ld_complete$POS2, 10000, f = ceiling)
+# ld_complete$BIN_ID = paste0(ld_complete$CHROM, "_", ld_complete$BIN_START)
+
