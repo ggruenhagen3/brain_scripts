@@ -69,7 +69,8 @@ nperm = 10000
 # pcrc = c("cobl", "ddr1", "fhod3", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73", "boc", "LOC101487687", "epha3", "metrn", "LOC101480727", "vegfa", "LOC101469419")
 # pcrc = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
 # pcrc = c("LOC101463785", "hes1", "LOC101470264", "s100b", "LOC101484507", "LOC101464395", "id1", "fezf2", "jag1", "fabp7", "fgfbp3", "slc1a2", "LOC101463816", "selenop")
-pcrc = c("pcna", "dlx2", "mcm5", "mcm2", "mcm7", "ccnd1", "notch1", "ranbp1")
+# pcrc = c("pcna", "dlx2", "mcm5", "mcm2", "mcm7", "ccnd1", "notch1", "ranbp1")
+pcrc = c("sox4", "sox11", "mex3a", "bhlhe22", "LOC101477131", "LOC101469831", "elavl3", "celsr3", "nfix", "zeb2")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -124,7 +125,7 @@ colnames(perm_df) = clusters
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
 
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_c_060722.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_nb_060722.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
