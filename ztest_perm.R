@@ -79,7 +79,8 @@ nperm = 10000
 # pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
 # zGenePops = read.csv("~/scratch/brain/data/goi_1plus_by_trial_id_122121.csv")[,1]
 # pcrc = c("cobl", "ddr1", "fhod3", "LOC101476487", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73", "LOC101476922", "boc", "LOC101487687", "epha3", "erbb2", "met", "metrn", "pax6", "smo", "LOC101480727", "LOC101469466", "vegfa", "LOC101469419")
-pcrc = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
+# pcrc = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
+pcrc = c("LOC101463785", "hes1", "LOC101470264", "s100b", "LOC101484507", "LOC101464395", "id1", "fezf2", "jag1", "fabp7", "fgfbp3", "slc1a2", "LOC101463816", "selenop")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -140,22 +141,23 @@ colnames(perm_df) = clusters
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
   
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_wgcna_kmeans_mod_10k_53_053122.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_q_10k_53_060722.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
-# 
+
 # p_df = data.frame()
 # perm_df_log = -log10(perm_df)
 # for (cluster in clusters) {
-#   neg = length(which(perm_df_log[,as.character(cluster)] <= real_res_log))
+#   # neg = length(which(perm_df_log[,as.character(cluster)] <= real_res_log))
 #   neg = length(which(perm_df[,as.character(cluster)] <= real_res[cluster + 1]))
 #   p_df = rbind(p_df, data.frame(cluster, neg))
 # }
 # p_df$cluster = factor(p_df$cluster, levels = clusters)
 # p_df$p = ((nperm - p_df$neg) / nperm) * 100
 # p_df$bon = p.adjust(p_df$p/100, method = "BH")
+
 # ggplot(p_df, aes(x = cluster, y = neg)) + geom_bar(stat = 'identity') + geom_text(aes(label=neg),hjust=0.5, vjust=1, color = 'white') + ggtitle("Number of Perms Less Than Or Equal to Real")
 # ggplot(p_df, aes(x = cluster, y = p))   + geom_bar(stat = 'identity', fill = 'gray60') + geom_text(aes(label=p),hjust=0.5, vjust=1, color = 'black')   + ggtitle("p per cluster") + theme_bw()
-# 
+
 # # p_df = data.frame()
 # # # perm_df_log = -log10(perm_df)
 # # # for (gene in zGenePops) {
