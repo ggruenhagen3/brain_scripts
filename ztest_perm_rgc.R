@@ -61,14 +61,15 @@ bb = readRDS(paste0(rna_path, "data/rgc_subclusters.rds"))
 Idents(bb) = bb$rgc_subcluster
 
 # Set Number of Permutations
-nperm = 100000
+nperm = 10000
 
 # Load in Real PCRC List
 # pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_peak_by_bin.csv")[,2]
 # pcrc = c(c("cobl", "LOC101479283", "wdr73", "plekhg4b", "grik5", "LOC101476487", "LOC101476914", "ddr1", "LOC101477204", "plekhf2"), c("csf1r", "LOC101480727", "vegfa", "LOC101484715", "arhgef10", "stat3", "erbb2", "smo", "epha3", "LOC101469419", "LOC101487687", "boc", "pax6", "metrn", "LOC101469466"))
 # pcrc = c("cobl", "ddr1", "fhod3", "LOC101476914", "LOC101477204", "LOC101479283", "plekhf2", "plekhg4b", "wdr73", "boc", "LOC101487687", "epha3", "metrn", "LOC101480727", "vegfa", "LOC101469419")
 # pcrc = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
-pcrc = c("LOC101463785", "hes1", "LOC101470264", "s100b", "LOC101484507", "LOC101464395", "id1", "fezf2", "jag1", "fabp7", "fgfbp3", "slc1a2", "LOC101463816", "selenop")
+# pcrc = c("LOC101463785", "hes1", "LOC101470264", "s100b", "LOC101484507", "LOC101464395", "id1", "fezf2", "jag1", "fabp7", "fgfbp3", "slc1a2", "LOC101463816", "selenop")
+pcrc = c("pcna", "dlx2", "mcm5", "mcm2", "mcm7", "ccnd1", "notch1", "ranbp1")
 
 # Sort genes by their # of UMIs
 gene_counts = data.frame(rowSums(bb@assays$RNA@counts))
@@ -123,7 +124,7 @@ colnames(perm_df) = clusters
 # perm_df_melt$above = perm_df_melt$neg_log_p > real_res_log[as.numeric(as.vector(perm_df_melt$variable)) + 1]
 
 # ggplot(perm_df_melt, aes(x = value, fill = above, color = above)) + geom_histogram() + facet_wrap(~ variable)
-write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_q_060722.csv")
+write.csv(perm_df, "~/scratch/brain/results/ztest_perm_rgc_c_060722.csv")
 # write.csv(perm_df, "~/scratch/brain/results/ztest_perm_10k_all_dgene_120321.csv")
 
 # p_df = data.frame()
