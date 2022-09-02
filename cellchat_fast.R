@@ -73,8 +73,6 @@ CellChatWeights = function(x) {
   
   cellchat@DB = CellChatDB.human
   cellchat = subsetData(cellchat)
-  # invisible(capture.output( cellchat = identifyOverExpressedGenes(cellchat)        ))
-  # invisible(capture.output( cellchat = identifyOverExpressedInteractions(cellchat) ))
   cellchat = identifyOverExpressedGenes(cellchat)
   cellchat = identifyOverExpressedInteractions(cellchat)
   
