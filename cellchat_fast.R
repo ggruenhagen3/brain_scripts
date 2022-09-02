@@ -90,14 +90,14 @@ CellChatWeights = function(x) {
 }
 
 message("Running cellchat (this while take awhile)...")
-if (do.down) { num.parallel.jobs = 4 } else { num.parallel.jobs = 2 }
+if (do.down) { num.parallel.jobs = 4 } else { num.parallel.jobs = 4 }
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
 run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
 sink()
 
-out = do.call('cbind', run_outs)
-colnames(out) = c("run", 1:num.perms)
+out = as.data.frame(do.call('cbind', run_outs))
+colnames(out) = paste0("run", 1:num.perms)
 out[, c("clust1", "clust2")] = reshape2::colsplit(names(run_outs[[1]]), "\\.", c("1", "2"))
 out = out[, c(num.perms+1, num.perms+2, 1:num.perms)]
 message("Done.")
