@@ -86,17 +86,17 @@ CellChatWeights = function(x) {
   net_weight_vect = unlist(net_weight)
   name_rep = rep(rownames(net_weight), ncol(net_weight))
   names(net_weight_vect) = paste0(name_rep, ".", sort(name_rep))
-  return(list(net_weight_vect))
+  return(net_weight_vect)
 }
 
 message("Running cellchat (this while take awhile)...")
 if (do.down) { num.parallel.jobs = 4 } else { num.parallel.jobs = 2 }
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
-run_outs = mclapply(1:2, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
+run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
 sink()
 
-out = as.data.frame(t(data.table::rbindlist(run_outs)))
+out = do.call('cbind', run_outs)
 colnames(out) = c("run", 1:num.perms)
 out[, c("clust1", "clust2")] = reshape2::colsplit(names(run_outs[[1]]), "\\.", c("1", "2"))
 out = out[, c(num.perms+1, num.perms+2, 1:num.perms)]
