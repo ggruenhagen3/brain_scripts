@@ -20,7 +20,7 @@ message("Loading bb...")
 setwd("~/scratch/brain/cellchat/")
 gene_info = read.table("gene_info.txt", sep="\t", header = T, stringsAsFactors = F) 
 combined = readRDS("bb_demux_012422.rds")
-labels = read.csv("primary_w_rgc_labels.csv")
+labels = read.csv("primary_no_rgc_labels.csv")
 combined$label = labels$x
 meta = data.frame(label = combined$label, row.names = colnames(combined))
 message("Done.")
@@ -53,7 +53,7 @@ message("Creating a Human Object...")
 mz.df = data.frame(mz = rownames(combined), human = gene_info$human[match(rownames(combined), gene_info$mzebra)])
 mz.df$rowsums = rowSums(combined@assays$RNA@data)
 mz.df = mz.df[order(-mz.df$rowsums),]
-mz.df = mz.df[which(mz.df$rowsums != 0),]
+mz.df = mz.df[which(mz.df$rowsums != 0 & mz.df$human != "" & !is.na(mz.df$human)),]
 
 mz.df = mz.df[!duplicated(mz.df$human),]
 data.input = as.matrix(combined@assays$RNA@data[mz.df$mz,])
@@ -88,7 +88,7 @@ CellChatWeights = function(x) {
 }
 
 message("Running cellchat (this while take awhile)...")
-if (do.down) { num.parallel.jobs = 4 } else { num.parallel.jobs = 4 }
+if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 6 }
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
 run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
