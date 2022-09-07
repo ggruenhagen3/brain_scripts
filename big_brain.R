@@ -6682,10 +6682,18 @@ pcrc = read.csv("~/scratch/brain/fst/pc_20_rc_20_10kb_bins_25kb_genes_on_lg_11_p
 # Local
 data_mat = bb@assays$RNA@data[names(pcrc_rowSums)[which(pcrc_rowSums > 0)],]
 cor_mat = cor(x = t(as.matrix(data_mat)))
-cor_mat_pam_k = data.frame(module = as.character(pam(dist(1 - cor_mat), 2, diss = T)[["clustering"]]), row.names = rownames(cor_mat))
 max_cor_mat = max(cor_mat[which(cor_mat != 1)])
 cor_mat[which(cor_mat == 1)] = max_cor_mat
-pheatmap_res = pheatmap::pheatmap(dist(1 - cor_mat), show_rownames = T, show_colnames = T, annotation_row = cor_mat_pam_k, annotation_col = cor_mat_pam_k, clustering_distance_rows = dist(1-cor_mat), clustering_distance_cols = dist(1-cor_mat), border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test_cdg_right.pdf")
+cor_mat_order = read.csv("C:/Users/miles/Downloads/wgcna_pam_widths.csv")
+cor_mat_order = cor_mat_order[order(cor_mat_order$cluster, decreasing = T),]
+cor_mat = cor_mat[cor_mat_order$X, cor_mat_order$X]
+cor_mat_pam_k = data.frame(module = tolower(as.character(rownames(cor_mat) %in% mod)), row.names = rownames(cor_mat))
+# ann_cols = c("#b5a61f", "#FDE725")
+# names(ann_cols) = c("TRUE", "FALSE")
+ann_cols = list(module = c(true="#FF9E24", false="#FDE725"))
+# cor_mat = as.numeric(cor_mat)
+pheatmap_res = pheatmap::pheatmap(cor_mat, color = viridis(100), show_rownames = F, show_colnames = F, annotation_row = cor_mat_pam_k, annotation_col = cor_mat_pam_k, annotation_colors = ann_cols, cluster_rows = F, cluster_cols = F, border_color = NA, cellwidth = 5, cellheight = 5, file = "C:/Users/miles/Downloads/test_cdg_right.pdf")
+
 hcl = "hi"
 my_callback = function(hcl, mat) { print(hcl); hcl <<- hcl; return(hcl) }
 pheatmap_res = pheatmap::pheatmap(cor_mat, show_rownames = T, show_colnames = T, clustering_callback = my_callback, annotation_row = cor_mat_pam_k, annotation_col = cor_mat_pam_k, clustering_distance_rows = "correlation", clustering_distance_cols = "correlation", border_color = NA, cellwidth = 7, cellheight = 7, file = "C:/Users/miles/Downloads/test_cdg_wrong.pdf")
@@ -6712,7 +6720,7 @@ mod_pam = data.frame(module = as.character(mod_pam_raw[["clustering"]]), row.nam
 pam_bulk_mod = c("cobl", "ddr1", "fhod3", "grik5", "LOC101476914", "LOC101477204", "LOC101479283", "LOC105941351", "nbeal2", "plekhf2", "plekhg4b", "wdr73")
 t.test(mod_pam_raw[["silinfo"]]$widths[which(mod_pam_raw[["silinfo"]]$widths[,1] == 2),3], mod_pam_raw[["silinfo"]]$widths[which(mod_pam_raw[["silinfo"]]$widths[,1] == 1),3], alternative = "greater")
 sd(mod_pam_raw[["silinfo"]]$widths[which(mod_pam_raw[["silinfo"]]$widths[,1] == 2),3])/sqrt(length(which(mod_pam_raw[["silinfo"]]$widths[,1] == 2)))
-kdf = data.frame(k = 1:152, avg.sil.width = 0)
+kdf = data.frame(k = 1:100, avg.sil.width = 0)
 for (k in 2:152) {
   kdf$avg.sil.width[k] = pam(dist(dissTOM), k, diss = T)[["silinfo"]]$avg.width
 }
@@ -7791,6 +7799,56 @@ bb53_b_dup[order(bb53_b_dup$mzebra),]
 
 # IEG Temporal =====================================================
 ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
+ieg_like_hgnc = gene_info$human[match(ieg_like, gene_info$mzebra)]
+tdf = read.csv("C:/Users/miles/Downloads/ieg_behavior_time_series_data_011822.csv")
+tdf = tdf[,which( startsWith(colnames(tdf), "trial_id") | startsWith(colnames(tdf), "build") | startsWith(colnames(tdf), "depth") | startsWith(colnames(tdf), "spawn") )]
+tdf = tdf[,which(! endsWith(colnames(tdf), ".1") ),]
+tdf = tdf[,which(! (startsWith(colnames(tdf), "depth") & ! endsWith(colnames(tdf), "adj")) )]
+tdf$trial_id = factor(tdf$trial_id, levels = levels(bb$trial_id))
+tdf$subsample = bb$subsample[match(tdf$trial_id, bb$trial_id)]
+tdf = tdf[order(tdf$subsample),]
+tdf_long = melt(tdf)
+tdf_long[, c("variable", "time")] = reshape2::colsplit(tdf_long$variable, "_", c("1", "2"))
+tdf_long$time = str_replace(tdf_long$time, "_adj", "")
+tdf_long$variable[which(tdf_long$variable == "depth")] = "depth_adj"
+tdf_long[, c("time_start", "time_stop")] = reshape2::colsplit(tdf_long$time, "_", c("1", "2"))
+tdf_long$time_start = as.numeric(tdf_long$time_start)
+tdf_long$time_stop  = as.numeric(tdf_long$time_stop)
+tdf_long$time = factor(tdf_long$time, levels = unique(tdf_long$time[order(tdf_long$time_start)]))
+tdf_long$time_clean = plyr::revalue(tdf_long$time, replace = c("5_35" = 90, "15_45" = 80, "25_55" = 70, "35_65" = 60, "45_75" = 50, "55_85" = 40, "65_95" = 30))
+
+tdf_long_build = tdf_long[which(tdf_long$variable == "build"),]
+tdf_long_depth_adj = tdf_long[which(tdf_long$variable == "depth_adj"),]
+
+ggplot(tdf_long_build, aes(x = time, y = value, color = trial_id, fill = trial_id, group = trial_id)) + geom_point() + geom_smooth(method = "loess", se = F, alpha = 0.2) + ggtitle("Build") + ylab("Build Events") + theme_bw() + NoLegend()
+ggplot(tdf_long[which(tdf_long$variable == "build" & startsWith(tdf_long$subsample, "b")),], aes(x = time, y = value, color = trial_id, fill = trial_id, group = trial_id)) + geom_point() + geom_smooth(method = "loess", se = F, alpha = 0.2) + ggtitle("Build in BHVE Males") + ylab("Build Events") + theme_bw() + NoLegend()
+ggplot(tdf_long[which(tdf_long$variable == "depth_adj" & startsWith(tdf_long$subsample, "b")),], aes(x = time, y = value, color = trial_id, fill = trial_id, group = trial_id)) + geom_point() + geom_smooth(method = "loess", se = F, alpha = 0.2) + ggtitle("Depth Adjusted in BHVE Males") + ylab("Depth Adjusted") + theme_bw() + NoLegend()
+
+png(paste0("C:/Users/miles/Downloads/bb_subsample_build.png"), type="cairo", width = 4.5, height = 4, units = 'in', res=150)
+print(ggplot(tdf_long[which(tdf_long$variable == "build" & startsWith(tdf_long$subsample, "b")),], aes(x = time, y = value, color = trial_id, fill = trial_id, group = trial_id)) + geom_point() + geom_smooth(method = "loess", se = F, alpha = 0.2) + ggtitle("Build in BHVE Males") + ylab("Build Events") + theme_bw() + NoLegend())
+dev.off()
+
+Idents(bb) = bb$subsample
+ieg_mean_subsample = t(myAverageExpression(bb, features = ieg_like))
+for (i in 1:length(ieg_like)) {
+  cat(paste0(i, "."))
+  ieg = ieg_like[i]
+  this_df = tdf_long_build
+  this_df$ieg_mean = ieg_mean_subsample[match(this_df$subsample, rownames(ieg_mean_subsample)), ieg]
+  this_dt = as.data.table(this_df)
+  this_dt_b = as.data.table(this_df[which(startsWith(this_df$subsample, "b")),])
+  ieg_r    = this_dt[ ,   .(r  = cor(ieg_mean, value)),     by = time_clean]
+  ieg_r2   = this_dt[ ,   .(r2 = cor(ieg_mean, value) ^ 2), by = time_clean]
+  ieg_r_b  = this_dt_b[ , .(r  = cor(ieg_mean, value)),     by = time_clean]
+  ieg_r2_b = this_dt_b[ , .(r2 = cor(ieg_mean, value) ^ 2), by = time_clean]
+  p1 = ggplot(ieg_r,   aes(x = time_clean, y = r, group = '1')) + geom_point() + geom_smooth(method = "loess", se = F) + xlab("Time (min to flash freeze)") + theme_bw() + ggtitle(paste0("All Males")) 
+  p2 = ggplot(ieg_r_b, aes(x = time_clean, y = r, group = '1')) + geom_point() + geom_smooth(method = "loess", se = F) + xlab("Time (min to flash freeze)") + theme_bw() + ggtitle(paste0("Behaving Males"))
+  png(paste0("C:/Users/miles/Downloads/brain/results/bb/ieg_time/build/", ieg, "_", ieg_like_hgnc[i], ".png"), type="cairo", width = 6, height = 3, units = 'in', res=300)
+  print(plot_grid(plotlist = list(p1, p2), ncol = 2))
+  dev.off()
+}
+
+ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
 ieg_sum = read.csv("C:/Users/miles/Downloads/ieg_summary_data_by_cat_cluster_goi_010321.csv")
 ieg_sum = ieg_sum[which(ieg_sum$is_sig),]
 ieg_sum$hgnc = ieg_sum$gene
@@ -8006,6 +8064,79 @@ for (cluster in unique(top5_53$cluster)) {
   cluster_str[cluster, "str"] = paste0(top5_53$symbol[which(top5_53$cluster == cluster)], collapse = ", ")
 }
 clipboard(cluster_str$str)
+=======
+ieg = read.csv("C:/Users/miles/Downloads/IEG_list.csv")
+zpng = read.csv("C:/Users/miles/Downloads/pNG_list.csv")
+cdg = read.csv("C:/Users/miles/Downloads/CDG_list.csv")
+gene_info = read.table("C:/Users/miles/Downloads/all_research/gene_info_2.txt")
+mz_zf_ens = read.table("C:/Users/miles/Downloads/cichlid_zebrafish.txt", sep = "\t", header = T)
+pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE)
+
+goi = read.csv("C:/Users/miles/Downloads/S5_goi_by_cat_and_other.csv")
+big.df = data.frame()
+# sig.mat = matrix(0L, nrow = 53, ncol = nrow(goi), dimnames = list(as.character(0:52), goi$mzebra))
+deg.files = list.files(path="C:/Users/miles/Downloads/brain/results/degs_for_george_082422/", pattern="*.csv", full.names=TRUE, recursive=FALSE)
+for (f in deg.files) {
+  i =which(deg.files == f)
+  print(i)
+  this.deg.org = read.csv(f)
+  if (i %in% c(1,4)) {
+    this.deg.org$hmp = this.deg.org$hmp_bower_all
+    this.deg.org$variable = "Build"
+  }
+  if (i %in% c(2,5)) { this.deg.org$variable = "GSI" }
+  if (i %in% c(3,6)) { this.deg.org$variable = "Quiver" }
+  if (i == 6) {
+    this.deg.org$mzebra = this.deg.org$gene
+    this.deg.org$sig_final = as.numeric(this.deg.org$sig_log_spawn_events == 5 & this.deg.org$hmp < 0.05)
+    
+  }
+  if (i %in% 1:3) { this.deg.org$level = "primary" } else { this.deg.org$level = "secondary" }
+  this.deg = this.deg.org[, c("mzebra", "level", "cluster", "hmp", "variable")]
+  this.deg$cluster = round(this.deg$cluster)
+  this.deg$sig = this.deg.org$sig_final == 1
+  big.df = rbind(big.df, this.deg)
+}
+big.df = big.df[which(big.df$mzebra %in% goi$mzebra),]
+big.df$neg_log_hmp = -log10(big.df$hmp)
+big.df$color = NA
+big.df$color[which(big.df$sig)] = big.df$variable[which(big.df$sig)]
+big.df = big.df[which(!is.na(big.df$color)),]
+# big.df$color[which(duplicated(big.df[, c("cluster", "mzebra")]) | duplicated(big.df[, c("cluster", "mzebra")], fromLast = T))] = "GSI+Quiver"
+big.df$color = factor(big.df$color, levels = c("Build", "Quiver", "GSI"))
+big.df$human = goi$human[match(big.df$mzebra, goi$mzebra)]
+big.df$label = big.df$mzebra
+big.df$label[which(startsWith(big.df$label, "LOC") & !is.na(big.df$human))] = tolower(big.df$human[which(startsWith(big.df$label, "LOC") & !is.na(big.df$human))])
+big.df$label = factor(big.df$label, levels = rev(sort(unique(big.df$label))))
+big.df$level_old = paste0(big.df$level, "_", big.df$cluster)
+big.df$new_cluster = convert_all$cluster[match(big.df$level_old, convert_all$level_old)]
+big.df$new_cluster = factor(big.df$new_cluster, levels = convert_all$cluster)
+big.df = big.df[order(big.df$neg_log_hmp, decreasing = T),]
+
+pdf("C:/Users/miles/Downloads/goi_by_cluster.pdf", width = 11, height = 4)
+print(ggplot(big.df, aes(x = new_cluster, y = label, color = color, size = neg_log_hmp)) + geom_point() + theme_classic() + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, colour = convert_all$color)) + scale_x_discrete(drop = F) + scale_color_manual(values = c(viridis(4)[4], viridis(4)[1], viridis(4)[3]), name = "Effect") + guides(size = guide_legend(title = expression("-"*Log["10"]*" hmp"))))
+dev.off()
+
+my_df = zpng
+colnames(my_df) = c("mzebra", "zfish", "mouse", "human")
+my_df$ens_me = gene_info$ens_me[match(my_df$mzebra, gene_info$seurat_name)]
+my_df$ens_mart = gene_info$ens_mart[match(my_df$mzebra, gene_info$seurat_name)]
+my_df$ens = gene_info$ens[match(my_df$mzebra, gene_info$seurat_name)]
+my_df$my_symbol = gene_info$my_symbol[match(my_df$mzebra, gene_info$seurat_name)]
+my_df$zebra1 = mz_zf_ens$Zebrafish.gene.name[match(my_df$ens_me, mz_zf_ens$Gene.name)]
+my_df$zebra2 = mz_zf_ens$Zebrafish.gene.name[match(my_df$ens_mart, mz_zf_ens$Gene.name)]
+my_df$zebra3 = mz_zf_ens$Zebrafish.gene.name[match(my_df$ens, mz_zf_ens$Gene.name)]
+my_df$zebra4 = mz_zf_ens$Zebrafish.gene.name[match(my_df$my_symbol, mz_zf_ens$Gene.name)]
+my_df$zebra5 = my_df$my_symbol
+my_df$zebra5[which(! my_df$zebra5 %in% mz_zf_ens$Zebrafish.gene.name )] = NA
+my_df$zfish = my_df$zebra1
+my_df$zfish[which(! is.na(my_df$zebra2) & my_df$zebra2 != "" )] = my_df$zebra2[which(! is.na(my_df$zebra2) & my_df$zebra2 != "" )]
+my_df$zfish[which(! is.na(my_df$zebra3) & my_df$zebra3 != "" )] = my_df$zebra3[which(! is.na(my_df$zebra3) & my_df$zebra3 != "" )]
+my_df$zfish[which(! is.na(my_df$zebra4) & my_df$zebra4 != "" )] = my_df$zebra4[which(! is.na(my_df$zebra4) & my_df$zebra4 != "" )]
+my_df$zfish[which(! is.na(my_df$zebra5) & my_df$zebra5 != "" )] = my_df$zebra5[which(! is.na(my_df$zebra5) & my_df$zebra5 != "" )]
+my_df = my_df[,1:4]
+
+write.csv(my_df, "C:/Users/miles/Downloads/CDG_list_w_zf.csv")
 
 subsample_df$pair.new = subsample_df$pair
 subsample_df$pair.new[1:19] = 1:19
@@ -8018,6 +8149,34 @@ bb$subsample.new = factor(bb$subsample.new, levels = unique(bb$subsample.new[ord
 my_pal = rainbow(19)
 my_pal = darken(my_pal, 0.15)
 show_col(my_pal)
+
+# Cell # and % by Cell Type and Individual
+cell_df_cluster = as.data.frame(table(bb$good_names))
+cell_df_subsample = as.data.frame(table(bb$subsample))
+cell_df_subsample$subsample2 = 38:1
+cell_df_subsample$subsample3 = c(paste0("b", 1:19), paste0("c", 1:19))
+cell_df = as.data.frame(table(paste0(bb$subsample, "-", bb$good_names)))
+cell_df[, c('subsample', 'cluster')] = reshape2::colsplit(cell_df$Var1, "-", c('1', '2'))
+cell_df$cluster_col = convert15$col[match(cell_df$cluster, convert15$new.full)]
+cell_df$cluster_total = cell_df_cluster$Freq[match(cell_df$cluster, cell_df_cluster$Var1)]
+cell_df$subsample_total = cell_df_subsample$Freq[match(cell_df$subsample, cell_df_subsample$Var1)]
+cell_df$prop_of_cluster = (cell_df$Freq / cell_df$cluster_total) * 100
+cell_df$prop_of_subsample = (cell_df$Freq / cell_df$subsample_total) * 100
+cell_df$cluster = factor(cell_df$cluster, levels = rev(convert15$new.full))
+cell_df$cluster_col = factor(cell_df$cluster_col, levels = rev(convert15$col))
+cell_df$subsample2 = cell_df_subsample$subsample2[match(cell_df$subsample, cell_df_subsample$Var1)]
+cell_df$subsample2 = factor(cell_df$subsample2, levels = 38:1)
+cell_df$subsample3 = factor(cell_df_subsample$subsample3[match(cell_df$subsample, cell_df_subsample$Var1)], levels = c(paste0("c", 1:19), paste0("b", 1:19)))
+
+pdf("C:/Users/miles/Downloads/bb_individual_by_cell_type_pct.pdf", width = 7.5, height = 3.5)
+ggplot(cell_df, aes(x = cluster, y = prop_of_cluster, fill = subsample2, color = subsample2, label = subsample2)) + geom_bar(alpha = 0.8, size = 1, stat = 'identity') + ylab("% of Cluster") + xlab("Cluster") + scale_y_continuous(expand = c(0,0)) + coord_flip() + theme_classic() + NoLegend()
+# ggplot(cell_df, aes(x = cluster, y = prop_of_cluster, fill = subsample2, color = subsample2, label = subsample2)) + geom_bar(alpha = 0.8, size = 1, stat = 'identity') + ylab("% of Cluster") + xlab("Cluster") + scale_y_continuous(expand = c(0,0)) + coord_flip() + theme_classic() + NoLegend() + geom_text(size = 3, color = 'black', position = position_stack(vjust = 0.5))
+dev.off()
+
+pdf("C:/Users/miles/Downloads/bb_cell_type_by_individual_pct.pdf", width = 8, height = 3)
+ggplot(cell_df, aes(x = subsample3, y = prop_of_subsample, fill = cluster_col, color = cluster_col)) + geom_bar(alpha = 0.8, size = 0.8, stat = 'identity') + ylab("% of Individual") + xlab("Cluster") + scale_y_continuous(expand = c(0,0)) + theme_classic() + NoLegend() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_fill_identity() + scale_color_identity()
+# ggplot(cell_df, aes(x = cluster, y = prop_of_cluster, fill = subsample2, color = subsample2, label = subsample2)) + geom_bar(alpha = 0.8, size = 1, stat = 'identity') + ylab("% of Cluster") + xlab("Cluster") + scale_y_continuous(expand = c(0,0)) + coord_flip() + theme_classic() + NoLegend() + geom_text(size = 3, color = 'black', position = position_stack(vjust = 0.5))
+dev.off()
 
 pdf("~/research/brain/results/supplement/ncountrna.pdf", width = 10, height = 4)
 # ggplot(bb@meta.data, aes(x = subsample, y = nCount_RNA, color = subsample)) + geom_boxplot(outlier.shape = NA) + geom_point(alpha = 0.05, position = position_jitterdodge()) + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + scale_y_continuous(expand = c(0,0)) + NoLegend() + xlab("")
@@ -8686,3 +8845,355 @@ within_means = sapply(0:52, function(x) mean(dist_mat[colnames(bb)[which(bb$seur
 out_of_means = sapply(0:52, function(x) mean(dist_mat[colnames(bb)[which(bb$seuratclusters53 != x)], colnames(bb)[which(bb$seuratclusters53 == x)]], na.rm = T))
 clust_means = data.frame(cluster = 0:52, within_clust_mean_dist = within_means, out_of_clust_mean_dist = out_of_means)
 clust_means$within_to_without = clust_means$within_clust_mean_dist / clust_means$out_of_clust_mean_dist
+
+#*******************************************************************************
+# RGC SUB ======================================================================
+#*******************************************************************************
+rgc_sub_deg = read.csv("C:/Users/miles/Downloads/rgc_subcluster_glmmseq_build_sig_052422_hgnc.csv")
+rgc_all_deg = read.csv("C:/Users/miles/Downloads/rgc_all_glmmseq_build_sig_060122_hgnc.csv")
+
+Idents(rgc_sub) = paste0(rgc_sub$trial_id, ".", rgc_sub$seurat_clusters)
+# rgc_sub_deg_12_avg = as.data.frame(t(AverageExpression(rgc_sub, features = rgc_sub_deg$gene[which(rgc_sub_deg$cluster %in% c(1,2))])[[1]]))
+rgc_sub_deg_12_avg = as.data.frame(t( myAverageExpression(rgc_sub, features = rgc_sub_deg$gene[which(rgc_sub_deg$cluster %in% c(1,2))]) ))
+colnames(rgc_sub_deg_12_avg) = rgc_sub_deg$gene[which(rgc_sub_deg$cluster %in% c(1,2))]
+rgc_sub_deg_12_avg[, c("trial_id", "subcluster")] = reshape2::colsplit(rownames(rgc_sub_deg_12_avg), "\\.", c("1", "2"))
+rgc_sub_deg_12_avg = rgc_sub_deg_12_avg[order(rgc_sub_deg_12_avg$subcluster, rgc_sub_deg_12_avg$trial_id), c("trial_id", "subcluster", colnames(rgc_sub_deg_12_avg)[1:(ncol(rgc_sub_deg_12_avg)-2)])]
+rgc_sub_deg_12_avg = rgc_sub_deg_12_avg[which(rgc_sub_deg_12_avg$subcluster %in% c(1, 2)),]
+write.csv(rgc_sub_deg_12_avg, "C:/Users/miles/Downloads/rgc_sub_degs_in_1_2_avgs_in_1_2.csv")
+
+# Idents(rgc_sub) = rgc_sub$seurat_clusters
+# rgc.markers = FindAllMarkers(rgc_sub, min.pct = 1e-100, logfc.threshold = 0, only.pos = T)
+
+rgc.markers = read.csv("C:/Users/miles/Downloads/rgc_subcluster_markers_minpct0_02_logfc0_060922_q.csv")
+df = data.frame()
+for (gene in final$mzebra) {
+  for (clust in 0:10) {
+    if (length(which(rgc.markers$cluster == clust & rgc.markers$gene == gene)) == 0) {
+      this.p = 1
+      this.bon = 1
+    } else {
+      this.p = rgc.markers$p_val[which(rgc.markers$cluster == clust & rgc.markers$gene == gene)]
+      this.bon = rgc.markers$p_val_adj[which(rgc.markers$cluster == clust & rgc.markers$gene == gene)]  
+    }
+    this.neg.log.bon = -log10(this.bon)
+    this.neg.log.p   = -log10(this.p)
+    df = rbind(df, data.frame(gene = gene, cluster = clust, p = this.p, bon = this.bon, neg_log_bon = this.neg.log.bon, neg_log_p = this.neg.log.p))
+  }
+}
+
+df$neg_log_p[which(df$neg_log_p > 7)] = 7
+df$hgnc = gene_info$human[match(df$gene, gene_info$mzebra)]
+df$gene_hgnc = paste0(df$gene, " (", tolower(df$hgnc), ")")
+df$label = as.vector(df$gene)
+df$label[which(startsWith(df$label, "LOC"))] = df$gene_hgnc[which(startsWith(df$label, "LOC"))]
+df$gene = factor(df$gene, levels = final$mzebra)
+df$label = factor(df$label, levels = unique(df$label[order(df$gene)]))
+df$cluster = factor(df$cluster, levels = 0:10)
+
+pdf("C:/Users/miles/Downloads/q_c_nb_findmarkers_p_0000001.pdf", width = 6, height = 4)
+ggplot(df, aes(x = label, y = cluster, fill = neg_log_p)) + geom_raster() + scale_fill_viridis() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + xlab("") + ylab("")
+dev.off()
+
+#*******************************************************************************
+# Make PCRC Network ============================================================
+#*******************************************************************************
+cor_mat2 = cor_mat
+cor_mat2[which(cor_mat < 0.10 | cor_mat == 1)] = 0
+cor_mat2 = cor_mat2[which(rowSums(cor_mat2) != 0), which(rowSums(cor_mat2) != 0)]
+my.nodes = data.frame(gene = colnames(cor_mat2), sum_cor = rowSums(cor_mat2), hgnc = gene_info$human[match(colnames(cor_mat2), gene_info$mzebra)])
+my.nodes$label = as.vector(my.nodes$gene)
+my.nodes$label[which(startsWith(my.nodes$label, "LOC"))] = tolower(my.nodes$hgnc[which(startsWith(my.nodes$label, "LOC"))])
+my.nodes$label[which(is.na(my.nodes$label))] = my.nodes$gene[which(is.na(my.nodes$label))]
+my.nodes$isMod = my.nodes$gene %in% mod
+my.nodes$col = "#21918C"
+my.nodes$col[which(my.nodes$isMod)] = "#FDE725"
+my.nodes$label.col = "#134f4c"
+my.nodes$label.col[which(my.nodes$isMod)] = "#c9b820"
+g1 = graph_from_adjacency_matrix(cor_mat2, weighted=T, mode="undirected", diag=F)
+V(g1)$size <- my.nodes$sum_cor*8
+V(g1)$frame.color <- "white"
+V(g1)$color <- my.nodes$col
+V(g1)$label = my.nodes$label
+V(g1)$label.dist = 1
+V(g1)$label.color = my.nodes$label.col
+E(g1)$arrow.mode <- 0
+E(g1)$width = E(g1)$weight*10
+lfr <- layout_with_fr(g1)
+pdf("C:/Users/miles/Downloads/test.pdf", width = 5, height = 5)
+plot(g1)
+dev.off()
+tkid <- tkplot(g1, vertex.label.color=my.nodes$label.col, vertex.label=my.nodes$label, vertex.label.dist=1)
+l <- tkplot.getcoords(tkid)
+tk_close(tkid, window.close = T)
+
+pdf("C:/Users/miles/Downloads/tes2.pdf", width = 5, height = 5)
+plot(g1, layout = l)
+dev.off()
+
+plot(net.bg)
+cor_mat_df = reshape2::melt(cor_mat)
+cor_mat_df = cor_mat_df[which(cor_mat_df$Var1 != cor_mat_df$Var2),]
+colnames(cor_mat_df) = c("Source", "Target", "Value")
+cor_mat_df = cor_mat_df[which(cor_mat_df$Value >= 0.05),]
+write.csv(cor_mat_df, "C:/Users/miles/Downloads/pcrc_cor_05.csv", row.names = F)
+cor_mat_df = cor_mat_df[which(cor_mat_df$Value >= 0.10),]
+write.csv(cor_mat_df, "C:/Users/miles/Downloads/pcrc_cor_10.csv", row.names = F)
+cor_mat_df = cor_mat_df[which(cor_mat_df$Value >= 0.15),]
+write.csv(cor_mat_df, "C:/Users/miles/Downloads/pcrc_cor_15.csv", row.names = F)
+
+#*******************************************************************************
+# Aromatase ====================================================================
+#*******************************************************************************
+er_df = data.frame(mzebra = c("LOC101481777", "LOC101469694", "LOC101469665", "LOC101466090", "LOC101479381", "LOC101469072", "esr2", "esrrb"), hgnc = c("ESRRGA", "ESRRGB", "ESRRG?", "ESRRA", "ESR1", "ESR2A", "ESR2B", "ESRRB"), all_bai_r = 0, bhve_bai_r = 0, all_aro3_r = 0, bhve_aro3_r = 0)
+
+ind_df = unique(bb@meta.data[, c("trial_id", "subsample", "pair", "sample", "cond", "bower_activity_index")])
+row.names(ind_df) = ind_df[, "subsample"]
+rgc_sub$subsample = factor(rgc_sub$subsample, levels = ind_df$subsample)
+bb$subsample = factor(bb$subsample, levels = ind_df$subsample)
+# ind_df$aro_rgc3_cells = as.data.frame(table(rgc_sub$subsample[which(rgc_sub@assays$RNA@counts["LOC106675461",] > 0 & rgc_sub$seurat_clusters == 3)]))[,2]
+# ind_df$aro_rgc3_sum_count = aggregate(rgc_sub@assays$RNA@counts["LOC106675461", which(rgc_sub$seurat_clusters == 3)], by = list(rgc_sub$subsample[which(rgc_sub$seurat_clusters == 3)]), sum)[,2]
+# ind_df$aro_rgc3_avg_count = aggregate(rgc_sub@assays$RNA@counts["LOC106675461", which(rgc_sub$seurat_clusters == 3)], by = list(rgc_sub$subsample[which(rgc_sub$seurat_clusters == 3)]), mean)[,2]
+ind_df$aro_rgc3  = aggregate(rgc_sub@assays$RNA@data[  "LOC106675461", which(rgc_sub$seurat_clusters == 3)], by = list(rgc_sub$subsample[which(rgc_sub$seurat_clusters == 3)]), mean, drop=F)[,2]
+# ind_df$aro_rgc_cells = as.data.frame(table(rgc_sub$subsample[which(rgc_sub@assays$RNA@counts["LOC106675461",] > 0)]))[,2]
+# ind_df$aro_rgc_sum_count = aggregate(rgc_sub@assays$RNA@counts["LOC106675461",], by = list(rgc_sub$subsample), sum)[,2]
+# ind_df$aro_rgc_avg_count = aggregate(rgc_sub@assays$RNA@counts["LOC106675461",], by = list(rgc_sub$subsample), mean)[,2]
+ind_df$aro_rgc  = aggregate(rgc_sub@assays$RNA@data[  "LOC106675461",], by = list(rgc_sub$subsample), mean, drop=F)[,2]
+for (i in 1:nrow(er_df)) {
+  er = er_df$mzebra[i]
+  # ind_df[, paste0(er, "_cells")] = as.data.frame(table(bb$subsample[which(bb@assays$RNA@counts[er,] > 0)]))[,2] 
+  # ind_df[, paste0(er, "_sum_count")] = aggregate(bb@assays$RNA@counts[er,], by = list(bb$subsample), sum)[,2]
+  # ind_df[, paste0(er, "_avg_count")] = aggregate(bb@assays$RNA@counts[er,], by = list(bb$subsample), mean)[,2]
+  ind_df[, paste0(er)] = aggregate(bb@assays$RNA@data[er,], by = list(bb$subsample), mean, drop=F)[,2]
+  er_df$all_bai_r[i]  = cor(ind_df[,paste0(er)], ind_df[, "bower_activity_index"])
+  er_df$bhve_bai_r[i] = cor(ind_df[which(ind_df$cond == "BHVE"),paste0(er)], ind_df[which(ind_df$cond == "BHVE"), "bower_activity_index"])
+  er_df$all_aro3_r[i] = cor(ind_df[,paste0(er)], ind_df[, "aro_rgc3"])
+  er_df$bhve_aro3_r[i] = cor(ind_df[which(ind_df$cond == "BHVE"),paste0(er)], ind_df[which(ind_df$cond == "BHVE"), "aro_rgc3"])
+}
+
+library(ggpmisc)
+all_col = "gray60"
+ggplot(ind_df, aes(x = aro_rgc3, y = bower_activity_index, color = cond)) + geom_point(size = 2) + scale_color_manual(values = c("#FDE725", "#21918C")) + theme_bw() + NoLegend() + stat_poly_line(group = "all", color = all_col, se = F) + stat_poly_eq(label.y = 1, group  = "all", color = all_col) + stat_poly_line(se = F) + stat_poly_eq()
+ggplot(ind_df, aes(x = aro_rgc3, y = LOC101469665, color = cond)) + geom_point(size = 2) + scale_color_manual(values = c("#FDE725", "#21918C")) + theme_bw() + NoLegend() + stat_poly_line(group = "all", color = all_col, se = F) + stat_poly_eq(label.y = 1, group  = "all", color = all_col) + stat_poly_line(se = F) + stat_poly_eq()
+ggplot(ind_df, aes(x = aro_rgc3, y = LOC101484948_p0_not_hasESR, color = cond)) + geom_point(size = 2) + scale_color_manual(values = c("#FDE725", "#21918C")) + theme_bw() + NoLegend() + stat_poly_line(group = "all", color = all_col, se = F) + stat_poly_eq(label.y = 1, group  = "all", color = all_col) + stat_poly_line(se = F) + stat_poly_eq()
+
+# ER pNG
+ind_df_png = unique(bb@meta.data[, c("trial_id", "subsample", "pair", "sample", "cond", "bower_activity_index")])
+row.names(ind_df_png) = ind_df_png[, "subsample"]
+bb$subsample = factor(bb$subsample, levels = ind_df$subsample)
+
+for (er in er_df$mzebra) {
+  ind_df_png[, er] = aggregate(bb$neurogen_score[which(bb@assays$RNA@counts[er,] > 0)], by = list(bb$subsample[which(bb@assays$RNA@counts[er,] > 0)]), mean, drop=F)[,2]
+}
+write.csv(ind_df_png, "C:/Users/miles/Downloads/average_neurogen_score_for_er_by_individual.csv")
+
+# ERE bDEG
+ere_bdeg = read.csv("C:/Users/miles/Downloads/ere_bower_primary_and_secondary_cluster_degs.csv")
+ere_bdeg[,c("all_bai_r", "bhve_bai_r", "all_aro3_r", "bhve_aro3_r")] = 0
+ind_esr_ere_bdeg = data.frame(expand_grid(paste0(ere_bdeg$mzebra, ere_bdeg$cluster), ind_df$subsample))
+colnames(ind_esr_ere_bdeg) = c("ere_bdeg_cluster", "subsample")
+
+bb$esr_score = colSums(bb@assays$RNA@counts[er_df$mzebra, ])
+bb$hasESR = bb$esr_score > 0
+for (i in 1:nrow(ere_bdeg)) {
+  this.mzebra  = ere_bdeg$mzebra[i]
+  this.hgnc    = ere_bdeg$gene[i]
+  this.cluster = ere_bdeg$cluster[i]
+  this.level   = ere_bdeg$cluster_level[i]
+  this.label   = paste0(this.mzebra, "_", substr(this.level, 1, 1), this.cluster)
+  if (this.level == "primary") { this.level = "seuratclusters15" } else { this.level = "seuratclusters53" }
+  ind_df[, paste0(this.label)]                = aggregate(bb@assays$RNA@data[this.mzebra, which(bb@meta.data[,this.level] == this.cluster)],              by = list(bb$subsample[which(bb@meta.data[,this.level] == this.cluster)]),              mean, drop=F)[,2]
+  ind_df[, paste0(this.label, "_hasESR")]     = aggregate(bb@assays$RNA@data[this.mzebra, which(bb@meta.data[,this.level] == this.cluster & bb$hasESR)],  by = list(bb$subsample[which(bb@meta.data[,this.level] == this.cluster & bb$hasESR)]),  mean, drop=F)[,2]
+  ind_df[, paste0(this.label, "_not_hasESR")] = aggregate(bb@assays$RNA@data[this.mzebra, which(bb@meta.data[,this.level] == this.cluster & !bb$hasESR)], by = list(bb$subsample[which(bb@meta.data[,this.level] == this.cluster & !bb$hasESR)]), mean, drop=F)[,2]
+  ere_bdeg$all_bai_r[i]  = cor(ind_df[,paste0(this.label)], ind_df[, "bower_activity_index"])
+  ere_bdeg$bhve_bai_r[i] = cor(ind_df[which(ind_df$cond == "BHVE"),paste0(this.label)], ind_df[which(ind_df$cond == "BHVE"), "bower_activity_index"])
+  ere_bdeg$all_aro3_r[i] = cor(ind_df[,paste0(this.label)], ind_df[, "aro_rgc3"])
+  ere_bdeg$bhve_aro3_r[i] = cor(ind_df[which(ind_df$cond == "BHVE"),paste0(this.label)], ind_df[which(ind_df$cond == "BHVE"), "aro_rgc3"])
+  ere_bdeg$all_aro3_esr_r[i]     = cor(ind_df[,paste0(this.label, "_hasESR")],     ind_df[, "aro_rgc3"])
+  ere_bdeg$all_aro3_not_esr_r[i] = cor(ind_df[,paste0(this.label, "_not_hasESR")], ind_df[, "aro_rgc3"])
+}
+
+# cond + hasESR + 
+pool_df = data.frame(pool = c("b1", "b2", "b3", "b4", "b5", "c1", "c2", "c3", "c4", "c5"),
+                     cond = c("behave", "behave", "behave", "behave", "behave", "control", "control", "control", "control", "control"),
+                     ng = c(24.4, 26.84675, 40.80545, 24.6239, 35.2219, 13, 17.2116, 34.9384, 29.80495, 38.1745), 
+                     nuclei_per_uL = c(397, 392, 252, 308, 301, 376.5, 393, 367, 305, 302),
+                     pg_per_uL = c(696.02, 767.05, 1165.87, 703.54, 1006.34, 372.31, 491.76, 998.24, 851.57, 1090.7),
+                     ng_per_uL = c(5.8, 4.8, 5.7, 8.18, 5.84, 2.8, 7.04, 4.96, 7.56, 8.62))
+pool_df$num_cell = aggregate(nFeature_RNA ~ sample, bb@meta.data, length)[,2]
+pool_df$median_umi_per_cell  = aggregate(nCount_RNA ~ sample, bb@meta.data, median)[,2]
+pool_df$median_gene_per_cell = aggregate(nFeature_RNA ~ sample, bb@meta.data, median)[,2]
+
+library(ggpmisc)
+ggplot(pool_df, aes(x = ng_per_uL, y = num_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black") 
+# ggplot(pool_df, aes(x = nuclei_per_uL*ng_per_uL, y = num_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black") 
+
+ggplot(pool_df, aes(x = nuclei_per_uL*(ng_per_uL/ng), y = median_gene_per_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+ggplot(pool_df, aes(x = nuclei_per_uL*(ng_per_uL/ng), y = median_umi_per_cell,  color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+ggplot(pool_df, aes(x = pg_per_uL, y = median_gene_per_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+ggplot(pool_df, aes(x = pg_per_uL, y = median_umi_per_cell, color = pool))  + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+# ggplot(pool_df, aes(x = ng*pg_per_uL, y = median_umi_per_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+
+
+ggplot(pool_df, aes(x = nuclei_per_uL, y = num_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + guides(shape = FALSE)
+
+hb_df = data.frame(pool = c("HB", "MO"), cond = c("HB", "HB"), ng = c(2.83, 5.59), nuclei_per_uL = c(357, 290), pg_per_uL = c(74.35, 147.22), ng_per_uL = c(2, 0.674), num_cell = c(3166, 228), median_umi_per_cell = c(860, 434), median_gene_per_cell = c(538, 321))
+ggplot(hb_df, aes(x = ng_per_uL, y = num_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + guides(shape = FALSE)
+ggplot(hb_df, aes(x = pg_per_uL, y = median_gene_per_cell, color = pool)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+ggplot(hb_df, aes(x = pg_per_uL, y = median_umi_per_cell, color = pool))  + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+
+merge_df = rbind(pool_df, hb_df)
+merge_df$experiment = c(rep("BB", 10), "HB", "HB")
+ggplot(merge_df, aes(x = ng_per_uL, y = num_cell, color = experiment)) + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black") 
+ggplot(merge_df, aes(x = pg_per_uL, y = median_umi_per_cell, color = experiment))  + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+ggplot(merge_df, aes(x = nuclei_per_uL*(ng_per_uL/ng), y = median_umi_per_cell, color = experiment))  + geom_point(size = 3, stroke = 2) + theme_classic() + stat_poly_line(color = "black", se = F) + stat_poly_eq(color = "black")
+
+bb$primary_cluster = convert15$new.full[match(bb$seuratclusters15, convert15$old)]
+bb$secondary_cluster = convert53$new[match(bb$seuratclusters53, convert53$old)]
+bb$rgc_subcluster = "NA"
+bb$rgc_subcluster[colnames(rgc_sub)] = rgc_sub$seurat_clusters
+bb$cdg_score = colSums(bb@assays$RNA@counts[pcrc,] > 0)
+bb$cdg_module_score = colSums(bb@assays$RNA@counts[cdg_module,] > 0)
+bb$quiver_events = bb$spawn_events
+bb$log_quiver_events = bb$log_spawn_events
+bb$png_score = bb$neurogen_score
+bb$kept = T
+bb$barcode = reshape2::colsplit(reshape2::colsplit(colnames(bb), "_", c('1', '2'))[,2], "_", c('1', '2'))[,1]
+bb$umap_1 = bb@reductions$umap@cell.embeddings[,1]
+bb$umap_2 = bb@reductions$umap@cell.embeddings[,2]
+
+for (s in toupper(unique(bb$sample))) {
+  print(s)
+  # s = "B1"
+  s_bar = read.csv(paste0("C:/Users/miles/Downloads/", s, "_barcodes.tsv"), header = F)
+  cols_to_keep = c("barcode", "kept", "nCount_RNA", "nFeature_RNA", "pct_mt", "run", "sample", "subsample", "pair", "cond", "depth", "depth_adj", "build_events", "quiver_events", "log_quiver_events", "gsi", "standard_length", "bower_activity_index", "primary_cluster", "secondary_cluster", "rgc_subcluster", "ieg_score", "png_score", "cdg_score", "cdg_module_score", "umap_1", "umap_2")
+  bb_s_meta = bb@meta.data[which(bb$sample == tolower(s)), cols_to_keep]
+  # bb_s_meta_full = data.frame(barcode = s_bar, kept = F)
+  bb_s_meta_full = as.data.frame(matrix(NA, nrow = nrow(s_bar), ncol = length(cols_to_keep)))
+  colnames(bb_s_meta_full) = cols_to_keep
+  bb_s_meta_full$barcode = s_bar$V1
+  bb_s_meta_full[,cols_to_keep] = bb_s_meta[match(bb_s_meta_full$barcode, bb_s_meta$barcode), cols_to_keep]
+  bb_s_meta_full$barcode = s_bar$V1
+  bb_s_meta_full$kept = bb_s_meta_full$barcode %in% bb_s_meta$barcode
+  write.csv(bb_s_meta_full, paste0("C:/Users/miles/Downloads/", s, "_seurat_meta.csv"), row.names = F)
+}
+
+a = bb@reductions$umap@cell.embeddings[, 1:2]
+dist_vect = dist(a)
+dist_mat = as.matrix(dist_vect)
+dist_mat[lower.tri(dist_mat)] = NA
+within_dist = sapply(0:52, function(x) mean(dist_mat[colnames(bb)[which(bb$seuratclusters53 == x)], colnames(bb)[which(bb$seuratclusters53 == x)]], na.rm = T))
+
+b = read.csv("~/scratch/brain/results/reclustering_attempt_ids_for_george_081922.csv")
+rownames(b) = b$X
+b$X = NULL
+dist_vect2 = dist(b[,1:2])
+dist_mat2 = as.matrix(dist_vect2)
+dist_mat2[lower.tri(dist_mat2)] = NA
+
+dist_mat_dif = abs(dist_mat - dist_mat2)
+dist_mat_dif[lower.tri(dist_mat_dif)] = NA
+within_dist_dif = sapply(0:52, function(x) mean(dist_mat_dif[colnames(bb)[which(bb$seuratclusters53 == x)], colnames(bb)[which(bb$seuratclusters53 == x)]], na.rm = T))
+df = data.frame(real_within_dist = within_dist, dist_dif = within_dist_dif)
+
+rand.index(bb$seuratclusters53, b[,3])
+
+mat_real = matrix(0L, nrow = 53, ncol = 53, dimnames = list(as.character(0:52), as.character(0:52)))
+mat_new = matrix(0L, nrow = 53, ncol = 53, dimnames = list(as.character(0:52), as.character(0:52)))
+for (i in 0:52) {
+  for (j in 0:52) {
+    mat_real[as.character(i), as.character(j)] = mean(dist_mat[colnames(bb)[which(bb$seuratclusters53 == i)], colnames(bb)[which(bb$seuratclusters53 == j)]], na.rm = T)
+    mat_new[as.character(i), as.character(j)] = mean(dist_mat2[colnames(bb)[which(bb$seuratclusters53 == i)], colnames(bb)[which(bb$seuratclusters53 == j)]], na.rm = T)
+  }
+}
+df = reshape2::melt(mat_real)
+df$real = -log(df$value, base = 2)
+df$value_new = reshape2::melt(mat_new)[,3]
+df$new = -log(df$value_new, base = 2)
+df$pct = df$value_new / df$value
+
+pdf("~/scratch/brain/results/cluster_dist.pdf", width = 6, height = 6)
+print(ggplot(df, aes(x = Var1, y = Var2, fill = real)) + geom_tile() + scale_fill_viridis() + theme_classic() + scale_x_continuous(expand = c(0,0), name = "Cluster 1") + scale_y_continuous(expand = c(0,0), name = "Cluster 2"))
+dev.off()
+
+pdf("~/scratch/brain/results/cluster_dist_new.pdf", width = 6, height = 6)
+print(ggplot(df, aes(x = Var1, y = Var2, fill = new)) + geom_tile() + scale_fill_viridis() + theme_classic() + scale_x_continuous(expand = c(0,0), name = "Cluster 1") + scale_y_continuous(expand = c(0,0), name = "Cluster 2"))
+dev.off()
+
+pdf("~/scratch/brain/results/cluster_dist_pct.pdf", width = 6, height = 6)
+print(ggplot(df, aes(x = Var1, y = Var2, fill = pct)) + geom_tile() + scale_fill_viridis() + theme_classic() + scale_x_continuous(expand = c(0,0), name = "Cluster 1") + scale_y_continuous(expand = c(0,0), name = "Cluster 2"))
+dev.off()
+
+#*******************************************************************************
+# CellChat =====================================================================
+#*******************************************************************************
+cc.res = read.csv("~/scratch/brain/cellchat/cellchat_full_primary.csv")
+rownames(cc.res) = cc.res$X
+cc.res$X = NULL
+cc.res$id = rownames(cc.res)
+cc.res = cc.res[, c("id", "clust1", "clust2", "run1")]
+colnames(cc.res)[4] = "real"
+for (i in c(1, 2, 3, 4)) {
+  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary/cellchat_full_perm_", i*100, "nruns_run", i, ".csv"))
+  this.perm = this.perm[,4:ncol(this.perm)]
+  colnames(this.perm) = paste0("perm", ((ncol(cc.res)-4)+1):((ncol(cc.res)-4)+i*100) )
+  cc.res = cbind(cc.res, this.perm)
+}
+cc.res$p = rowSums(cc.res[, 5:ncol(cc.res)] > cc.res[, "real"]) / ncol(cc.res)
+cc.res$bh = p.adjust(cc.res$p, method = "BH")
+cc.res$bon = p.adjust(cc.res$p, method = "bonferroni")
+write.csv(cc.res, "~/scratch/brain/cellchat/cellchat_full_primary_w_perm_and_p.csv")
+
+cc.res.sig = cc.res[which(cc.res$bon < 0.05), c("id", "clust1", "clust2", "p", "bh", "bon")]
+cc.res.sig2 = cc.res.sig[which(startsWith(cc.res.sig$clust1, "cluster_")), ]
+cc.res.sig2$clust1 = as.numeric(reshape2::colsplit(cc.res.sig2$clust1, "cluster_", c("1", "2"))[,2])
+cc.res.sig2$clust1 = convert15$new.full[match(cc.res.sig2$clust1, convert15$old)]
+cc.res.sig[rownames(cc.res.sig2), "clust1"] = cc.res.sig2$clust1
+cc.res.sig2 = cc.res.sig[which(startsWith(cc.res.sig$clust2, "cluster_")), ]
+cc.res.sig2$clust2 = as.numeric(reshape2::colsplit(cc.res.sig2$clust2, "cluster_", c("1", "2"))[,2])
+cc.res.sig2$clust2 = convert15$new.full[match(cc.res.sig2$clust2, convert15$old)]
+cc.res.sig[rownames(cc.res.sig2), "clust2"] = cc.res.sig2$clust2
+write.csv(cc.res.sig, "~/scratch/brain/cellchat/cellchat_full_primary_w_perm_and_p_sig.csv")
+
+cc.res = read.csv("C:/Users/miles/Downloads/cellchat_full_primary_w_perm_and_p.csv")
+cc.res.sig = read.csv("C:/Users/miles/Downloads/cellchat_full_primary_w_perm_and_p_sig.csv")
+
+names_converter = convert15
+names_converter$old = paste0("cluster_", names_converter$old)
+names_converter = names_converter[, c("new.full", "old", "col")]
+names_converter = rbind(names_converter, data.frame(new.full = paste0("rgc_", 0:10), old = paste0("rgc_", 0:10), col = paste0("#2b2b2b", seq(30, 90, by = 6))))
+cc.res.mat.df = cc.res[which(cc.res$bon < 0.05 & cc.res$real > 1 & cc.res$clust1 != cc.res$clust2), c("clust1", "clust2", "real")]
+cc.res.mat.df$col = names_converter$col[match(cc.res.mat.df$clust1, names_converter$old)]
+cc.res.mat.df$clust1 = names_converter$new.full[match(cc.res.mat.df$clust1, names_converter$old)]
+cc.res.mat.df$clust2 = names_converter$new.full[match(cc.res.mat.df$clust2, names_converter$old)]
+my.nodes = data.frame(gene = unique(c(cc.res.mat.df$clust1, cc.res.mat.df$clust2)), label = unique(c(cc.res.mat.df$clust1, cc.res.mat.df$clust2)))
+my.nodes$col= names_converter[match(my.nodes$label, names_converter$new.full), c("col")]
+my.nodes$sum_cor = unlist(lapply(my.nodes$gene, function(x) sum(cc.res.mat.df$real[which(cc.res.mat.df$clust1 == x | cc.res.mat.df$clust2 == x)]) )) 
+g1 = graph_from_data_frame(cc.res.mat.df, vertices = my.nodes)
+my.size.factor = 0.3
+my.width.factor = 1
+V(g1)$size <- my.nodes$sum_cor*my.size.factor
+V(g1)$frame.color <- "white"
+V(g1)$color <- my.nodes$col
+V(g1)$label = my.nodes$label
+V(g1)$label.dist = 1
+V(g1)$label.color = "black"
+E(g1)$color = E(g1)$col
+E(g1)$width = E(g1)$real*my.width.factor
+lfr = layout_with_fr(g1)
+# lfr = layout_with_lgl(g1)
+pdf("C:/Users/miles/Downloads/cellchat_primary_w_rgc_network.pdf", width = 5, height = 5)
+plot.igraph(g1, edge.arrow.size=.5)
+dev.off()
+
+# tkid <- tkplot(g1, vertex.label.color=my.nodes$label.col, vertex.label=my.nodes$label, vertex.label.dist=1)
+tkid <- tkplot(g1, vertex.label=my.nodes$label, vertex.label.dist=1)
+l <- tkplot.getcoords(tkid)
+tk_close(tkid, window.close = T)
+
+pdf("C:/Users/miles/Downloads/cellchat_primary_w_rgc_network2.pdf", width = 5, height = 5)
+plot.igraph(g1, layout = l, edge.arrow.size=.5)
+dev.off()
+
+high_df = reshape2::melt(cc.res[which(cc.res$clust1 == "rgc_2" & cc.res$clust2 == "cluster_1"), paste0("perm", 1:1000)])
+ggplot(high_df, aes(x = value)) + geom_histogram() + theme_classic() + geom_vline(xintercept = cc.res$real[which(cc.res$clust1 == "rgc_2" & cc.res$clust2 == "cluster_1")]) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0))
+
