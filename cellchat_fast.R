@@ -7,7 +7,7 @@ do.down   = as.logical(args[2])
 is.real   = as.logical(args[3])
 num.perms = as.numeric(args[4])
 set.seed(this.run)
-message(paste0("Initializng run with parameters: this.run=", this.run, ", do.down=", do.down, ", is.real=", is.real, "num.perms=", num.perms, "."))
+message(paste0("Initializng run with parameters: this.run=", this.run, ", do.down=", do.down, ", is.real=", is.real, ", num.perms=", num.perms, "."))
 
 # Load Libraries ===============================================================
 suppressMessages(library('CellChat',  quietly = T, warn.conflicts = F, verbose = F))
@@ -123,7 +123,7 @@ CellChatWeights = function(x) {
 
 message("Running cellchat (this while take awhile)...")
 # if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 6 }
-if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 2 }
+if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 1 }
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
 run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
