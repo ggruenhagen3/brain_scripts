@@ -50,14 +50,14 @@ if (simple) {
   
   primary_secondary_labels = c(paste0("primary_", combined$seuratclusters15), paste0("secondary_", combined$seuratclusters53))
   primary_secondary_rgc_labels = c(primary_secondary_labels, rgc_labels)
-  primary_secondary_rgc_genePop_labels = c(primary_secondary_labels, rgc_labels, genePopObj$label)
+  primary_secondary_rgc_genePop_labels = c(primary_secondary_labels, rgc_labels, as.vector(genePopObj$label))
   combined = merge(combined, c(combined, subset(combined, cells = rgc_cells), genePopObj))
   combined$label = primary_secondary_rgc_genePop_labels
+  rm(genePopObj)
 }
 meta = data.frame(label = combined$label, row.names = colnames(combined))
 message("Done.")
 
-rm(genePopObj)
 
 # Downsample ===================================================================
 if (do.down) {
