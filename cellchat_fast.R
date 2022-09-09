@@ -6,7 +6,7 @@ this.run  = as.numeric(args[1])
 do.down   = as.logical(args[2])
 is.real   = as.logical(args[3])
 num.perms = as.numeric(args[4])
-if (length(args) == 5) { ind = as.numeric(args[4]) } else { ind = 0 }
+if (length(args) == 5) { ind = as.numeric(args[5]) } else { ind = 0 }
 set.seed(this.run)
 message(paste0("Initializng run with parameters: this.run=", this.run, ", do.down=", do.down, ", is.real=", is.real, ", num.perms=", num.perms, ", ind=", ind, "."))
 
