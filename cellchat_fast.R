@@ -125,7 +125,7 @@ message("Running cellchat (this while take awhile)...")
 # if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 6 }
 # if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 1 }
 if (do.down) { 
-  num.parallel.jos = 10
+  num.parallel.jobs = 10
   if (is.real) { num.parallel.jobs = 5 } 
 } else { num.parallel.jobs = 3 }
 message(paste0("Using ", num.parallel.jobs, " cores."))
