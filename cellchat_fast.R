@@ -123,7 +123,12 @@ CellChatWeights = function(x) {
 
 message("Running cellchat (this while take awhile)...")
 # if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 6 }
-if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 1 }
+# if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 1 }
+if (do.down) { 
+  num.parallel.jos = 10
+  if (is.real) { num.parallel.jobs = 5 } 
+} else { num.parallel.jobs = 2 }
+message(paste0("Using ", num.parallel.jobs, " cores."))
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
 run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
