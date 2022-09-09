@@ -6,7 +6,7 @@ do.down   = as.logical(args[2])
 is.real   = as.logical(args[3])
 num.perms = as.numeric(args[4])
 set.seed(this.run)
-message(paste0("Initializng run with parameters: this.run=", this.run, ", do.down=", do.down, ", is.real=", is.real, "num.perms=", num.perms, "."))
+message(paste0("Initializng run with parameters: this.run=", this.run, ", do.down=", do.down, ", is.real=", is.real, ", num.perms=", num.perms, "."))
 
 # Load Libraries ===============================================================
 suppressMessages(library('CellChat',  quietly = T, warn.conflicts = F, verbose = F))
