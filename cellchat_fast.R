@@ -6,8 +6,9 @@ this.run  = as.numeric(args[1])
 do.down   = as.logical(args[2])
 is.real   = as.logical(args[3])
 num.perms = as.numeric(args[4])
+if (length(args) == 5) { ind = as.numeric(args[4]) } else { ind = 0 }
 set.seed(this.run)
-message(paste0("Initializng run with parameters: this.run=", this.run, ", do.down=", do.down, ", is.real=", is.real, ", num.perms=", num.perms, "."))
+message(paste0("Initializng run with parameters: this.run=", this.run, ", do.down=", do.down, ", is.real=", is.real, ", num.perms=", num.perms, ", ind=", ind, "."))
 
 # Load Libraries ===============================================================
 suppressMessages(library('CellChat',  quietly = T, warn.conflicts = F, verbose = F))
@@ -58,6 +59,11 @@ if (simple) {
 meta = data.frame(label = combined$label, row.names = colnames(combined))
 message("Done.")
 
+# Individual ===================================================================
+all_subsamples = unique(combined$subsample)
+if (ind > 0) {
+  combined = subset(combined, cells = colnames(combined)[which(combined$subsample == all_subsamples[ind])])
+}
 
 # Downsample ===================================================================
 if (do.down) {
@@ -145,6 +151,7 @@ message("Writing Output...")
 todays.date = stringr::str_split(Sys.Date(), pattern = "-")[[1]]
 todays.date = paste0(todays.date[2], todays.date[3], substr(todays.date[1], 3, 4))
 out.str = paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_", ifelse(do.down, "downsampled_", "full_"), ifelse(is.real, "real_", "perm_"), num.perms, "nruns_run", this.run, ".csv")
+if (ind > 0) { out.str = paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_", ifelse(do.down, "downsampled_", "full_"), ifelse(is.real, "real_", "perm_"), num.perms, "nruns_run", this.run, "_ind", ind, ".csv") }
 write.csv(out, out.str)
 message("Done.")
 message("All Done.")
