@@ -6289,7 +6289,7 @@ for (clust in sort(unique(Idents(clown)))) {
   fpdf = rbind(fpdf, data.frame(cluster = clust, fp = fisher.test(contig_table)$p.value))
 }
 
-
+# Make Adjusted Matrix on 15 and 53 Level ======================================
 z15 = read.csv("~/scratch/brain/results/out_bb15_bbmm_demux_deg_all_tests_for_volcano_plotting_121321.csv")
 z53 = read.csv("~/scratch/brain/results/out_bb53_glmmseq_demux_deg_all_tests_for_volcano_plotting.csv")
 cur_level = "53"
@@ -6404,8 +6404,73 @@ for (i in 1:nrow(cz)) {
   }
 }
 
+# Make Adjusted Matrix for RGC Subclusters =====================================
+zrgc = read.csv("~/research/brain/results/out_rgc_subcluster_glmmseq_demux_deg_cond_quiver_gsi_all_clusters.csv")
+rgc_sub = readRDS("~/research/brain/data/rgc_subclusters_reclustered_q_c_nb_scores.rds")
+cur_level = "rgc"
+cz = zrgc
+cmeta = "seurat_clusters"
+clusters = 0:11
+cz$mzebra = cz$X
+all_zgenes = unique(cz$mzebra)
+all_zgenes = str_replace(all_zgenes, pattern = "\\.", "-")
+all_zgenes = all_zgenes[which(all_zgenes %in% rownames(rgc_sub))]
+# gcm = sparseMatrix(i = integer(0), j = integer(0), dims = c(length(all_zgenes), ncol(rgc_sub)), dimnames = list(all_zgenes, colnames(rgc_sub)))
+# gcm = as(gcm, "dgCMatrix")
+gcm_list = list()
+for (i in clusters) {
+  print(i)
+  # zgenes = cz$mzebra[which(cz$cluster == i)]
+  clust_idx = which(rgc_sub@meta.data[,cmeta] == i)
+  this_cz = cz[which(cz$cluster == i),]
+  this_cz$zgenes = this_cz$mzebra
+  print(paste0(length(which(! this_cz$zgenes %in% rownames(rgc_sub))), " genes not in rgc_sub without correction."))
+  this_cz$zgenes = str_replace(this_cz$zgenes, pattern = "\\.", "-")
+  print(paste0(length(which(! this_cz$zgenes %in% rownames(rgc_sub))), " genes not in rgc_sub at first pass."))
+  print(head(this_cz$zgenes)[which(! this_cz$zgenes %in% rownames(rgc_sub))])
+  this_cz = this_cz[which(this_cz$zgenes %in% rownames(rgc_sub)),]
+  glmmseq_counts = rgc_sub@assays$RNA@counts[this_cz$zgenes, clust_idx]
+  
+  if (nrow(this_cz) != 0) {
+    gsi_cell = rgc_sub$gsi[clust_idx]
+    spawn_cell = rgc_sub$log_spawn_events[clust_idx]
+    new_mods = mclapply(1:nrow(this_cz), function(x) adjGlmmseqCounts(x), mc.cores = 24)
+    new_mods_mtx = do.call(rbind, new_mods)
+    rownames(new_mods_mtx) = this_cz$zgenes
+    zgenes_not_in_cluster = all_zgenes[which(! all_zgenes %in% this_cz$zgenes )]
+    extra_rows = matrix(data = 0L, nrow = length(zgenes_not_in_cluster), ncol = length(clust_idx))
+    rownames(extra_rows) = zgenes_not_in_cluster
+    colnames(extra_rows) = colnames(rgc_sub)[clust_idx]
+    new_mods_mtx = rbind(new_mods_mtx, extra_rows)
+    new_mods_mtx = new_mods_mtx[ order(row.names(new_mods_mtx)), ]
+    new_mods_mtx = as(new_mods_mtx, "dgCMatrix")
+  } else {
+    zgenes_not_in_cluster = all_zgenes[which(! all_zgenes %in% this_cz$zgenes )]
+    extra_rows = matrix(data = 0L, nrow = length(zgenes_not_in_cluster), ncol = length(clust_idx))
+    rownames(extra_rows) = zgenes_not_in_cluster
+    colnames(extra_rows) = colnames(rgc_sub)[clust_idx]
+    new_mods_mtx = extra_rows
+    new_mods_mtx = new_mods_mtx[ order(row.names(new_mods_mtx)), ]
+  }
+  gcm_list[[paste0("cluster_", i)]] = new_mods_mtx
+}
 
-# 9 Plot DEGs =====================================================
+gcm = do.call(cbind, gcm_list)
+gcm = gcm[,colnames(rgc_sub)]
+saveRDS(gcm, "~/research/brain/results/adjusted_glmmseq_ffm_rgc.rds")
+# saveRDS(gcm, "~/scratch/brain/results/adjusted_glmmseq_ffm_15.rds")
+
+adjGlmmseqCounts = function(x) {
+  zg = this_cz$zgenes[x]
+  bg = this_cz$mzebra[x]
+  my_gsi   = this_cz$gsi[x]
+  my_spawn = this_cz$log_spawn_events[x]
+  
+  return(glmmseq_counts[zg, ] - my_gsi * gsi_cell - my_spawn * spawn_cell)
+}
+
+
+# 9 Plot DEGs ==================================================================
 bb15 = read.csv("C:/Users/miles/Downloads/bb15_deg_all_split_by_up_or_down_121621.csv")
 bb53 = read.csv("C:/Users/miles/Downloads/bb53_deg_all_split_by_up_or_down_121621.csv")
 bb15$sig_any = bb15$sig_bower_behavior == 1 | bb15$sig_gsi == 1 | bb15$sig_log_spawn_events == 1
@@ -7970,6 +8035,36 @@ permSubsamples = function(x) {
 #*******************************************************************************
 # Supplement ===================================================================
 #*******************************************************************************
+final = read.csv("~/Downloads/final_rgc_q_c_nb_markers_060322.csv")
+rgc_sub$q_score = colSums(rgc_sub@assays$RNA@counts[final$mzebra[which(final$rgc_state == "quiescent")],] > 0)
+rgc_sub$c_score = colSums(rgc_sub@assays$RNA@counts[final$mzebra[which(final$rgc_state == "cycling")],] > 0)
+rgc_sub$n_score = colSums(rgc_sub@assays$RNA@counts[final$mzebra[which(final$rgc_state == "neuroblast")],] > 0)
+FeaturePlot(rgc_sub, "q_score", order = T) + scale_color_viridis() + theme_void()
+rgc_sub$q_score[which(rgc_sub$q_score < 6)] = 0; rgc_sub$q_score[which(rgc_sub$q_score >= 6)] = 1; 
+rgc_sub$c_score[which(rgc_sub$c_score < 1)] = 0; rgc_sub$c_score[which(rgc_sub$c_score >= 1)] = 1; 
+rgc_sub$n_score[which(rgc_sub$n_score < 6)] = 0; rgc_sub$n_score[which(rgc_sub$n_score >= 6)] = 1; 
+multiFeaturePlot2(rgc_sub, c("q_score", "c_score", "n_score"), my.alpha = 1, cols = c("#3B9AB2", "#EBCC2A", "#F21A00"), my.pt.size = 1.5)
+
+top5_15 = deg15_dt[, .SD[1:5], by=cluster]
+top5_15$symbol = gene_info2$nd_symbol[match(top5_15$gene, gene_info2$mzebra)]
+top5_15$symbol[which( startsWith(top5_15$symbol, "si:") | startsWith(top5_15$symbol, "zgc:") )] = top5_15$gene[which( startsWith(top5_15$symbol, "si:") | startsWith(top5_15$symbol, "zgc:") )]
+cluster_str = data.frame(cluster = rev(convert15$new.full), str = "", row.names = rev(convert15$new.full))
+top5_15$cluster = convert15$new.full[match(top5_15$cluster, convert15$old)]
+for (cluster in unique(top5_15$cluster)) {
+  cluster_str[cluster, "str"] = paste0(top5_15$symbol[which(top5_15$cluster == cluster)], collapse = ", ")
+}
+clipboard(cluster_str$str)
+
+top5_53 = deg53_dt[, .SD[1:5], by=cluster]
+top5_53$symbol = gene_info2$nd_symbol[match(top5_53$gene, gene_info2$mzebra)]
+top5_53$symbol[which( startsWith(top5_53$symbol, "si:") | startsWith(top5_53$symbol, "zgc:") )] = top5_53$gene[which( startsWith(top5_53$symbol, "si:") | startsWith(top5_53$symbol, "zgc:") )]
+cluster_str = data.frame(cluster = convert53$new, str = "", row.names = convert53$new)
+top5_53$cluster = convert53$new[match(top5_53$cluster, convert53$old)]
+for (cluster in unique(top5_53$cluster)) {
+  cluster_str[cluster, "str"] = paste0(top5_53$symbol[which(top5_53$cluster == cluster)], collapse = ", ")
+}
+clipboard(cluster_str$str)
+=======
 ieg = read.csv("C:/Users/miles/Downloads/IEG_list.csv")
 zpng = read.csv("C:/Users/miles/Downloads/pNG_list.csv")
 cdg = read.csv("C:/Users/miles/Downloads/CDG_list.csv")
@@ -8735,6 +8830,21 @@ bb$pseudotime[which(bb$pseudotime > max_time)] = max_time
 pdf("~/scratch/brain/results/bb_monocle_test2_seurat.pdf", width = 6, height = 6)
 print(FeaturePlot(bb, "pseudotime", order = T, pt.size = 0.8) + scale_color_gradientn(colors = plasma(100)))
 dev.off()
+
+dist_vector = dist(bb@reductions$umap@cell.embeddings[,1:2])
+dist_mat = as.matrix(dist_vector)
+dist_mat[upper.tri(dist_mat)] = NA
+# dist_mat_dt = data.table::data.table(dist_mat, keep.rownames = T, stringsAsFactors=F)
+# colnames(dist_mat_dt)[2:ncol(dist_mat_dt)] = as.vector(bb$seuratclusters53)
+# rownames(dist_mat_dt) = as.vector(bb$seuratclusters53)
+# dist_mat_dt <- melt(dist_mat_dt, id.vars = "rn")
+# dist_mat_dt <- dist_mat_dt[,.(Mean=mean(value)),.(rn, variable)]
+# clust_mean = mean(dist_mat[colnames(bb)[which(bb$seuratclusters53 == 0)], colnames(bb)[which(bb$seuratclusters53 == 0)]], na.rm = T)
+
+within_means = sapply(0:52, function(x) mean(dist_mat[colnames(bb)[which(bb$seuratclusters53 == x)], colnames(bb)[which(bb$seuratclusters53 == x)]], na.rm = T))
+out_of_means = sapply(0:52, function(x) mean(dist_mat[colnames(bb)[which(bb$seuratclusters53 != x)], colnames(bb)[which(bb$seuratclusters53 == x)]], na.rm = T))
+clust_means = data.frame(cluster = 0:52, within_clust_mean_dist = within_means, out_of_clust_mean_dist = out_of_means)
+clust_means$within_to_without = clust_means$within_clust_mean_dist / clust_means$out_of_clust_mean_dist
 
 #*******************************************************************************
 # RGC SUB ======================================================================

@@ -1,5 +1,6 @@
 # Read Input ===================================================================
 # this.run = 1; do.down = T; is.real = F; num.perms = 100;
+# this.run = 1; do.down = F; is.real = T; num.perms = 1;
 args = commandArgs(trailingOnly=TRUE)
 this.run  = as.numeric(args[1])
 do.down   = as.logical(args[2])
@@ -16,14 +17,47 @@ suppressMessages(library('parallel',  quietly = T, warn.conflicts = F, verbose =
 options(stringsAsFactors = FALSE)
 
 # Load Data ====================================================================
+genePopFnc = function(x) {
+  if (genePops$level[x] != "goi") {
+    combined$this = switch(genePops$level[x], "primary" = combined$seuratclusters15, "secondary" = combined$seuratclusters15, "goi" = combined)
+    this.cells = colnames(combined[which(combined$this == genePops$cluster[x])])
+  } else { this.cells = colnames(combined) }
+  this.cells = this.cells[which(combined@assays$RNA@counts[genePops$mzebra[x], this.cells] > 0)]
+  return(subset(combined, cells = this.cells))
+}
+
 message("Loading bb...")
 setwd("~/scratch/brain/cellchat/")
 gene_info = read.table("gene_info.txt", sep="\t", header = T, stringsAsFactors = F) 
 combined = readRDS("bb_demux_012422.rds")
-labels = read.csv("primary_no_rgc_labels.csv")
-combined$label = labels$x
+
+simple = F
+if (simple) {
+  labels = read.csv("primary_w_rgc_labels.csv")
+  combined$label = labels$x
+} else {
+  rgc_labels = read.csv("primary_w_rgc_labels.csv")[,1]
+  rgc_idx = which(startsWith(rgc_labels, "rgc_"))
+  rgc_labels = rgc_labels[rgc_idx]
+  rgc_cells = colnames(combined)[rgc_idx]
+  
+  genePopObj = readRDS("ieg_gene_pops_obj.rds")
+  # genePops = read.csv("ieg_gene_pops.csv")
+  # genePops$label = paste0("genePop_", genePops[,1], "_", genePops[,2], "_", genePops$mzebra)
+  # genePopObjs = mclapply(1:nrow(genePops), function(x) genePopFnc(x), mc.cores = 24)
+  # genePopObj  = merge(genePopObjs[[1]], y = genePopObjs[2:length(genePopObjs)])
+  # genePopObj$label = unlist(mclapply(1:nrow(genePops), function(x) rep(genePops$label[x], ncol(genePopObjs[[x]])), mc.cores = 24))
+  
+  primary_secondary_labels = c(paste0("primary_", combined$seuratclusters15), paste0("secondary_", combined$seuratclusters53))
+  primary_secondary_rgc_labels = c(primary_secondary_labels, rgc_labels)
+  primary_secondary_rgc_genePop_labels = c(primary_secondary_labels, rgc_labels, as.vector(genePopObj$label))
+  combined = merge(combined, c(combined, subset(combined, cells = rgc_cells), genePopObj))
+  combined$label = primary_secondary_rgc_genePop_labels
+  rm(genePopObj)
+}
 meta = data.frame(label = combined$label, row.names = colnames(combined))
 message("Done.")
+
 
 # Downsample ===================================================================
 if (do.down) {
@@ -88,7 +122,8 @@ CellChatWeights = function(x) {
 }
 
 message("Running cellchat (this while take awhile)...")
-if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 6 }
+# if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 6 }
+if (do.down) { num.parallel.jobs = 10 } else { num.parallel.jobs = 1 }
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
 run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
@@ -104,7 +139,7 @@ message("Done.")
 message("Writing Output...")
 todays.date = stringr::str_split(Sys.Date(), pattern = "-")[[1]]
 todays.date = paste0(todays.date[2], todays.date[3], substr(todays.date[1], 3, 4))
-out.str = paste0("~/scratch/brain/results/cellchat/primary/cellchat_", ifelse(do.down, "downsampled_", "full_"), ifelse(is.real, "real_", "perm_"), num.perms, "nruns_run", this.run, ".csv")
+out.str = paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_", ifelse(do.down, "downsampled_", "full_"), ifelse(is.real, "real_", "perm_"), num.perms, "nruns_run", this.run, ".csv")
 write.csv(out, out.str)
 message("Done.")
 message("All Done.")
