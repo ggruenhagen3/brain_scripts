@@ -55,9 +55,7 @@ if (simple) {
   combined$label = primary_secondary_rgc_genePop_labels
   rm(genePopObj)
 }
-meta = data.frame(label = combined$label, row.names = colnames(combined))
 message("Done.")
-
 
 # Downsample ===================================================================
 if (do.down) {
