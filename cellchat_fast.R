@@ -133,7 +133,7 @@ message("Running cellchat (this while take awhile)...")
 if (do.down) { 
   num.parallel.jobs = 10
   if (is.real) { num.parallel.jobs = 5 } 
-} else { num.parallel.jobs = 3 }
+} else { num.parallel.jobs = 2 }
 message(paste0("Using ", num.parallel.jobs, " cores."))
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
