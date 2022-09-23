@@ -1,6 +1,6 @@
 # Read Input ===================================================================
 # this.run = 1; do.down = T; is.real = F; num.perms = 100;
-# this.run = 1; do.down = F; is.real = T; num.perms = 1;
+# this.run = 1; do.down = F; is.real = T; num.perms = 1; ind = 0;
 args = commandArgs(trailingOnly=TRUE)
 this.run  = as.numeric(args[1])
 do.down   = as.logical(args[2])
@@ -20,8 +20,8 @@ options(stringsAsFactors = FALSE)
 # Load Data ====================================================================
 genePopFnc = function(x) {
   if (genePops$level[x] != "goi") {
-    combined$this = switch(genePops$level[x], "primary" = combined$seuratclusters15, "secondary" = combined$seuratclusters15, "goi" = combined)
-    this.cells = colnames(combined[which(combined$this == genePops$cluster[x])])
+    combined$this = switch(genePops$level[x], "primary" = combined$seuratclusters15, "secondary" = combined$seuratclusters53, "goi" = combined)
+    this.cells = colnames(combined)[which(combined$this == genePops$cluster[x])]
   } else { this.cells = colnames(combined) }
   this.cells = this.cells[which(combined@assays$RNA@counts[genePops$mzebra[x], this.cells] > 0)]
   return(subset(combined, cells = this.cells))
