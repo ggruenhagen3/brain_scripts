@@ -16,6 +16,7 @@ suppressMessages(library('patchwork', quietly = T, warn.conflicts = F, verbose =
 suppressMessages(library('stringr',   quietly = T, warn.conflicts = F, verbose = F))
 suppressMessages(library('parallel',  quietly = T, warn.conflicts = F, verbose = F))
 options(stringsAsFactors = FALSE)
+source("~/scratch/bcs/bcs_scripts/bcs_f.R")
 
 # Load Data ====================================================================
 genePopFnc = function(x) {
@@ -56,7 +57,6 @@ if (simple) {
   combined$label = primary_secondary_rgc_genePop_labels
   rm(genePopObj)
 }
-meta = data.frame(label = combined$label, row.names = colnames(combined))
 message("Done.")
 
 # Individual ===================================================================
@@ -133,17 +133,20 @@ message("Running cellchat (this while take awhile)...")
 if (do.down) { 
   num.parallel.jobs = 10
   if (is.real) { num.parallel.jobs = 5 } 
-} else { num.parallel.jobs = 3 }
+} else { num.parallel.jobs = 2 }
 message(paste0("Using ", num.parallel.jobs, " cores."))
 # onerun = suppressMessages(CellChatWeights(1))
 sink(file="~/scratch/brain/cellchat_sink.txt")
-run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
+# run_outs = mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
+run_outs = Mclapply(1:num.perms, function(x) suppressMessages(CellChatWeights(x)), mc.cores = num.parallel.jobs)
 sink()
 
+n.success = length(run_outs)
+if (n.success != num.perms) { message(paste0("Not all runs were successful (", (num.perms - n.success), "/", num.perms, ")")) }
 out = as.data.frame(do.call('cbind', run_outs))
-colnames(out) = paste0("run", 1:num.perms)
+colnames(out) = paste0("run", 1:n.success)
 out[, c("clust1", "clust2")] = reshape2::colsplit(names(run_outs[[1]]), "\\.", c("1", "2"))
-out = out[, c(num.perms+1, num.perms+2, 1:num.perms)]
+out = out[, c(n.success+1, n.success+2, 1:n.success)]
 message("Done.")
 
 # Save Output ==================================================================
