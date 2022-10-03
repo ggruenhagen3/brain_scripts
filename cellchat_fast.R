@@ -22,7 +22,7 @@ source("~/scratch/bcs/bcs_scripts/bcs_f.R")
 genePopFnc = function(x) {
   if (genePops$level[x] != "goi") {
     combined$this = switch(genePops$level[x], "primary" = combined$seuratclusters15, "secondary" = combined$seuratclusters15, "goi" = combined)
-    this.cells = colnames(combined[which(combined$this == genePops$cluster[x])])
+    this.cells = colnames(combined)[which(combined$this == genePops$cluster[x])]
   } else { this.cells = colnames(combined) }
   this.cells = this.cells[which(combined@assays$RNA@counts[genePops$mzebra[x], this.cells] > 0)]
   return(subset(combined, cells = this.cells))
