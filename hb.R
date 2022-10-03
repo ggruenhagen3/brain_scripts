@@ -137,12 +137,12 @@ hb$pct.mt = colSums(hb@assays$RNA@counts[mito.genes,]) / hb$nCount_RNA
 hb = subset(hb, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & pct_mt < 0.05)
 print(paste("Number of Cells in hb After Filterning:", ncol(hb)))
 hb = NormalizeData(hb, normalization.method = "LogNormalize", scale.factor = 10000)
-hb = FindVariableFeatures(hb, selection.method = "vst", nfeatures = 2000)
-hb = ScaleData(hb, features = rownames(hb))
-hb = RunPCA(hb, features = VariableFeatures(hb))
-hb = RunUMAP(hb, reduction = "pca", dims = 1:50)
-hb = FindNeighbors(hb, reduction="umap", dims = 1:2)
-hb = FindClusters(hb, resolution = .30)
+hb = SCTransform(hb, vars.to.regress = "sample" , verbose = TRUE)
+hb@active.assay = "SCT"
+hb = RunPCA(hb)
+hb = RunUMAP(hb, reduction = "pca", dims = 1:50, min.dist = 0.5, spread = 0.2, n.neighbors = 50, n.epochs = 1000, metric = "euclidean")
+hb = FindNeighbors(hb, reduction="umap", dims = 1:2, k.param = 50, n.trees = 500, prune.SNN = 0)
+hb = FindClusters(hb, resolution = .30, algorithm = 2)
 
 
 pdf(paste0("~/scratch/brain/results/hb_cluster.pdf"), width = 8, height = 8)
