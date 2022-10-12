@@ -67,6 +67,9 @@ tmp = convert53[which(convert53$new == "8-9_Glut"),]
 convert53 = convert53[-which(convert53$new == "8-9_Glut"),]
 convert53 = rbind(convert53[1:29,], tmp, convert53[30:nrow(convert53),])
 
+convert15$new.full = str_replace(convert15$new.full, "Astro", "RG")
+convert53$new = str_replace(convert53$new, "Astro", "RG")
+
 bb$good_names = convert53$new[match(bb$seuratclusters53, convert53$old)]
 bb$good_names_num = colsplit(bb$good_names, "_", c("num", "ex"))[,1]
 Idents(bb) = bb$good_names_num
