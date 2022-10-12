@@ -9126,22 +9126,24 @@ dev.off()
 #*******************************************************************************
 # CellChat =====================================================================
 #*******************************************************************************
-cc.res = read.csv("~/scratch/brain/cellchat/cellchat_full_primary.csv")
+cc.res = read.csv("~/scratch/brain/cellchat/cc_psp_real.csv")
 rownames(cc.res) = cc.res$X
 cc.res$X = NULL
 cc.res$id = rownames(cc.res)
-cc.res = cc.res[, c("id", "clust1", "clust2", "run1")]
+cc.res[,c("clust1", "clust2")] = reshape2::colsplit(cc.res$id, "\\.", c('1', '2'))
+cc.res = cc.res[, c("id", "clust1", "clust2", "x")]
 colnames(cc.res)[4] = "real"
-for (i in c(1, 2, 3, 4)) {
-  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary/cellchat_full_perm_", i*100, "nruns_run", i, ".csv"))
+for (i in 301:325) {
+  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_perm_40nruns_run", i, ".csv"))
   this.perm = this.perm[,4:ncol(this.perm)]
-  colnames(this.perm) = paste0("perm", ((ncol(cc.res)-4)+1):((ncol(cc.res)-4)+i*100) )
+  # colnames(this.perm) = paste0("perm", ((ncol(cc.res)-4)+1):((ncol(cc.res)-4)+i*100) )
   cc.res = cbind(cc.res, this.perm)
 }
-cc.res$p = rowSums(cc.res[, 5:ncol(cc.res)] > cc.res[, "real"]) / ncol(cc.res)
+colnames(cc.res)[5:ncol(cc.res)] = paste0("perm", 1:1000)
+cc.res$p = rowSums(cc.res[, 5:ncol(cc.res)] > cc.res[, "real"]) / 1000
 cc.res$bh = p.adjust(cc.res$p, method = "BH")
 cc.res$bon = p.adjust(cc.res$p, method = "bonferroni")
-write.csv(cc.res, "~/scratch/brain/cellchat/cellchat_full_primary_w_perm_and_p.csv")
+write.csv(cc.res, "~/scratch/brain/cellchat/cc_psp_real_w_perm_and_p.csv")
 
 cc.res.sig = cc.res[which(cc.res$bon < 0.05), c("id", "clust1", "clust2", "p", "bh", "bon")]
 cc.res.sig2 = cc.res.sig[which(startsWith(cc.res.sig$clust1, "cluster_")), ]
@@ -9196,4 +9198,70 @@ dev.off()
 
 high_df = reshape2::melt(cc.res[which(cc.res$clust1 == "rgc_2" & cc.res$clust2 == "cluster_1"), paste0("perm", 1:1000)])
 ggplot(high_df, aes(x = value)) + geom_histogram() + theme_classic() + geom_vline(xintercept = cc.res$real[which(cc.res$clust1 == "rgc_2" & cc.res$clust2 == "cluster_1")]) + scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0))
+
+perm = data.frame()
+potential_runs = 1:10
+failed_runs = c(3, 4, 9)
+for (i in potential_runs[which(!potential_runs %in% failed_runs)]) {
+  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_downsampled_perm_1000nruns_run", i, ".csv"))
+  if (i == 1) { perm = this.perm[,1:3] }
+  this.perm = this.perm[,4:ncol(this.perm)]
+  perm = cbind(perm, this.perm)
+}
+colnames(perm)[4:ncol(perm)] = 1:7000
+
+real = read.csv("~/scratch/brain/cellchat/cc_psp_real.csv")
+rownames(real) = real$X
+real$X = NULL
+real$id = rownames(real)
+colnames(real)[1] = "real"
+real[, c("clust1", "clust2")] = reshape2::colsplit(real$id, "\\.", c('1', '2'))
+real = real[, c("id", "clust1", "clust2", "real")]
+perm = read.csv("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_real_5nruns_run1.csv")
+# for (i in c(1, 2, 3, 4)) {
+#   this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_perm_", i*100, "nruns_run", i, ".csv"))
+#   this.perm = this.perm[,4:ncol(this.perm)]
+#   colnames(this.perm) = paste0("perm", ((ncol(cc.res)-4)+1):((ncol(cc.res)-4)+i*100) )
+#   cc.res = cbind(cc.res, this.perm)
+# }
+
+ndf = combined@meta.data %>% count(subsample, label)
+write.csv(ndf, "~/scratch/brain/results/bb_psp_subsample_label_ncells.csv")
+
+
+# ind_df = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_real_1nruns_run1_ind", 1, ".csv"))
+# ind_df_labels = unique(ind_df$clust1)
+ndf = read.csv("~/scratch/brain/results/bb_psp_subsample_label_ncells.csv")
+all_subsamples = unique(ndf$subsample)
+ind_df_labels = sort(unique(ndf$label))
+ind_df = as.data.frame(tidyr::expand_grid(unique(ndf$label), ind_df_labels, all_subsamples))
+colnames(ind_df) = c("clust1", "clust2", "subsample")
+convert15$old = paste0("primary_", convert15$old)
+convert53$old = paste0("secondary_", convert53$old)
+colnames(convert15)[4] = "new"
+convert_all = rbind(convert15[, c("old", "new")], convert53[, c("old", "new")])
+convert_all = rbind(convert_all, data.frame(old = ind_df_labels[which(! startsWith(ind_df_labels, "primary") & ! startsWith(ind_df_labels, "secondary") )], new = c("cckbr", "elavl4", "ntrk2b", "4_GABA htr1d", "4_GABA vipr2", "15_GABA/Glut tacr2", "11_Glut cckbr", "11_Glut npr2", "9.3_Glut ntrk2b", "RG0", "RG1", "RG10", "RG2", "RG3", "RG4", "RG5", "RG6", "RG7", "RG8", "RG9") ))
+
+
+ind_df$id = paste0(ind_df$clust1, ".", ind_df$clust2)
+ind_df$weight = NA
+ind_df$clust1_n = ndf$n[match(paste0(ind_df$clust1, ind_df$subsample), paste0(ndf$label, ndf$subsample))]
+ind_df$clust2_n = ndf$n[match(paste0(ind_df$clust2, ind_df$subsample), paste0(ndf$label, ndf$subsample))]
+ind_df$clust1_name = convert_all$new[match(ind_df$clust1, convert_all$old)]
+ind_df$clust2_name = convert_all$new[match(ind_df$clust2, convert_all$old)]
+for (i in 1:38) {
+  this.ind = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_real_1nruns_run1_ind", i, ".csv"))
+  ind_df$weight[which(ind_df$subsample == all_subsamples[i])] = this.ind[match(ind_df$id[which(ind_df$subsample == all_subsamples[i])], this.ind$X),4]
+}
+full_ind_df = ind_df
+rownames(full_ind_df) = 1:nrow(full_ind_df)
+full_ind_df = full_ind_df[, c("subsample", "id", "clust1", "clust2", "clust1_name", "clust2_name", "clust1_n", "clust2_n", "weight")]
+write.csv(full_ind_df, "~/scratch/brain/cellchat/bb_cc_psp_ind_long_092322.csv", row.names = F)
+
+# down5 = read.csv("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_downsampled_real_1000nruns_run5.csv")
+# perm5 = read.csv("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_downsampled_perm_1000nruns_run5.csv")
+down5 = read.csv("C:/Users/miles/Downloads/cellchat_downsampled_real_1000nruns_run5.csv")
+perm5 = read.csv("C:/Users/miles/Downloads/cellchat_downsampled_perm_1000nruns_run5.csv")
+p_df = data.frame(weight = c(as.numeric(down5[which(down5$X == "rgc_2.primary_1"),4:ncol(down5)]), as.numeric(down5[which(down5$X == "primary_1.rgc_2"),4:ncol(down5)])), direction = c(rep("RGC2 -> 9_Glut", 1000), rep("9_Glut -> RGC2", 1000)))
+ggplot(p_df, aes(x = weight, fill = direction, color = direction)) + geom_histogram(alpha = 0.7, position = 'identity') + theme_classic() + scale_x_continuous(expand = c(0,0)) + scale_y_continuous(expand = c(0,0))
 
