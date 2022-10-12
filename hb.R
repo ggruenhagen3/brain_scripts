@@ -15,38 +15,57 @@ if (main_path == "/storage/scratch1/6/ggruenhagen3/") { data_dir = "/storage/cod
 source(paste0(brain_dir, "/brain_scripts/all_f.R"))
 setwd(out_dir)
 
+# hb = readRDS("~/research/brain/data/hb_mi")
+
+#*******************************************************************************
+# chooseR ======================================================================
+#*******************************************************************************
+my.cluster = function(res) {
+        this.obj = RunUMAP(this.obj, dims=1:50, min.dist=min_dist, spread=1, n.neighbors=n_neighbors, n.epochs=1000, metric="euclidean")
+        this.obj = FindNeighbors(this.obj, reduction="umap", k.param=n_neighbors, dims=1:2, n.trees=500, prune.SNN=0)
+        this.obj = FindClusters(this.obj, resolution = res, algorithm = 2)
+        this.labels = this.obj$seurat_clusters
+        return(as.numeric(as.vector(this.labels)))
+}
+
+this.obj = readRDS("~/scratch/brain/data/hb_minimized_101122.rds")
+this.obj = SCTransform(this.obj, vars.to.regress = "sample", verbose = F)
+this.obj = RunPCA(this.obj, dim = 50, verbose = F)
+all.clustering.df = data.frame(cell = colnames(this.obj), row.names = colnames(this.obj))
+for (min_dist in c(0.001, seq(0.1, 0.5, by = 0.1))) {
+        for (n_neighbors in c(5, seq(10, 50, by = 5))) {
+                print(paste0("Params: mindist", min_dist, "_nneighbors", n_neighbors))
+                my.cluster.out = parallel::mclapply(seq(0.2, 2.0, by = 0.2), function(x) my.cluster(x), mc.cores = 9)
+                this.clustering.df = do.call(cbind, my.cluster.out)
+                colnames(this.clustering.df) = paste0("mindist", min_dist, "_nneighbors", n_neighbors, "_res", seq(0.2, 2.0, by = 0.2))
+                all.clustering.df = cbind(all.clustering.df, this.clustering.df)
+        }
+}
+all.clustering.df[,1] = NULL
+write.csv(all.clustering.df, "~/scratch/brain/results/hb/hb_clustering_options101222.csv")
+
+
 #*******************************************************************************
 # Demultiplexing ===============================================================
 #*******************************************************************************
-p_list = list()
-cells.to.remove = data.frame()
-ind_df = data.frame()
-hb$demux = ""
-hb$demux_top_prob = 0
-hb$demux_second_top_prob = 0
+demux_summary = data.frame()
 for (this.str in c("b1", "b2", "b3", "c1", "c2", "c3")) {
-        this.demux = data.table::fread(paste0("~/research/brain/results/demux/", this.str, "_demux.sing2"), data.table = F)
-        this.demux.wide = reshape(this.demux[, c("BARCODE", "SM_ID", "POSTPRB")], idvar = "BARCODE", timevar = "SM_ID", direction = "wide")
-        this.demux.wide$top_value = unlist(lapply(1:nrow(this.demux.wide), function(x) max(this.demux.wide[x,2:6]) ))
-        this.demux.wide$second_top_value = unlist(lapply(1:nrow(this.demux.wide), function(x) sort(this.demux.wide[x,2:6], decreasing = T)[2] ))
-        this.demux.wide$top_name = unlist(lapply(1:nrow(this.demux.wide), function(x) colnames(this.demux.wide)[2:6][which.max(this.demux.wide[x,2:6])] ))
-        this.demux.wide$top_name = reshape2::colsplit(this.demux.wide$top_name, "\\.", c('1', '2'))[,2]
-        p = ggplot(this.demux.wide, aes(x = top_value, y = second_top_value)) + geom_point(alpha = 0.1) + theme_classic() + ggtitle(this.str) + theme(plot.title = element_text(hjust = 0.5))
-        p_list[[this.str]] = ggExtra::ggMarginal(p, type = "histogram")
-        this.demux.wide$new_barcode = paste0(this.str, "_", this.demux.wide$BARCODE)
-        hb$demux[this.demux.wide$new_barcode] = this.demux.wide$top_name
-        hb$demux_top_prob[this.demux.wide$new_barcode] = this.demux.wide$top_value
-        hb$demux_second_top_prob[this.demux.wide$new_barcode] = this.demux.wide$second_top_value
-        
-        # length(which(this.demux.wide$top_value > 0.9 & this.demux.wide$second_top_value < 0.1))
-        # length(which(this.demux.wide$top_value < 0.9 | this.demux.wide$second_top_value > 0.1))
-        # this.demux.wide.good = this.demux.wide[which(this.demux.wide$top_value > 0.9 & this.demux.wide$second_top_value < 0.1 & this.demux.wide$new_barcode %in% colnames(hb_test)),]
-        # cells.to.remove = rbind(cells.to.remove, data.frame(cell = this.demux.wide$new_barcode[which( (this.demux.wide$top_value <= 0.9 | this.demux.wide$second_top_value >= 0.1) & this.demux.wide$new_barcode %in% colnames(hb_test))], sample = this.str))
-        # ind_df = rbind(ind_df, data.frame(cell = this.demux.wide.good$new_barcode, ind = this.demux.wide.good$top_name))
+        this.demux = data.table::fread(paste0("~/research/brain/results/demux/qcc/", this.str, "_qc_cell_demux.best"), data.table = F)
+        this.demux$sample = this.str
+        this.demux$barcode = this.demux$BARCODE
+        this.demux$cell = paste0(this.demux$sample, "_", this.demux$barcode)
+        this.demux$demux = this.demux$SNG.1ST
+        this.demux$demux_n_snp = this.demux$N.SNP
+        this.demux$demux_llik = this.demux$SNG.LLK1
+        demux_summary = rbind(demux_summary, this.demux[,c("sample", "barcode", "cell", "demux", "demux_n_snp", "demux_llik")])
 }
-cowplot::plot_grid(plotlist = p_list, ncol = 3)
-hb$demux_good = hb$demux_top_prob > 0.9 & hb$demux_second_top_prob < 0.1
-saveRDS(hb, "~/research/brain/data/hb_demux_092922.rds")
+write.csv(demux_summary, "~/research/brain/results/hb_demux_qcc_101222.csv")
+hb$demux       = demux_summary$demux[match(colnames(hb), demux_summary$cell)]
+hb$demux_n_snp = demux_summary$demux_n_snp[match(colnames(hb), demux_summary$cell)]
+hb$demux_llik  = demux_summary$demux_llik[match(colnames(hb), demux_summary$cell)]
+print(paste("Number of cells w/ <50 SNPs", length(which(hb$demux_n_snp < 50))))
+print(paste("Number of cells w/ <50 SNPs and are good quality otherwise:", length(which(hb$demux_n_snp < 50 & hb$nFeature_RNA > 200 & hb$nFeature_RNA < 3000))))
+print(paste("Number of cells after all filtering:", length(which(hb$demux_n_snp >= 50 & hb$nFeature_RNA > 200 & hb$nFeature_RNA < 3000))))
 
 test = merge(this.demux.wide_1, this.demux.wide_2, by = "BARCODE", suffixes = c("_new", "_old"))
 test$agree = test$top_name_new == test$top_name_old
@@ -81,10 +100,63 @@ cowplot::plot_grid(plotlist = list(p3, p4), ncol = 1)
 cowplot::plot_grid(plotlist = list(p1, p3, p2, p4), ncol = 2)
 # B1 = 200, B2 = 446, B3 = 296, C1 = 298, C2 = 407, C3 = 
 
+# Soup
+demux = read.table("~/Downloads/c3_qc_cell_demux.best", sep="\t", header = T)
+soup = read.table("~/Downloads/hb_c3_qcc_soup_dbl.tsv", sep="\t", header = T)
+soup$best = unlist(lapply(1:nrow(soup), function(x) abs(sort(soup[x,c("cluster0", "cluster1", "cluster2", "cluster3")], decreasing = T)[1]) ))
+soup$second_best = unlist(lapply(1:nrow(soup), function(x) abs(sort(soup[x,c("cluster0", "cluster1", "cluster2", "cluster3")], decreasing = T)[2]) ))
+soup$prop = 1/(soup$best/soup$second_best)
+soup$dif = soup$second_best - soup$best
+# soup$col = paste0("cluster", soup$assignment)
+soup$col = unlist(lapply(1:nrow(soup), function(x) colnames(soup)[6:10][which.max(soup[x,6:10])] ))
+ggplot(soup, aes(x = best, y = prop)) + geom_point(alpha = 0.5)
+ggplot(soup, aes(x = best, y = dif)) + geom_point(alpha = 0.5)
+demux[, c("soup", "soup_best", "soup_second_best", "soup_prop")] = soup[, c("col", "best", "second_best", "prop")]
+demux$prop = 1/(demux$SNG.LLK1 / demux$SNG.LLK2)
+demux_big_ovlp = as.data.frame(table( paste0(demux$SNG.1ST, demux$soup) ))
+demux_big_ovlp = demux_big_ovlp[which(demux_big_ovlp$Freq >= 5),]
+ggplot(demux, aes(x = SNG.1ST, fill = soup)) + geom_bar()
+
+ggplot(demux, aes(x = prop, y = soup_prop)) + geom_point(alpha = 0.5)
+ggplot(demux[which(demux$prop > 1.5 & demux$soup_prop > 1.5),], aes(x = SNG.1ST, fill = soup)) + geom_bar()
+ggplot(demux, aes(x = SNG.LLK1, y = SNG.LLK2, color = N.SNP, alpha = N.SNP)) + geom_point() + theme_classic() + ggtitle(this.str) + theme(plot.title = element_text(hjust = 0.5)) + scale_color_viridis()
+
+# BB B1 testing
+# Does the downsampled have 3138 cells instead of 2532 like it should?
+soup.full = read.table("~/Downloads/soup_qc_cell_dbl.tsv", sep="\t", header = T)
+soup.down = read.table("~/Downloads/soup_downsampled_dbl.tsv", sep="\t", header = T)
+demux.down = read.table("~/Downloads/b1_down_demux.sing2", sep="\t", header = T)
+this.demux.wide = reshape(this.demux[, c("BARCODE", "SM_ID", "POSTPRB")], idvar = "BARCODE", timevar = "SM_ID", direction = "wide")
+this.demux.wide$top_value = unlist(lapply(1:nrow(this.demux.wide), function(x) max(this.demux.wide[x,2:5]) ))
+this.demux.wide$second_top_value = unlist(lapply(1:nrow(this.demux.wide), function(x) sort(this.demux.wide[x,2:5], decreasing = T)[2] ))
+this.demux.wide$top_name = unlist(lapply(1:nrow(this.demux.wide), function(x) colnames(this.demux.wide)[2:5][which.max(this.demux.wide[x,2:5])] ))
+this.demux.wide$top_name = reshape2::colsplit(this.demux.wide$top_name, "\\.", c('1', '2'))[,2]
+this.demux.wide$soup.full = soup.full$assignment
+this.demux.wide$soup.down = soup.down$assignment
+this.demux.wide = this.demux.wide[which(this.demux.wide$BARCODE %in% bb.meta$cell),]
+this.demux.wide$bb = bb.meta$demux[match(bb.meta$cell, this.demux.wide$BARCODE)]
+ggplot(this.demux.wide, aes(x = top_name, fill = soup.full)) + geom_bar()
+ggplot(this.demux.wide, aes(x = top_name, fill = this.demux.wide$bb)) + geom_bar()
+ggplot(this.demux.wide, aes(x = top_name, fill = soup.down)) + geom_bar()
+
+test = rbind(hb_c3_demux2, bb_b1_demux)
+p_list[[1]] = ggplot(test, aes(x = RD.TOTL, color = sample, fill = sample)) + geom_histogram(position = "identity", alpha = 0.5) + ggtitle("BB B1 Downsampled Comparison to HB C3 w/ Intergenic")
+p_list[[2]] = ggplot(test, aes(x = RD.PASS, color = sample, fill = sample)) + geom_histogram(position = "identity", alpha = 0.5)
+p_list[[3]] = ggplot(test, aes(x = N.SNP, color = sample, fill = sample)) + geom_histogram(position = "identity", alpha = 0.5)
+cowplot::plot_grid(plotlist = p_list, ncol = 1)
+
+bb_b1_demux = bb_b1_demux[which(bb_b1_demux$BARCODE %in% bb.meta$cell),]
+bb_b1_demux$bb = bb.meta$demux[match(bb.meta$cell, bb_b1_demux$BARCODE)]
+bb_b1_demux$bb_agree = bb_b1_demux$SNG.1ST == bb_b1_demux$bb
+bb_b1_demux = bb_b1_demux[order(bb_b1_demux$bb_agree, decreasing = T),]
+ggplot(bb_b1_demux, aes(x = SNG.LLK1, y = SNG.LLK2, color = N.SNP, alpha = N.SNP)) + geom_point() + theme_classic() + ggtitle("BB B1 Downsampled") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_viridis()
+ggplot(bb_b1_demux, aes(x = SNG.LLK1, y = N.SNP, color = bb_agree)) + geom_point(alpha = 0.5) + theme_classic() + ggtitle("BB B1 Downsampled") + theme(plot.title = element_text(hjust = 0.5)) + scale_color_viridis_d()
+ggplot(bb_b1_demux, aes(x = SNG.LLK1, color = bb_agree, fill = bb_agree)) + geom_histogram(alpha = 0.5, position = "identity") + theme_classic() + ggtitle("BB B1 Downsampled") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(bb_b1_demux, aes(x = N.SNP, color = bb_agree, fill = bb_agree)) + geom_histogram(alpha = 0.5, position = "identity") + theme_classic() + ggtitle("BB B1 Downsampled") + theme(plot.title = element_text(hjust = 0.5))
+
 #*******************************************************************************
 # Initial clustering ===========================================================
 #*******************************************************************************
-
 # Load Data
 dir_of_sr_dirs = "~/scratch/brain/bs/PM19/" # Folder where all the individual samples are kept
 counts_list = list()
@@ -96,12 +168,12 @@ counts_list[["c2"]] = Read10X(paste0(dir_of_sr_dirs, "/PM19_C2_nuc/outs/filtered
 counts_list[["c3"]] = Read10X(paste0(dir_of_sr_dirs, "/PM19_C3_nuc/outs/filtered_feature_bc_matrix/"))
 
 objs = list()
-objs[["b1"]] = CreateSeuratObject(b1_counts)
-objs[["b2"]] = CreateSeuratObject(b2_counts)
-objs[["b3"]] = CreateSeuratObject(b3_counts)
-objs[["c1"]] = CreateSeuratObject(c1_counts)
-objs[["c2"]] = CreateSeuratObject(c2_counts)
-objs[["c3"]] = CreateSeuratObject(c3_counts)
+objs[["b1"]] = CreateSeuratObject(counts_list[["b1"]])
+objs[["b2"]] = CreateSeuratObject(counts_list[["b2"]])
+objs[["b3"]] = CreateSeuratObject(counts_list[["b3"]])
+objs[["c1"]] = CreateSeuratObject(counts_list[["c1"]])
+objs[["c2"]] = CreateSeuratObject(counts_list[["c2"]])
+objs[["c3"]] = CreateSeuratObject(counts_list[["c3"]])
 
 objs[["b1"]]$sample = "b1"; objs[["b1"]]$cond = "BHVE";
 objs[["b2"]]$sample = "b2"; objs[["b2"]]$cond = "BHVE";
@@ -134,7 +206,7 @@ mito.genes = gtf$V10[which(gtf$V1 == "NC_027944.1")]
 mito.genes = stringr::str_replace(mito.genes, "_", "-")
 hb$pct.mt = colSums(hb@assays$RNA@counts[mito.genes,]) / hb$nCount_RNA
 
-hb = subset(hb, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & pct_mt < 0.05)
+hb = subset(hb, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & pct.mt < 0.05)
 print(paste("Number of Cells in hb After Filterning:", ncol(hb)))
 hb = NormalizeData(hb, normalization.method = "LogNormalize", scale.factor = 10000)
 hb = SCTransform(hb, vars.to.regress = "sample" , verbose = TRUE)

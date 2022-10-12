@@ -7719,6 +7719,14 @@ shuffleCors = function(x) {
 #******************************************************************
 # IEG FeaturePlot =================================================
 #******************************************************************
+p_list = list()
+for (this.ieg in ieg) {
+  p_list[[this.ieg]] = FeaturePlot(bb, this.ieg, pt.size = 0.6, order = T) + theme_void() + NoLegend() + coord_fixed() + theme(plot.title = element_text(hjust = 0.5))
+}
+pdf("~/Downloads/all_25_ieg_featureplot.pdf", width = 10, height = 10)
+print(cowplot::plot_grid(plotlist = p_list, ncol = 5))
+dev.off()
+
 ieg_cons = c("LOC101487312", "egr1", "npas4")
 ieg_like = read.csv("C:/Users/miles/Downloads/ieg_like_fos_egr1_npas4_detected_011521.csv", stringsAsFactors = F)[,1]
 ieg_like = c(ieg_cons, ieg_like[which(! ieg_like %in% ieg_cons)])
@@ -8035,6 +8043,117 @@ permSubsamples = function(x) {
 #*******************************************************************************
 # Supplement ===================================================================
 #*******************************************************************************
+# bDEG, qDEG, gDEG
+# Primary
+bDEG15 = read.csv("~/research/brain/results/out_glmmseq_bb15_demux_deg_bower_behavior_hmp_calculated_across_clusters_111821_hgnc.csv")
+bDEG15 = bDEG15[which(bDEG15$sig_bower_all == 6 & bDEG15$hmp_bower_all < 0.05),]
+bDEG15$p_max = unlist(lapply(1:nrow(bDEG15), function(x) max(bDEG15[x,c("P_cond", "P_cond.1", "P_cond.2", "P_bower_activity_index", "P_bower_activity_index.1", "P_bower_activity_index.2")])))
+bDEG15$p_min = unlist(lapply(1:nrow(bDEG15), function(x) min(bDEG15[x,c("P_cond", "P_cond.1", "P_cond.2", "P_bower_activity_index", "P_bower_activity_index.1", "P_bower_activity_index.2")])))
+bDEG15$cluster_new = convert15$new.full[match(bDEG15$cluster, convert15$old)]
+bDEG15$num_models = 6
+bDEG15$category = "building"
+bDEG15 = bDEG15[, c("category", "cluster_new", "mzebra", "gene", "p_min", "p_max", "hmp_bower_all", "num_models")]
+colnames(bDEG15) = c("category", "cluster", "mzebra", "human", "p_min", "p_max", "hmp", "num_models")
+bDEG15$cluster = factor(bDEG15$cluster, levels = rev(convert15$new.full))
+bDEG15 = bDEG15[order(bDEG15$cluster, bDEG15$hmp),]
+
+gDEG15 = read.csv("~/research/brain/results/out_glmmseq_bb15_demux_deg_gsi_hmp_calculated_across_clusters_11182_hgnc.csv")
+gDEG15 = gDEG15[which(gDEG15$sig_gsi == 5 & gDEG15$hmp < 0.05),]
+gDEG15$p_max = unlist(lapply(1:nrow(gDEG15), function(x) max(gDEG15[x,c("P_gsi", "P_gsi.1", "P_gsi.2", "P_gsi.3", "P_gsi.4")])))
+gDEG15$p_min = unlist(lapply(1:nrow(gDEG15), function(x) min(gDEG15[x,c("P_gsi", "P_gsi.1", "P_gsi.2", "P_gsi.3", "P_gsi.4")])))
+gDEG15$cluster_new = convert15$new.full[match(gDEG15$cluster, convert15$old)]
+gDEG15$num_models = 5
+gDEG15$category = "GSI"
+gDEG15 = gDEG15[, c("category", "cluster_new", "mzebra", "gene", "p_min", "p_max", "hmp", "num_models")]
+colnames(gDEG15) = c("category", "cluster", "mzebra", "human", "p_min", "p_max", "hmp", "num_models")
+gDEG15$cluster = factor(gDEG15$cluster, levels = rev(convert15$new.full))
+gDEG15 = gDEG15[order(gDEG15$cluster, gDEG15$hmp),]
+
+qDEG15 = read.csv("~/research/brain/results/out_glmmseq_bb15_demux_deg_log_spawn_events_hmp_calculated_across_clusters_111821_hgnc.csv")
+qDEG15 = qDEG15[which(qDEG15$sig_log_spawn_events == 5 & qDEG15$hmp < 0.05),]
+qDEG15$p_max = unlist(lapply(1:nrow(qDEG15), function(x) max(qDEG15[x,c("P_log_spawn_events", "P_log_spawn_events.1", "P_log_spawn_events.2", "P_log_spawn_events.3", "P_log_spawn_events.4")])))
+qDEG15$p_min = unlist(lapply(1:nrow(qDEG15), function(x) min(qDEG15[x,c("P_log_spawn_events", "P_log_spawn_events.1", "P_log_spawn_events.2", "P_log_spawn_events.3", "P_log_spawn_events.4")])))
+qDEG15$cluster_new = convert15$new.full[match(round(qDEG15$cluster), convert15$old)]
+qDEG15$num_models = 5
+qDEG15$category = "quivering"
+qDEG15 = qDEG15[, c("category", "cluster_new", "mzebra", "gene", "p_min", "p_max", "hmp", "num_models")]
+colnames(qDEG15) = c("category", "cluster", "mzebra", "human", "p_min", "p_max", "hmp", "num_models")
+qDEG15$cluster = factor(qDEG15$cluster, levels = rev(convert15$new.full))
+qDEG15 = qDEG15[order(qDEG15$cluster, qDEG15$hmp),]
+
+all.primary.deg = rbind(bDEG15, gDEG15, qDEG15)
+write.csv(all.primary.deg, "~/research/brain/results/bdeg_gdeg_qdeg_15cluster_summary.csv")
+
+# Secondary
+bDEG53 = read.csv("~/research/brain/results/degs_for_george_082422/out_glmmseq_bb53_demux_deg_bower_behavior_hmp_calculated_across_clusters_111821_hgnc.csv")
+bDEG53 = bDEG53[which(bDEG53$sig_bower_all == 6 & bDEG53$hmp_bower_all < 0.05),]
+bDEG53$p_max = unlist(lapply(1:nrow(bDEG53), function(x) max(bDEG53[x,c("P_cond", "P_cond.1", "P_cond.2", "P_bower_activity_index", "P_bower_activity_index.1", "P_bower_activity_index.2")])))
+bDEG53$p_min = unlist(lapply(1:nrow(bDEG53), function(x) min(bDEG53[x,c("P_cond", "P_cond.1", "P_cond.2", "P_bower_activity_index", "P_bower_activity_index.1", "P_bower_activity_index.2")])))
+bDEG53$cluster_new = convert53$new[match(bDEG53$cluster, convert53$old)]
+bDEG53$num_models = 6
+bDEG53$category = "building"
+bDEG53 = bDEG53[, c("category", "cluster_new", "mzebra", "gene", "p_min", "p_max", "hmp_bower_all", "num_models")]
+colnames(bDEG53) = c("category", "cluster", "mzebra", "human", "p_min", "p_max", "hmp", "num_models")
+bDEG53$cluster = factor(bDEG53$cluster, levels = convert53$new)
+bDEG53 = bDEG53[order(bDEG53$cluster, bDEG53$hmp),]
+
+gDEG53 = read.csv("~/research/brain/results/degs_for_george_082422/out_glmmseq_bb53_demux_deg_gsi_hmp_calculated_across_clusters_111821_hgnc.csv")
+gDEG53 = gDEG53[which(gDEG53$sig_gsi == 5 & gDEG53$hmp < 0.05),]
+gDEG53$p_max = unlist(lapply(1:nrow(gDEG53), function(x) max(gDEG53[x,c("P_gsi", "P_gsi.1", "P_gsi.2", "P_gsi.3", "P_gsi.4")])))
+gDEG53$p_min = unlist(lapply(1:nrow(gDEG53), function(x) min(gDEG53[x,c("P_gsi", "P_gsi.1", "P_gsi.2", "P_gsi.3", "P_gsi.4")])))
+gDEG53$cluster_new = convert53$new[match(gDEG53$cluster, convert53$old)]
+gDEG53$num_models = 5
+gDEG53$category = "GSI"
+gDEG53 = gDEG53[, c("category", "cluster_new", "mzebra", "gene", "p_min", "p_max", "hmp", "num_models")]
+colnames(gDEG53) = c("category", "cluster", "mzebra", "human", "p_min", "p_max", "hmp", "num_models")
+gDEG53$cluster = factor(gDEG53$cluster, levels = convert53$new)
+gDEG53 = gDEG53[order(gDEG53$cluster, gDEG53$hmp),]
+
+qDEG53 = read.csv("~/research/brain/results/degs_for_george_082422/out_glmmseq_bb53_demux_deg_log_spawn_events_hmp_calculated_across_clusters_111821.csv")
+qDEG53 = qDEG53[which(qDEG53$sig_log_spawn_events == 5 & qDEG53$hmp < 0.05),]
+qDEG53$p_max = unlist(lapply(1:nrow(qDEG53), function(x) max(qDEG53[x,c("P_log_spawn_events", "P_log_spawn_events.1", "P_log_spawn_events.2", "P_log_spawn_events.3", "P_log_spawn_events.4")])))
+qDEG53$p_min = unlist(lapply(1:nrow(qDEG53), function(x) min(qDEG53[x,c("P_log_spawn_events", "P_log_spawn_events.1", "P_log_spawn_events.2", "P_log_spawn_events.3", "P_log_spawn_events.4")])))
+qDEG53$cluster_new = convert53$new[match(round(qDEG53$cluster), convert53$old)]
+qDEG53$num_models = 5
+qDEG53$category = "quivering"
+qDEG53$hgnc = gene_info$human[match(qDEG53$gene, gene_info$seurat_name)]
+qDEG53$mzebra = qDEG53$gene
+qDEG53$gene = qDEG53$hgnc
+qDEG53 = qDEG53[, c("category", "cluster_new", "mzebra", "gene", "p_min", "p_max", "hmp", "num_models")]
+colnames(qDEG53) = c("category", "cluster", "mzebra", "human", "p_min", "p_max", "hmp", "num_models")
+qDEG53$cluster = factor(qDEG53$cluster, levels = convert53$new)
+qDEG53 = qDEG53[order(qDEG53$cluster, qDEG53$hmp),]
+
+all.secondary.deg = rbind(bDEG53, gDEG53, qDEG53)
+write.csv(all.secondary.deg, "~/research/brain/results/bdeg_gdeg_qdeg_53cluster_summary.csv")
+
+# all.primary.deg.test = all.primary.deg
+# all.primary.deg.test$id = paste(all.primary.deg.test$category, all.primary.deg.test$cluster, all.primary.deg.test$mzebra, all.primary.deg.test$human, sep=" - ")
+# all.primary.deg.test$log.hmp = -log10(all.primary.deg.test$hmp)
+# all.primary.deg.test$log.pmax = -log10(all.primary.deg.test$p_max)
+# all.primary.deg.test$log.pmin = -log10(all.primary.deg.test$p_min)
+# all.primary.deg.test$id = factor(all.primary.deg.test$id, levels = all.primary.deg.test$id[order(all.primary.deg.test$log.hmp, decreasing = T)])
+# ggplot(all.primary.deg.test, aes(x = id, y = log.hmp, color = log.hmp)) + geom_point() + scale_color_viridis() + geom_text_repel(data = all.primary.deg.test[which(all.primary.deg.test$log.hmp > 50),], aes(label = id), color = "black") + theme(axis.title.x=element_blank(), axis.text.x=element_blank())
+# all.primary.deg.test$log.hmp[which(all.primary.deg.test$log.hmp > 10)] = 10
+# all.primary.deg.test$log.pmax[which(all.primary.deg.test$log.pmax > 10)] = 10
+# all.primary.deg.test$log.pmin[which(all.primary.deg.test$log.pmin > 10)] = 10
+# ggplot(all.primary.deg.test, aes(x = id, y = log.hmp, color = log.hmp)) + geom_point(aes(y = log.hmp)) + geom_point(aes(y = log.pmax), alpha = 0.2) + geom_point(aes(y = log.pmin), alpha = 0.2) + scale_color_viridis() + geom_text_repel(data = all.primary.deg.test[which(all.primary.deg.test$log.hmp > 50),], aes(label = id), color = "black") + theme(axis.title.x=element_blank(), axis.text.x=element_blank()) + ggtitle("Cap at 10")
+# ggplot(all.primary.deg.test, aes(x = id, y = log.hmp, color = log.hmp)) + geom_point(aes(y = log.hmp)) + geom_point(aes(y = log.pmax), alpha = 0.2) + geom_point(aes(y = log.pmin), alpha = 0.2) + scale_color_viridis() + geom_text_repel(data = all.primary.deg.test[which(all.primary.deg.test$log.hmp > 50),], aes(label = id), color = "black") + theme(axis.title.x=element_blank(), axis.text.x=element_blank()) + ggtitle("Cap at 10") + facet_wrap(~category, ncol = 1)
+
+
+# Population of Interest on UMAP
+bb$tmp = "none"
+bb$tmp[which(bb$seuratclusters53 == 4)] = "8.1_Glut"
+bb$tmp[which(bb$seuratclusters53 == "13")] = "8.4_Glut"
+bb$tmp[which(bb$rgc == 2)] = "RGC2"
+bb$tmp[which(bb$seuratclusters15 == 1)] = "9_Glut"
+bb$tmp[which(bb$seuratclusters15 == 2)] = "4_GABA"
+Idents(bb) = bb$tmp
+pdf("~/research/brain/results/bb_glu81_84_rgc2_gaba4_glut9.pdf", width = 6, height = 5, onefile = F)
+print(DimPlot(bb, pt.size = 0.05, order = T, cols = c("#8E8B91", "#04D9FF", "#d600ff", "#FF9E24", viridis(100)[100], viridis(100)[1])) + coord_fixed())
+dev.off()
+
+# RGC subclusters scores
 final = read.csv("~/Downloads/final_rgc_q_c_nb_markers_060322.csv")
 rgc_sub$q_score = colSums(rgc_sub@assays$RNA@counts[final$mzebra[which(final$rgc_state == "quiescent")],] > 0)
 rgc_sub$c_score = colSums(rgc_sub@assays$RNA@counts[final$mzebra[which(final$rgc_state == "cycling")],] > 0)
@@ -9126,7 +9245,363 @@ dev.off()
 #*******************************************************************************
 # CellChat =====================================================================
 #*******************************************************************************
+<<<<<<< HEAD
 cc.res = read.csv("~/scratch/brain/cellchat/cc_psp_real.csv")
+=======
+
+# ********************* #
+# Plotting Permutations #
+# ********************* #
+cc.res = read.csv("~/Downloads/cc_psp_real_w_perm_and_p.csv")
+cc.res$p = rowSums(cc.res[6:1005] > cc.res[,"real"]) / 1000
+p_list = list()
+for (i in 1:nrow(cc.res)) {
+  print(i)
+  this.real = cc.res$real[i]
+  test = reshape2::melt(cc.res[i,6:ncol(cc.res)])
+  p_list[[i]] = ggplot(test, aes(x = value)) + geom_histogram(alpha = 1, position="identity") + theme_classic() + scale_x_continuous(expand = c(0,0), breaks = scales::pretty_breaks(n = 3)) + scale_y_continuous(expand = c(0,0), breaks = scales::pretty_breaks(n = 3)) + geom_vline(xintercept = this.real, linetype = "dashed") + xlab("") + ylab("") + ggtitle(cc.res$id[i])
+}
+
+pdf("~/research/brain/results/c_primary_10k_down_to_real_1.pdf", width = 8, height = 15)
+print(cowplot::plot_grid(plotlist = p_list[1:75], ncol = 5))
+dev.off()
+
+neuronal.interest = c("secondary_13", "secondary_4", "genePop_goi_NA_LOC101466528", "genePop_goi_NA_LOC101470924", "genePop_goi_NA_LOC101477733", "genePop_primary_2_htr1d", "genePop_primary_2_vipr2", "genePop_primary_3_tacr2", "genePop_primary_7_LOC101466528", "genePop_secondary_11_LOC101476270", "genePop_secondary_14_LOC101477733")
+cc.res.neuronal.interest = cc.res[which(cc.res$clust1 %in% neuronal.interest & cc.res$clust2 %in% neuronal.interest),]
+length(which(cc.res.neuronal.interest$bon < 0.05))
+
+cc.res$max_perm = unlist(lapply(1:nrow(cc.res), function(x) max(cc.res[x, 6:1005]) ))
+cc.res$max_perm_dif = cc.res$real - cc.res$max_perm
+ggplot(cc.res, aes(x = real, y = max_perm_dif, color = max_perm_dif)) + geom_point() + geom_text_repel(data = cc.res[which(cc.res$real > 4),], aes(label = id), color = "black") + scale_color_viridis()
+
+pdf("~/Downloads/z_perm_connection_weights_100bins.pdf", width = 6, height = 4)
+ggplot(cc.res, aes(x = real, fill = bon_sig, color = bon_sig)) + geom_histogram(alpha = 0.6, bins = 100) + xlab("Connection Weight") + theme_classic() + scale_x_continuous(expand = c(0,0)) + scale_y_continuous(expand = c(0,0)) + ylab("Number of Connections") + scale_color_manual(values = c("#21918C", "#FDE725")) + scale_fill_manual(values = c("#21918C", "#FDE725")) + guides(fill = 'none', color = 'none')
+dev.off()
+
+# ************************* #
+# Investigating the 3 peaks #
+# ************************* #
+real = read.csv("~/Downloads/cc_psp_real.csv")
+real_n_cells = read.csv("~/Downloads/bb_cc_psp_n_cells.csv")
+rownames(real) = real$X
+real$X = NULL
+real$id = rownames(real)
+real[, c("clust1", "clust2")] = reshape2::colsplit(real$id, "\\.", c('1', '2'))
+colnames(real)[1] = "real"
+real = real[, c("id", "clust1", "clust2", "real")]
+real$level1 = reshape2::colsplit(real$clust1, "_", c('1', '2'))[,1]
+real$level2 = reshape2::colsplit(real$clust2, "_", c('1', '2'))[,1]
+real$level1.level2 = paste0(real$level1, ".", real$level2)
+ggplot(real, aes(x = real, fill = level1.level2, color = level1.level2)) + geom_histogram(alpha = 0.8) + guides(fill = 'none', color = 'none') + xlab("Weight") + facet_wrap(~ level1.level2)
+ggplot(real, aes(x = real, fill = level1.level2, color = level1.level2)) + geom_histogram(alpha = 0.8) + guides(color = 'none') + xlab("Weight")
+
+ggplot(real, aes(x = real, fill = level1.level2, color = level1.level2)) + geom_density(alpha = 0.8) + guides(fill = 'none', color = 'none') + xlab("Weight") + facet_wrap(~ level1.level2)
+ggplot(real, aes(x = real, fill = level1.level2, color = level1.level2)) + geom_density(alpha = 0.8) + guides(color = 'none') + xlab("Weight")
+
+real$peak = "none"
+real$peak[which(real$real > 0.1  & real$real < 0.75)] = "peak1"
+real$peak[which(real$real > 1 & real$real < 1.7)] = "peak2"
+real$peak[which(real$real > 1.7 & real$real < 2.25)] = "peak3"
+real$clust1.n = real_n_cells$Freq[match(real$clust1, real_n_cells$Var1)]
+real$clust2.n = real_n_cells$Freq[match(real$clust2, real_n_cells$Var1)]
+real$total.n = real$clust1.n + real$clust2.n
+# real$bin50 = 
+real = real %>% mutate(bin50 = cut(real, seq(0, 5, by = 0.25)))
+real$bot = reshape2::colsplit(reshape2::colsplit(real$bin50, "\\(", c('1', '2'))[,2], ",", c('1', '2'))[,1]
+ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = bot, y = clust1.n, group = bot)) + geom_boxplot()
+
+# library(ggridges)
+# ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = bot, y = peak)) + geom_density_ridges(bandwidth = 0.1)
+
+ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust1)) + geom_histogram() + guides(fill = "none") + facet_wrap(~ clust1) + geom_vline(xintercept = 0.5, color = "yellow") + geom_vline(xintercept = 1.5, color = "orange") + geom_vline(xintercept = 2, color = "red") + ggtitle("Sender Histograms")
+# ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust1)) + geom_histogram() + guides(fill = "none") + facet_wrap(~ clust1)
+ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust1)) + geom_density() + guides(fill = "none") + facet_wrap(~ clust1) + geom_vline(xintercept = 0.5, color = "yellow") + geom_vline(xintercept = 1.5, color = "orange") + geom_vline(xintercept = 2, color = "red") + ggtitle("Sender Densities")
+# ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust1)) + geom_density() + guides(fill = "none") + facet_wrap(~ clust1)
+
+ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust2)) + geom_histogram() + guides(fill = "none") + facet_wrap(~ clust2) + geom_vline(xintercept = 0.5, color = "yellow") + geom_vline(xintercept = 1.5, color = "orange") + geom_vline(xintercept = 2, color = "red") + ggtitle("Receiver Histograms")
+# ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust2)) + geom_histogram() + guides(fill = "none") + facet_wrap(~ clust2)
+ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust2)) + geom_density() + guides(fill = "none") + facet_wrap(~ clust2) + geom_vline(xintercept = 0.5, color = "yellow") + geom_vline(xintercept = 1.5, color = "orange") + geom_vline(xintercept = 2, color = "red") + ggtitle("Receiver Densities")
+# ggplot(real[which(real$level1.level2 == "secondary.secondary"),], aes(x = real, fill = clust2)) + geom_density() + guides(fill = "none") + facet_wrap(~ clust2)
+
+real$pred_bin = "none"
+real$pred_bin[which(real$clust1 %in% c("secondary_45", "secondary_46", "secondary_5"))] = "0.5"
+real$pred_bin[which(real$clust1 %in% c("secondary_18", "secondary_24") | real$clust2 %in% c("secondary_15", "secondary_21", "secondary_27", "secondary_39") )] = "1.5"
+real$pred_bin[which(real$clust1 %in% c("secondary_20", "secondary_6", "secondary_16", "secondary_3", "secondary_33"))] = "2.0"
+ggplot(real[which(real$level1.level2 == "secondary.secondary" & real$pred_bin != "none"),], aes(x = real, fill = pred_bin, color = pred_bin)) + geom_histogram(position="identity", alpha=0.5) + guides(fill = "none", color = "none") + geom_vline(xintercept = 0.5, color = "yellow") + geom_vline(xintercept = 1.5, color = "orange") + geom_vline(xintercept = 2, color = "red")
+ggplot(real[which(real$level1.level2 == "secondary.secondary" & real$pred_bin != "none"),], aes(x = real)) + geom_histogram(position="identity", alpha=0.5) + guides(fill = "none", color = "none") + geom_vline(xintercept = 0.5, color = "yellow") + geom_vline(xintercept = 1.5, color = "orange") + geom_vline(xintercept = 2, color = "red")
+
+# sim = data.frame(peak = c(rep("0.5", 1000), rep("1.5", 1000), rep("2.0", 1000)),
+#                  value = c(rnorm(1000, mean = 0.5, sd = 0.5), rnorm(1000, mean = 1.5, sd = 0.5), rnorm(1000, mean = 2.0, sd = 0.5)))
+sim = data.frame(peak = c(rep("0.5", 2000), rep("2.0", 3000)),
+                 value = c(rnorm(2000, mean = 0.5, sd = 0.5), rnorm(3000, mean = 2.0, sd = 0.5)))
+hist(sim$value, breaks = 100)
+
+real$quantile = ecdf(real$real)(real$real)
+real$clust2glut84 = real$clust2 == "secondary_13"
+real = real[order(real$clust2glut84, decreasing = F),]
+ggplot(real, aes(x = real, y = quantile, color = clust2glut84)) + geom_point() + scale_color_manual(values = c("#47474710", "orange"))
+
+# **************** #
+# Gene Pop Signals #
+# **************** #
+# See which pops receive genePop signals the most
+real_genePop = real[which(real$level1 == "genePop"),]
+genePop_receiever = data.frame(receiver = unique(real_genePop$clust2))
+genePop_receiever$sum = unlist(lapply(genePop_receiever$receiver, function(x) sum(real_genePop$real[which(real_genePop$clust2 == x)]) ))
+genePop_receiever[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(genePop_receiever)) {
+  for (j in 3:ncol(genePop_receiever)) {
+    genePop_receiever[i,j] = sum(real_genePop$real[which(real_genePop$clust1 == colnames(genePop_receiever)[j] & real_genePop$clust2 == genePop_receiever$receiver[i])])
+  }
+}
+
+poi = c("genePop_primary_2_htr1d", "genePop_primary_2_vipr2", "primary_1")
+pop_lr = df.net_lig_recept[which(df.net_lig_recept$source %in% poi & df.net_lig_recept$target == "rgc_2"),]
+pop_lr = pop_lr[which(pop_lr$annotation == "Secreted Signaling"),]
+pop_lr_ps_l = data.frame(ligand = unique(pop_lr$ligand))
+pop_lr_ps_l$sum = unlist(lapply(pop_lr_ps_l$ligand, function(x) sum(pop_lr$prob[which(pop_lr$ligand == x)]) ))
+pop_lr_ps_l[, poi] = 0
+for (i in 1:nrow(pop_lr_ps_l)) { for (j in 3:ncol(pop_lr_ps_l)) { pop_lr_ps_l[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_l)[j] & pop_lr$ligand == pop_lr_ps_l$ligand[i])]) } }
+for (i in 1:nrow(pop_lr_ps_l)) { pop_lr_ps_l[i, "background"] = sum(df.net_lig_recept$prob[which(!df.net_lig_recept$source %in% colnames(pop_lr_ps_l) & df.net_lig_recept$ligand == pop_lr_ps_l$ligand[i])]) }
+write.csv(pop_lr_ps_l, "~/Downloads/sig_pops_to_84glut_ligand_weight.csv")
+tmp = reshape2::melt(pop_lr_ps_l)
+tmp$ligand = factor(tmp$ligand, levels = pop_lr_ps_l$ligand[order(pop_lr_ps_l$sum, decreasing = T)])
+pdf("~/Downloads/last_para_pops_to_rgc2_ligand_weight.pdf", width = 6, height = 3)
+print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = ligand, y = value, color = ligand)) + geom_boxplot(outlier.shape = NA, alpha = 0.2) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Ligand"))
+# print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = ligand, y = value)) + geom_pointrange(aes(x = ligand, y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("blue", "blue", "pink")) + scale_fill_manual(values = c("blue", "blue", "pink")) + scale_shape_manual(values = c(24, 25, 19)))
+dev.off()
+pdf("~/Downloads/last_para_pops_to_rgc2_ligand_weight.pdf", width = 3, height = 5)
+print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = ligand, y = value)) + geom_pointrange(aes(x = ligand, y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(width = 0.2), alpha = 1, size = 0.7) + theme_bw() + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_fill_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_shape_manual(values = c(24, 25, 19)) + coord_flip())
+dev.off()
+
+pop_lr_ps_r = data.frame(receptor = unique(pop_lr$receptor))
+pop_lr_ps_r$sum = unlist(lapply(pop_lr_ps_r$receptor, function(x) sum(pop_lr$prob[which(pop_lr$receptor == x)]) ))
+pop_lr_ps_r[, poi] = 0
+for (i in 1:nrow(pop_lr_ps_r)) { for (j in 3:ncol(pop_lr_ps_r)) { pop_lr_ps_r[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_r)[j] & pop_lr$receptor == pop_lr_ps_r$receptor[i])]) } }
+tmp = reshape2::melt(pop_lr_ps_r)
+tmp$receptor = factor(tmp$receptor, levels = pop_lr_ps_r$receptor[order(pop_lr_ps_r$sum, decreasing = T)])
+pdf("~/Downloads/last_para_pops_to_rgc2_receptor_weight.pdf", width = 6, height = 3)
+print(ggplot(tmp[which(tmp$variable != "sum"),], aes(x = receptor, y = value, color = receptor)) + geom_boxplot(outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Receptor"))
+dev.off()
+
+pop_lr_ps_int = data.frame(interaction_name = unique(pop_lr$interaction_name))
+pop_lr_ps_int$sum = unlist(lapply(pop_lr_ps_int$interaction_name, function(x) sum(pop_lr$prob[which(pop_lr$interaction_name == x)]) ))
+pop_lr_ps_int[, poi] = 0
+for (i in 1:nrow(pop_lr_ps_int)) { for (j in 3:ncol(pop_lr_ps_int)) { pop_lr_ps_int[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_int)[j] & pop_lr$interaction_name == pop_lr_ps_int$interaction_name[i])]) } }
+tmp = reshape2::melt(pop_lr_ps_int)
+tmp$interaction_name = factor(tmp$interaction_name, levels = pop_lr_ps_int$interaction_name[order(pop_lr_ps_int$sum, decreasing = T)])
+pdf("~/Downloads/sig_pops_to_84glut_interaction_weight.pdf", width = 9, height = 3)
+print(ggplot(tmp[which(tmp$variable != "sum"),], aes(x = interaction_name, y = value, color = interaction_name)) + geom_boxplot(outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Interaction"))
+dev.off()
+tmp = tmp[which(tmp$interaction_name %in% levels(tmp$interaction_name)[1:5]),]
+tmp.ligands   = rev(reshape2::colsplit(levels(tmp$interaction_name)[1:5], "_", c('1', '2'))[,1])
+tmp.receptors = rev(reshape2::colsplit(levels(tmp$interaction_name)[1:5], "_", c('1', '2'))[,2])
+tmp$interaction_name = factor(tmp$interaction_name, levels = rev(pop_lr_ps_int$interaction_name[order(pop_lr_ps_int$sum, decreasing = T)][1:5]))
+pdf("~/Downloads/last_para_pops_to_rgc2_interactions.pdf", width = 3, height = 1.5)
+print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = as.numeric(interaction_name), y = value)) + geom_pointrange(aes(x = as.numeric(interaction_name), y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(width = 0.2), alpha = 1, size = 0.75) + theme_bw() + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_fill_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_shape_manual(values = c(24, 25, 19)) + coord_flip() + scale_y_continuous(breaks = scales::pretty_breaks(n = 3)) + scale_x_continuous(breaks = 1:length(tmp.ligands), labels = tmp.ligands, sec.axis = sec_axis(~., name = "Receptors", breaks = 1:length(tmp.receptors), labels = tmp.receptors)))
+dev.off()
+
+pop_lr = df.net_lig_recept[which(df.net_lig_recept$source %in% real_genePop$clust1),]
+
+pop_lr_ps_l = data.frame(ligand = unique(pop_lr$ligand))
+pop_lr_ps_l$sum = unlist(lapply(pop_lr_ps_l$ligand, function(x) sum(pop_lr$prob[which(pop_lr$ligand == x)]) ))
+pop_lr_ps_l[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ps_l)) { for (j in 3:ncol(pop_lr_ps_l)) { pop_lr_ps_l[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_l)[j] & pop_lr$ligand == pop_lr_ps_l$ligand[i])]) } }
+write.csv(pop_lr_ps_l, "~/Downloads/iegpop_any_ligand_weight.csv")
+pop_lr_ns_l = data.frame(ligand = unique(pop_lr$ligand))
+pop_lr_ns_l$sum = unlist(lapply(pop_lr_ns_l$ligand, function(x) length(which(pop_lr$ligand == x)) ))
+pop_lr_ns_l[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ns_l)) { for (j in 3:ncol(pop_lr_ns_l)) { pop_lr_ns_l[i, j] = length(which(pop_lr$source == colnames(pop_lr_ns_l)[j] & pop_lr$ligand == pop_lr_ns_l$ligand[i])) } }
+write.csv(pop_lr_ns_l, "~/Downloads/iegpop_any_ligand_n.csv")
+
+pop_lr_ps_r = data.frame(receptor = unique(pop_lr$receptor))
+pop_lr_ps_r$sum = unlist(lapply(pop_lr_ps_r$receptor, function(x) sum(pop_lr$prob[which(pop_lr$receptor == x)]) ))
+pop_lr_ps_r[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ps_r)) { for (j in 3:ncol(pop_lr_ps_r)) { pop_lr_ps_r[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_r)[j] & pop_lr$receptor == pop_lr_ps_r$receptor[i])]) } }
+write.csv(pop_lr_ps_r, "~/Downloads/iegpop_any_receptor_weight.csv")
+pop_lr_ns_r = data.frame(receptor = unique(pop_lr$receptor))
+pop_lr_ns_r$sum = unlist(lapply(pop_lr_ns_r$receptor, function(x) length(which(pop_lr$receptor == x)) ))
+pop_lr_ns_r[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ns_r)) { for (j in 3:ncol(pop_lr_ns_r)) { pop_lr_ns_r[i, j] = length(which(pop_lr$source == colnames(pop_lr_ns_r)[j] & pop_lr$receptor == pop_lr_ns_r$receptor[i])) } }
+write.csv(pop_lr_ns_r, "~/Downloads/iegpop_any_receptor_n.csv")
+
+pop_lr_ps_int = data.frame(interaction_name = unique(pop_lr$interaction_name))
+pop_lr_ps_int$sum = unlist(lapply(pop_lr_ps_int$interaction_name, function(x) sum(pop_lr$prob[which(pop_lr$interaction_name == x)]) ))
+pop_lr_ps_int[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ps_int)) { for (j in 3:ncol(pop_lr_ps_int)) { pop_lr_ps_int[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_int)[j] & pop_lr$interaction_name == pop_lr_ps_int$interaction_name[i])]) } }
+write.csv(pop_lr_ps_int, "~/Downloads/iegpop_any_interaction_weight.csv")
+pop_lr_ns_int = data.frame(interaction_name = unique(pop_lr$interaction_name))
+pop_lr_ns_int$sum = unlist(lapply(pop_lr_ns_int$interaction_name, function(x) length(which(pop_lr$interaction_name == x)) ))
+pop_lr_ns_int[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ns_int)) { for (j in 3:ncol(pop_lr_ns_int)) { pop_lr_ns_int[i, j] = length(which(pop_lr$source == colnames(pop_lr_ns_int)[j] & pop_lr$interaction_name == pop_lr_ns_int$interaction_name[i])) } }
+write.csv(pop_lr_ns_int, "~/Downloads/iegpop_any_interaction_n.csv")
+
+pop_lr = df.net_lig_recept[which(df.net_lig_recept$source %in% real_genePop$clust1 & df.net_lig_recept$target == "secondary_13"),]
+
+pop_lr_ps_l = data.frame(ligand = unique(pop_lr$ligand))
+pop_lr_ps_l$sum = unlist(lapply(pop_lr_ps_l$ligand, function(x) sum(pop_lr$prob[which(pop_lr$ligand == x)]) ))
+pop_lr_ps_l[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ps_l)) { for (j in 3:ncol(pop_lr_ps_l)) { pop_lr_ps_l[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_l)[j] & pop_lr$ligand == pop_lr_ps_l$ligand[i])]) } }
+write.csv(pop_lr_ps_l, "~/Downloads/iegpop_84glut_ligand_weight.csv")
+pop_lr_ns_l = data.frame(ligand = unique(pop_lr$ligand))
+pop_lr_ns_l$sum = unlist(lapply(pop_lr_ns_l$ligand, function(x) length(which(pop_lr$ligand == x)) ))
+pop_lr_ns_l[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ns_l)) { for (j in 3:ncol(pop_lr_ns_l)) { pop_lr_ns_l[i, j] = length(which(pop_lr$source == colnames(pop_lr_ns_l)[j] & pop_lr$ligand == pop_lr_ns_l$ligand[i])) } }
+write.csv(pop_lr_ns_l, "~/Downloads/iegpop_84glut_ligand_n.csv")
+
+pop_lr_ps_r = data.frame(receptor = unique(pop_lr$receptor))
+pop_lr_ps_r$sum = unlist(lapply(pop_lr_ps_r$receptor, function(x) sum(pop_lr$prob[which(pop_lr$receptor == x)]) ))
+pop_lr_ps_r[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ps_r)) { for (j in 3:ncol(pop_lr_ps_r)) { pop_lr_ps_r[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_r)[j] & pop_lr$receptor == pop_lr_ps_r$receptor[i])]) } }
+write.csv(pop_lr_ps_r, "~/Downloads/iegpop_84glut_receptor_weight.csv")
+pop_lr_ns_r = data.frame(receptor = unique(pop_lr$receptor))
+pop_lr_ns_r$sum = unlist(lapply(pop_lr_ns_r$receptor, function(x) length(which(pop_lr$receptor == x)) ))
+pop_lr_ns_r[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ns_r)) { for (j in 3:ncol(pop_lr_ns_r)) { pop_lr_ns_r[i, j] = length(which(pop_lr$source == colnames(pop_lr_ns_r)[j] & pop_lr$receptor == pop_lr_ns_r$receptor[i])) } }
+write.csv(pop_lr_ns_r, "~/Downloads/iegpop_84glut_receptor_n.csv")
+
+pop_lr_ps_int = data.frame(interaction_name = unique(pop_lr$interaction_name))
+pop_lr_ps_int$sum = unlist(lapply(pop_lr_ps_int$interaction_name, function(x) sum(pop_lr$prob[which(pop_lr$interaction_name == x)]) ))
+pop_lr_ps_int[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ps_int)) { for (j in 3:ncol(pop_lr_ps_int)) { pop_lr_ps_int[i, j] = sum(pop_lr$prob[which(pop_lr$source == colnames(pop_lr_ps_int)[j] & pop_lr$interaction_name == pop_lr_ps_int$interaction_name[i])]) } }
+write.csv(pop_lr_ps_int, "~/Downloads/iegpop_84glut_interaction_weight.csv")
+pop_lr_ns_int = data.frame(interaction_name = unique(pop_lr$interaction_name))
+pop_lr_ns_int$sum = unlist(lapply(pop_lr_ns_int$interaction_name, function(x) length(which(pop_lr$interaction_name == x)) ))
+pop_lr_ns_int[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_lr_ns_int)) { for (j in 3:ncol(pop_lr_ns_int)) { pop_lr_ns_int[i, j] = length(which(pop_lr$source == colnames(pop_lr_ns_int)[j] & pop_lr$interaction_name == pop_lr_ns_int$interaction_name[i])) } }
+write.csv(pop_lr_ns_int, "~/Downloads/iegpop_84glut_interaction_n.csv")
+
+pop_signal = df.net_signal[which(df.net_signal$source %in% real_genePop$clust1 & df.net_signal$target == "secondary_13"),]
+
+pop_signal_ps_path = data.frame(pathway_name = unique(pop_signal$pathway_name))
+pop_signal_ps_path$sum = unlist(lapply(pop_signal_ps_path$pathway_name, function(x) sum(pop_signal$prob[which(pop_signal$pathway_name == x)]) ))
+pop_signal_ps_path[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_signal_ps_path)) { for (j in 3:ncol(pop_signal_ps_path)) { pop_signal_ps_path[i, j] = sum(pop_signal$prob[which(pop_signal$source == colnames(pop_signal_ps_path)[j] & pop_signal$pathway_name == pop_signal_ps_path$pathway_name[i])]) } }
+write.csv(pop_signal_ps_path, "~/Downloads/iegpop_84glut_signalling_weight.csv")
+pop_signal_ns_path = data.frame(pathway_name = unique(pop_signal$pathway_name))
+pop_signal_ns_path$sum = unlist(lapply(pop_signal_ns_path$pathway_name, function(x) length(which(pop_signal$pathway_name == x)) ))
+pop_signal_ns_path[, unique(real_genePop$clust1)] = 0
+for (i in 1:nrow(pop_signal_ns_path)) { for (j in 3:ncol(pop_signal_ns_path)) { pop_signal_ns_path[i, j] = length(which(pop_signal$source == colnames(pop_signal_ns_path)[j] & pop_signal$pathway_name == pop_signal_ns_path$pathway_name[i])) } }
+write.csv(pop_signal_ns_path, "~/Downloads/iegpop_84glut_signalling_n.csv")
+
+tmp = reshape2::melt(pop_lr_ps_l)
+tmp$ligand = factor(tmp$ligand, levels = pop_lr_ps_l$ligand[order(pop_lr_ps_l$sum, decreasing = T)])
+pdf("~/Downloads/iegpop_84glut_ligand_weight.pdf", width = 6, height = 3)
+print(ggplot(tmp[which(tmp$variable != "sum"),], aes(x = ligand, y = value, color = ligand)) + geom_boxplot(outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Ligand"))
+dev.off()
+
+tmp = reshape2::melt(pop_lr_ps_r)
+tmp$receptor = factor(tmp$receptor, levels = pop_lr_ps_r$receptor[order(pop_lr_ps_r$sum, decreasing = T)])
+pdf("~/Downloads/iegpop_84glut_receptor_weight.pdf", width = 6, height = 3)
+print(ggplot(tmp[which(tmp$variable != "sum"),], aes(x = receptor, y = value, color = receptor)) + geom_boxplot(outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Receptor"))
+dev.off()
+
+tmp = reshape2::melt(pop_lr_ps_int)
+tmp$interaction_name = factor(tmp$interaction_name, levels = pop_lr_ps_int$interaction_name[order(pop_lr_ps_int$sum, decreasing = T)])
+pdf("~/Downloads/iegpop_84glut_interaction_weight.pdf", width = 9, height = 3)
+print(ggplot(tmp[which(tmp$variable != "sum"),], aes(x = interaction_name, y = value, color = interaction_name)) + geom_boxplot(outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Interaction"))
+dev.off()
+
+tmp = reshape2::melt(pop_signal_ps_path)
+tmp$pathway_name = factor(tmp$pathway_name, levels = pop_signal_ps_path$pathway_name[order(pop_signal_ps_path$sum, decreasing = T)])
+pdf("~/Downloads/iegpop_84glut_signalling_weight.pdf", width = 5, height = 3)
+print(ggplot(tmp[which(tmp$variable != "sum"),], aes(x = pathway_name, y = value, color = pathway_name)) + geom_boxplot(outlier.shape = NA) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Pathway"))
+dev.off()
+
+
+# Real + Perm
+# Primary + Secondary + RGC + IEG populations
+cc.res = read.csv("~/scratch/brain/cellchat/cc_psp_real.csv")
+rownames(cc.res) = cc.res$X
+cc.res$X = NULL
+cc.res$id = rownames(cc.res)
+cc.res[, c("clust1", "clust2")] = reshape2::colsplit(cc.res$id, "\\.", c('1', '2'))
+colnames(cc.res)[1] = "real"
+cc.res = cc.res[, c("id", "clust1", "clust2", "real")]
+for (i in c(2, 9, 10)) {
+  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_perm_60nruns_run", i, ".csv"))
+  this.perm = this.perm[,4:ncol(this.perm)]
+  cc.res = cbind(cc.res, this.perm)
+}
+for (i in c(101:110)) {
+  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_perm_40nruns_run", i, ".csv"))
+  this.perm = this.perm[,4:ncol(this.perm)]
+  cc.res = cbind(cc.res, this.perm)
+}
+colnames(cc.res)[5:ncol(cc.res)] = paste0("run", 1:(ncol(cc.res)-4))
+cc.res$p = rowSums(cc.res[, 5:ncol(cc.res)] > cc.res[, "real"]) / ncol(cc.res)
+cc.res$bh = p.adjust(cc.res$p, method = "BH")
+cc.res$bon = p.adjust(cc.res$p, method = "bonferroni")
+
+# Sender/Reciever
+cc.res.primary = cc.res[which(startsWith(cc.res$clust1, "primary_") & startsWith(cc.res$clust2, "primary_")),]
+cc.res.primary.send = unlist(lapply( unique(cc.res.primary$clust1), function(x) sum(cc.res.primary$real[which(cc.res.primary$clust1 == x)]) ))
+cc.res.primary.recieve = unlist(lapply( unique(cc.res.primary$clust1), function(x) sum(cc.res.primary$real[which(cc.res.primary$clust2 == x)]) ))
+cc.res.primary.node = data.frame(level = "primary", node = unique(cc.res.primary$clust1), send = cc.res.primary.send, recieve = cc.res.primary.recieve, send.norm = cc.res.primary.send/length(cc.res.primary.send), recieve.norm = cc.res.primary.recieve/length(cc.res.primary.recieve), s.by.r = cc.res.primary.send/cc.res.primary.recieve)
+
+cc.res.secondary = cc.res[which(startsWith(cc.res$clust1, "secondary_") & startsWith(cc.res$clust2, "secondary_")),]
+cc.res.secondary.send = unlist(lapply( unique(cc.res.secondary$clust1), function(x) sum(cc.res.secondary$real[which(cc.res.secondary$clust1 == x)]) ))
+cc.res.secondary.recieve = unlist(lapply( unique(cc.res.secondary$clust1), function(x) sum(cc.res.secondary$real[which(cc.res.secondary$clust2 == x)]) ))
+cc.res.secondary.node = data.frame(level = "secondary", node = unique(cc.res.secondary$clust1), send = cc.res.secondary.send, recieve = cc.res.secondary.recieve, send.norm = cc.res.secondary.send/length(cc.res.secondary.send), recieve.norm = cc.res.secondary.recieve/length(cc.res.secondary.recieve), s.by.r = cc.res.secondary.send/cc.res.secondary.recieve)
+
+cc.res.rgc = cc.res[which(startsWith(cc.res$clust1, "rgc_") & startsWith(cc.res$clust2, "rgc_")),]
+cc.res.rgc.send = unlist(lapply( unique(cc.res.rgc$clust1), function(x) sum(cc.res.rgc$real[which(cc.res.rgc$clust1 == x)]) ))
+cc.res.rgc.recieve = unlist(lapply( unique(cc.res.rgc$clust1), function(x) sum(cc.res.rgc$real[which(cc.res.rgc$clust2 == x)]) ))
+cc.res.rgc.node = data.frame(level = "rgc", node = unique(cc.res.rgc$clust1), send = cc.res.rgc.send, recieve = cc.res.rgc.recieve, send.norm = cc.res.rgc.send/length(cc.res.rgc.send), recieve.norm = cc.res.rgc.recieve/length(cc.res.rgc.recieve), s.by.r = cc.res.rgc.send/cc.res.rgc.recieve)
+
+cc.res.genePop = cc.res[which(startsWith(cc.res$clust1, "genePop_") & startsWith(cc.res$clust2, "genePop_")),]
+cc.res.genePop.send = unlist(lapply( unique(cc.res.genePop$clust1), function(x) sum(cc.res.genePop$real[which(cc.res.genePop$clust1 == x)]) ))
+cc.res.genePop.recieve = unlist(lapply( unique(cc.res.genePop$clust1), function(x) sum(cc.res.genePop$real[which(cc.res.genePop$clust2 == x)]) ))
+cc.res.genePop.node = data.frame(level = "genePop", node = unique(cc.res.genePop$clust1), send = cc.res.genePop.send, recieve = cc.res.genePop.recieve, send.norm = cc.res.genePop.send/length(cc.res.genePop.send), recieve.norm = cc.res.genePop.recieve/length(cc.res.genePop.recieve), s.by.r = cc.res.genePop.send/cc.res.genePop.recieve)
+cc.res.node.within = rbind(cc.res.primary.node, cc.res.secondary.node, cc.res.rgc.node, cc.res.genePop.node)
+
+convert15_2 = convert15
+convert15_2$old = paste0("primary_", convert15_2$old)
+convert15_2$new = convert15_2$new.full
+convert53_2 = convert53
+convert53_2$old = paste0("secondary_", convert53_2$old)
+convert_all = rbind(convert15_2[,c("new", "old")], convert53_2[,c("new", "old")])
+cc.res.node.within$node_name = convert_all$new[match(cc.res.node.within$node, convert_all$old)]
+cc.res.node.within = cc.res.node.within[, c(1:2, 8, 3:7)]
+
+cc.res.all.send = unlist(lapply( unique(cc.res$clust1), function(x) sum(cc.res$real[which(cc.res$clust1 == x)]) ))
+cc.res.all.recieve = unlist(lapply( unique(cc.res$clust1), function(x) sum(cc.res$real[which(cc.res$clust2 == x)]) ))
+cc.res.all.node = data.frame(node = unique(cc.res$clust1), send = cc.res.all.send, recieve = cc.res.all.recieve, send.norm = cc.res.all.send/length(cc.res.all.send), recieve.norm = cc.res.all.recieve/length(cc.res.all.recieve), s.by.r = cc.res.all.send/cc.res.all.recieve)
+cc.res.all.node$node_name = convert_all$new[match(cc.res.all.node$node, convert_all$old)]
+cc.res.all.node$level = reshape2::colsplit(cc.res.all.node$node, "_", c('1', '2'))[,1]
+cc.res.all.node = cc.res.all.node[, c(8, 1, 7, 2:6)]
+cc.res.all.node$node_name[which(is.na(cc.res.all.node$node_name))] = cc.res.all.node$node[which(is.na(cc.res.all.node$node_name))]
+
+cc.res1 = cc.res
+cc.res1$direction = "send"
+cc.res1$clust = cc.res1$clust1
+cc.res1$level = reshape2::colsplit(cc.res1$clust, "_", c('1', '2'))[,1]
+cc.res2 = cc.res
+cc.res2$direction = "receive"
+cc.res2$clust = cc.res2$clust2
+cc.res2$level = reshape2::colsplit(cc.res2$clust, "_", c('1', '2'))[,1]
+cc.res3 = rbind(cc.res1, cc.res2)
+pdf("~/scratch/brain/results/cc_send.pdf", width = 14, height = 4)
+print(ggplot(cc.res, aes(x = clust1, y = real, color = clust1)) + geom_boxplot() + geom_point(alpha = 0.2, position = position_jitter()) + xlab("Sending Cell Population") + ylab("Weight") + theme_classic()  + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend())
+dev.off()
+pdf("~/scratch/brain/results/cc_receive.pdf", width = 14, height = 4)
+print(ggplot(cc.res, aes(x = clust2, y = real, color = clust2)) + geom_boxplot() + geom_point(alpha = 0.2, position = position_jitter()) + xlab("Receiving Cell Population") + ylab("Weight") + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend())
+dev.off()
+pdf("~/scratch/brain/results/cc_send_receive.pdf", width = 14, height = 9)
+print(ggplot(cc.res3, aes(x = clust, y = real, color = direction)) + geom_boxplot() + geom_point(alpha = 0.05, position = position_jitterdodge()) + xlab("Cell Population") + ylab("Weight") + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + facet_wrap(~level, ncol = 1, scales = "free_x"))
+dev.off()
+
+# lig/recpt
+df.net_lig_recept_sig = df.net_lig_recept[which(df.net_lig_recept$pval < 0.05),]
+all.ligand = df.net_lig_recept %>% count(ligand, sort = TRUE)
+all.recept = df.net_lig_recept %>% count(receptor, sort = TRUE)
+all.inter  = df.net_lig_recept %>% count(interaction_name, sort = TRUE)
+
+all.path = df.net_signal %>% count(pathway_name, sort = TRUE)
+
+# Real + Perm
+# Primary BB Clusters Full Thing w/ No RGC Labels
+cc.res = read.csv("~/scratch/brain/cellchat/cellchat_full_primary.csv")
 rownames(cc.res) = cc.res$X
 cc.res$X = NULL
 cc.res$id = rownames(cc.res)
@@ -9265,3 +9740,139 @@ perm5 = read.csv("C:/Users/miles/Downloads/cellchat_downsampled_perm_1000nruns_r
 p_df = data.frame(weight = c(as.numeric(down5[which(down5$X == "rgc_2.primary_1"),4:ncol(down5)]), as.numeric(down5[which(down5$X == "primary_1.rgc_2"),4:ncol(down5)])), direction = c(rep("RGC2 -> 9_Glut", 1000), rep("9_Glut -> RGC2", 1000)))
 ggplot(p_df, aes(x = weight, fill = direction, color = direction)) + geom_histogram(alpha = 0.7, position = 'identity') + theme_classic() + scale_x_continuous(expand = c(0,0)) + scale_y_continuous(expand = c(0,0))
 
+
+test = data.frame(net_weight_vect)
+test[, c("clust1", "clust2")] = reshape2::colsplit(rownames(test), "\\.", c("1", "2"))
+test$clust1.num = as.numeric(as.vector(reshape2::colsplit(test$clust1, "_", c('1', '2'))[,2]))
+test$clust2.num = as.numeric(as.vector(reshape2::colsplit(test$clust2, "_", c('1', '2'))[,2]))
+test$clust1.org = str_replace(test$clust1, "primary_", "cluster_")
+test$clust2.org = str_replace(test$clust2, "primary_", "cluster_")
+test$big = test$net_weight_vect
+test$small = real$run1[match(paste0(test$clust1.org, ".", test$clust2.org), real$X)]
+test$id = real$X[match(paste0(test$clust1.org, ".", test$clust2.org), real$X)]
+test$id = str_replace(test$id, "\\.", " -> ")
+test2 = test[which(!is.na(test$small)), c("id", "big", "small")]
+
+# Downsampled Primary + Secondary + RGC + IEG populations
+down = data.frame()
+failed_runs = c(2, 3)
+for (i in 1:10) {
+  if (!i %in% failed_runs) {
+    this.down = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_downsampled_real_1000nruns_run", i, ".csv"))
+    colnames(this.down)[1] = "id"
+    if ( i == 1 ) { down = this.down[,1:3] }
+    this.down = this.down[,4:ncol(this.down)]
+    down = cbind(down, this.down)
+  }
+}
+for (i in c(11, 14, 16, 17)) {
+  this.down = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_downsampled_real_500nruns_run", i, ".csv"))
+  colnames(this.down)[1] = "id"
+  this.down = this.down[,4:ncol(this.down)]
+  down = cbind(down, this.down)
+}
+colnames(down)[4:ncol(down)] = paste0("run", 1:10000)
+write.csv(down, "~/scratch/brain/cellchat/cc_bb_psp_down_10k.csv")
+
+# Downsampled Permutated Primary + Secondary + RGC + IEG populations
+perm = data.frame()
+failed_runs = c(2, 3)
+for (i in c(1, 2, 5, 6, 7, 8, 10, 12, 14, 16)) {
+  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_downsampled_perm_1000nruns_run", i, ".csv"))
+  colnames(this.perm)[1] = "id"
+  if ( i == 1 ) { perm = this.perm[,1:3] }
+  this.perm = this.perm[,4:ncol(this.perm)]
+  perm = cbind(perm, this.perm)
+}
+colnames(perm)[4:ncol(perm)] = paste0("run", 1:10000)
+write.csv(perm, "~/scratch/brain/cellchat/cc_bb_psp_perm_10k.csv")
+
+# Downsampled Primary
+down = data.frame()
+for (i in 1:10) {
+  this.down = read.csv(paste0("~/scratch/brain/results/cellchat/primary/cellchat_downsampled_real_1000nruns_run", i, ".csv"))
+  colnames(this.down)[1] = "id"
+  if ( i == 1 ) { down = this.down[,1:3] }
+  this.down = this.down[,4:ncol(this.down)]
+  down = cbind(down, this.down)
+}
+colnames(down)[4:ncol(down)] = paste0("run", 1:10000)
+write.csv(down, "~/scratch/brain/cellchat/cc_bb_primary_no_rgc_labels_down_10k.csv")
+
+perm = data.frame()
+for (i in 1:10) {
+  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary/cellchat_downsampled_perm_1000nruns_run", i, ".csv"))
+  colnames(this.perm)[1] = "id"
+  if ( i == 1 ) { perm = this.perm[,1:3] }
+  this.perm = this.perm[,4:ncol(this.perm)]
+  perm = cbind(perm, this.perm)
+}
+colnames(perm)[4:ncol(perm)] = paste0("run", 1:10000)
+write.csv(perm, "~/scratch/brain/cellchat/cc_bb_primary_no_rgc_labels_down_perm_10k.csv")
+
+down = read.csv("~/Downloads/cc_bb_primary_no_rgc_labels_down_10k.csv")
+rownames(down) = down$X
+perm = read.csv("~/Downloads/cc_bb_primary_no_rgc_labels_down_perm_10k.csv")
+rownames(perm) = perm$X
+
+p_list = list()
+for (i in 1:nrow(down)) {
+  print(i)
+  this.id = str_replace_all(down$id[i], "cluster", "primary")
+  test = reshape2::melt(down[i,2:ncol(down)])
+  test$cond = "down"
+  test2 = reshape2::melt(perm[i, 2:ncol(perm)])
+  test2$cond = "down+perm"
+  test3 = rbind(test, test2)
+  p_list[[i]] = ggplot(test3, aes(x = value, fill = cond)) + geom_histogram(alpha = 0.6, position="identity") + theme_classic() + scale_x_continuous(expand = c(0,0), breaks = scales::pretty_breaks(n = 3)) + scale_y_continuous(expand = c(0,0), breaks = scales::pretty_breaks(n = 3)) + geom_vline(xintercept = mine$small[which(mine$X == this.id)], linetype = "dashed") + guides(fill = 'none') + xlab("") + ylab("")
+}
+
+pdf("~/research/brain/results/c_primary_10k_down_to_real_1.pdf", width = 8, height = 15)
+print(cowplot::plot_grid(plotlist = p_list[1:75], ncol = 5))
+dev.off()
+pdf("~/research/brain/results/c_primary_10k_down_to_real_2.pdf", width = 8, height = 15)
+print(cowplot::plot_grid(plotlist = p_list[76:150], ncol = 5))
+dev.off()
+pdf("~/research/brain/results/c_primary_10k_down_to_real_3.pdf", width = 8, height = 15)
+print(cowplot::plot_grid(plotlist = p_list[151:225], ncol = 5))
+dev.off()
+
+
+convert15$weird.new = str_replace(convert15$new.full, "Glut", "Ex")
+convert15$weird.new = str_replace(convert15$weird.new, "GABA", "In")
+convert15$weird.new  = paste0("cluster_", convert15$weird.new)
+convert15 = convert15[, c("weird.new", "old")]
+convert15$old = paste0("cluster_", convert15$old)
+convert15 = rbind(convert15, data.frame(weird.new = paste0("rgc_", 0:10), old = paste0("rgc_", 0:10)))
+
+
+mine = read.csv("~/Downloads/cc_big_compared_to_small.csv")
+z_down = read.csv("~/Downloads/cellchat_primary_rgc_subcluster_weights_real_downsampled_49cell_for_george.csv")
+mine$clust1.name.down = trimws(reshape2::colsplit(mine$id, "->", c('1', '2'))[,1])
+mine$clust2.name.down = trimws(reshape2::colsplit(mine$id, "->", c('1', '2'))[,2])
+# mine$clust1.num = as.numeric( reshape2::colsplit(mine$clust1, "_", c('1', '2'))[,2] )
+# mine$clust2.num = as.numeric( reshape2::colsplit(mine$clust2, "_", c('1', '2'))[,2] )
+# mine[, c("clust1.name.down", "clust2.name.down")] = reshape2::colsplit(mine$id, "->", c('1', '2'))
+mine$clust1.name = convert15$weird.new[match(mine$clust1.name.down, convert15$old)]
+mine$clust2.name = convert15$weird.new[match(mine$clust2.name.down, convert15$old)]
+mine$z1 = z_down$perm1[match(paste0(mine$clust1.name, "_", mine$clust2.name), z_down$connection)]
+mine$z2 = z_down$perm2[match(paste0(mine$clust1.name, "_", mine$clust2.name), z_down$connection)]
+ggplot(mine, aes(x = small, y = z1)) + geom_point() + theme_classic()
+
+mine_no_rgc = mine[which(! startsWith(mine$clust1, "rgc_") & ! startsWith(mine$clust2, "rgc_")),]
+down_mean_values = rowMeans(down[,5:ncol(down)])
+down_mean = data.frame(id = down$id, clust1 = down$clust1, clust2 = down$clust2, mean = down_mean_values)
+mine_no_rgc$down_10k_mean = down_mean$mean[match(paste0(trimws(mine_no_rgc$clust1.name.down), ".", trimws(mine_no_rgc$clust2.name.down)), down_mean$id)]
+mine_no_rgc$g1 = down$run1[match(paste0(trimws(mine_no_rgc$clust1.name.down), ".", trimws(mine_no_rgc$clust2.name.down)), down_mean$id)]
+mine_no_rgc$g2 = down$run2[match(paste0(trimws(mine_no_rgc$clust1.name.down), ".", trimws(mine_no_rgc$clust2.name.down)), down_mean$id)]
+ggplot(mine_no_rgc, aes(x = small, y = down_10k_mean)) + geom_point() + theme_classic()
+
+z_org = read.csv("~/Downloads/cellchat_weights_all_downsampled_primary_and_rgc_subclusters_49cells_083022.csv")
+rownames(z_org) = z_org$X
+z_org$X = NULL
+z_org = reshape2::melt(z_org)
+z_org$clust1 = rep(unique(z_org$variable), 26)
+z_org$clust2 = z_org$variable
+z_org$id = paste0(z_org$clust1, ".", z_org$clust2)
+mine$z_org = z_org$value[match(paste0(trimws(mine$clust1.name.down), ".", trimws(mine$clust2.name.down)), z_org$id)]
+>>>>>>> 0c9ebad7920e449bdd64cdbc237bc45c9c1f51b4
