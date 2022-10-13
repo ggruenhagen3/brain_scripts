@@ -19,7 +19,6 @@ suppressMessages(library('ggplot2',  quietly = T, warn.conflicts = F, verbose = 
 obj = readRDS("~/scratch/brain/data/hb_100322_diet.rds")
 num.boot.cells = round(ncol(obj@assays$RNA@counts) * boot.pct)
 all.orig.labels = read.csv("~/scratch/brain/results/hb/hb_clustering_options101222.csv")
-orig.labels = all.orig.labels[,paste0("mindist", min_dist, "_nneighbors", n_neighbors, "_res", res)]
 
 # Helper Functions =============================================================
 sc.cluster.boot = function(x) {
@@ -64,6 +63,7 @@ for (res in resolutions) {
   message(paste0(" - - - Starting Resolution=", res, " (George) - - - "))
   start.time = proc.time()
   
+  orig.labels = all.orig.labels[,paste0("mindist", min_dist, "_nneighbors", n_neighbors, "_res", res)]
   boot.labels = as.data.frame(mclapply(1:nboot, function(x) sc.cluster.boot(x), mc.cores = num_cores))
   colnames(boot.labels) = 1:nboot
   write.csv(boot.labels, paste0("~/scratch/brain/results/hb/cluster_boot/boots/mindist", min_dist, "_nneighbors", n_neighbors, "_res", res, "_labels.csv"))
