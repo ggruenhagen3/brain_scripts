@@ -22,6 +22,7 @@ library("ggrepel")
 library("parallel")
 library("curl")
 library("rjson")
+library("patchwork")
 # library("ggforce")
 httr::set_config(config(ssl_verifypeer = FALSE))
 
@@ -791,51 +792,62 @@ multiFeaturePlot2 = function(obj, features, my.pt.size = 1, my.alpha = 0.8, cell
     cols = brewer.pal(9, "Set1")
   names(cols) = features
   
+  if (all(features %in% rownames(obj))) {
+    this.mat.counts = obj@assays$RNA@counts[features,]
+    this.mat.data   = obj@assays$RNA@data[features,]
+  } else {
+    if (all(features %in% colnames(obj@meta.data))) {
+      this.mat.counts = as.matrix(t(obj@meta.data[,features]))
+      this.mat.data = this.mat.counts
+    } else {
+      print("Feature not found in rownames of object nor meta data.")
+      return(NULL)
+    }
+  }
+  
   # Make sure the input features are in the data and get the value of 
   df = as.data.frame(obj@reductions$umap@cell.embeddings)
   df$ident = Idents(obj)
-  if (length(features) > 1)
-    df$order = colSums(obj@assays$RNA@counts[features,])
-  else
-    df$order = obj@assays$RNA@counts[features,]
+  if (length(features) > 1) {
+    df$order = colSums(this.mat.counts)
+  } else {
+      df$order = this.mat.counts
+  }
+   
   n = ncol(obj)
   
   df$gene = 'none'
   i = 1
   for (feature in features) {
-    if (feature %in% rownames(obj)) {
-      this_col = cols[i]
-      if (i == 1) {
-        df$feature = obj@assays$RNA@data[feature,]
-        m <- grDevices::colorRamp(c(lightgray_hex, this_col))( (1:n)/n )
-        df$col = colour_values(df$feature, palette = m)
-        feature_pos = colnames(obj)[which(obj@assays$RNA@counts[feature,] > 0 )]
-        df[feature_pos, 'gene'] = feature
-      } else {
-        this_values = obj@assays$RNA@data[feature,]
-        m <- grDevices::colorRamp(c("lightgray", this_col))( (1:n)/n )
-        this_cols = colour_values(this_values, palette = m)
-        names(this_cols) = colnames(obj)
-        
-        feature_pos = colnames(obj)[which(obj@assays$RNA@counts[feature,] > 0 )]
-        newRow = df[feature_pos,]
-        newRow$feature = this_values[feature_pos]
-        newRow$col = this_cols[feature_pos]
-        
-        my_mix = function(x)  {
-          if (df[x,"col"] == lightgray_hex)
-            this_cols[x]
-          else
-            rgb(mixcolor(alpha = 0.5, hex2RGB(df[x, "col"]), hex2RGB(this_cols[x]))@coords)
-        }
-        new_cols = unlist(lapply(feature_pos, my_mix))
-        df[feature_pos, "col"] = new_cols
-        df[feature_pos, 'gene'] = feature
-      }
-      i = i + 1
+    this_col = cols[i]
+    if (i == 1) {
+      df$feature = this.mat.data[feature,]
+      m <- grDevices::colorRamp(c(lightgray_hex, this_col))( (1:n)/n )
+      df$col = colour_values(df$feature, palette = m)
+      feature_pos = colnames(obj)[which(this.mat.counts[feature,] > 0 )]
+      df[feature_pos, 'gene'] = feature
     } else {
-      print("Feature not found in rownames of object nor meta data.")
+      this_values = this.mat.data[feature,]
+      m <- grDevices::colorRamp(c("lightgray", this_col))( (1:n)/n )
+      this_cols = colour_values(this_values, palette = m)
+      names(this_cols) = colnames(obj)
+      
+      feature_pos = colnames(obj)[which(this.mat.counts[feature,]  > 0 )]
+      newRow = df[feature_pos,]
+      newRow$feature = this_values[feature_pos]
+      newRow$col = this_cols[feature_pos]
+      
+      my_mix = function(x)  {
+        if (df[x,"col"] == lightgray_hex)
+          this_cols[x]
+        else
+          rgb(mixcolor(alpha = 0.5, hex2RGB(df[x, "col"]), hex2RGB(this_cols[x]))@coords)
+      }
+      new_cols = unlist(lapply(feature_pos, my_mix))
+      df[feature_pos, "col"] = new_cols
+      df[feature_pos, 'gene'] = feature
     }
+    i = i + 1
   }
   
   if (! is.null(cells.use) )
@@ -1371,8 +1383,8 @@ markerHeatmap = function(obj, markers, myslot="scale.data") {
   # Increase number of ticks
   x_labs = clusters
   x_labs[c(FALSE, TRUE)] = "" # R trickery -> selects every other element
-  if (! any(is.na(as.numeric(as.vector(Idents(obj))))))
-    p = p + scale_x_continuous(breaks=clusters, labels =x_labs, expand=c(0,0))
+  # if (! any(is.na(as.numeric(as.vector(Idents(obj))))))
+  #   p = p + scale_x_continuous(breaks=clusters, labels =x_labs, expand=c(0,0))
   
   return(p)
 }
@@ -2996,7 +3008,8 @@ ncMzToHgncVect = function(mz, returnDF = T, onPACE=F, rm_na = F) {
   #' mzebra gene capitalized.
   
   if (onPACE) {
-    pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
+    # pat <- read.table("~/scratch/m_zebra_ref/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
+    pat <- read.table("~/research/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
   } else {
     pat <- read.table("C:/Users/miles/Downloads/all_research/MZ_treefam_annot_umd2a_ENS_2.bash", sep = "\t", header = FALSE, fill = TRUE, stringsAsFactors = F)
   }
