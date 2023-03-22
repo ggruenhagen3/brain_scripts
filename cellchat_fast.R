@@ -94,6 +94,8 @@ mz.df = data.frame(mz = rownames(combined), human = gene_info$human[match(rownam
 mz.df$rowsums = rowSums(combined@assays$RNA@data)
 mz.df = mz.df[order(-mz.df$rowsums),]
 mz.df = mz.df[which(mz.df$rowsums != 0 & mz.df$human != "" & !is.na(mz.df$human)),]
+mz.df$human[which(mz.df$human == "NRG2")] = "NRG3"
+mz.df = rbind(data.frame(mz = "LOC101470250", human = "NRG2", rowsums = 5e6), mz.df)
 
 mz.df = mz.df[!duplicated(mz.df$human),]
 data.input = as.matrix(combined@assays$RNA@data[mz.df$mz,])
