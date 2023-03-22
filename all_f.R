@@ -1427,7 +1427,8 @@ cellCycle = function(obj, isMzebra = T, isMouse=F, isNCBI = F, work = T) {
   #' @param obj Seurat object
   #' @param isMzebra is the Seurat object from a cichlid?
   #' @param isMouse is the Seurat object from a mouse?
-  #' @return cc_fact factor of cell cycle state for each cell (you can make this into metadata)
+  # #' @return cc_fact factor of cell cycle state for each cell (you can make this into metadata)
+  #' @return object with cell cyle info
   
   if (work)
     rna_path = "~/research/"
@@ -1458,7 +1459,7 @@ cellCycle = function(obj, isMzebra = T, isMouse=F, isNCBI = F, work = T) {
   obj = CellCycleScoring(obj, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
   # p = DimPlot(obj, label = T, order = T)
   
-  return(obj$Phase)
+  return(obj)
 }
 
 numCellExpMarker = function(obj, markers, myslot="data", thresh=0) {
@@ -1824,8 +1825,10 @@ markerExpPerCellPerClusterQuick = function(obj, markers, include_stars = F, pt.a
     other_cells = colnames(obj)[which(! colnames(obj) %in% cluster_cells)]
     other_avg = colSums(exp[markers, other_cells])
     other_avg = other_avg/obj$nFeature_RNA[other_cells]
-
-    p = z.test(avg_cluster_exp, other_avg, sigma.x = sd(avg_cluster_exp), sigma.y = sd(other_avg), alternative = "greater")$p.value
+    
+    this.z.test = z.test(avg_cluster_exp, other_avg, sigma.x = sd(avg_cluster_exp), sigma.y = sd(other_avg), alternative = "greater")
+    p    = this.z.test$p.value
+    stat = this.z.test$statistic
 
     # Cohen's d
     all_exp = c(avg_cluster_exp, other_avg)
@@ -1839,7 +1842,7 @@ markerExpPerCellPerClusterQuick = function(obj, markers, include_stars = F, pt.a
     mag_pos=mag
     mag_pos[which(d < 0)] = "negligible"
 
-    d_df = rbind(d_df, data.frame(cluster, mag, mag_pos, d, up, down, p))
+    d_df = rbind(d_df, data.frame(cluster, mag, mag_pos, d, up, down, p, stat))
     per_cluster_df = rbind(per_cluster_df, data.frame(cluster, avg_cluster_exp, p, mag_pos))
   }
   
