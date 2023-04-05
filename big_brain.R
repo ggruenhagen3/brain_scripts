@@ -1,4 +1,3 @@
-print("THIS line of code came from my work desktop")
 #rna_path = "C:/Users/miles/Downloads/brain/"
 rna_path = "~/research/brain/"
 setwd(rna_path)
