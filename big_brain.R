@@ -1,3 +1,4 @@
+print("THIS line of code came from my work desktop")
 #rna_path = "C:/Users/miles/Downloads/brain/"
 rna_path = "~/research/brain/"
 setwd(rna_path)
@@ -7,7 +8,6 @@ library("SeuratObject")
 # bb = readRDS(paste0(rna_path, "data/bb_subsample_02222021.RDS"))
 bb = readRDS(paste0(rna_path, "data/bb_demux_102021.rds"))
 Idents(bb) = bb$seurat_clusters
-
 
 library(pacman)
 p_unload(SeuratDisk)
@@ -4673,6 +4673,8 @@ dev.off()
 
 # *** BRIANNA 53 ***
 brianna53 = xlsx::read.xlsx("~/Downloads/53heatmapmarkerlist_george6.xlsx", sheetIndex = 1, startRow = 1)
+other.cat = c("LOC101482567", "ccnd1", "LOC101486506", "LOC101480351", "LOC101465004", "LOC112431276", "LOC101466608", "LOC101470924", "fabp7", "galc", "LOC101468392", "mpz", "LOC101478422", "LOC101487165", "s100b", "LOC101470384", "LOC101477131")
+other.cat.loc = c("LOC101482567", "LOC101485361", "LOC101486506", "LOC101480351", "LOC101465004", "LOC112431276", "LOC101466608", "LOC101470924", "LOC101470777", "LOC101473828", "LOC101468392", "LOC101480114", "LOC101478422", "LOC101487165", "LOC101479001", "LOC101470384", "LOC101477131")
 colnames(brianna53)[1] = "Category"
 colnames(brianna53)[4] = "Rank.Within"
 colnames(brianna53)[5] = "Rank.Overall"
@@ -4680,9 +4682,12 @@ brianna53[, 6:ncol(brianna53)] = NULL
 colnames(brianna53)[which(colnames(brianna53) == "Gene.")] = "Gene"
 brianna53$Category = str_replace_all(trimws(brianna53$Category, which = "both"), "[^[:alnum:]\\s]", "")
 brianna53$Category[which( startsWith(brianna53$Category, "Neuroanat") )]  = "NeuroanatNeurodev TF"
+brianna53$Category[which(brianna53$LOCID %in% other.cat.loc)] = "Other"
 brianna53$LOCID = str_replace_all(trimws(brianna53$LOCID, which = "both"), "[^[:alnum:]\\s]", "")
 brianna53$gene_name = gtf$gene_name[match(brianna53$LOCID, gtf$loc)]
-brianna53$col = plyr::revalue(brianna53$Category, replace = c("Neuromodulator" = "#00E7EC", "Neuromodulatory Receptor" = "#FDD615", "NeuroanatNeurodev TF" = "#FE04FF"))
+# brianna53$gene_name = gene_info$seurat_name[match(brianna53$LOCID, gene_info$loc)]
+brianna53$col = plyr::revalue(brianna53$Category, replace = c("Neuromodulator" = "#00E7EC", "Neuromodulatory Receptor" = "#FDD615", "NeuroanatNeurodev TF" = "#FE04FF", "Other" = "#440154"))
+brianna53 = rbind(brianna53[which(brianna53$Category != "Other"),], brianna53[which(brianna53$Category == "Other"),])
 
 # Last minute changes the gene order of just a few genes
 drd1_idx = which(brianna53$Gene == "drd1")
@@ -4691,7 +4696,12 @@ neurod1_idx = which(brianna53$Gene == "neurod1")
 neurod6b_idx = which(brianna53$Gene == "neurod6b")
 cck_idx = which(brianna53$Gene == "cck")
 nos1_idx = which(brianna53$Gene == "nos1")
+# aromatase_idx = which(brianna53$Gene == "cyp19a1")
+# pvalb7_idx = which(brianna53$Gene == "pvalb7")
+# calb2_idx = which(brianna53$Gene == "calb2")
+# pvalb6_idx = which(brianna53$Gene == "pvalb6")
 brianna53_idx = c(1:(neurod6b_idx-1), neurod1_idx, neurod6b_idx, (neurod1_idx+1):(cck_idx-1), nos1_idx, cck_idx, (cck_idx+1):(drd1_idx-1), (drd1_idx+1):(nr4_idx-1), drd1_idx, nr4_idx:nrow(brianna53))
+# brianna53_idx = c(1:(neurod6b_idx-1), neurod1_idx, neurod6b_idx, (neurod1_idx+1):(cck_idx-1), nos1_idx, cck_idx, (cck_idx+1):(drd1_idx-1), (drd1_idx+1):(nr4_idx-1), drd1_idx, nr4_idx:nrow(brianna53))
 
 brianna53[which( grepl("LOC101487266", brianna53$LOCID) ), c("LOCID", "Gene", "gene_name")] = c("LOC101487266", "nr4a2b (nurr1)", "LOC101487266")
 
@@ -4733,7 +4743,7 @@ all_combos$cluster = factor(all_combos$cluster, levels = rev(unique(convert53$ne
 all_combos$Gene = factor(all_combos$Gene, levels = unique(brianna53$Gene[brianna53_idx]))
 test = acast(Gene ~ cluster, data = all_combos, value.var = 'pct.1')
 pheatmap::pheatmap(test)
-pdf("~/research/brain/results/bri53_markers_heatmap14.pdf", height = 10, width = 12)
+pdf("~/research/brain/results/bri53_markers_heatmap15.pdf", height = 10, width = 12)
 ggplot(all_combos[which(! is.na(all_combos$Gene)),], aes(x = Gene, y = cluster, fill = col4)) + geom_tile(color = "gray40") + scale_fill_identity() + coord_fixed() + theme_classic() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "italic")) + xlab("") + ylab("") + scale_y_discrete(expand = c(0,0)) + scale_x_discrete(expand = c(0, 0))
 dev.off()
 all_combos53 = all_combos
@@ -8373,7 +8383,7 @@ for (cluster in unique(top5_53$cluster)) {
   cluster_str[cluster, "str"] = paste0(top5_53$symbol[which(top5_53$cluster == cluster)], collapse = ", ")
 }
 clipboard(cluster_str$str)
-=======
+
 ieg = read.csv("C:/Users/miles/Downloads/IEG_list.csv")
 zpng = read.csv("C:/Users/miles/Downloads/pNG_list.csv")
 cdg = read.csv("C:/Users/miles/Downloads/CDG_list.csv")
@@ -9119,6 +9129,131 @@ Idents(rgc) = rgc$rgc_subcluster
 real_res = markerExpPerCellPerClusterQuick(rgc, pcrc)
 
 #******************************************************************************
+# ASE TODD ====================================================================
+#******************************************************************************
+library(MBASED)
+counts = xlsx::read.xlsx("~/Downloads/pnas.1810140115.sd02.xlsx", sheetIndex = 1)
+counts$log1 = log2( counts$rep_1_cv_allele/counts$rep_1_mc_allele )
+#vectorizedRbetabinomAB(1, 1000000, a, b, checkArgs = FALSE)
+counts$analytical_p1 = unlist(lapply( 1:nrow(counts), function(x) binom.test(counts$rep_1_cv_allele[x], counts$rep_1_mc_allele[x]+counts$rep_1_cv_allele[x], 0.5, 'two.sided')$p.value ))
+counts$analytical_p2 = unlist(lapply( 1:nrow(counts), function(x) binom.test(counts$rep_2_cv_allele[x], counts$rep_2_mc_allele[x]+counts$rep_2_cv_allele[x], 0.5, 'two.sided')$p.value ))
+myRange = GRanges(seqnames=rep('chr1',nrow(counts)), ranges=IRanges(start=1:nrow(counts),width=1), aseID=counts$gene, allele1=rep('A',nrow(counts)), allele2=rep('T',nrow(counts)))
+mySample1 <- SummarizedExperiment(assays=list(lociAllele1Counts=matrix(counts$rep_1_cv_allele,ncol=1), lociAllele2Counts=matrix(counts$rep_1_mc_allele,ncol=1)), rowRanges=myRange)
+mySample2 <- SummarizedExperiment(assays=list(lociAllele1Counts=matrix(counts$rep_2_cv_allele,ncol=1), lociAllele2Counts=matrix(counts$rep_2_mc_allele,ncol=1)), rowRanges=myRange)
+
+# One sample
+ASEresults_1s_haplotypesKnown <- runMBASED(ASESummarizedExperiment=mySample1, isPhased=F, numSim=10^6, BPPARAM = SerialParam())
+assays(ASEresults_1s_haplotypesKnown)$pValueASE
+
+combos = expand.grid(c("digging", "building", "isolated"), c("digging", "building", "isolated"), c(1, 2))
+combos = combos[which(combos[,1] != combos[,2]),]
+res_df = data.frame(gene = unique(counts$gene), row.names = unique(counts$gene))
+for (i in combos) { res_df[,paste0(combos[,1], "_", combos[,2], "_", combos[,3])] = NA }
+colnames(res_df) = c("gene", sort(colnames(res_df)[2:ncol(res_df)]))
+
+# Dig and Build
+context1 = "digging"; context2 = "building"; 
+counts_context = counts[which(counts$gene %in% counts$gene[which(counts$condition == context1)] & counts$gene %in% counts$gene[which(counts$condition == context2)]),]
+myContextRange = GRanges(seqnames=rep('chr1',length(which(counts_context$condition == context1))), ranges=IRanges(start=1:length(which(counts_context$condition == context1)),width=1), aseID=counts_context$gene[which(counts_context$condition == context1)], allele1=rep('A',length(which(counts_context$condition == context1))), allele2=rep('T',length(which(counts_context$condition == context1))))
+lociAllele1Counts=as.matrix(data.frame(context1 = counts_context$rep_1_cv_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_1_cv_allele[which(counts_context$condition == context2)]))
+lociAllele2Counts=as.matrix(data.frame(context1 = counts_context$rep_1_mc_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_1_mc_allele[which(counts_context$condition == context2)]))
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele1Counts, lociAllele2Counts=lociAllele2Counts), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context1, "_", context2, "_1")] = assays(raw_res)$pValueASE
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele2Counts, lociAllele2Counts=lociAllele1Counts), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context2, "_", context1, "_1")] = assays(raw_res)$pValueASE
+
+lociAllele1Counts2=as.matrix(data.frame(context1 = counts_context$rep_2_cv_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_2_cv_allele[which(counts_context$condition == context2)]))
+lociAllele2Counts2=as.matrix(data.frame(context1 = counts_context$rep_2_mc_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_2_mc_allele[which(counts_context$condition == context2)]))
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele1Counts2, lociAllele2Counts=lociAllele2Counts2), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context1, "_", context2, "_2")] = assays(raw_res)$pValueASE
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele2Counts2, lociAllele2Counts=lociAllele1Counts2), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context2, "_", context1, "_2")] = assays(raw_res)$pValueASE
+
+# Dig and Isolated
+context1 = "digging"; context2 = "isolated"; 
+counts_context = counts[which(counts$gene %in% counts$gene[which(counts$condition == context1)] & counts$gene %in% counts$gene[which(counts$condition == context2)]),]
+myContextRange = GRanges(seqnames=rep('chr1',length(which(counts_context$condition == context1))), ranges=IRanges(start=1:length(which(counts_context$condition == context1)),width=1), aseID=counts_context$gene[which(counts_context$condition == context1)], allele1=rep('A',length(which(counts_context$condition == context1))), allele2=rep('T',length(which(counts_context$condition == context1))))
+lociAllele1Counts=as.matrix(data.frame(context1 = counts_context$rep_1_cv_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_1_cv_allele[which(counts_context$condition == context2)]))
+lociAllele2Counts=as.matrix(data.frame(context1 = counts_context$rep_1_mc_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_1_mc_allele[which(counts_context$condition == context2)]))
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele1Counts, lociAllele2Counts=lociAllele2Counts), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context1, "_", context2, "_1")] = assays(raw_res)$pValueASE
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele2Counts, lociAllele2Counts=lociAllele1Counts), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context2, "_", context1, "_1")] = assays(raw_res)$pValueASE
+
+lociAllele1Counts2=as.matrix(data.frame(context1 = counts_context$rep_2_cv_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_2_cv_allele[which(counts_context$condition == context2)]))
+lociAllele2Counts2=as.matrix(data.frame(context1 = counts_context$rep_2_mc_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_2_mc_allele[which(counts_context$condition == context2)]))
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele1Counts2, lociAllele2Counts=lociAllele2Counts2), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context1, "_", context2, "_2")] = assays(raw_res)$pValueASE
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele2Counts2, lociAllele2Counts=lociAllele1Counts2), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context2, "_", context1, "_2")] = assays(raw_res)$pValueASE
+
+# Building and Isolated
+context1 = "building"; context2 = "isolated"; 
+counts_context = counts[which(counts$gene %in% counts$gene[which(counts$condition == context1)] & counts$gene %in% counts$gene[which(counts$condition == context2)]),]
+myContextRange = GRanges(seqnames=rep('chr1',length(which(counts_context$condition == context1))), ranges=IRanges(start=1:length(which(counts_context$condition == context1)),width=1), aseID=counts_context$gene[which(counts_context$condition == context1)], allele1=rep('A',length(which(counts_context$condition == context1))), allele2=rep('T',length(which(counts_context$condition == context1))))
+lociAllele1Counts=as.matrix(data.frame(context1 = counts_context$rep_1_cv_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_1_cv_allele[which(counts_context$condition == context2)]))
+lociAllele2Counts=as.matrix(data.frame(context1 = counts_context$rep_1_mc_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_1_mc_allele[which(counts_context$condition == context2)]))
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele1Counts, lociAllele2Counts=lociAllele2Counts), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context1, "_", context2, "_1")] = assays(raw_res)$pValueASE
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele2Counts, lociAllele2Counts=lociAllele1Counts), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context2, "_", context1, "_1")] = assays(raw_res)$pValueASE
+
+lociAllele1Counts2=as.matrix(data.frame(context1 = counts_context$rep_2_cv_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_2_cv_allele[which(counts_context$condition == context2)]))
+lociAllele2Counts2=as.matrix(data.frame(context1 = counts_context$rep_2_mc_allele[which(counts_context$condition == context1)], context2 = counts_context$rep_2_mc_allele[which(counts_context$condition == context2)]))
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele1Counts2, lociAllele2Counts=lociAllele2Counts2), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context1, "_", context2, "_2")] = assays(raw_res)$pValueASE
+
+contextSample = SummarizedExperiment(assays=list(lociAllele1Counts=lociAllele2Counts2, lociAllele2Counts=lociAllele1Counts2), rowRanges=myContextRange)
+raw_res = runMBASED(ASESummarizedExperiment=contextSample, isPhased=FALSE, numSim=10^6, BPPARAM = SerialParam())
+res_df[rownames(assays(raw_res)$pValueASE), paste0(context2, "_", context1, "_2")] = assays(raw_res)$pValueASE
+
+# Use Fisher's Method to combine replicates
+library(survcomp)
+combos_fisher = sort(unique(paste0(combos[,1], "_", combos[,2])))
+res_df_fisher = data.frame(gene = unique(counts$gene), row.names = unique(counts$gene))
+res_df_fisher[,combos_fisher] = NA
+for (this.row in 1:nrow(res_df)) {
+  for (this.col in seq(2, ncol(res_df), by = 2)) {
+    if (!is.na(res_df[this.row,this.col])) {
+      this.name = reshape2::colsplit(colnames(res_df)[this.col], "_\\d", c('1', '2'))[,1]
+      res_df_fisher[this.row,this.name] = survcomp::combine.test(res_df[this.row,c(this.col, this.col+1)], method = "fisher")
+    }
+  }
+}
+
+# Find lowest p for reciprocals
+res_df_fisher_lowest =  data.frame(gene = unique(counts$gene), building_digging_p = NA, building_isolated_p = NA, digging_isolated_p = NA, row.names = unique(counts$gene))
+res_df_fisher_lowest$building_digging_p  = rowMins(as.matrix(res_df_fisher[,c("building_digging",  "digging_building")]))
+res_df_fisher_lowest$building_isolated_p = rowMins(as.matrix(res_df_fisher[,c("building_isolated", "isolated_building")]))
+res_df_fisher_lowest$digging_isolated_p  = rowMins(as.matrix(res_df_fisher[,c("digging_isolated",  "isolated_digging")]))
+res_df_fisher_lowest$building_digging_bon  = p.adjust(res_df_fisher_lowest$building_digging_p,  method = "bonferroni")
+res_df_fisher_lowest$building_isolated_bon = p.adjust(res_df_fisher_lowest$building_isolated_p, method = "bonferroni")
+res_df_fisher_lowest$digging_isolated_bon  = p.adjust(res_df_fisher_lowest$digging_isolated_p,  method = "bonferroni")
+length(which( rowMins(as.matrix(res_df_fisher[,5:7])) < 0.05 ))
+
+#******************************************************************************
 # Monocle 05/26/22 ============================================================
 #******************************************************************************
 library('viridis')
@@ -9435,9 +9570,15 @@ dev.off()
 #*******************************************************************************
 # CellChat =====================================================================
 #*******************************************************************************
-<<<<<<< HEAD
 cc.res = read.csv("~/scratch/brain/cellchat/cc_psp_real.csv")
-=======
+neuronal.interest = c("secondary_13", "secondary_4", "genePop_goi_NA_LOC101466528", "genePop_goi_NA_LOC101470924", "genePop_goi_NA_LOC101477733", "genePop_primary_2_htr1d", "genePop_primary_2_vipr2", "genePop_primary_3_tacr2", "genePop_primary_7_LOC101466528", "genePop_secondary_11_LOC101476270", "genePop_secondary_14_LOC101477733")
+non_neuronal = c(paste0("rgc_", 0:11), "secondary_5", "secondary_20", "secondary_45", "secondary_31", "secondary_46", "secondary_50", "primary_4", "primary_9", "primary_3")
+cc.res2 = cc.res[which(!cc.res$clust1 %in% non_neuronal & !cc.res$clust2 %in% non_neuronal),]
+cc.res2$poi = cc.res2$clust1 %in% neuronal.interest & cc.res2$clust2 %in% neuronal.interest
+cc.res2$poi = plyr::revalue(as.character(cc.res2$poi), replace = c("FALSE" = "Other", "TRUE" = "Pop of Interest"))
+pdf("~/Downloads/z_cellchat_poi_fig_exclusive_neuronal.pdf", width = 2, height = 3)
+ggplot(cc.res2, aes(x = poi, y = weight, color = poi, fill = poi, alpha = poi)) + geom_violin(alpha = 0.4) + geom_point(size = 0.5, position = position_jitter(width = 0.1)) + scale_color_manual(values = c("#21918C", "#FDE725")) + scale_fill_manual(values = c("#21918C", "#FDE725")) + scale_alpha_manual(values = c(0.05, 1)) + theme_classic() + NoLegend() + xlab("") + ylab("Connection Weight") + geom_boxplot(alpha = 0.4, outlier.shape = NA, width = 0.2, fatten = 4, color = "black", fill = "white")
+dev.off()
 
 # ********************* #
 # Plotting Permutations #
@@ -9555,13 +9696,13 @@ for (i in 1:nrow(pop_lr_ps_l)) { for (j in 3:ncol(pop_lr_ps_l)) { pop_lr_ps_l[i,
 for (i in 1:nrow(pop_lr_ps_l)) { pop_lr_ps_l[i, "background"] = sum(df.net_lig_recept$prob[which(!df.net_lig_recept$source %in% colnames(pop_lr_ps_l) & df.net_lig_recept$ligand == pop_lr_ps_l$ligand[i])]) }
 write.csv(pop_lr_ps_l, "~/Downloads/sig_pops_to_84glut_ligand_weight.csv")
 tmp = reshape2::melt(pop_lr_ps_l)
-tmp$ligand = factor(tmp$ligand, levels = pop_lr_ps_l$ligand[order(pop_lr_ps_l$sum, decreasing = T)])
+tmp$ligand = factor(tmp$ligand, levels = pop_lr_ps_l$ligand[order(pop_lr_ps_l$sum, decreasing = F)])
 pdf("~/Downloads/last_para_pops_to_rgc2_ligand_weight.pdf", width = 6, height = 3)
 print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = ligand, y = value, color = ligand)) + geom_boxplot(outlier.shape = NA, alpha = 0.2) + geom_point(position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Ligand"))
 # print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = ligand, y = value)) + geom_pointrange(aes(x = ligand, y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(), alpha = 1, size = 0.6) + theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("blue", "blue", "pink")) + scale_fill_manual(values = c("blue", "blue", "pink")) + scale_shape_manual(values = c(24, 25, 19)))
 dev.off()
-pdf("~/Downloads/last_para_pops_to_rgc2_ligand_weight.pdf", width = 3, height = 5)
-print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = ligand, y = value)) + geom_pointrange(aes(x = ligand, y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(width = 0.2), alpha = 1, size = 0.7) + theme_bw() + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_fill_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_shape_manual(values = c(24, 25, 19)) + coord_flip())
+pdf("~/Downloads/last_para_pops_to_rgc2_ligand_weight.pdf", width = 3, height = 3)
+print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = ligand, y = value)) + geom_pointrange(aes(x = ligand, y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(width = 0.1), alpha = 1, size = 1) + theme_bw() + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_fill_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_shape_manual(values = c(24, 25, 19)) + coord_flip())
 dev.off()
 
 pop_lr_ps_r = data.frame(receptor = unique(pop_lr$receptor))
@@ -9588,7 +9729,7 @@ tmp.ligands   = rev(reshape2::colsplit(levels(tmp$interaction_name)[1:5], "_", c
 tmp.receptors = rev(reshape2::colsplit(levels(tmp$interaction_name)[1:5], "_", c('1', '2'))[,2])
 tmp$interaction_name = factor(tmp$interaction_name, levels = rev(pop_lr_ps_int$interaction_name[order(pop_lr_ps_int$sum, decreasing = T)][1:5]))
 pdf("~/Downloads/last_para_pops_to_rgc2_interactions.pdf", width = 3, height = 1.5)
-print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = as.numeric(interaction_name), y = value)) + geom_pointrange(aes(x = as.numeric(interaction_name), y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(width = 0.2), alpha = 1, size = 0.75) + theme_bw() + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_fill_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_shape_manual(values = c(24, 25, 19)) + coord_flip() + scale_y_continuous(breaks = scales::pretty_breaks(n = 3)) + scale_x_continuous(breaks = 1:length(tmp.ligands), labels = tmp.ligands, sec.axis = sec_axis(~., name = "Receptors", breaks = 1:length(tmp.receptors), labels = tmp.receptors)))
+print(ggplot(tmp[which(!tmp$variable %in% c("sum", "background")),], aes(x = as.numeric(interaction_name), y = value)) + geom_pointrange(aes(x = as.numeric(interaction_name), y = value), stat = "summary", size = 0.8, fatten = 1.2, color = "gray60") + geom_point(aes(color = variable, fill = variable, shape = variable), position = position_jitter(width = 0.2), alpha = 1, size = 0.85) + theme_bw() + NoLegend() + ylab("Weight") + xlab("Ligand") + scale_color_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_fill_manual(values = c("#04D9FF", "#04D9FF", "#d600ff")) + scale_shape_manual(values = c(24, 25, 19)) + coord_flip() + scale_y_continuous(breaks = scales::pretty_breaks(n = 3)) + scale_x_continuous(breaks = 1:length(tmp.ligands), labels = tmp.ligands, sec.axis = sec_axis(~., name = "Receptors", breaks = 1:length(tmp.receptors), labels = tmp.receptors)))
 dev.off()
 
 pop_lr = df.net_lig_recept[which(df.net_lig_recept$source %in% real_genePop$clust1),]
@@ -9708,12 +9849,12 @@ cc.res$id = rownames(cc.res)
 cc.res[, c("clust1", "clust2")] = reshape2::colsplit(cc.res$id, "\\.", c('1', '2'))
 colnames(cc.res)[1] = "real"
 cc.res = cc.res[, c("id", "clust1", "clust2", "real")]
-for (i in c(2, 9, 10)) {
-  this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_perm_60nruns_run", i, ".csv"))
-  this.perm = this.perm[,4:ncol(this.perm)]
-  cc.res = cbind(cc.res, this.perm)
-}
-for (i in c(101:110)) {
+# for (i in c(2, 9, 10)) {
+#   this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_perm_60nruns_run", i, ".csv"))
+#   this.perm = this.perm[,4:ncol(this.perm)]
+#   cc.res = cbind(cc.res, this.perm)
+# }
+for (i in c(401:423, 427:428)) {
   this.perm = read.csv(paste0("~/scratch/brain/results/cellchat/primary_secondary_rgc_iegPop/cellchat_full_perm_40nruns_run", i, ".csv"))
   this.perm = this.perm[,4:ncol(this.perm)]
   cc.res = cbind(cc.res, this.perm)
@@ -10065,3 +10206,242 @@ z_org$clust2 = z_org$variable
 z_org$id = paste0(z_org$clust1, ".", z_org$clust2)
 mine$z_org = z_org$value[match(paste0(trimws(mine$clust1.name.down), ".", trimws(mine$clust2.name.down)), z_org$id)]
 
+#*******************************************************************************
+# Colquitt Integration =========================================================
+#*******************************************************************************
+zei = readRDS("~/scratch/bcs/data/l5_tel.rds")
+zei = NormalizeData(zei)
+cm.list = list(bb, zei)
+cm.anchor.features = SelectIntegrationFeatures(object.list = cm.list)
+cm.anchors = FindIntegrationAnchors(object.list = cm.list, anchor.features = cm.anchor.features)
+cm = IntegrateData(anchorset = cm.anchors)
+
+cm <- ScaleData(cm, verbose = FALSE)
+cm <- RunPCA(cm, npcs = 30, verbose = FALSE)
+cm <- RunUMAP(cm, reduction = "pca", dims = 1:30)
+cm <- FindNeighbors(cm, reduction = "pca", dims = 1:30)
+cm <- FindClusters(cm, resolution = 0.5)
+
+#*******************************************************************************
+# Colquitt Correlation =========================================================
+#*******************************************************************************
+source("~/scratch/brain/brain_scripts/all_f.R")
+zei = readRDS("~/scratch/bcs/data/l5_tel_norm.rds")
+bb  = readRDS("~/scratch/brain/data/bb_demux_102021.rds")
+# zei.deg = read.csv("~/scratch/bcs/results/l5_cluster_markers_020723.csv")
+bb$good_names15 = convert15$new.full[match(bb$seuratclusters15, convert15$old)]
+bb$good_names15 = factor(bb$good_names15, levels = rev(convert15$new.full))
+bb$good_names53 = convert53$new[match(bb$seuratclusters53, convert53$old)]
+bb$good_names53 = factor(bb$good_names53, levels = rev(convert53$new))
+zei.deg = read.csv("~/scratch/bcs/results/l5_cluster_markers_tax_region_020723.csv")
+bb15.deg = read.csv("~/scratch/brain/results/bb15_deg_w_one_012323.csv")
+bb53.deg = read.csv("~/scratch/brain/results/bb53_deg_w_one_012323.csv")
+zei.deg$X = bb15.deg$X = bb53.deg$X = NULL
+bb15.deg$cluster = str_replace(bb15.deg$cluster, "Astro", "RG")
+bb53.deg$cluster = str_replace(bb53.deg$cluster, "Astro", "RG")
+
+common.gene.set = sort(unique(toupper(zei.deg$gene)))
+common.gene.set = common.gene.set[which(common.gene.set %in% bb53.deg$one_to_one_human)]
+mz.common.gene.set = bb53.deg$gene[match(common.gene.set, bb53.deg$one_to_one_human)]
+zei.common.gene.set = stringr::str_to_title(common.gene.set)
+
+bb$good_names53 = convert53$new[match(bb$seurat_clusters, convert53$old)]
+bb$good_names53 = factor(bb$good_names53, levels = convert53$new)
+Idents(bb) = bb$good_names53
+mz.avg.exp = AverageExpression(bb, features = mz.common.gene.set, assays = "RNA", slot = "data")[[1]]
+mz.avg.exp.norm = log(mz.avg.exp+1) + 0.1
+mz.avg.exp.norm = mz.avg.exp.norm / rowMeans(mz.avg.exp.norm)
+
+# Idents(zei) = zei$ClusterName
+Idents(zei) = paste0(zei$Region, "_", zei$TaxonomyRank4)
+zei.avg.exp = AverageExpression(zei, features = zei.common.gene.set, assays = "SCT", slot = "data")[[1]]
+zei.avg.exp.norm = log(zei.avg.exp+1) + 0.1
+zei.avg.exp.norm = zei.avg.exp.norm / rowMeans(zei.avg.exp.norm)
+
+mz.zei.cor = cor(mz.avg.exp.norm, zei.avg.exp.norm, method = "spearman")
+# pheatmap::pheatmap(mz.zei.cor, cellwidth = 10, cellheight = 10, filename = "~/scratch/brain/results/mz_zei_cor_tax_region.pdf")
+
+# Perms
+n.perms = 1000
+mz.zei.cor.melt = reshape2::melt(mz.zei.cor)
+orig.gene.labels = unname(rownames(mz.avg.exp.norm))
+# perm.colquitt.cor.list = mclapply(1:n.perms, function(x) permCorColquitt(mz.avg.exp.norm), mc.cores = 20)
+# perm.colquitt.cor.mat = do.call('cbind', perm.colquitt.cor.list)
+perm.tosches.cor.list = mclapply(1:n.perms, function(x) permCorTosches(mz.avg.exp.norm), mc.cores = 20)
+perm.tosches.cor.mat = do.call('cbind', perm.tosches.cor.list)
+# perm.supp = cbind(mz.zei.cor.melt, perm.tosches.cor.mat)
+# colnames(perm.supp) = c("mz.cluster", "mouse.cluster", "cor", paste0("perm.", 1:n.perms))
+mz.zei.cor.melt$num_perm_greater = unlist(lapply(1:nrow(mz.zei.cor.melt), function(x) length(which(perm.tosches.cor.mat[x,] > mz.zei.cor.melt$value[x]))))
+mz.zei.cor.melt$p.perm = (mz.zei.cor.melt$num_perm_greater) / n.perms
+mz.zei.cor.melt$bon.perm = p.adjust(mz.zei.cor.melt$p.perm, method = "bonferroni")
+
+# Spearman Correlation Test
+mz.zei.cor.p = matrix(NA, nrow = nrow(mz.zei.cor), ncol = ncol(mz.zei.cor), dimnames = list(rownames(mz.zei.cor), colnames(mz.zei.cor)))
+for (mz.clust in colnames(mz.avg.exp.norm)) {
+  for (zei.clust in colnames(zei.avg.exp.norm)) {
+    mz.zei.cor.p[mz.clust, zei.clust] = cor.test(mz.avg.exp.norm[,mz.clust], zei.avg.exp.norm[,zei.clust], method = "spearman", alternative = "greater")$p.value
+  }
+}
+mz.zei.cor.bon = matrix(p.adjust(mz.zei.cor.p, method = "bonferroni"), nrow = nrow(mz.zei.cor), ncol = ncol(mz.zei.cor), dimnames = list(rownames(mz.zei.cor), colnames(mz.zei.cor)))
+
+# mz.zei.cor.maxed.out = mz.zei.cor
+# mz.zei.cor.maxed.out[which(mz.zei.cor.maxed.out >  0.35)] =  0.35
+# mz.zei.cor.maxed.out[which(mz.zei.cor.maxed.out < -0.35)] = -0.35
+# pheatmap::pheatmap(mz.zei.cor.maxed.out, border_color = NA, display_numbers = mz.zei.star, number.color = "black", cellwidth = 10, cellheight = 10, color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100), filename = "~/scratch/brain/results/mz_zei_cor_tax_region_perm_and_spearman_test.pdf")
+mz.zei.cor.maxed.out.melt = reshape2::melt(mz.zei.cor)
+colnames(mz.zei.cor.maxed.out.melt) = c("mz.cluster", "mouse.cluster", "cor")
+mz.zei.cor.maxed.out.melt[, c("mouse.region", "mouse.celltype")] = reshape2::colsplit(mz.zei.cor.maxed.out.melt$mouse.cluster, "_", c('1', '2'))
+mz.zei.cor.maxed.out.melt = mz.zei.cor.maxed.out.melt[,c("mz.cluster", "mouse.cluster", "mouse.region", "mouse.celltype", "cor")]
+maxed.num = 0.35
+mz.zei.cor.maxed.out.melt$cor.maxed = mz.zei.cor.maxed.out.melt$cor
+mz.zei.cor.maxed.out.melt$cor.maxed[which(mz.zei.cor.maxed.out.melt$cor >  maxed.num)] =  maxed.num
+mz.zei.cor.maxed.out.melt$cor.maxed[which(mz.zei.cor.maxed.out.melt$cor < -maxed.num)] = -maxed.num
+mz.zei.cor.maxed.out.melt$cor.test.p = reshape2::melt(mz.zei.cor.p)[,3]
+mz.zei.cor.maxed.out.melt$cor.test.bon = reshape2::melt(mz.zei.cor.bon)[,3]
+mz.zei.cor.maxed.out.melt$perm.test.p = mz.zei.cor.melt$p.perm
+mz.zei.cor.maxed.out.melt$perm.test.bon = mz.zei.cor.melt$bon.perm
+mz.zei.cor.maxed.out.melt$all.sig = mz.zei.cor.maxed.out.melt$cor.test.bon < 0.05 & mz.zei.cor.maxed.out.melt$perm.test.bon < 0.05
+mz.order  = hclust(dist(mz.zei.cor), method = "complete")
+mz.zei.cor.maxed.out.melt$mz.cluster = factor(mz.zei.cor.maxed.out.melt$mz.cluster, levels = mz.order$labels[mz.order$order])
+zei.order = hclust(dist(t(mz.zei.cor)), method = "complete")
+mz.zei.cor.maxed.out.melt$mouse.cluster = factor(mz.zei.cor.maxed.out.melt$mouse.cluster, levels = zei.order$labels[zei.order$order])
+ggplot(mz.zei.cor.maxed.out.melt, aes(x = mouse.cluster, y = mz.cluster, fill = cor.maxed)) + geom_raster() + geom_point(data = mz.zei.cor.maxed.out.melt[which(mz.zei.cor.maxed.out.melt$all.sig),], size = 0.8) + scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(n = 11, name = "RdBu")))(100), n.breaks = 6, limits = c(-maxed.num, maxed.num)) + coord_fixed() + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+# ggplot(mz.zei.cor.maxed.out.melt, aes(x = mz.cluster, y = mouse.cluster, fill = cor.maxed)) + geom_raster() + geom_point(data = mz.zei.cor.maxed.out.melt[which(mz.zei.cor.maxed.out.melt$all.sig),], size = 0.8) + scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(n = 11, name = "RdBu")))(100), n.breaks = 6, limits = c(-maxed.num, maxed.num)) + coord_fixed() + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+ggsave("~/scratch/bcs/results/mz_zei_cor_tax_region_perm_and_spearman_test_ggplot.pdf", width = 6, height = 11)
+# ggsave("~/research/bcs/results/mz_tasic_ggplot.pdf", width = 3.5, height = 7.5)
+write.csv(mz.zei.cor.maxed.out.melt, "~/scratch/bcs/results/mz_zei_cor.csv")
+
+permCorColquitt = function(old.mat) {
+  rownames(old.mat) = sample(orig.gene.labels)
+  old.mat = old.mat[orig.gene.labels,]
+  perm.cor = cor(old.mat, zei.avg.exp.norm, method = "spearman")
+  perm.cor.melt = reshape2::melt(perm.cor)
+  return(perm.cor.melt[,3])
+}
+permCorTosches = function(old.mat) {
+  new.mat.list = lapply(1:nrow(old.mat), function(x) sample(old.mat[x,]))
+  new.mat = do.call('rbind', new.mat.list)
+  perm.cor = cor(new.mat, zei.avg.exp.norm, method = "spearman")
+  perm.cor.melt = reshape2::melt(perm.cor)
+  return(perm.cor.melt[,3])
+}
+
+# Neuronal
+bb53.deg.neuron = bb53.deg[which(!bb53.deg$cluster %in% c("1.1_Astro", "1.2_Astro", "1.3_MG", "3_Peri", "2.1_OPC", "2.2_Oligo")),]
+# zei.cluster.meta = unique(zei@meta.data[,c("ClusterName", "TaxonomyRank1", "TaxonomyRank2", "TaxonomyRank3", "TaxonomyRank4", "Tissue")])
+zei.cluster.meta = unique(zei@meta.data[,c("ClusterName", "TaxonomyRank1")])
+zei.deg.neuron = zei.deg[which(zei.deg$cluster %in% zei.cluster.meta$ClusterName[which(zei.cluster.meta$TaxonomyRank1 == "Neurons")]),]
+common.gene.set.neuron = sort(unique(toupper(zei.deg.neuron$gene)))
+common.gene.set.neuron = common.gene.set.neuron[which(common.gene.set.neuron %in% bb53.deg.neuron$one_to_one_human)]
+mz.common.gene.set.neuron = bb53.deg.neuron$gene[match(common.gene.set.neuron, bb53.deg.neuron$one_to_one_human)]
+zei.common.gene.set.neuron = stringr::str_to_title(common.gene.set.neuron)
+bb.neuron = subset(bb, cells = colnames(bb)[which(!bb$good_names53 %in% c("1.1_Astro", "1.2_Astro", "1.3_MG", "3_Peri", "2.1_OPC", "2.2_Oligo"))])
+mz.avg.exp.neuron = AverageExpression(bb.neuron, features = mz.common.gene.set.neuron, assays = "RNA", slot = "data")[[1]]
+mz.avg.exp.norm.neuron = log(mz.avg.exp.neuron+1) + 0.1
+mz.avg.exp.norm.neuron = mz.avg.exp.norm.neuron / rowMeans(mz.avg.exp.norm.neuron)
+zei.neuron = subset(zei, cells = colnames(zei)[which(zei$ClusterName %in% zei.cluster.meta$ClusterName[which(zei.cluster.meta$TaxonomyRank1 == "Neurons")])])
+zei.avg.exp.neuron = AverageExpression(zei.neuron, features = zei.common.gene.set.neuron, assays = "RNA", slot = "data")[[1]]
+zei.avg.exp.norm.neuron = log(zei.avg.exp.neuron+1) + 0.1
+zei.avg.exp.norm.neuron = zei.avg.exp.norm.neuron / rowMeans(zei.avg.exp.norm.neuron)
+mz.zei.cor.neuron = cor(mz.avg.exp.norm.neuron, zei.avg.exp.norm.neuron, method = "spearman")
+pheatmap::pheatmap(mz.zei.cor.neuron, cellwidth = 10, cellheight = 10, filename = "~/scratch/brain/results/mz_zei_cor_neuron.pdf")
+
+# Neuronal 15
+bb15.deg.neuron = bb15.deg[which(!bb15.deg$cluster %in% c("1_Astro/MG", "2_OPC/Oligo", "3_Peri")),]
+# zei.cluster.meta = unique(zei@meta.data[,c("ClusterName", "TaxonomyRank1", "TaxonomyRank2", "TaxonomyRank3", "TaxonomyRank4", "Tissue")])
+zei.cluster.meta = unique(zei@meta.data[,c("ClusterName", "TaxonomyRank1")])
+zei.deg.neuron = zei.deg[which(zei.deg$cluster %in% zei.cluster.meta$ClusterName[which(zei.cluster.meta$TaxonomyRank1 == "Neurons")]),]
+common.gene.set.neuron = sort(unique(toupper(zei.deg.neuron$gene)))
+common.gene.set.neuron = common.gene.set.neuron[which(common.gene.set.neuron %in% bb15.deg.neuron$one_to_one_human)]
+mz.common.gene.set.neuron = bb15.deg.neuron$gene[match(common.gene.set.neuron, bb15.deg.neuron$one_to_one_human)]
+zei.common.gene.set.neuron = stringr::str_to_title(common.gene.set.neuron)
+bb.neuron = subset(bb, cells = colnames(bb)[which(!bb$good_names15 %in% c("1_Astro/MG", "2_OPC/Oligo", "3_Peri"))])
+Idents(bb.neuron) = bb.neuron$good_names15
+mz.avg.exp.neuron = AverageExpression(bb.neuron, features = mz.common.gene.set.neuron, assays = "RNA", slot = "data")[[1]]
+mz.avg.exp.norm.neuron = log(mz.avg.exp.neuron+1) + 0.1
+mz.avg.exp.norm.neuron = mz.avg.exp.norm.neuron / rowMeans(mz.avg.exp.norm.neuron)
+zei.neuron = subset(zei, cells = colnames(zei)[which(zei$ClusterName %in% zei.cluster.meta$ClusterName[which(zei.cluster.meta$TaxonomyRank1 == "Neurons")])])
+zei.avg.exp.neuron = AverageExpression(zei.neuron, features = zei.common.gene.set.neuron, assays = "RNA", slot = "data")[[1]]
+zei.avg.exp.norm.neuron = log(zei.avg.exp.neuron+1) + 0.1
+zei.avg.exp.norm.neuron = zei.avg.exp.norm.neuron / rowMeans(zei.avg.exp.norm.neuron)
+mz.zei.cor.neuron = cor(mz.avg.exp.norm.neuron, zei.avg.exp.norm.neuron, method = "spearman")
+pheatmap::pheatmap(mz.zei.cor.neuron, cellwidth = 10, cellheight = 10, filename = "~/scratch/brain/results/mz15_zei_cor_neuron.pdf")
+
+# Tasic ========================================================================
+# ta.intron = data.table::fread("~/Downloads/tasic/GSE115746_cells_intron_counts.csv", data.table=F)
+# ta.exon   = data.table::fread("~/Downloads/tasic/GSE115746_cells_exon_counts.csv", data.table=F)
+# # ta.con.intron = data.table::fread("~/Downloads/tasic/GSE115746_controls_exon_counts.csv", data.table=F)
+# # ta.con.exon   = data.table::fread("~/Downloads/tasic/GSE115746_controls_intron_counts.csv", data.table=F)
+# ta.meta   = readxl::read_xlsx("~/Downloads/tasic/Supplemental/Supplementary_Table_10_Full_Metadata.xlsx")
+# rownames(ta.intron) = rownames(ta.exon) = ta.intron$V1
+# ta.intron$V1 = ta.exon$V1 = NULL
+# ta.counts = ta.intron + ta.exon
+# ta = CreateSeuratObject(counts = ta.counts, meta.data = ta.meta)
+
+ta.alm.intron = data.table::fread("~/Downloads/tasic/ALM_retrieved_from_aba/mouse_ALM_2018-06-14_intron-matrix.csv", data.table=F)
+ta.alm.exon   = data.table::fread("~/Downloads/tasic/ALM_retrieved_from_aba/mouse_ALM_2018-06-14_exon-matrix.csv", data.table=F)
+ta.alm.meta   = data.table::fread("~/Downloads/tasic/ALM_retrieved_from_aba/mouse_ALM_2018-06-14_samples-columns.csv", data.table=F)
+ta.alm.genes  = data.table::fread("~/Downloads/tasic/ALM_retrieved_from_aba/mouse_ALM_2018-06-14_genes-rows.csv", data.table=F)
+rownames(ta.alm.intron) = rownames(ta.alm.exon) = ta.alm.genes$gene_symbol[match(ta.alm.intron$V1, ta.alm.genes$gene_entrez_id)]
+ta.alm.intron$V1 = ta.alm.exon$V1 = NULL
+ta.alm.counts = ta.alm.intron + ta.alm.exon
+rownames(ta.alm.meta) = ta.alm.meta$sample_name
+
+ta.alm = CreateSeuratObject(counts = ta.alm.counts, meta.data = ta.alm.meta)
+saveRDS(ta.alm, "~/research/st/data/tasic_alm.rds")
+
+ta.visp.intron = data.table::fread("~/Downloads/tasic/VISp_retrieved_from_aba/mouse_VISp_2018-06-14_intron-matrix.csv", data.table=F)
+ta.visp.exon   = data.table::fread("~/Downloads/tasic/VISp_retrieved_from_aba/mouse_VISp_2018-06-14_exon-matrix.csv", data.table=F)
+ta.visp.meta   = data.table::fread("~/Downloads/tasic/VISp_retrieved_from_aba/mouse_VISp_2018-06-14_samples-columns.csv", data.table=F)
+ta.visp.genes  = data.table::fread("~/Downloads/tasic/VISp_retrieved_from_aba/mouse_VISp_2018-06-14_genes-rows.csv", data.table=F)
+rownames(ta.visp.intron) = rownames(ta.visp.exon) = ta.visp.genes$gene_symbol[match(ta.visp.intron$V1, ta.visp.genes$gene_entrez_id)]
+ta.visp.intron$V1 = ta.visp.exon$V1 = NULL
+ta.visp.counts = ta.visp.intron + ta.visp.exon
+rownames(ta.visp.meta) = ta.visp.meta$sample_name
+
+ta.visp = CreateSeuratObject(counts = ta.visp.counts, meta.data = ta.visp.meta)
+saveRDS(ta.visp, "~/research/st/data/tasic_visp.rds")
+
+ta = merge(ta.alm, ta.visp)
+# ta = subset(ta, cells = colnames(ta)[which(ta$class != "Low Quality")])
+ta2 = subset(ta, cells = colnames(ta)[which(ta$subclass %in% c("L2/3 IT", "L4", "L5 IT", "L5 PT", "L6b", "L6 CT", "L6 IT"))])
+ta3 = subset(ta2, cells = colnames(ta2)[which(ta2@assays$RNA@counts["Gad1",] == 0 & ta2@assays$RNA@counts["Gad2",] == 0)])
+bb.glut = subset(bb, cells = colnames(bb)[which( endsWith(as.vector(bb$good_names53), "Glut") & !bb$good_names53 %in% c("15.1_GABA/Glut", "15.5_GABA/Glut") & colSums(bb@assays$RNA@counts[c("gad1", "gad2"),])==0 & colSums(bb@assays$RNA@counts[c("slc17a6", "LOC101484681"),])>0 )])
+bb.gaba = subset(bb, cells = colnames(bb)[which( endsWith(as.vector(bb$good_names53), "GABA") & !bb$good_names53 %in% c("15.1_GABA/Glut", "15.5_GABA/Glut") & colSums(bb@assays$RNA@counts[c("gad1", "gad2"),])>0  & colSums(bb@assays$RNA@counts[c("slc17a6", "LOC101484681"),])==0 )])
+bb.nn = subset(bb, cells = colnames(bb)[which( !grepl("GABA", bb$good_names53) & !grepl("Glut", bb$good_names53) )])
+
+# Oritz ========================================================================
+# mcounts = data.table::fread("~/Downloads/mst/expr_normalized_table.tsv", data.table = F)
+mcounts = data.table::fread("~/Downloads/mst/expr_raw_counts_table.tsv", data.table = F)
+rownames(mcounts) = mcounts$V1
+mcounts$V1 = NULL
+mcounts = t(mcounts)
+mcounts = Matrix::Matrix(mcounts, sparse=T)
+mmeta = data.table::fread("~/Downloads/mst/meta_table.tsv", data.table = F)
+rownames(mmeta) = mmeta$V1
+
+mst = CreateSeuratObject(counts = mcounts, meta.data = mmeta)
+mst = subset(mst, cells = colnames(mst)[which(mst$passed_QC)])
+mst = SCTransform(mst)
+
+mst = readRDS("~/research/st/data/mst_norm.rds")
+mst.var = unique(unlist( read.csv("~/Downloads/oritz_var.csv") ))
+mst.var = data.frame(mouse = mst.var, mz = gene_info$seurat_name[match(toupper(mst.var), gene_info$one_to_one_human)])
+mst.var$mzHVG = mst.var$mz %in% all_merge@assays$SCT@var.features
+mst.var = mst.var[which(!is.na(mst.var$mz) & mst.var$mzHVG),]
+
+# Tran =========================================================================
+load("~/scratch/bcs/data/tran/sce/SCE_AMY-n5_tran-etal.rda")
+load("~/scratch/bcs/data/tran/sce/SCE_HPC-n3_tran-etal.rda")
+load("~/scratch/bcs/data/tran/sce/SCE_sACC-n5_tran-etal.rda")
+load("~/scratch/bcs/data/tran/sce/SCE_DLPFC-n3_tran-etal.rda")
+load("~/scratch/bcs/data/tran/sce/SCE_NAc-n8_tran-etal.rda")
+
+sce.amy.tran   = as.Seurat(sce.amy.tran)
+sce.dlpfc.tran = as.Seurat(sce.dlpfc.tran)
+sce.hpc.tran   = as.Seurat(sce.hpc.tran)
+sce.nac.tran   = as.Seurat(sce.nac.tran)
+sce.sacc.tran  = as.Seurat(sce.sacc.tran)
+
+tran = merge(sce.amy.tran, c(sce.dlpfc.tran, sce.hpc.tran, sce.nac.tran, sce.sacc.tran))
+tran = SCTransform(tran)
