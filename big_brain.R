@@ -8043,6 +8043,196 @@ permSubsamples = function(x) {
 #*******************************************************************************
 # Supplement ===================================================================
 #*******************************************************************************
+# IEG Summary
+# Primary
+b15 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_bb15_bbmm_demux_combined_diff_ieg_score_bower_behavior_hmp_calculated_across_clusters_110721.csv")
+b15$category = "building"
+b15$level = "primary"
+b15$population = b15$cluster
+p_cols = c("p_bbmm_cond", "p_bbmm_cond.1", "p_bbmm_cond.2", "p_bbmm_bower_activity_index", "p_bbmm_bower_activity_index.1", "p_bbmm_bower_activity_index.2")
+b15$p_min = unlist(lapply(1:nrow(b15), function(x) min(b15[x, p_cols]) ))
+b15$p_max = unlist(lapply(1:nrow(b15), function(x) max(b15[x, p_cols]) ))
+b15$num_models = 6
+b15$num_models_sig = b15$sig_bower_all
+b15$hmp = b15$hmp_bower_all
+g15 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_bb15_bbmm_demux_combined_diff_ieg_score_gsi_hmp_calculated_across_clusters_110721.csv")
+g15$category = "gsi"
+g15$level = "primary"
+g15$population = g15$cluster
+p_cols = c("p_bbmm_gsi", "p_bbmm_gsi.1", "p_bbmm_gsi.2", "p_bbmm_gsi.3", "p_bbmm_gsi.4")
+g15$p_min = unlist(lapply(1:nrow(g15), function(x) min(g15[x, p_cols]) ))
+g15$p_max = unlist(lapply(1:nrow(g15), function(x) max(g15[x, p_cols]) ))
+g15$num_models = 5
+g15$num_models_sig = rowSums(g15[,p_cols] < 0.05)
+q15 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_bb15_bbmm_demux_combined_diff_ieg_score_log_spawn_events_hmp_calculated_across_clusters_110721.csv")
+q15$category = "quivering"
+q15$level = "primary"
+q15$population = q15$cluster
+p_cols = c("p_bbmm_log_spawn_events", "p_bbmm_log_spawn_events.1", "p_bbmm_log_spawn_events.2", "p_bbmm_log_spawn_events.3", "p_bbmm_log_spawn_events.4")
+q15$p_min = unlist(lapply(1:nrow(q15), function(x) min(q15[x, p_cols]) ))
+q15$p_max = unlist(lapply(1:nrow(q15), function(x) max(q15[x, p_cols]) ))
+q15$num_models = 5
+q15$num_models_sig = rowSums(q15[,p_cols] < 0.05)
+
+# Secondary
+b53 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_bb53_bbmm_demux_combined_diff_ieg_score_bower_behavior_hmp_calculated_across_clusters_110521.csv")
+b53$category = "building"
+b53$level = "secondary"
+b53$population = b53$cluster
+p_cols = c("p_bbmm_cond", "p_bbmm_cond.1", "p_bbmm_cond.2", "p_bbmm_bower_activity_index", "p_bbmm_bower_activity_index.1", "p_bbmm_bower_activity_index.2")
+b53$p_min = unlist(lapply(1:nrow(b53), function(x) min(b53[x, p_cols]) ))
+b53$p_max = unlist(lapply(1:nrow(b53), function(x) max(b53[x, p_cols]) ))
+b53$num_models = 6
+b53$num_models_sig = b53$sig_bower_all
+b53$hmp = b53$hmp_bower_all
+g53 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_bb53_bbmm_demux_combined_diff_ieg_score_gsi_hmp_calculated_across_clusters_111921.csv")
+g53$category = "gsi"
+g53$level = "secondary"
+g53$population = g53$cluster
+p_cols = c("p_bbmm_gsi", "p_bbmm_gsi.1", "p_bbmm_gsi.2", "p_bbmm_gsi.3", "p_bbmm_gsi.4")
+g53$p_min = unlist(lapply(1:nrow(g53), function(x) min(g53[x, p_cols]) ))
+g53$p_max = unlist(lapply(1:nrow(g53), function(x) max(g53[x, p_cols]) ))
+g53$num_models = 5
+g53$num_models_sig = rowSums(g53[,p_cols] < 0.05)
+q53 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_bb53_bbmm_demux_combined_diff_ieg_score_log_spawn_events_hmp_calculated_across_clusters_111921.csv")
+q53$category = "quivering"
+q53$level = "secondary"
+q53$population = q53$cluster
+p_cols = c("p_bbmm_log_spawn_events", "p_bbmm_log_spawn_events.1", "p_bbmm_log_spawn_events.2", "p_bbmm_log_spawn_events.3", "p_bbmm_log_spawn_events.4")
+q53$p_min = unlist(lapply(1:nrow(q53), function(x) min(q53[x, p_cols]) ))
+q53$p_max = unlist(lapply(1:nrow(q53), function(x) max(q53[x, p_cols]) ))
+q53$num_models = 5
+q53$num_models_sig = rowSums(q53[,p_cols] < 0.05)
+
+# Gene defined
+bg = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc.csv")
+bg$category = "building"
+bg$level = "gene-defined"
+bg$population = paste0(bg$mzebra, " (", bg$goi, ")")
+p_cols = c("p_bbmm_cond", "p_bbmm_cond.1", "p_bbmm_cond.2", "p_bbmm_bower_activity_index", "p_bbmm_bower_activity_index.1", "p_bbmm_bower_activity_index.2")
+bg$p_min = unlist(lapply(1:nrow(bg), function(x) min(bg[x, p_cols]) ))
+bg$p_max = unlist(lapply(1:nrow(bg), function(x) max(bg[x, p_cols]) ))
+bg$num_models = 6
+bg$num_models_sig = bg$sig_bower_all
+bg$hmp = bg$hmp_bower_all
+gg = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc.csv")
+gg$category = "gsi"
+gg$level = "gene-defined primary"
+gg$population = paste0(gg$mzebra, " (", gg$goi, ")")
+p_cols = c("p_bbmm_gsi", "p_bbmm_gsi.1", "p_bbmm_gsi.2", "p_bbmm_gsi.3", "p_bbmm_gsi.4")
+gg$p_min = unlist(lapply(1:nrow(gg), function(x) min(gg[x, p_cols]) ))
+gg$p_max = unlist(lapply(1:nrow(gg), function(x) max(gg[x, p_cols]) ))
+gg$num_models = 5
+gg$num_models_sig = rowSums(gg[,p_cols] < 0.05)
+qg = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc.csv")
+qg$category = "quivering"
+qg$level = "gene-defined primary"
+qg$population = paste0(qg$mzebra, " (", qg$goi, ")")
+p_cols = c("p_bbmm_log_spawn_events", "p_bbmm_log_spawn_events.1", "p_bbmm_log_spawn_events.2", "p_bbmm_log_spawn_events.3", "p_bbmm_log_spawn_events.4")
+qg$p_min = unlist(lapply(1:nrow(qg), function(x) min(qg[x, p_cols]) ))
+qg$p_max = unlist(lapply(1:nrow(qg), function(x) max(qg[x, p_cols]) ))
+qg$num_models = 5
+qg$num_models_sig = rowSums(qg[,p_cols] < 0.05)
+
+# Gene defined primary
+bg15 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_by_cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc.csv")
+bg15$category = "building"
+bg15$level = "gene-defined primary"
+bg15$population = bg15$cluster
+bg15$gene = paste0(bg15$mzebra, " (", bg15$goi, ")")
+p_cols = c("p_bbmm_cond", "p_bbmm_cond.1", "p_bbmm_cond.2", "p_bbmm_bower_activity_index", "p_bbmm_bower_activity_index.1", "p_bbmm_bower_activity_index.2")
+bg15$p_min = unlist(lapply(1:nrow(bg15), function(x) min(bg15[x, p_cols]) ))
+bg15$p_max = unlist(lapply(1:nrow(bg15), function(x) max(bg15[x, p_cols]) ))
+bg15$num_models = 6
+bg15$num_models_sig = bg15$sig_bower_all
+bg15$hmp = bg15$hmp_bower_all
+gg15 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_by_cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc.csv")
+gg15$category = "gsi"
+gg15$level = "gene-defined primary"
+gg15$population = gg15$cluster
+gg15$gene = paste0(gg15$mzebra, " (", gg15$goi, ")")
+p_cols = c("p_bbmm_gsi", "p_bbmm_gsi.1", "p_bbmm_gsi.2", "p_bbmm_gsi.3", "p_bbmm_gsi.4")
+gg15$p_min = unlist(lapply(1:nrow(gg15), function(x) min(gg15[x, p_cols]) ))
+gg15$p_max = unlist(lapply(1:nrow(gg15), function(x) max(gg15[x, p_cols]) ))
+gg15$num_models = 5
+gg15$num_models_sig = rowSums(gg15[,p_cols] < 0.05)
+qg15 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_by_cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc.csv")
+qg15$category = "quivering"
+qg15$level = "gene-defined primary"
+qg15$population = qg15$cluster
+qg15$gene = paste0(qg15$mzebra, " (", qg15$goi, ")")
+p_cols = c("p_bbmm_log_spawn_events", "p_bbmm_log_spawn_events.1", "p_bbmm_log_spawn_events.2", "p_bbmm_log_spawn_events.3", "p_bbmm_log_spawn_events.4")
+qg15$p_min = unlist(lapply(1:nrow(qg15), function(x) min(qg15[x, p_cols]) ))
+qg15$p_max = unlist(lapply(1:nrow(qg15), function(x) max(qg15[x, p_cols]) ))
+qg15$num_models = 5
+qg15$num_models_sig = rowSums(qg15[,p_cols] < 0.05)
+
+# Gene defined secondary
+bg53 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_by_53cluster_bbmm_demux_bower_behavior_hmp_calculated_across_all_goi_111921_hgnc.csv")
+bg53$category = "building"
+bg53$level = "gene-defined secondary"
+bg53$population = bg53$cluster
+bg53$gene = paste0(bg53$mzebra, " (", bg53$goi, ")")
+p_cols = c("p_bbmm_cond", "p_bbmm_cond.1", "p_bbmm_cond.2", "p_bbmm_bower_activity_index", "p_bbmm_bower_activity_index.1", "p_bbmm_bower_activity_index.2")
+bg53$p_min = unlist(lapply(1:nrow(bg53), function(x) min(bg53[x, p_cols]) ))
+bg53$p_max = unlist(lapply(1:nrow(bg53), function(x) max(bg53[x, p_cols]) ))
+bg53$num_models = 6
+bg53$num_models_sig = bg53$sig_bower_all
+bg53$hmp = bg53$hmp_bower_all
+gg53 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_by_53cluster_bbmm_demux_gsi_hmp_calculated_across_all_goi_111921_hgnc.csv")
+gg53$category = "gsi"
+gg53$level = "gene-defined secondary"
+gg53$population = gg53$cluster
+gg53$gene = paste0(gg53$mzebra, " (", gg53$goi, ")")
+p_cols = c("p_bbmm_gsi", "p_bbmm_gsi.1", "p_bbmm_gsi.2", "p_bbmm_gsi.3", "p_bbmm_gsi.4")
+gg53$p_min = unlist(lapply(1:nrow(gg53), function(x) min(gg53[x, p_cols]) ))
+gg53$p_max = unlist(lapply(1:nrow(gg53), function(x) max(gg53[x, p_cols]) ))
+gg53$num_models = 5
+gg53$num_models_sig = rowSums(gg53[,p_cols] < 0.05)
+qg53 = read.csv("C:/Users/miles/Downloads/out_all_ieg_results_010421/out_all_ieg_results_010421/out_ieg_by_goi_by_53cluster_bbmm_demux_log_spawn_events_hmp_calculated_across_all_goi_111921_hgnc.csv")
+qg53$category = "quivering"
+qg53$level = "gene-defined secondary"
+qg53$population = qg53$cluster
+qg53$gene = paste0(qg53$mzebra, " (", qg53$goi, ")")
+p_cols = c("p_bbmm_log_spawn_events", "p_bbmm_log_spawn_events.1", "p_bbmm_log_spawn_events.2", "p_bbmm_log_spawn_events.3", "p_bbmm_log_spawn_events.4")
+qg53$p_min = unlist(lapply(1:nrow(qg53), function(x) min(qg53[x, p_cols]) ))
+qg53$p_max = unlist(lapply(1:nrow(qg53), function(x) max(qg53[x, p_cols]) ))
+qg53$num_models = 5
+qg53$num_models_sig = rowSums(qg53[,p_cols] < 0.05)
+
+
+cols.to.keep = c("category", "level", "population", "p_min", "p_max", "hmp", "num_models", "num_models_sig")
+bb15 = rbind(b15[,cols.to.keep], g15[,cols.to.keep], q15[,cols.to.keep])
+bb15$population = convert15$new.full[match(bb15$population, convert15$old)]
+bb15$population = factor(bb15$population, levels = rev(convert15$new.full))
+bb15 = bb15[order(bb15$category, bb15$population),]
+bb53 = rbind(b53[,cols.to.keep], g53[,cols.to.keep], q53[,cols.to.keep])
+bb53$population = convert53$new[match(bb53$population, convert53$old)]
+bb53$population = factor(bb53$population, levels = convert53$new)
+bb53 = bb53[order(bb53$category, bb53$population),]
+
+bbg = rbind(bg[,cols.to.keep], gg[,cols.to.keep], qg[,cols.to.keep])
+bbg = bbg[order(bbg$category,bbg$population),]
+bbg15 = rbind(bg15[,c(cols.to.keep, "gene")], gg15[,c(cols.to.keep, "gene")], qg15[,c(cols.to.keep, "gene")])
+bbg15$population = convert15$new.full[match(bbg15$population, convert15$old)]
+bbg15$population = factor(bbg15$population, levels = rev(convert15$new.full))
+bbg15 = bbg15[order(bbg15$category, bbg15$population),]
+bbg15$population = paste(bbg15$population, bbg15$gene)
+bbg15$gene = NULL
+bbg53 = rbind(bg53[,c(cols.to.keep, "gene")], gg53[,c(cols.to.keep, "gene")], qg53[,c(cols.to.keep, "gene")])
+bbg53$population = convert53$new[match(bbg53$population, convert53$old)]
+bbg53$population = factor(bbg53$population, levels = convert53$new)
+bbg53 = bbg53[order(bbg53$category, bbg53$population),]
+bbg53$population = paste(bbg53$population, bbg53$gene)
+bbg53$gene = NULL
+
+bball = rbind(bb15, bb53, bbg, bbg15, bbg53)
+bball$significant = bball$num_models_sig == bball$num_models & bball$hmp < 0.05
+bballsig = bball[which(bball$significant),]
+write.csv(bball,    "C:/Users/miles/Downloads/ieg_summary_for_supplement_102822.csv")
+write.csv(bballsig, "C:/Users/miles/Downloads/ieg_summary_for_supplement_sig_102822.csv")
+
+
 # bDEG, qDEG, gDEG
 # Primary
 bDEG15 = read.csv("~/research/brain/results/out_glmmseq_bb15_demux_deg_bower_behavior_hmp_calculated_across_clusters_111821_hgnc.csv")
@@ -9740,7 +9930,6 @@ perm5 = read.csv("C:/Users/miles/Downloads/cellchat_downsampled_perm_1000nruns_r
 p_df = data.frame(weight = c(as.numeric(down5[which(down5$X == "rgc_2.primary_1"),4:ncol(down5)]), as.numeric(down5[which(down5$X == "primary_1.rgc_2"),4:ncol(down5)])), direction = c(rep("RGC2 -> 9_Glut", 1000), rep("9_Glut -> RGC2", 1000)))
 ggplot(p_df, aes(x = weight, fill = direction, color = direction)) + geom_histogram(alpha = 0.7, position = 'identity') + theme_classic() + scale_x_continuous(expand = c(0,0)) + scale_y_continuous(expand = c(0,0))
 
-
 test = data.frame(net_weight_vect)
 test[, c("clust1", "clust2")] = reshape2::colsplit(rownames(test), "\\.", c("1", "2"))
 test$clust1.num = as.numeric(as.vector(reshape2::colsplit(test$clust1, "_", c('1', '2'))[,2]))
@@ -9875,4 +10064,4 @@ z_org$clust1 = rep(unique(z_org$variable), 26)
 z_org$clust2 = z_org$variable
 z_org$id = paste0(z_org$clust1, ".", z_org$clust2)
 mine$z_org = z_org$value[match(paste0(trimws(mine$clust1.name.down), ".", trimws(mine$clust2.name.down)), z_org$id)]
->>>>>>> 0c9ebad7920e449bdd64cdbc237bc45c9c1f51b4
+
