@@ -146,6 +146,10 @@ def main():
         data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/jaw_data_mat.npz")
         gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/jaw_names.csv").iloc[:, 1].to_numpy()
         cluster_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/jaw_clusters.csv").iloc[:, 1].to_numpy()
+    elif dataset == "plk":
+        data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/plkall_sct_040523.npz")
+        gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/plkall_sct_names.csv").iloc[:,1].to_numpy()
+        cluster_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/plkall_sct_clusters.csv").iloc[:, 1].to_numpy()
     elif dataset == "mi":
         data_mat = sparse.load_npz("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/incsr_data_mat.npz")
         gene_labels = pandas.read_csv("/storage/home/hcoda1/6/ggruenhagen3/scratch/d_tooth/data/incsr_names.csv").iloc[:, 1].to_numpy()
